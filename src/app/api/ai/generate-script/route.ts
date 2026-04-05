@@ -127,8 +127,8 @@ export async function POST(request: NextRequest) {
   const systemPrompt = scriptTypePrompts[script_type] || scriptTypePrompts.other;
   const fullPrompt = `${prompt}${clientContext}`;
 
-  let result: { text: string; model: string; tokens: number };
-  let provider: 'claude' | 'openai' | 'gemini';
+  let result: { text: string; model: string; tokens: number } = { text: '', model: '', tokens: 0 };
+  let provider: 'claude' | 'openai' | 'gemini' = 'claude';
 
   const callMap = {
     claude: callClaude,

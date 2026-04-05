@@ -171,7 +171,7 @@ export default function TasksPage() {
         setShowAiModal(false);
         setParsedTasks(null);
         setAiInput('');
-        setAiProjectId('');
+        setAiClientId('');
         setTasksSaved(false);
       }, 1500);
     }
