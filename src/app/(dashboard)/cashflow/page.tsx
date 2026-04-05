@@ -406,7 +406,7 @@ export default function CashflowPage() {
                       tickFormatter={(v) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : `${v}`}
                     />
                     <Tooltip
-                      formatter={(value: number, name: string) => [formatCurrency(value), name]}
+                      formatter={(value) => [formatCurrency(Number(value)), undefined]}
                       contentStyle={{
                         backgroundColor: '#1a1a1a',
                         border: '1px solid rgba(240, 237, 230, 0.12)',
@@ -447,7 +447,7 @@ export default function CashflowPage() {
                       tickFormatter={(v) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : `${v}`}
                     />
                     <Tooltip
-                      formatter={(value: number) => [formatCurrency(value), 'Margine']}
+                      formatter={(value) => [formatCurrency(Number(value)), 'Margine']}
                       contentStyle={{
                         backgroundColor: '#1a1a1a',
                         border: '1px solid rgba(240, 237, 230, 0.12)',
