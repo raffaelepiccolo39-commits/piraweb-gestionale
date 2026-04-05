@@ -1,0 +1,1 @@
+- [Project Stack and Conventions](project_stack.md) — Tailwind v4, dark theme, pw-* tokens, Recharts, Supabase auth, Italian gestionale SaaS

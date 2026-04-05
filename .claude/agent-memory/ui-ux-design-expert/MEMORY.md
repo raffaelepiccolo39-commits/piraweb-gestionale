@@ -1,0 +1,2 @@
+- [PiraWeb Gestionale — Project Context](project_piraweb_gestionale.md) — Brand colors, tech stack, role system, and app structure for the PiraWeb internal tool
+- [UI/UX Audit Findings — April 2026](ui_ux_audit_findings.md) — 20 numbered issues from full codebase audit: contrast bugs, dark-mode contamination, mobile overflow, a11y gaps

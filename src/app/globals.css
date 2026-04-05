@@ -1,26 +1,85 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* PiraWeb Brand Colors */
+  --color-pw-bg: #000000;
+  --color-pw-surface: #141414;
+  --color-pw-surface-2: #1a1a1a;
+  --color-pw-surface-3: #222222;
+  --color-pw-border: rgba(240, 237, 230, 0.1);
+  --color-pw-border-hover: rgba(240, 237, 230, 0.2);
+  --color-pw-text: #f0ede6;
+  --color-pw-text-muted: rgba(240, 237, 230, 0.5);
+  --color-pw-text-dim: rgba(240, 237, 230, 0.3);
+  --color-pw-accent: #c8f55a;
+  --color-pw-accent-hover: #d4ff6a;
+  --color-pw-purple: #8c7af5;
+  --color-pw-gold: #d4af37;
+
+  /* Semantic Colors */
+  --color-primary: #c8f55a;
+  --color-primary-hover: #d4ff6a;
+  --color-primary-light: rgba(200, 245, 90, 0.1);
+  --color-success: #10B981;
+  --color-warning: #F59E0B;
+  --color-danger: #EF4444;
+
+  /* Fonts */
+  --font-sans: var(--font-inter);
+  --font-heading: var(--font-syne);
+  --font-display: var(--font-bebas);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(240, 237, 230, 0.15);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(240, 237, 230, 0.25);
+}
+
+/* Sidebar transition */
+.sidebar-transition {
+  transition: margin-left 200ms ease-in-out;
+}
+
+/* Selection */
+::selection {
+  background: rgba(200, 245, 90, 0.3);
+  color: #f0ede6;
+}
+
+/* Focus ring */
+*:focus-visible {
+  outline: 2px solid rgba(200, 245, 90, 0.5);
+  outline-offset: 2px;
+}
+
+/* Hide scrollbar utility */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Prevent horizontal overflow */
+html, body { overflow-x: hidden; }
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, .sidebar-transition {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
-}
+/* Color scheme */
+html { color-scheme: dark; }
