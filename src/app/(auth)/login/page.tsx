@@ -1,21 +1,22 @@
 'use client';
 
 import { useState } from 'react';
+import dynamic from 'next/dynamic';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
 
-export default function LoginPage() {
+function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
-  const supabase = createClient();
 
   const handleLogin = async (e: React.FormEvent) => {
+    const supabase = createClient();
     e.preventDefault();
     setError('');
     setLoading(true);
@@ -140,3 +141,5 @@ export default function LoginPage() {
     </div>
   );
 }
+
+export default dynamic(() => Promise.resolve(LoginPage), { ssr: false });
