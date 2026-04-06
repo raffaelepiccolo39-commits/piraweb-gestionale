@@ -1,13 +1,15 @@
 'use client';
 
+export const forceDynamic = 'force-dynamic';
+export { forceDynamic as dynamic };
+
 import { useState } from 'react';
-import dynamic from 'next/dynamic';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
 
-function LoginPage() {
+export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -141,5 +143,3 @@ function LoginPage() {
     </div>
   );
 }
-
-export default dynamic(() => Promise.resolve(LoginPage), { ssr: false });
