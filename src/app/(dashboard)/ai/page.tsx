@@ -93,7 +93,7 @@ export default function AiPage() {
     if (scriptsRes.data) setScripts(scriptsRes.data as AiScript[]);
     if (clientsRes.data) setClients(clientsRes.data as Client[]);
     if (projectsRes.data) setProjects(projectsRes.data as Project[]);
-  }, [supabase]);
+  }, []);
 
   useEffect(() => {
     fetchData();

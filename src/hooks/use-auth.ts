@@ -1,31 +1,47 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useAuthStore } from '@/store/auth-store';
 import type { Profile } from '@/types/database';
 
+let fetchPromise: Promise<void> | null = null;
+
 export function useAuth() {
   const { profile, isLoading, setProfile, setLoading } = useAuthStore();
   const supabase = createClient();
+  const initialized = useRef(false);
 
   useEffect(() => {
+    // Skip if already loaded or loading
+    if (profile || initialized.current) return;
+    initialized.current = true;
+
     const getProfile = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          const { data } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', user.id)
-            .single();
-          setProfile(data as Profile | null);
-        } else {
+      // Deduplicate concurrent calls
+      if (fetchPromise) return fetchPromise;
+
+      fetchPromise = (async () => {
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) {
+            const { data } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', user.id)
+              .single();
+            setProfile(data as Profile | null);
+          } else {
+            setProfile(null);
+          }
+        } catch {
           setProfile(null);
+        } finally {
+          fetchPromise = null;
         }
-      } catch {
-        setProfile(null);
-      }
+      })();
+
+      return fetchPromise;
     };
 
     getProfile();
@@ -41,16 +57,18 @@ export function useAuth() {
           setProfile(data as Profile | null);
         } else if (event === 'SIGNED_OUT') {
           setProfile(null);
+          initialized.current = false;
         }
       }
     );
 
     return () => subscription.unsubscribe();
-  }, [supabase, setProfile, setLoading]);
+  }, [supabase, setProfile, setLoading, profile]);
 
   const signOut = async () => {
     await supabase.auth.signOut();
     setProfile(null);
+    initialized.current = false;
     window.location.href = '/login';
   };
 

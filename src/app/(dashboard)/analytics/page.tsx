@@ -120,7 +120,7 @@ export default function AnalyticsPage() {
     }
 
     setLoading(false);
-  }, [supabase, period]);
+  }, [period]);
 
   useEffect(() => {
     fetchData();

@@ -73,7 +73,7 @@ export default function SettingsPage() {
       .order('full_name');
     if (data) setTeamMembers(data as Profile[]);
     setLoading(false);
-  }, [supabase]);
+  }, []);
 
   useEffect(() => {
     if (profile) {

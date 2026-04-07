@@ -83,7 +83,7 @@ export default function TasksPage() {
     const { data } = await query;
     setTasks((data as Task[]) || []);
     setLoading(false);
-  }, [supabase, profile, isAdmin, statusFilter, priorityFilter]);
+  }, [profile, isAdmin, statusFilter, priorityFilter]);
 
   const fetchClients = useCallback(async () => {
     const { data } = await supabase
@@ -92,7 +92,7 @@ export default function TasksPage() {
       .eq('is_active', true)
       .order('company');
     if (data) setClients(data as Client[]);
-  }, [supabase]);
+  }, []);
 
   useEffect(() => {
     fetchTasks();

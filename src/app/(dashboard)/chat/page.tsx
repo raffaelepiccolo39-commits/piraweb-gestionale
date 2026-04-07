@@ -141,7 +141,7 @@ export default function ChatPage() {
     }
 
     setLoading(false);
-  }, [supabase, profile, selectedChannelId]);
+  }, [profile, selectedChannelId]);
 
   // Fetch team members
   useEffect(() => {
@@ -154,7 +154,7 @@ export default function ChatPage() {
       if (data) setTeamMembers(data as Profile[]);
     };
     fetchTeam();
-  }, [supabase]);
+  }, []);
 
   useEffect(() => {
     fetchChannels();
@@ -172,7 +172,7 @@ export default function ChatPage() {
 
     setMessages((data as ChatMessage[]) || []);
     setMessagesLoading(false);
-  }, [supabase]);
+  }, []);
 
   // Subscribe to realtime messages
   useEffect(() => {

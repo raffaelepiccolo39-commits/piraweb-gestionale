@@ -138,7 +138,7 @@ export default function ClientDetailPage({
     }
 
     setLoading(false);
-  }, [supabase, id, isAdmin]);
+  }, [id, isAdmin]);
 
   useEffect(() => {
     fetchData();

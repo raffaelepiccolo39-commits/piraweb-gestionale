@@ -80,7 +80,7 @@ export default function BachecaPage() {
     setMembers((membersRes.data as Profile[]) || []);
     setClients((clientsRes.data as Client[]) || []);
     setLoading(false);
-  }, [supabase]);
+  }, []);
 
   useEffect(() => {
     fetchData();

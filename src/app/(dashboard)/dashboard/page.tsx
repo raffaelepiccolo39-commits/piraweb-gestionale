@@ -113,37 +113,34 @@ export default function DashboardPage() {
 
     setRecentTasks((myTasksRes.data as unknown as typeof recentTasks) || []);
 
-    // Team stats (admin only)
+    // Team stats (admin only) — single query instead of N+1
     if (isAdmin) {
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('id, full_name, role')
-        .eq('is_active', true);
+      const [profilesRes, allTasksRes] = await Promise.all([
+        supabase.from('profiles').select('id, full_name, role').eq('is_active', true),
+        supabase.from('tasks').select('assigned_to, status'),
+      ]);
 
-      if (profiles) {
-        const memberStats: TeamMemberStats[] = await Promise.all(
-          profiles.map(async (p) => {
-            const { data: userTasks } = await supabase
-              .from('tasks')
-              .select('status')
-              .eq('assigned_to', p.id);
-            const tasks = userTasks || [];
-            return {
-              id: p.id,
-              full_name: p.full_name,
-              role: p.role,
-              total: tasks.length,
-              completed: tasks.filter((t) => t.status === 'done').length,
-              in_progress: tasks.filter((t) => t.status === 'in_progress').length,
-            };
-          })
-        );
+      if (profilesRes.data) {
+        const tasksByUser = new Map<string, { total: number; completed: number; in_progress: number }>();
+        (allTasksRes.data || []).forEach((t) => {
+          if (!t.assigned_to) return;
+          const stats = tasksByUser.get(t.assigned_to) || { total: 0, completed: 0, in_progress: 0 };
+          stats.total++;
+          if (t.status === 'done') stats.completed++;
+          if (t.status === 'in_progress') stats.in_progress++;
+          tasksByUser.set(t.assigned_to, stats);
+        });
+
+        const memberStats: TeamMemberStats[] = profilesRes.data.map((p) => {
+          const stats = tasksByUser.get(p.id) || { total: 0, completed: 0, in_progress: 0 };
+          return { id: p.id, full_name: p.full_name, role: p.role, ...stats };
+        });
         setTeamStats(memberStats);
       }
     }
 
     setLoading(false);
-  }, [supabase, profile, isAdmin]);
+  }, [profile, isAdmin]);
 
   useEffect(() => {
     fetchDashboardData();

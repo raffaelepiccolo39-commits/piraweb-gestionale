@@ -47,7 +47,7 @@ export default function PresenzePage() {
     }
 
     setLoading(false);
-  }, [supabase, profile, isAdmin]);
+  }, [profile, isAdmin]);
 
   useEffect(() => {
     fetchData();

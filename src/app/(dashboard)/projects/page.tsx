@@ -47,7 +47,7 @@ export default function ProjectsPage() {
       .order('created_at', { ascending: false });
     setProjects((data as Project[]) || []);
     setLoading(false);
-  }, [supabase]);
+  }, []);
 
   useEffect(() => {
     fetchProjects();

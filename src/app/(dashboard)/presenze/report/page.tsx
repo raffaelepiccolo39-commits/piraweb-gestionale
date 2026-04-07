@@ -59,7 +59,7 @@ export default function ReportPresenzePage() {
       if (data) setEmployees(data as Profile[]);
     };
     fetchEmployees();
-  }, [supabase]);
+  }, []);
 
   const fetchReport = useCallback(async () => {
     setLoading(true);

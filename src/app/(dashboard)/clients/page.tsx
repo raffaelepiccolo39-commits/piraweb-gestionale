@@ -49,7 +49,7 @@ export default function ClientsPage() {
     const { data } = await query;
     setClients((data as Client[]) || []);
     setLoading(false);
-  }, [supabase]);
+  }, []);
 
   useEffect(() => {
     fetchClients();
