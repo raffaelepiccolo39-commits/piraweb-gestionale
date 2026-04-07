@@ -38,7 +38,7 @@ interface TeamMemberStats {
 }
 
 export default function DashboardPage() {
-  const { profile, isLoading: authLoading } = useAuth();
+  const { profile, isLoading: authLoading, retryLoadProfile } = useAuth();
   const supabase = createClient();
   const [stats, setStats] = useState<DashboardStats>({
     totalClients: 0,
@@ -153,14 +153,18 @@ export default function DashboardPage() {
 
   if (!profile) {
     return (
-      <div className="flex flex-col items-center justify-center h-64 text-center">
-        <AlertTriangle size={48} className="text-yellow-500 mb-4" />
-        <h2 className="text-xl font-semibold text-pw-text mb-2">
-          Profilo non trovato
-        </h2>
-        <p className="text-pw-text-muted max-w-md">
-          Il tuo profilo non è stato ancora configurato. Assicurati che le migrazioni del database siano state eseguite e che la funzione <code>setup_team_roles()</code> sia stata chiamata.
+      <div className="flex flex-col items-center justify-center h-64 text-center gap-4">
+        <AlertTriangle size={48} className="text-yellow-500" />
+        <h2 className="text-xl font-semibold text-pw-text">Profilo non trovato</h2>
+        <p className="text-pw-text-muted max-w-md text-sm">
+          Il tuo profilo non è stato ancora configurato. Riprova o contatta l&apos;amministratore.
         </p>
+        <button
+          onClick={retryLoadProfile}
+          className="px-4 py-2 rounded-xl bg-pw-accent text-white text-sm font-medium hover:bg-pw-accent/80 transition-colors"
+        >
+          Riprova
+        </button>
       </div>
     );
   }
