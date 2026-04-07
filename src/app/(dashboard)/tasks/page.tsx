@@ -75,7 +75,7 @@ export default function TasksPage() {
       query = query.eq('assigned_to', profile.id);
     }
 
-    query = query.order('updated_at', { ascending: false });
+    query = query.order('updated_at', { ascending: false }).limit(200);
 
     if (statusFilter) query = query.eq('status', statusFilter);
     if (priorityFilter) query = query.eq('priority', priorityFilter);

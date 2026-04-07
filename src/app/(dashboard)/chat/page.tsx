@@ -55,30 +55,6 @@ export default function ChatPage() {
 
     if (!channelData) { setLoading(false); return; }
 
-    // Fetch all members for each channel and last message
-    const enriched = await Promise.all(
-      channelData.map(async (ch) => {
-        const [membersRes, lastMsgRes] = await Promise.all([
-          supabase
-            .from('chat_channel_members')
-            .select('*, profile:profiles(id, full_name, role, avatar_url, is_active)')
-            .eq('channel_id', ch.id),
-          supabase
-            .from('chat_messages')
-            .select('*')
-            .eq('channel_id', ch.id)
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .maybeSingle(),
-        ]);
-        return {
-          ...ch,
-          members: membersRes.data as ChatChannelMember[],
-          last_message: lastMsgRes.data as ChatMessage | undefined,
-        } as ChatChannel;
-      })
-    );
-
     // Also create project channels for active projects the user is a member of
     const { data: userProjects } = await supabase
       .from('project_members')
@@ -86,41 +62,67 @@ export default function ChatPage() {
       .eq('user_id', profile.id);
 
     if (userProjects) {
-      for (const pm of userProjects) {
-        await supabase.rpc('get_or_create_project_channel', { p_project_id: pm.project_id });
-      }
-      // Re-fetch if new channels were created
-      const { data: updatedMembers } = await supabase
+      await Promise.all(
+        userProjects.map((pm) =>
+          supabase.rpc('get_or_create_project_channel', { p_project_id: pm.project_id })
+        )
+      );
+    }
+
+    // Re-fetch all channel IDs after potential new channels were created
+    const { data: allMemberData } = await supabase
+      .from('chat_channel_members')
+      .select('channel_id')
+      .eq('user_id', profile.id);
+
+    const allChannelIds = allMemberData?.map((m) => m.channel_id) ?? channelIds;
+
+    // Fetch new channels if any were added
+    const newIds = allChannelIds.filter((id) => !channelIds.includes(id));
+    let allChannelData = [...channelData];
+    if (newIds.length > 0) {
+      const { data: newChannels } = await supabase
+        .from('chat_channels')
+        .select('*')
+        .in('id', newIds);
+      if (newChannels) allChannelData = [...allChannelData, ...newChannels];
+    }
+
+    const finalChannelIds = allChannelData.map((ch) => ch.id);
+
+    // Batch: fetch ALL members for ALL channels in 1 query
+    // Batch: fetch ALL last messages for ALL channels in 1 query (latest per channel via order+limit trick)
+    const [allMembersRes, allLastMsgsRes] = await Promise.all([
+      supabase
         .from('chat_channel_members')
-        .select('channel_id')
-        .eq('user_id', profile.id);
-      if (updatedMembers) {
-        const newIds = updatedMembers.map((m) => m.channel_id).filter((id) => !channelIds.includes(id));
-        if (newIds.length > 0) {
-          const { data: newChannels } = await supabase
-            .from('chat_channels')
-            .select('*')
-            .in('id', newIds);
-          if (newChannels) {
-            for (const ch of newChannels) {
-              const [membersRes, lastMsgRes] = await Promise.all([
-                supabase.from('chat_channel_members')
-                  .select('*, profile:profiles(id, full_name, role, avatar_url, is_active)')
-                  .eq('channel_id', ch.id),
-                supabase.from('chat_messages')
-                  .select('*').eq('channel_id', ch.id)
-                  .order('created_at', { ascending: false }).limit(1).maybeSingle(),
-              ]);
-              enriched.push({
-                ...ch,
-                members: membersRes.data as ChatChannelMember[],
-                last_message: lastMsgRes.data as ChatMessage | undefined,
-              } as ChatChannel);
-            }
-          }
-        }
+        .select('*, profile:profiles(id, full_name, role, avatar_url, is_active)')
+        .in('channel_id', finalChannelIds),
+      supabase
+        .from('chat_messages')
+        .select('*')
+        .in('channel_id', finalChannelIds)
+        .order('created_at', { ascending: false }),
+    ]);
+
+    const membersByChannel = new Map<string, ChatChannelMember[]>();
+    for (const m of allMembersRes.data ?? []) {
+      const list = membersByChannel.get(m.channel_id) ?? [];
+      list.push(m as ChatChannelMember);
+      membersByChannel.set(m.channel_id, list);
+    }
+
+    const lastMsgByChannel = new Map<string, ChatMessage>();
+    for (const msg of allLastMsgsRes.data ?? []) {
+      if (!lastMsgByChannel.has(msg.channel_id)) {
+        lastMsgByChannel.set(msg.channel_id, msg as ChatMessage);
       }
     }
+
+    const enriched = allChannelData.map((ch) => ({
+      ...ch,
+      members: membersByChannel.get(ch.id) ?? [],
+      last_message: lastMsgByChannel.get(ch.id),
+    } as ChatChannel));
 
     // Sort: team first, then projects, then by last message time
     enriched.sort((a, b) => {

@@ -38,7 +38,7 @@ interface TeamMemberStats {
 }
 
 export default function DashboardPage() {
-  const { profile } = useAuth();
+  const { profile, isLoading: authLoading } = useAuth();
   const supabase = createClient();
   const [stats, setStats] = useState<DashboardStats>({
     totalClients: 0,
@@ -63,10 +63,7 @@ export default function DashboardPage() {
   const isAdmin = profile?.role === 'admin';
 
   const fetchDashboardData = useCallback(async () => {
-    if (!profile) {
-      setLoading(false);
-      return;
-    }
+    if (!profile) return;
 
     // Fetch stats in parallel
     const [clientsRes, projectsRes, tasksRes, myTasksRes] = await Promise.all([
@@ -146,7 +143,7 @@ export default function DashboardPage() {
     fetchDashboardData();
   }, [fetchDashboardData]);
 
-  if (loading) {
+  if (loading || authLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="w-8 h-8 border-4 border-pw-accent border-t-transparent rounded-full animate-spin" />

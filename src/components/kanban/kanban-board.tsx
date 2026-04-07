@@ -59,18 +59,8 @@ export function KanbanBoard({ tasks, onTaskClick, onTasksUpdate }: KanbanBoardPr
     const task = tasks.find((t) => t.id === draggableId);
     if (!task) return;
 
-    // Update task status and position
-    await supabase
-      .from('tasks')
-      .update({
-        status: newStatus,
-        position: destination.index,
-      })
-      .eq('id', draggableId);
-
     // Reorder tasks in the destination column
-    const destTasks = getColumnTasks(newStatus)
-      .filter((t) => t.id !== draggableId);
+    const destTasks = getColumnTasks(newStatus).filter((t) => t.id !== draggableId);
     destTasks.splice(destination.index, 0, { ...task, status: newStatus });
 
     const updates = destTasks.map((t, index) => ({
@@ -79,12 +69,15 @@ export function KanbanBoard({ tasks, onTaskClick, onTasksUpdate }: KanbanBoardPr
       status: newStatus,
     }));
 
-    for (const update of updates) {
-      await supabase
-        .from('tasks')
-        .update({ position: update.position, status: update.status })
-        .eq('id', update.id);
-    }
+    // Batch parallel updates instead of sequential loop
+    await Promise.all(
+      updates.map((update) =>
+        supabase
+          .from('tasks')
+          .update({ position: update.position, status: update.status })
+          .eq('id', update.id)
+      )
+    );
 
     onTasksUpdate();
   };
