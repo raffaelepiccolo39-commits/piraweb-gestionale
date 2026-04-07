@@ -30,7 +30,14 @@ export function useAuth() {
               .select('*')
               .eq('id', user.id)
               .single();
-            setProfile(data as Profile | null);
+
+            if (data) {
+              setProfile(data as Profile);
+            } else {
+              // Profile missing — auto-create via RPC (SECURITY DEFINER bypasses RLS)
+              const { data: synced } = await supabase.rpc('ensure_my_profile');
+              setProfile((synced as Profile) ?? null);
+            }
           } else {
             setProfile(null);
           }
@@ -54,7 +61,13 @@ export function useAuth() {
             .select('*')
             .eq('id', session.user.id)
             .single();
-          setProfile(data as Profile | null);
+
+          if (data) {
+            setProfile(data as Profile);
+          } else {
+            const { data: synced } = await supabase.rpc('ensure_my_profile');
+            setProfile((synced as Profile) ?? null);
+          }
         } else if (event === 'SIGNED_OUT') {
           setProfile(null);
           initialized.current = false;
