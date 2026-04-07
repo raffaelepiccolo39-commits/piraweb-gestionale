@@ -20,6 +20,7 @@ import {
   Euro,
   Clock,
   MessageCircle,
+  Network,
 } from 'lucide-react';
 
 interface NavItem {
@@ -40,6 +41,7 @@ const navItems: NavItem[] = [
   { label: 'Presenze', href: '/presenze', icon: Clock, roles: 'all' },
   { label: 'Efficienza', href: '/analytics', icon: BarChart3, roles: ['admin'] },
   { label: 'Cashflow', href: '/cashflow', icon: Euro, roles: ['admin'] },
+  { label: 'Organigramma', href: '/organigramma', icon: Network, roles: 'all' },
   { label: 'Impostazioni', href: '/settings', icon: Settings, roles: ['admin'] },
 ];
 
