@@ -36,10 +36,6 @@ export async function POST(request: NextRequest) {
 
   const { caldav_url, caldav_username, caldav_password, calendar_path } = body;
 
-  if (!caldav_username || !caldav_password) {
-    return NextResponse.json({ error: 'Username e password sono obbligatori' }, { status: 400 });
-  }
-
   // Upsert config
   const { data: existing } = await supabase
     .from('calendar_sync_config')
@@ -48,15 +44,19 @@ export async function POST(request: NextRequest) {
     .maybeSingle();
 
   if (existing) {
-    await supabase.from('calendar_sync_config').update({
+    const updates: Record<string, unknown> = {
       caldav_url: caldav_url || 'https://caldav.icloud.com',
-      caldav_username,
-      caldav_password,
-      calendar_path: calendar_path || null,
       sync_status: 'active',
       sync_error: null,
-    }).eq('id', existing.id);
+    };
+    if (caldav_username) updates.caldav_username = caldav_username;
+    if (caldav_password && caldav_password !== '_unchanged_') updates.caldav_password = caldav_password;
+    if (calendar_path !== undefined) updates.calendar_path = calendar_path || null;
+    await supabase.from('calendar_sync_config').update(updates).eq('id', existing.id);
   } else {
+    if (!caldav_username || !caldav_password) {
+      return NextResponse.json({ error: 'Username e password sono obbligatori' }, { status: 400 });
+    }
     await supabase.from('calendar_sync_config').insert({
       user_id: user.id,
       caldav_url: caldav_url || 'https://caldav.icloud.com',

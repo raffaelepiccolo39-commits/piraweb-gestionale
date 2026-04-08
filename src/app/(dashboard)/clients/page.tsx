@@ -27,6 +27,10 @@ import {
   Building2,
   Eye,
   AlertTriangle,
+  ArrowDownAZ,
+  ArrowUpAZ,
+  Briefcase,
+  CalendarDays,
 } from 'lucide-react';
 
 export default function ClientsPage() {
@@ -39,6 +43,7 @@ export default function ClientsPage() {
   const [editingClient, setEditingClient] = useState<Client | undefined>();
   const [editingMonthlyFee, setEditingMonthlyFee] = useState<number | undefined>();
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [error, setError] = useState(false);
 
   const router = useRouter();
@@ -66,12 +71,18 @@ export default function ClientsPage() {
     fetchClients();
   }, [fetchClients]);
 
-  const filteredClients = clients.filter(
-    (c) =>
-      c.name.toLowerCase().includes(search.toLowerCase()) ||
-      c.company?.toLowerCase().includes(search.toLowerCase()) ||
-      (isAdmin && c.email?.toLowerCase().includes(search.toLowerCase()))
-  );
+  const filteredClients = clients
+    .filter(
+      (c) =>
+        c.name.toLowerCase().includes(search.toLowerCase()) ||
+        c.company?.toLowerCase().includes(search.toLowerCase()) ||
+        (isAdmin && c.email?.toLowerCase().includes(search.toLowerCase()))
+    )
+    .sort((a, b) => {
+      const nameA = (a.company || a.name).toLowerCase();
+      const nameB = (b.company || b.name).toLowerCase();
+      return sortOrder === 'asc' ? nameA.localeCompare(nameB) : nameB.localeCompare(nameA);
+    });
 
   const uploadLogo = async (file: File, clientId: string): Promise<string | null> => {
     const ext = file.name.split('.').pop();
@@ -215,16 +226,27 @@ export default function ClientsPage() {
         )}
       </div>
 
-      {/* Search */}
-      <div className="relative max-w-md">
-        <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-        <input
-          type="text"
-          placeholder="Cerca clienti..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-pw-border bg-pw-surface-2 text-pw-text focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition"
-        />
+      {/* Search + Sort */}
+      <div className="flex items-center gap-3">
+        <div className="relative max-w-md flex-1">
+          <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Cerca clienti..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-pw-border bg-pw-surface-2 text-pw-text focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition"
+          />
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'))}
+          title={sortOrder === 'asc' ? 'Ordine A-Z' : 'Ordine Z-A'}
+        >
+          {sortOrder === 'asc' ? <ArrowDownAZ size={18} /> : <ArrowUpAZ size={18} />}
+          {sortOrder === 'asc' ? 'A-Z' : 'Z-A'}
+        </Button>
       </div>
 
       {/* Client grid */}
@@ -299,6 +321,23 @@ export default function ClientsPage() {
                     </div>
                   )}
                 </div>
+
+                {(client.service_types || client.relationship_start) && (
+                  <div className="space-y-1.5 mb-4">
+                    {client.service_types && (
+                      <div className="flex items-center gap-2 text-sm text-pw-text-muted">
+                        <Briefcase size={14} />
+                        <span className="truncate">{client.service_types}</span>
+                      </div>
+                    )}
+                    {client.relationship_start && (
+                      <div className="flex items-center gap-2 text-sm text-pw-text-muted">
+                        <CalendarDays size={14} />
+                        <span>Dal {new Date(client.relationship_start).toLocaleDateString('it-IT')}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {client.notes && (
                   <p className="text-sm text-pw-text-muted line-clamp-2 mb-4">

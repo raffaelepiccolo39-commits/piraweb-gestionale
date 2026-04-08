@@ -26,7 +26,7 @@ export function MessagesPreview({ messages, unreadCount }: MessagesPreviewProps)
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <MessageCircle size={16} className="text-pw-accent" />
-            <h2 className="text-sm font-semibold text-pw-text">Messaggi</h2>
+            <h2 className="text-sm font-semibold text-pw-text">Chat</h2>
           </div>
           <div className="flex items-center gap-2">
             {unreadCount > 0 && (

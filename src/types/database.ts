@@ -45,6 +45,8 @@ export interface Client {
   cap: string | null;
   citta: string | null;
   provincia: string | null;
+  service_types: string | null;
+  relationship_start: string | null;
   created_by: string;
   created_at: string;
   updated_at: string;

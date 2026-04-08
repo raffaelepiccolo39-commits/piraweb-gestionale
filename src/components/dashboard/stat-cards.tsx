@@ -24,7 +24,8 @@ export function StatCards({ stats, isAdmin }: StatCardsProps) {
       ? [{ label: 'Clienti', value: stats.totalClients, icon: Users, color: 'text-blue-600 bg-blue-500/15', href: '/clients' }]
       : []),
     { label: 'Progetti Attivi', value: stats.activeProjects, icon: FolderKanban, color: 'text-indigo-600 bg-indigo-500/15', href: '/projects' },
-    { label: 'Attività totali', value: stats.totalTasks, icon: ListTodo, color: 'text-purple-600 bg-purple-500/15', href: '/tasks' },
+    { label: 'Task totali', value: stats.totalTasks, icon: ListTodo, color: 'text-purple-600 bg-purple-500/15', href: '/tasks' },
+    { label: 'Da fare', value: stats.totalTasks - stats.completedTasks - stats.inProgressTasks, icon: ListTodo, color: 'text-orange-600 bg-orange-500/15', href: '/tasks' },
     { label: 'Completate', value: stats.completedTasks, icon: CheckCircle2, color: 'text-green-600 bg-green-500/15', href: '/tasks' },
     { label: 'In corso', value: stats.inProgressTasks, icon: Clock, color: 'text-yellow-600 bg-yellow-100 dark:bg-yellow-900', href: '/tasks' },
     { label: 'In ritardo', value: stats.overdueTasks, icon: AlertTriangle, color: 'text-red-600 bg-red-500/15', href: '/tasks' },

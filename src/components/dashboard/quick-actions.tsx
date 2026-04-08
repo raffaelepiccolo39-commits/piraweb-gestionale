@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import type { UserRole } from '@/types/database';
-import { ListTodo, FolderKanban, Sparkles, MessageCircle } from 'lucide-react';
+import { ListTodo, FolderKanban, Sparkles } from 'lucide-react';
 
 interface QuickActionsProps {
   role: UserRole;
@@ -10,9 +10,8 @@ interface QuickActionsProps {
 
 const actions = [
   { label: 'Nuova attività', icon: ListTodo, href: '/tasks', roles: 'all' as const },
-  { label: 'Nuovo lavoro', icon: FolderKanban, href: '/projects', roles: ['admin'] as string[] },
+  { label: 'Nuovo progetto', icon: FolderKanban, href: '/projects', roles: ['admin'] as string[] },
   { label: 'Genera con AI', icon: Sparkles, href: '/ai', roles: ['admin', 'content_creator', 'social_media_manager'] as string[] },
-  { label: 'Chat', icon: MessageCircle, href: '/chat', roles: 'all' as const },
 ];
 
 export function QuickActions({ role }: QuickActionsProps) {

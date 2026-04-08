@@ -327,7 +327,7 @@ export default function DashboardPage() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <h2 className="text-lg font-semibold text-pw-text font-[var(--font-syne)]">
-                  Attività recenti
+                  Le mie task
                 </h2>
                 <Link href="/tasks" className="text-xs text-pw-accent hover:underline">Tutte</Link>
               </div>

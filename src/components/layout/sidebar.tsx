@@ -34,18 +34,18 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: 'all' },
-  { label: 'Clienti', href: '/clients', icon: Users, roles: 'all' },
-  { label: 'Lavori', href: '/projects', icon: FolderKanban, roles: 'all' },
-  { label: 'Task', href: '/tasks', icon: ListTodo, roles: 'all' },
-  { label: 'Contenuti AI', href: '/ai', icon: Sparkles, roles: ['admin', 'content_creator', 'social_media_manager'] },
+  { label: 'Le mie task', href: '/tasks', icon: ListTodo, roles: 'all' },
+  { label: 'Progetti', href: '/projects', icon: FolderKanban, roles: 'all' },
   { label: 'Bacheca', href: '/bacheca', icon: MessageSquare, roles: 'all' },
   { label: 'Chat', href: '/chat', icon: MessageCircle, roles: 'all' },
   { label: 'Presenze', href: '/presenze', icon: Clock, roles: 'all' },
   { label: 'Calendario', href: '/calendario', icon: CalendarDays, roles: 'all' },
-  { label: 'Efficienza', href: '/analytics', icon: BarChart3, roles: ['admin'] },
-  { label: 'Cashflow', href: '/cashflow', icon: Euro, roles: ['admin'] },
   { label: 'Organigramma', href: '/organigramma', icon: Network, roles: 'all' },
   { label: 'Note Dev', href: '/note-dev', icon: MessageSquareWarning, roles: 'all' },
+  { label: 'Contenuti AI', href: '/ai', icon: Sparkles, roles: ['admin', 'content_creator', 'social_media_manager'] },
+  { label: 'Clienti', href: '/clients', icon: Users, roles: ['admin'] },
+  { label: 'Efficienza', href: '/analytics', icon: BarChart3, roles: ['admin'] },
+  { label: 'Cashflow', href: '/cashflow', icon: Euro, roles: ['admin'] },
   { label: 'Impostazioni', href: '/settings', icon: Settings, roles: ['admin'] },
 ];
 

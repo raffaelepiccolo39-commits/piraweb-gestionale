@@ -31,6 +31,8 @@ export interface ClientFormData {
   cap: string;
   citta: string;
   provincia: string;
+  service_types: string;
+  relationship_start: string;
   monthly_fee?: number;
   logo?: File;
 }
@@ -86,6 +88,8 @@ export function ClientForm({ client, monthlyFee, onSubmit, onCancel }: ClientFor
     cap: client?.cap || '',
     citta: client?.citta || '',
     provincia: client?.provincia || '',
+    service_types: client?.service_types || '',
+    relationship_start: client?.relationship_start || '',
   });
 
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -200,6 +204,22 @@ export function ClientForm({ client, monthlyFee, onSubmit, onCancel }: ClientFor
           value={form.website}
           onChange={(e) => update('website', e.target.value)}
           placeholder="https://..."
+        />
+      </Section>
+
+      {/* Dettagli Rapporto */}
+      <Section title="Dettagli Rapporto" defaultOpen={!!(client?.service_types || client?.relationship_start)}>
+        <Input
+          label="Tipo di servizi richiesti"
+          value={form.service_types}
+          onChange={(e) => update('service_types', e.target.value)}
+          placeholder="es. Social media, Grafica, Web design"
+        />
+        <Input
+          label="Inizio rapporto lavorativo"
+          type="date"
+          value={form.relationship_start}
+          onChange={(e) => update('relationship_start', e.target.value)}
         />
       </Section>
 
