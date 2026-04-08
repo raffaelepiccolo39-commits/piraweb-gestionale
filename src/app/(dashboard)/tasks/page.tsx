@@ -74,10 +74,7 @@ export default function TasksPage() {
           assignee:profiles!tasks_assigned_to_fkey(id, full_name)
         `);
 
-      // Admin vede tutti i task, dipendenti solo i propri
-      if (!isAdmin) {
-        query = query.eq('assigned_to', profile.id);
-      }
+      // Tutti vedono tutti i task per avere panoramica completa del team
 
       query = query.order('updated_at', { ascending: false }).limit(200);
 
