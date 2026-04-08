@@ -485,3 +485,35 @@ export interface DeveloperNote {
   resolver?: Profile;
   resolved_task?: Task;
 }
+
+// === CALENDARIO ===
+export interface CalendarEvent {
+  id: string;
+  title: string;
+  description: string | null;
+  start_time: string;
+  end_time: string;
+  location: string | null;
+  all_day: boolean;
+  color: string | null;
+  ical_uid: string | null;
+  assigned_to: string[];
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+  creator?: Profile;
+}
+
+export interface CalendarSyncConfig {
+  id: string;
+  user_id: string;
+  caldav_url: string;
+  caldav_username: string | null;
+  caldav_password: string | null;
+  calendar_path: string | null;
+  last_synced_at: string | null;
+  sync_status: 'active' | 'paused' | 'error';
+  sync_error: string | null;
+  created_at: string;
+  updated_at: string;
+}

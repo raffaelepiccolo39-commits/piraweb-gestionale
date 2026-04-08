@@ -22,6 +22,7 @@ import {
   MessageCircle,
   Network,
   MessageSquareWarning,
+  CalendarDays,
 } from 'lucide-react';
 
 interface NavItem {
@@ -40,6 +41,7 @@ const navItems: NavItem[] = [
   { label: 'Bacheca', href: '/bacheca', icon: MessageSquare, roles: 'all' },
   { label: 'Chat', href: '/chat', icon: MessageCircle, roles: 'all' },
   { label: 'Presenze', href: '/presenze', icon: Clock, roles: 'all' },
+  { label: 'Calendario', href: '/calendario', icon: CalendarDays, roles: 'all' },
   { label: 'Efficienza', href: '/analytics', icon: BarChart3, roles: ['admin'] },
   { label: 'Cashflow', href: '/cashflow', icon: Euro, roles: ['admin'] },
   { label: 'Organigramma', href: '/organigramma', icon: Network, roles: 'all' },
