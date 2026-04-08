@@ -269,7 +269,7 @@ export interface ClientContract {
   id: string;
   client_id: string;
   monthly_fee: number;
-  duration_months: 6 | 12;
+  duration_months: 0 | 6 | 12;
   start_date: string;
   status: ContractStatus;
   payment_timing: PaymentTiming;

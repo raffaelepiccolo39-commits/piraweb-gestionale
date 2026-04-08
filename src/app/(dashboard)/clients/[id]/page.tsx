@@ -192,7 +192,7 @@ export default function ClientDetailPage({
       .insert({
         client_id: id,
         monthly_fee: data.monthly_fee,
-        duration_months: data.duration_months,
+        duration_months: data.no_contract ? 0 : data.duration_months,
         start_date: data.start_date,
         payment_timing: data.payment_timing,
         attachment_url: attachmentUrl,
@@ -208,7 +208,10 @@ export default function ClientDetailPage({
       return;
     }
 
-    await supabase.rpc('generate_contract_payments', { p_contract_id: newContract.id });
+    // Non generare pagamenti se è senza contratto
+    if (!data.no_contract) {
+      await supabase.rpc('generate_contract_payments', { p_contract_id: newContract.id });
+    }
 
     setShowContractForm(false);
     fetchData();
@@ -515,23 +518,39 @@ export default function ClientDetailPage({
                     <div className="flex items-center gap-2">
                       <FileText size={20} className="text-gray-400" />
                       <h2 className="text-lg font-semibold text-pw-text">
-                        Contratto Attivo
+                        {contract.duration_months === 0 ? 'Senza Contratto' : 'Contratto Attivo'}
                       </h2>
+                      {contract.duration_months === 0 && (
+                        <Badge className="bg-amber-500/15 text-amber-400">
+                          Accordo verbale
+                        </Badge>
+                      )}
                     </div>
                     <div className="flex items-center gap-2">
-                      {expiry && expiry.status === 'ok' && (
+                      {expiry && expiry.status === 'ok' && contract.duration_months > 0 && (
                         <Badge className="bg-green-500/15 text-green-400">
                           {expiry.label}
                         </Badge>
                       )}
                       <Button variant="outline" size="sm" onClick={() => setShowRenewForm(true)}>
                         <RefreshCw size={14} />
-                        Rinnova / Aggiorna
+                        {contract.duration_months === 0 ? 'Crea Contratto' : 'Rinnova / Aggiorna'}
                       </Button>
                     </div>
                   </div>
                 </CardHeader>
                 <CardContent>
+                  {contract.duration_months === 0 ? (
+                    <div className="text-sm text-pw-text-muted">
+                      <p>Cliente senza contratto scritto. {contract.notes && <span>{contract.notes}</span>}</p>
+                      {contract.monthly_fee > 0 && (
+                        <p className="mt-2">
+                          <span className="text-pw-text-muted">Canone concordato: </span>
+                          <span className="font-semibold text-pw-text">{formatCurrency(contract.monthly_fee)}/mese</span>
+                        </p>
+                      )}
+                    </div>
+                  ) : (
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 text-sm">
                     <div>
                       <p className="text-pw-text-muted">Canone Mensile</p>
@@ -564,6 +583,7 @@ export default function ClientDetailPage({
                       </p>
                     </div>
                   </div>
+                  )}
 
                   <div className="mt-3 pt-3 border-t border-pw-border flex flex-wrap items-center gap-4">
                     {contract.attachment_url && contract.attachment_name && (
