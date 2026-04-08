@@ -9,6 +9,7 @@ export function useAuth() {
   const { profile, isLoading, setProfile, setLoading } = useAuthStore();
   const supabase = createClient();
   const fetchingRef = useRef(false);
+  const initializedRef = useRef(false);
 
   const loadProfile = useCallback(async () => {
     if (fetchingRef.current) return;
@@ -53,9 +54,13 @@ export function useAuth() {
   }, [supabase, setProfile, setLoading]);
 
   useEffect(() => {
-    // Only load if not already loaded
-    if (profile || isLoading === false) return;
-    loadProfile();
+    // Run once on mount — load profile if not already loaded
+    if (initializedRef.current) return;
+    initializedRef.current = true;
+
+    if (!profile) {
+      loadProfile();
+    }
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
@@ -68,7 +73,8 @@ export function useAuth() {
     );
 
     return () => subscription.unsubscribe();
-  }, [supabase, profile, isLoading, loadProfile, setProfile]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const signOut = async () => {
     await supabase.auth.signOut();
