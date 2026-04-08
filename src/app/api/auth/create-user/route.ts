@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Solo gli amministratori possono creare utenti' }, { status: 403 });
   }
 
-  const { email, password, full_name, role, salary, contract_type, contract_start_date } = await request.json();
+  const { email, password, full_name, role, salary, iban, contract_type, contract_start_date } = await request.json();
 
   if (!email || !password || !full_name || !role) {
     return NextResponse.json({ error: 'Tutti i campi sono obbligatori' }, { status: 400 });
@@ -65,6 +65,7 @@ export async function POST(request: NextRequest) {
       full_name,
       role,
       salary: salary || null,
+      iban: iban || null,
       contract_type: contract_type || null,
       contract_start_date: contract_start_date || null,
     }, { onConflict: 'id' });

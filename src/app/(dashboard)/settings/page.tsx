@@ -53,14 +53,17 @@ export default function SettingsPage() {
     password: '',
     role: 'content_creator',
     salary: '',
+    iban: '',
     contract_type: '',
     contract_start_date: new Date().toISOString().split('T')[0],
   });
 
-  // Edit employee modal state
+  // View/Edit employee modal state
+  const [viewingMember, setViewingMember] = useState<Profile | null>(null);
   const [editingMember, setEditingMember] = useState<Profile | null>(null);
   const [editForm, setEditForm] = useState({
     salary: '',
+    iban: '',
     contract_type: '',
     contract_start_date: '',
   });
@@ -129,7 +132,7 @@ export default function SettingsPage() {
         setCreateError(data.error);
       } else {
         setCreateSuccess(true);
-        setCreateForm({ full_name: '', email: '', password: '', role: 'content_creator', salary: '', contract_type: '', contract_start_date: new Date().toISOString().split('T')[0] });
+        setCreateForm({ full_name: '', email: '', password: '', role: 'content_creator', salary: '', iban: '', contract_type: '', contract_start_date: new Date().toISOString().split('T')[0] });
         fetchTeam();
         setTimeout(() => {
           setShowCreateModal(false);
@@ -144,9 +147,11 @@ export default function SettingsPage() {
   };
 
   const openEditMember = (member: Profile) => {
+    setViewingMember(null);
     setEditingMember(member);
     setEditForm({
       salary: member.salary ? String(member.salary) : '',
+      iban: member.iban || '',
       contract_type: member.contract_type || '',
       contract_start_date: member.contract_start_date || '',
     });
@@ -159,6 +164,7 @@ export default function SettingsPage() {
       .from('profiles')
       .update({
         salary: editForm.salary ? Number(editForm.salary) : null,
+        iban: editForm.iban || null,
         contract_type: editForm.contract_type || null,
         contract_start_date: editForm.contract_start_date || null,
       })
@@ -169,7 +175,7 @@ export default function SettingsPage() {
   };
 
   const openCreateModal = () => {
-    setCreateForm({ full_name: '', email: '', password: '', role: 'content_creator', salary: '', contract_type: '', contract_start_date: new Date().toISOString().split('T')[0] });
+    setCreateForm({ full_name: '', email: '', password: '', role: 'content_creator', salary: '', iban: '', contract_type: '', contract_start_date: new Date().toISOString().split('T')[0] });
     setCreateError(null);
     setCreateSuccess(false);
     setShowPassword(false);
@@ -251,7 +257,8 @@ export default function SettingsPage() {
               {teamMembers.map((member) => (
                 <div
                   key={member.id}
-                  className="px-6 py-4 flex items-center gap-4"
+                  className="px-6 py-4 flex items-center gap-4 cursor-pointer hover:bg-pw-surface-2/50 transition-colors"
+                  onClick={() => member.id !== profile.id ? setViewingMember(member) : undefined}
                 >
                   <div className="w-10 h-10 rounded-full bg-pw-accent flex items-center justify-center shrink-0">
                     <span className="text-white text-sm font-semibold">
@@ -262,40 +269,13 @@ export default function SettingsPage() {
                     <p className="text-sm font-medium text-pw-text">
                       {member.full_name}
                     </p>
-                    <p className="text-xs text-pw-text-muted">{member.email}</p>
-                    {member.salary && (
-                      <p className="text-xs text-gray-400 mt-0.5">
-                        {formatCurrency(member.salary)}/mese
-                        {member.contract_type && (
-                          <> &middot; {member.contract_type === 'indeterminato' ? 'Indeterminato' : member.contract_type === '6_mesi' ? '6 mesi' : '12 mesi'}</>
-                        )}
-                      </p>
-                    )}
+                    <p className="text-xs text-pw-text-muted">
+                      {getRoleLabel(member.role)}
+                    </p>
                   </div>
                   <div className="flex items-center gap-3 shrink-0">
-                    <select
-                      value={member.role}
-                      onChange={(e) => handleUpdateRole(member.id, e.target.value)}
-                      className="text-sm px-3 py-1.5 rounded-lg border border-pw-border bg-pw-surface-2 text-pw-text-muted"
-                      disabled={member.id === profile.id}
-                    >
-                      {roleOptions.map((opt) => (
-                        <option key={opt.value} value={opt.value}>
-                          {opt.label}
-                        </option>
-                      ))}
-                    </select>
-                    {member.id !== profile.id && member.role !== 'admin' && (
-                      <button
-                        onClick={() => openEditMember(member)}
-                        className="p-1.5 rounded-lg text-gray-400 hover:bg-pw-surface-2 hover:text-indigo-600 transition-colors"
-                        title="Modifica stipendio e contratto"
-                      >
-                        <Pencil size={14} />
-                      </button>
-                    )}
                     <button
-                      onClick={() => handleToggleActive(member.id, member.is_active)}
+                      onClick={(e) => { e.stopPropagation(); handleToggleActive(member.id, member.is_active); }}
                       disabled={member.id === profile.id}
                       className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                         member.is_active
@@ -413,6 +393,13 @@ export default function SettingsPage() {
                 />
               </div>
               <Input
+                id="create-iban"
+                label="IBAN"
+                value={createForm.iban}
+                onChange={(e) => setCreateForm({ ...createForm, iban: e.target.value.toUpperCase() })}
+                placeholder="es. IT60X0542811101000000123456"
+              />
+              <Input
                 id="create-contract-start"
                 label="Data Inizio Contratto"
                 type="date"
@@ -443,6 +430,76 @@ export default function SettingsPage() {
         </div>
       </Modal>
 
+      {/* View member detail modal */}
+      <Modal
+        open={!!viewingMember}
+        onClose={() => setViewingMember(null)}
+        title={viewingMember?.full_name || ''}
+      >
+        {viewingMember && (
+          <div className="space-y-4">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-full bg-pw-accent flex items-center justify-center">
+                <span className="text-white text-lg font-bold">{getInitials(viewingMember.full_name)}</span>
+              </div>
+              <div>
+                <p className="text-base font-semibold text-pw-text">{viewingMember.full_name}</p>
+                <Badge className={getRoleColor(viewingMember.role)}>{getRoleLabel(viewingMember.role)}</Badge>
+              </div>
+            </div>
+
+            <div className="space-y-3 pt-2">
+              <div className="flex justify-between py-2 border-b border-pw-border">
+                <span className="text-sm text-pw-text-muted">Email</span>
+                <span className="text-sm text-pw-text font-medium">{viewingMember.email}</span>
+              </div>
+              <div className="flex justify-between py-2 border-b border-pw-border">
+                <span className="text-sm text-pw-text-muted">IBAN</span>
+                <span className="text-sm text-pw-text font-medium font-mono">{viewingMember.iban || '—'}</span>
+              </div>
+              <div className="flex justify-between py-2 border-b border-pw-border">
+                <span className="text-sm text-pw-text-muted">Paga Mensile</span>
+                <span className="text-sm text-pw-text font-medium">{viewingMember.salary ? formatCurrency(viewingMember.salary) : '—'}</span>
+              </div>
+              <div className="flex justify-between py-2 border-b border-pw-border">
+                <span className="text-sm text-pw-text-muted">Tipo Contratto</span>
+                <span className="text-sm text-pw-text font-medium">
+                  {viewingMember.contract_type === 'indeterminato' ? 'Indeterminato' : viewingMember.contract_type === '6_mesi' ? '6 mesi' : viewingMember.contract_type === '12_mesi' ? '12 mesi' : '—'}
+                </span>
+              </div>
+              <div className="flex justify-between py-2 border-b border-pw-border">
+                <span className="text-sm text-pw-text-muted">Inizio Contratto</span>
+                <span className="text-sm text-pw-text font-medium">{viewingMember.contract_start_date || '—'}</span>
+              </div>
+              {viewingMember.salary && (
+                <div className="p-3 rounded-xl bg-indigo-500/10 text-pw-accent text-sm">
+                  Costo annuale: <strong>{formatCurrency(viewingMember.salary * 12)}</strong>
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <Button variant="outline" onClick={() => setViewingMember(null)} className="flex-1">
+                Chiudi
+              </Button>
+              <Button onClick={() => openEditMember(viewingMember)} className="flex-1">
+                <Pencil size={16} />
+                Modifica
+              </Button>
+              <select
+                value={viewingMember.role}
+                onChange={(e) => { handleUpdateRole(viewingMember.id, e.target.value); setViewingMember(null); }}
+                className="text-sm px-3 py-1.5 rounded-lg border border-pw-border bg-pw-surface-2 text-pw-text-muted"
+              >
+                {roleOptions.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+        )}
+      </Modal>
+
       {/* Edit employee modal */}
       <Modal
         open={!!editingMember}
@@ -451,13 +508,6 @@ export default function SettingsPage() {
       >
         {editingMember && (
           <div className="space-y-4">
-            <div className="p-3 rounded-xl bg-pw-surface-2 text-sm">
-              <p className="text-pw-text-muted">
-                <strong>{editingMember.full_name}</strong> &middot; {editingMember.email}
-              </p>
-              <p className="text-xs text-gray-500 mt-0.5">{getRoleLabel(editingMember.role)}</p>
-            </div>
-
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label htmlFor="edit-salary" className="block text-sm font-medium text-pw-text-muted mb-1">
@@ -487,6 +537,13 @@ export default function SettingsPage() {
                 placeholder="Seleziona..."
               />
             </div>
+            <Input
+              id="edit-iban"
+              label="IBAN"
+              value={editForm.iban}
+              onChange={(e) => setEditForm({ ...editForm, iban: e.target.value.toUpperCase() })}
+              placeholder="es. IT60X0542811101000000123456"
+            />
             <Input
               id="edit-contract-start"
               label="Data Inizio Contratto"

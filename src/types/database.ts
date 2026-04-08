@@ -19,6 +19,7 @@ export interface Profile {
   avatar_url: string | null;
   is_active: boolean;
   salary: number | null;
+  iban: string | null;
   contract_type: EmployeeContractType | null;
   contract_start_date: string | null;
   created_at: string;
