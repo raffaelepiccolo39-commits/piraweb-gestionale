@@ -10,6 +10,10 @@ import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/ui/empty-state';
 import { formatCurrency, getRoleLabel } from '@/lib/utils';
 import type { CashflowMonthly, CashflowSummary, RevenuePerClient, ProfitLossSummary, MonthlyExpenses } from '@/types/database';
+import { HealthIndicators } from '@/components/cashflow/health-indicators';
+import { ProfitLossChart } from '@/components/cashflow/profit-loss-chart';
+import { PeriodComparison } from '@/components/cashflow/period-comparison';
+import { ForecastCard } from '@/components/cashflow/forecast-card';
 import {
   Euro,
   TrendingUp,
@@ -58,6 +62,8 @@ export default function CashflowPage() {
   const [pnl, setPnl] = useState<ProfitLossSummary | null>(null);
   const [expenses, setExpenses] = useState<MonthlyExpenses | null>(null);
   const [clients, setClients] = useState<RevenuePerClient[]>([]);
+  const [prevSummary, setPrevSummary] = useState<CashflowSummary | null>(null);
+  const [prevPnl, setPrevPnl] = useState<ProfitLossSummary | null>(null);
   const [loading, setLoading] = useState(true);
 
   function getDateRange(): { start: string; end: string } {
@@ -106,6 +112,24 @@ export default function CashflowPage() {
     if (expensesRes.data?.[0]) setExpenses(expensesRes.data[0] as MonthlyExpenses);
     else setExpenses(null);
     if (clientsRes.data) setClients(clientsRes.data as RevenuePerClient[]);
+
+    // Fetch previous period for comparison
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+    const durationMs = endDate.getTime() - startDate.getTime();
+    const prevEnd = new Date(startDate.getTime() - 1);
+    const prevStart = new Date(prevEnd.getTime() - durationMs);
+    const prevStartStr = prevStart.toISOString().split('T')[0];
+    const prevEndStr = prevEnd.toISOString().split('T')[0];
+
+    const [prevSummaryRes, prevPnlRes] = await Promise.all([
+      supabase.rpc('get_cashflow_summary', { p_start_date: prevStartStr, p_end_date: prevEndStr }),
+      supabase.rpc('get_profit_loss_summary', { p_start_date: prevStartStr, p_end_date: prevEndStr }),
+    ]);
+    if (prevSummaryRes.data?.[0]) setPrevSummary(prevSummaryRes.data[0] as CashflowSummary);
+    else setPrevSummary(null);
+    if (prevPnlRes.data?.[0]) setPrevPnl(prevPnlRes.data[0] as ProfitLossSummary);
+    else setPrevPnl(null);
 
     setLoading(false);
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -330,6 +354,20 @@ export default function CashflowPage() {
             </div>
           )}
 
+          {/* Health Indicators */}
+          {pnl && cashSummary && (
+            <HealthIndicators
+              operatingMarginPct={Number(pnl.net_margin_pct || 0)}
+              collectionRate={Number(pnl.total_revenue) > 0 ? (Number(pnl.total_received) / Number(pnl.total_revenue)) * 100 : 0}
+              topClientConcentration={
+                clients.length > 0 && Number(pnl.total_revenue) > 0
+                  ? (Math.max(...clients.map((c) => Number(c.total_expected))) / Number(pnl.total_revenue)) * 100
+                  : 0
+              }
+              laborCostRatio={Number(pnl.total_received) > 0 ? (Number(pnl.total_salary_cost_period) / Number(pnl.total_received)) * 100 : 0}
+            />
+          )}
+
           {/* Summary cards */}
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
             <Card>
@@ -467,6 +505,42 @@ export default function CashflowPage() {
                 </ResponsiveContainer>
               </CardContent>
             </Card>
+          )}
+
+          {/* Profit/Loss Area Chart */}
+          {chartData.length > 0 && (
+            <ProfitLossChart
+              data={chartData.map((d) => ({
+                month: d.name,
+                entrate: d.Entrate,
+                costi: d.Uscite,
+                margine: d.Margine,
+              }))}
+            />
+          )}
+
+          {/* Period Comparison */}
+          {prevSummary && prevPnl && pnl && cashSummary && (
+            <PeriodComparison
+              currentRevenue={Number(pnl.total_revenue)}
+              previousRevenue={Number(prevPnl.total_revenue)}
+              currentMargin={netMargin}
+              previousMargin={Number(prevPnl.net_margin)}
+              currentReceived={Number(pnl.total_received)}
+              previousReceived={Number(prevPnl.total_received)}
+              currentClients={Number(cashSummary.active_clients)}
+              previousClients={Number(prevSummary.active_clients)}
+              periodLabel="periodo precedente"
+            />
+          )}
+
+          {/* Forecast */}
+          {cashSummary && expenses && (
+            <ForecastCard
+              monthlyRevenue={Number(cashSummary.avg_monthly_revenue || 0)}
+              monthlySalaryCost={monthlySalary}
+              activeContracts={Number(cashSummary.active_contracts || 0)}
+            />
           )}
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
