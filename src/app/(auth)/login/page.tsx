@@ -27,7 +27,7 @@ export default function LoginPage() {
     });
 
     if (error) {
-      setError('Credenziali non valide. Riprova.');
+      setError('Email o password non corretti. Verifica e riprova.');
       setLoading(false);
       return;
     }
@@ -54,14 +54,14 @@ export default function LoginPage() {
             priority
           />
           <p className="text-[11px] uppercase tracking-[0.25em] text-pw-text-muted">
-            Gestionale Interno
+            Area Gestionale
           </p>
         </div>
 
         {/* Login card */}
         <div className="bg-pw-surface rounded-2xl p-8 border border-pw-border">
           <h2 className="text-xl font-[var(--font-syne)] font-semibold text-pw-text mb-6">
-            Accedi
+            Accedi al tuo account
           </h2>
 
           <form onSubmit={handleLogin} className="space-y-5">

@@ -117,7 +117,7 @@ export function ContractForm({ onSubmit, onCancel }: ContractFormProps) {
                 value={form.monthly_fee}
                 onChange={(e) => setForm({ ...form, monthly_fee: e.target.value })}
                 placeholder="es. 800"
-                className="w-full px-4 py-2.5 rounded-xl border border-pw-border bg-pw-surface-2 text-pw-text focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none text-sm"
+                className="w-full px-4 py-2.5 rounded-xl border border-pw-border bg-pw-surface-2 text-pw-text focus:ring-2 focus:ring-pw-accent/30 focus:border-pw-accent/50 outline-none text-sm"
               />
             </div>
             <Select

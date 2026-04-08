@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import type { ClientOnboarding, ClientSocialCredentials } from '@/types/database';
 import {
@@ -12,6 +12,7 @@ import {
   EyeOff,
   Save,
   Share2,
+  ChevronDown,
 } from 'lucide-react';
 
 interface OnboardingSectionProps {
@@ -28,6 +29,44 @@ const CHECKLIST_ITEMS: { key: keyof ClientOnboarding; label: string }[] = [
   { key: 'strategy_defined', label: 'Strategia definita' },
   { key: 'content_plan_created', label: 'Piano editoriale creato' },
 ];
+
+function CollapsibleCard({
+  title,
+  icon: Icon,
+  defaultOpen = false,
+  headerRight,
+  children,
+}: {
+  title: string;
+  icon: React.ElementType;
+  defaultOpen?: boolean;
+  headerRight?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <Card>
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between px-4 sm:px-6 py-4 text-left"
+      >
+        <div className="flex items-center gap-2">
+          <Icon size={20} className="text-pw-accent" />
+          <h2 className="text-lg font-semibold text-pw-text font-[var(--font-syne)]">{title}</h2>
+        </div>
+        <div className="flex items-center gap-3">
+          {headerRight && <div onClick={(e) => e.stopPropagation()}>{headerRight}</div>}
+          <ChevronDown
+            size={18}
+            className={`text-pw-text-muted transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+          />
+        </div>
+      </button>
+      {open && <CardContent>{children}</CardContent>}
+    </Card>
+  );
+}
 
 export function OnboardingSection({ clientId }: OnboardingSectionProps) {
   const supabase = createClient();
@@ -102,75 +141,63 @@ export function OnboardingSection({ clientId }: OnboardingSectionProps) {
   const progressPct = Math.round((completedCount / CHECKLIST_ITEMS.length) * 100);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Onboarding checklist */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <ClipboardCheck size={20} className="text-pw-accent" />
-              <h2 className="text-lg font-semibold text-pw-text font-[var(--font-syne)]">
-                Onboarding
-              </h2>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className={`text-sm font-bold ${progressPct === 100 ? 'text-green-400' : 'text-pw-text-muted'}`}>
-                {completedCount}/{CHECKLIST_ITEMS.length}
-              </span>
-              <div className="w-20 h-1.5 bg-pw-surface-3 rounded-full overflow-hidden">
-                <div
-                  className={`h-full rounded-full transition-all ${progressPct === 100 ? 'bg-green-500' : 'bg-pw-accent'}`}
-                  style={{ width: `${progressPct}%` }}
-                />
-              </div>
+      <CollapsibleCard
+        title="Onboarding"
+        icon={ClipboardCheck}
+        headerRight={
+          <div className="flex items-center gap-2">
+            <span className={`text-sm font-bold ${progressPct === 100 ? 'text-green-400' : 'text-pw-text-muted'}`}>
+              {completedCount}/{CHECKLIST_ITEMS.length}
+            </span>
+            <div className="w-20 h-1.5 bg-pw-surface-3 rounded-full overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all ${progressPct === 100 ? 'bg-green-500' : 'bg-pw-accent'}`}
+                style={{ width: `${progressPct}%` }}
+              />
             </div>
           </div>
-        </CardHeader>
-        <CardContent className="p-0">
-          <div className="divide-y divide-pw-border">
-            {CHECKLIST_ITEMS.map((item) => {
-              const checked = onboarding?.[item.key] as boolean || false;
-              return (
-                <button
-                  key={item.key}
-                  onClick={() => toggleCheck(item.key)}
-                  className="w-full flex items-center gap-3 px-6 py-3 hover:bg-pw-surface-2 transition-colors text-left"
-                >
-                  <div className={`w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${
-                    checked ? 'bg-green-500 border-green-500' : 'border-pw-border'
-                  }`}>
-                    {checked && <Check size={12} className="text-white" />}
-                  </div>
-                  <span className={`text-sm ${checked ? 'text-pw-text-muted line-through' : 'text-pw-text'}`}>
-                    {item.label}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
+        }
+      >
+        <div className="divide-y divide-pw-border -mx-4 sm:-mx-6">
+          {CHECKLIST_ITEMS.map((item) => {
+            const checked = onboarding?.[item.key] as boolean || false;
+            return (
+              <button
+                key={item.key}
+                onClick={() => toggleCheck(item.key)}
+                className="w-full flex items-center gap-3 px-4 sm:px-6 py-3 hover:bg-pw-surface-2 transition-colors text-left"
+              >
+                <div className={`w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${
+                  checked ? 'bg-green-500 border-green-500' : 'border-pw-border'
+                }`}>
+                  {checked && <Check size={12} className="text-white" />}
+                </div>
+                <span className={`text-sm ${checked ? 'text-pw-text-muted line-through' : 'text-pw-text'}`}>
+                  {item.label}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </CollapsibleCard>
 
       {/* Social credentials */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Share2 size={20} className="text-pink-500" />
-              <h2 className="text-lg font-semibold text-pw-text font-[var(--font-syne)]">
-                Credenziali Social
-              </h2>
-            </div>
-            <button
-              onClick={() => setShowPasswords(!showPasswords)}
-              className="p-2 rounded-lg text-pw-text-muted hover:text-pw-text hover:bg-pw-surface-2 transition-colors"
-              title={showPasswords ? 'Nascondi password' : 'Mostra password'}
-            >
-              {showPasswords ? <EyeOff size={16} /> : <Eye size={16} />}
-            </button>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      <CollapsibleCard
+        title="Credenziali Social"
+        icon={Share2}
+        headerRight={
+          <button
+            onClick={() => setShowPasswords(!showPasswords)}
+            className="p-2 rounded-lg text-pw-text-muted hover:text-pw-text hover:bg-pw-surface-2 transition-colors"
+            aria-label={showPasswords ? 'Nascondi password' : 'Mostra password'}
+          >
+            {showPasswords ? <EyeOff size={16} /> : <Eye size={16} />}
+          </button>
+        }
+      >
+        <div className="space-y-4">
           {/* Instagram */}
           <div>
             <label className="flex items-center gap-2 text-[11px] uppercase tracking-[0.08em] font-medium text-pw-text-muted mb-2">
@@ -244,8 +271,8 @@ export function OnboardingSection({ clientId }: OnboardingSectionProps) {
             <Save size={14} />
             Salva Credenziali
           </Button>
-        </CardContent>
-      </Card>
+        </div>
+      </CollapsibleCard>
     </div>
   );
 }

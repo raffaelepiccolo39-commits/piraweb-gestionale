@@ -60,7 +60,7 @@ export interface ClientSocialCredentials {
   facebook_password: string | null;
   tiktok_username: string | null;
   tiktok_password: string | null;
-  other_platforms: { name: string; username: string; password: string }[];
+  other_platforms: { name: string; username: string; password: string }[] | null;
   created_at: string;
   updated_at: string;
 }
@@ -461,4 +461,27 @@ export interface ChatMessage {
   content: string;
   created_at: string;
   sender?: Profile;
+}
+
+// === NOTE SVILUPPATORE ===
+export type DevNoteCategory = 'bug' | 'feature_request' | 'improvement';
+export type DevNoteStatus = 'open' | 'in_progress' | 'resolved' | 'closed';
+
+export interface DeveloperNote {
+  id: string;
+  title: string;
+  description: string;
+  category: DevNoteCategory;
+  priority: TaskPriority;
+  status: DevNoteStatus;
+  screenshot_url: string | null;
+  resolved_task_id: string | null;
+  author_id: string;
+  resolved_by: string | null;
+  resolved_at: string | null;
+  created_at: string;
+  updated_at: string;
+  author?: Profile;
+  resolver?: Profile;
+  resolved_task?: Task;
 }

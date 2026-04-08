@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Inter, Syne, Bebas_Neue } from 'next/font/google';
 import './globals.css';
 
@@ -20,8 +20,26 @@ const bebasNeue = Bebas_Neue({
 });
 
 export const metadata: Metadata = {
-  title: 'PiraWeb Gestionale',
+  title: {
+    default: 'PiraWeb Gestionale',
+    template: '%s | PiraWeb Gestionale',
+  },
   description: 'Gestionale interno PiraWeb - Gestione clienti, progetti e team',
+  icons: {
+    icon: '/logo.png',
+    apple: '/logo.png',
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'PiraWeb Gestionale',
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: '#000000',
+  width: 'device-width',
+  initialScale: 1,
 };
 
 export default function RootLayout({

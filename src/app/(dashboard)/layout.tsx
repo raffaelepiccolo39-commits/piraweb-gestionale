@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Sidebar } from '@/components/layout/sidebar';
 import { Header } from '@/components/layout/header';
+import { ToastProvider } from '@/components/ui/toast';
 import { cn } from '@/lib/utils';
 
 export default function DashboardLayout({
@@ -14,7 +15,15 @@ export default function DashboardLayout({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
+    <ToastProvider>
     <div className="min-h-screen bg-black">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[60] focus:px-4 focus:py-2 focus:rounded-xl focus:bg-pw-accent focus:text-pw-bg focus:font-semibold focus:text-sm"
+      >
+        Vai al contenuto principale
+      </a>
+
       {/* Desktop sidebar */}
       <div className="hidden lg:block">
         <Sidebar
@@ -25,10 +34,11 @@ export default function DashboardLayout({
 
       {/* Mobile sidebar overlay */}
       {mobileMenuOpen && (
-        <div className="lg:hidden">
+        <div className="lg:hidden" role="dialog" aria-modal="true" aria-label="Menu di navigazione">
           <div
             className="fixed inset-0 bg-black/60 z-30"
             onClick={() => setMobileMenuOpen(false)}
+            aria-hidden="true"
           />
           <Sidebar collapsed={false} onToggle={() => setMobileMenuOpen(false)} />
         </div>
@@ -45,8 +55,9 @@ export default function DashboardLayout({
           onMobileMenuToggle={() => setMobileMenuOpen(!mobileMenuOpen)}
           mobileMenuOpen={mobileMenuOpen}
         />
-        <main className="p-4 lg:p-6 min-w-0 overflow-x-hidden">{children}</main>
+        <main id="main-content" className="p-4 lg:p-6 min-w-0 overflow-x-hidden">{children}</main>
       </div>
     </div>
+    </ToastProvider>
   );
 }

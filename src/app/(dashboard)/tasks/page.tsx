@@ -13,7 +13,8 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { Modal } from '@/components/ui/modal';
 import { formatDate, getPriorityColor, getStatusColor, getRoleLabel } from '@/lib/utils';
 import type { Task, Project, Client } from '@/types/database';
-import { ListTodo, Calendar, Clock, ArrowRight, Sparkles, Brain, Check, Send } from 'lucide-react';
+import { useToast } from '@/components/ui/toast';
+import { ListTodo, Calendar, Clock, ArrowRight, Sparkles, Brain, Check, Send, AlertTriangle } from 'lucide-react';
 
 const statusLabels: Record<string, string> = {
   backlog: 'Backlog',
@@ -56,33 +57,41 @@ export default function TasksPage() {
   const [aiLoading, setAiLoading] = useState(false);
   const [parsedTasks, setParsedTasks] = useState<ParsedTask[] | null>(null);
   const [tasksSaved, setTasksSaved] = useState(false);
+  const [error, setError] = useState(false);
 
   const isAdmin = profile?.role === 'admin';
+  const toast = useToast();
 
   const fetchTasks = useCallback(async () => {
     if (!profile) return;
 
-    let query = supabase
-      .from('tasks')
-      .select(`
-        *,
-        project:projects(id, name, color),
-        assignee:profiles!tasks_assigned_to_fkey(id, full_name)
-      `);
+    try {
+      let query = supabase
+        .from('tasks')
+        .select(`
+          *,
+          project:projects(id, name, color),
+          assignee:profiles!tasks_assigned_to_fkey(id, full_name)
+        `);
 
-    // Admin vede tutti i task, dipendenti solo i propri
-    if (!isAdmin) {
-      query = query.eq('assigned_to', profile.id);
+      // Admin vede tutti i task, dipendenti solo i propri
+      if (!isAdmin) {
+        query = query.eq('assigned_to', profile.id);
+      }
+
+      query = query.order('updated_at', { ascending: false }).limit(200);
+
+      if (statusFilter) query = query.eq('status', statusFilter);
+      if (priorityFilter) query = query.eq('priority', priorityFilter);
+
+      const { data, error } = await query;
+      if (error) throw error;
+      setTasks((data as Task[]) || []);
+    } catch {
+      setError(true);
+    } finally {
+      setLoading(false);
     }
-
-    query = query.order('updated_at', { ascending: false }).limit(200);
-
-    if (statusFilter) query = query.eq('status', statusFilter);
-    if (priorityFilter) query = query.eq('priority', priorityFilter);
-
-    const { data } = await query;
-    setTasks((data as Task[]) || []);
-    setLoading(false);
   }, [profile, isAdmin, statusFilter, priorityFilter]);
 
   const fetchClients = useCallback(async () => {
@@ -100,8 +109,14 @@ export default function TasksPage() {
   }, [fetchTasks, fetchClients]);
 
   const handleStatusChange = async (taskId: string, newStatus: string) => {
-    await supabase.from('tasks').update({ status: newStatus }).eq('id', taskId);
-    fetchTasks();
+    try {
+      const { error } = await supabase.from('tasks').update({ status: newStatus }).eq('id', taskId);
+      if (error) throw error;
+      toast.success('Stato aggiornato');
+      fetchTasks();
+    } catch {
+      toast.error('Errore durante l\'aggiornamento dello stato');
+    }
   };
 
   const handleAiParse = async () => {
@@ -127,9 +142,11 @@ export default function TasksPage() {
       const data = await res.json();
       if (res.ok) {
         setParsedTasks(data.tasks);
+      } else {
+        toast.error('Errore nell\'analisi AI dei task');
       }
     } catch {
-      // error handled
+      toast.error('Errore nell\'analisi AI dei task');
     } finally {
       setAiLoading(false);
     }
@@ -167,6 +184,7 @@ export default function TasksPage() {
     const { error } = await supabase.from('tasks').insert(tasksToInsert);
     if (!error) {
       setTasksSaved(true);
+      toast.success('Task salvati con successo');
       fetchTasks();
       setTimeout(() => {
         setShowAiModal(false);
@@ -175,6 +193,8 @@ export default function TasksPage() {
         setAiClientId('');
         setTasksSaved(false);
       }, 1500);
+    } else {
+      toast.error('Errore durante il salvataggio dei task');
     }
     setAiLoading(false);
   };
@@ -183,6 +203,17 @@ export default function TasksPage() {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="w-8 h-8 border-4 border-pw-accent border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 text-center gap-4">
+        <AlertTriangle size={48} className="text-red-400" />
+        <h2 className="text-xl font-semibold text-pw-text">Errore nel caricamento</h2>
+        <p className="text-pw-text-muted max-w-md text-sm">Non è stato possibile caricare i dati. Riprova.</p>
+        <button onClick={() => { setLoading(true); setError(false); fetchTasks(); }} className="px-4 py-2 rounded-xl bg-pw-accent text-pw-bg text-sm font-medium hover:bg-pw-accent-hover transition-colors">Riprova</button>
       </div>
     );
   }

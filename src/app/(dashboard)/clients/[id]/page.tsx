@@ -5,7 +5,7 @@ import { useEffect, useState, useCallback, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Modal } from '@/components/ui/modal';
@@ -34,7 +34,49 @@ import {
   RefreshCw,
   Archive,
   Brain,
+  ChevronDown,
 } from 'lucide-react';
+
+function CollapsibleSection({
+  title,
+  icon: Icon,
+  defaultOpen = false,
+  badge,
+  action,
+  children,
+}: {
+  title: string;
+  icon?: React.ElementType;
+  defaultOpen?: boolean;
+  badge?: React.ReactNode;
+  action?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <Card>
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between px-4 sm:px-6 py-4 text-left"
+      >
+        <div className="flex items-center gap-2">
+          {Icon && <Icon size={20} className="text-pw-text-dim" />}
+          <h2 className="text-lg font-semibold text-pw-text font-[var(--font-syne)]">{title}</h2>
+          {badge}
+        </div>
+        <div className="flex items-center gap-2">
+          {action && open && <div onClick={(e) => e.stopPropagation()}>{action}</div>}
+          <ChevronDown
+            size={18}
+            className={`text-pw-text-muted transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+          />
+        </div>
+      </button>
+      {open && <CardContent>{children}</CardContent>}
+    </Card>
+  );
+}
 
 function formatMonthLabel(dateStr: string): string {
   const date = new Date(dateStr);
@@ -373,99 +415,85 @@ export default function ClientDetailPage({
 
       {/* Client info (admin only) */}
       {isAdmin && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card>
-            <CardHeader>
-              <h2 className="text-lg font-semibold text-pw-text">
-                Informazioni Contatto
-              </h2>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 gap-3">
-                {client.email && (
-                  <div className="flex items-center gap-2 text-sm text-pw-text-muted">
-                    <Mail size={16} className="text-pw-text-dim shrink-0" />
-                    <span>{client.email}</span>
-                  </div>
-                )}
-                {client.phone && (
-                  <div className="flex items-center gap-2 text-sm text-pw-text-muted">
-                    <Phone size={16} className="text-pw-text-dim shrink-0" />
-                    <span>{client.phone}</span>
-                  </div>
-                )}
-                {client.website && (
-                  <div className="flex items-center gap-2 text-sm text-pw-text-muted">
-                    <Globe size={16} className="text-pw-text-dim shrink-0" />
-                    <span>{client.website}</span>
-                  </div>
-                )}
-              </div>
-              {client.notes && (
-                <p className="text-sm text-pw-text-muted mt-3 pt-3 border-t border-pw-border">
-                  {client.notes}
-                </p>
+        <div className="space-y-4">
+          <CollapsibleSection title="Informazioni Contatto" icon={Mail} defaultOpen>
+            <div className="grid grid-cols-1 gap-3">
+              {client.email && (
+                <div className="flex items-center gap-2 text-sm text-pw-text-muted">
+                  <Mail size={16} className="text-pw-text-dim shrink-0" />
+                  <span>{client.email}</span>
+                </div>
               )}
-            </CardContent>
-          </Card>
+              {client.phone && (
+                <div className="flex items-center gap-2 text-sm text-pw-text-muted">
+                  <Phone size={16} className="text-pw-text-dim shrink-0" />
+                  <span>{client.phone}</span>
+                </div>
+              )}
+              {client.website && (
+                <div className="flex items-center gap-2 text-sm text-pw-text-muted">
+                  <Globe size={16} className="text-pw-text-dim shrink-0" />
+                  <span>{client.website}</span>
+                </div>
+              )}
+            </div>
+            {client.notes && (
+              <p className="text-sm text-pw-text-muted mt-3 pt-3 border-t border-pw-border">
+                {client.notes}
+              </p>
+            )}
+          </CollapsibleSection>
 
           {/* Dati fiscali */}
           {(client.partita_iva || client.codice_fiscale || client.ragione_sociale) && (
-            <Card>
-              <CardHeader>
-                <h2 className="text-lg font-semibold text-pw-text">
-                  Dati Fiscali
-                </h2>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 gap-2.5 text-sm">
-                  {client.ragione_sociale && (
+            <CollapsibleSection title="Dati Fiscali" icon={FileText}>
+              <div className="grid grid-cols-1 gap-2.5 text-sm">
+                {client.ragione_sociale && (
+                  <div>
+                    <span className="text-pw-text-dim text-xs uppercase tracking-wider">Ragione Sociale</span>
+                    <p className="text-pw-text font-medium">{client.ragione_sociale}</p>
+                  </div>
+                )}
+                <div className="grid grid-cols-2 gap-3">
+                  {client.partita_iva && (
                     <div>
-                      <span className="text-pw-text-dim text-xs uppercase tracking-wider">Ragione Sociale</span>
-                      <p className="text-pw-text font-medium">{client.ragione_sociale}</p>
+                      <span className="text-pw-text-dim text-xs uppercase tracking-wider">P. IVA</span>
+                      <p className="text-pw-text font-mono font-medium">{client.partita_iva}</p>
                     </div>
                   )}
-                  <div className="grid grid-cols-2 gap-3">
-                    {client.partita_iva && (
-                      <div>
-                        <span className="text-pw-text-dim text-xs uppercase tracking-wider">P. IVA</span>
-                        <p className="text-pw-text font-mono font-medium">{client.partita_iva}</p>
-                      </div>
-                    )}
-                    {client.codice_fiscale && (
-                      <div>
-                        <span className="text-pw-text-dim text-xs uppercase tracking-wider">Codice Fiscale</span>
-                        <p className="text-pw-text font-mono font-medium">{client.codice_fiscale}</p>
-                      </div>
-                    )}
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    {client.codice_sdi && (
-                      <div>
-                        <span className="text-pw-text-dim text-xs uppercase tracking-wider">Codice SDI</span>
-                        <p className="text-pw-text font-mono font-medium">{client.codice_sdi}</p>
-                      </div>
-                    )}
-                    {client.pec && (
-                      <div>
-                        <span className="text-pw-text-dim text-xs uppercase tracking-wider">PEC</span>
-                        <p className="text-pw-text font-medium">{client.pec}</p>
-                      </div>
-                    )}
-                  </div>
-                  {(client.indirizzo || client.citta) && (
+                  {client.codice_fiscale && (
                     <div>
-                      <span className="text-pw-text-dim text-xs uppercase tracking-wider">Sede</span>
-                      <p className="text-pw-text font-medium">
-                        {client.indirizzo}
-                        {client.indirizzo && (client.cap || client.citta) && ' — '}
-                        {client.cap} {client.citta} {client.provincia && `(${client.provincia})`}
-                      </p>
+                      <span className="text-pw-text-dim text-xs uppercase tracking-wider">Codice Fiscale</span>
+                      <p className="text-pw-text font-mono font-medium">{client.codice_fiscale}</p>
                     </div>
                   )}
                 </div>
-              </CardContent>
-            </Card>
+                <div className="grid grid-cols-2 gap-3">
+                  {client.codice_sdi && (
+                    <div>
+                      <span className="text-pw-text-dim text-xs uppercase tracking-wider">Codice SDI</span>
+                      <p className="text-pw-text font-mono font-medium">{client.codice_sdi}</p>
+                    </div>
+                  )}
+                  {client.pec && (
+                    <div>
+                      <span className="text-pw-text-dim text-xs uppercase tracking-wider">PEC</span>
+                      <p className="text-pw-text font-medium">{client.pec}</p>
+                    </div>
+                  )}
+                </div>
+                {(client.indirizzo || client.citta) && (
+                  <div>
+                    <span className="text-pw-text-dim text-xs uppercase tracking-wider">Sede</span>
+                    <p className="text-pw-text font-medium">
+                      {client.indirizzo}
+                      {client.indirizzo && (client.cap || client.citta) && ' — '}
+                      {client.cap} {client.citta} {client.provincia && `(${client.provincia})`}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </CollapsibleSection>
           )}
         </div>
       )}
@@ -475,19 +503,9 @@ export default function ClientDetailPage({
 
       {/* Knowledge Base (admin only) */}
       {isAdmin && (
-        <Card>
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <Brain size={20} className="text-pw-accent" />
-              <h2 className="text-lg font-semibold text-pw-text font-[var(--font-syne)]">
-                Strategia & Knowledge Base
-              </h2>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <KnowledgeBaseForm data={knowledgeBase} onSave={handleSaveKnowledgeBase} />
-          </CardContent>
-        </Card>
+        <CollapsibleSection title="Strategia & Knowledge Base" icon={Brain}>
+          <KnowledgeBaseForm data={knowledgeBase} onSave={handleSaveKnowledgeBase} />
+        </CollapsibleSection>
       )}
 
       {/* Contract section (admin only) */}
@@ -512,34 +530,22 @@ export default function ClientDetailPage({
           ) : (
             <>
               {/* Contract info */}
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <FileText size={20} className="text-gray-400" />
-                      <h2 className="text-lg font-semibold text-pw-text">
-                        {contract.duration_months === 0 ? 'Senza Contratto' : 'Contratto Attivo'}
-                      </h2>
-                      {contract.duration_months === 0 && (
-                        <Badge className="bg-amber-500/15 text-amber-400">
-                          Accordo verbale
-                        </Badge>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {expiry && expiry.status === 'ok' && contract.duration_months > 0 && (
-                        <Badge className="bg-green-500/15 text-green-400">
-                          {expiry.label}
-                        </Badge>
-                      )}
-                      <Button variant="outline" size="sm" onClick={() => setShowRenewForm(true)}>
-                        <RefreshCw size={14} />
-                        {contract.duration_months === 0 ? 'Crea Contratto' : 'Rinnova / Aggiorna'}
-                      </Button>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
+              <CollapsibleSection
+                title={contract.duration_months === 0 ? 'Senza Contratto' : 'Contratto Attivo'}
+                icon={FileText}
+                defaultOpen
+                badge={contract.duration_months === 0 ? (
+                  <Badge className="bg-amber-500/15 text-amber-400">Accordo verbale</Badge>
+                ) : expiry && expiry.status === 'ok' ? (
+                  <Badge className="bg-green-500/15 text-green-400">{expiry.label}</Badge>
+                ) : undefined}
+                action={
+                  <Button variant="outline" size="sm" onClick={() => setShowRenewForm(true)}>
+                    <RefreshCw size={14} />
+                    {contract.duration_months === 0 ? 'Crea Contratto' : 'Rinnova'}
+                  </Button>
+                }
+              >
                   {contract.duration_months === 0 ? (
                     <div className="text-sm text-pw-text-muted">
                       <p>Cliente senza contratto scritto. {contract.notes && <span>{contract.notes}</span>}</p>
@@ -605,135 +611,104 @@ export default function ClientDetailPage({
                       <p className="text-sm text-pw-text-muted">{contract.notes}</p>
                     )}
                   </div>
-                </CardContent>
-              </Card>
+              </CollapsibleSection>
 
               {summary && <FinancialSummary summary={summary} />}
 
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center gap-2">
-                    <Calendar size={20} className="text-gray-400" />
-                    <h2 className="text-lg font-semibold text-pw-text">
-                      Calendario Pagamenti
-                    </h2>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <PaymentCalendar payments={payments} onTogglePaid={handleTogglePaid} />
-                </CardContent>
-              </Card>
+              <CollapsibleSection title="Calendario Pagamenti" icon={Calendar} defaultOpen>
+                <PaymentCalendar payments={payments} onTogglePaid={handleTogglePaid} />
+              </CollapsibleSection>
 
               {logs.length > 0 && (
-                <Card>
-                  <CardHeader>
-                    <div className="flex items-center gap-2">
-                      <History size={20} className="text-gray-400" />
-                      <h2 className="text-lg font-semibold text-pw-text">
-                        Storico Movimenti
-                      </h2>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="p-0">
-                    <div className="divide-y divide-pw-border">
-                      {logs.map((log) => (
-                        <div key={log.id} className="px-6 py-3 flex items-center gap-3">
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
-                            log.action === 'paid' ? 'bg-green-500/15' : 'bg-red-500/15'
-                          }`}>
-                            {log.action === 'paid' ? (
-                              <Check size={14} className="text-green-400" />
-                            ) : (
-                              <X size={14} className="text-red-400" />
-                            )}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm text-pw-text">
-                              Pagamento <strong>{log.action === 'paid' ? 'registrato' : 'annullato'}</strong> per{' '}
-                              <span className="capitalize">{formatMonthLabel(log.due_date)}</span>
-                            </p>
-                            <p className="text-xs text-pw-text-muted">
-                              {(log.performer as unknown as { full_name: string })?.full_name || 'Admin'} &middot;{' '}
-                              {new Date(log.performed_at).toLocaleString('it-IT')}
-                            </p>
-                          </div>
-                          <p className={`text-sm font-semibold shrink-0 ${
-                            log.action === 'paid' ? 'text-green-400' : 'text-red-500 dark:text-red-400'
-                          }`}>
-                            {log.action === 'paid' ? '+' : '-'}{formatCurrency(log.amount)}
+                <CollapsibleSection title="Storico Movimenti" icon={History}>
+                  <div className="divide-y divide-pw-border -mx-4 sm:-mx-6">
+                    {logs.map((log) => (
+                      <div key={log.id} className="px-4 sm:px-6 py-3 flex items-center gap-3">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
+                          log.action === 'paid' ? 'bg-green-500/15' : 'bg-red-500/15'
+                        }`}>
+                          {log.action === 'paid' ? (
+                            <Check size={14} className="text-green-400" />
+                          ) : (
+                            <X size={14} className="text-red-400" />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm text-pw-text">
+                            Pagamento <strong>{log.action === 'paid' ? 'registrato' : 'annullato'}</strong> per{' '}
+                            <span className="capitalize">{formatMonthLabel(log.due_date)}</span>
+                          </p>
+                          <p className="text-xs text-pw-text-muted">
+                            {(log.performer as unknown as { full_name: string })?.full_name || 'Admin'} &middot;{' '}
+                            {new Date(log.performed_at).toLocaleString('it-IT')}
                           </p>
                         </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
+                        <p className={`text-sm font-semibold shrink-0 ${
+                          log.action === 'paid' ? 'text-green-400' : 'text-red-400'
+                        }`}>
+                          {log.action === 'paid' ? '+' : '-'}{formatCurrency(log.amount)}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </CollapsibleSection>
               )}
             </>
           )}
 
           {/* Past contracts */}
           {pastContracts.length > 0 && (
-            <Card>
-              <CardHeader>
-                <div className="flex items-center gap-2">
-                  <Archive size={20} className="text-gray-400" />
-                  <h2 className="text-lg font-semibold text-pw-text">
-                    Contratti Precedenti
-                  </h2>
-                </div>
-              </CardHeader>
-              <CardContent className="p-0">
-                <div className="divide-y divide-pw-border">
-                  {pastContracts.map((pc) => {
-                    const endDate = new Date(pc.start_date);
-                    endDate.setMonth(endDate.getMonth() + pc.duration_months);
+            <CollapsibleSection title="Contratti Precedenti" icon={Archive}>
+              <div className="divide-y divide-pw-border -mx-4 sm:-mx-6">
+                {pastContracts.map((pc) => {
+                  const endDate = new Date(pc.start_date);
+                  endDate.setMonth(endDate.getMonth() + pc.duration_months);
 
-                    return (
-                      <div key={pc.id} className="px-6 py-4">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <div className="flex items-center gap-2 mb-1">
-                              <p className="text-sm font-medium text-pw-text">
-                                {formatCurrency(pc.monthly_fee)}/mese &middot; {pc.duration_months} mesi
-                              </p>
-                              <Badge className={
-                                pc.status === 'completed'
-                                  ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
-                                  : 'bg-pw-surface-3 text-pw-text-muted'
-                              }>
-                                {pc.status === 'completed' ? 'Completato' : 'Cancellato'}
-                              </Badge>
-                            </div>
-                            <p className="text-xs text-pw-text-muted">
-                              {formatDate(pc.start_date)} — {formatDate(endDate.toISOString())}
-                              {pc.payment_timing && (
-                                <> &middot; {pc.payment_timing === 'inizio_mese' ? 'Anticipato' : 'Fine mese'}</>
-                              )}
+                  return (
+                    <div key={pc.id} className="px-4 sm:px-6 py-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <p className="text-sm font-medium text-pw-text">
+                              {formatCurrency(pc.monthly_fee)}/mese &middot; {pc.duration_months} mesi
                             </p>
+                            <Badge className={
+                              pc.status === 'completed'
+                                ? 'bg-blue-500/15 text-blue-400'
+                                : 'bg-pw-surface-3 text-pw-text-muted'
+                            }>
+                              {pc.status === 'completed' ? 'Completato' : 'Cancellato'}
+                            </Badge>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <p className="text-sm font-semibold text-gray-600 dark:text-gray-300">
-                              {formatCurrency(pc.monthly_fee * pc.duration_months)}
-                            </p>
-                            {pc.attachment_url && pc.attachment_name && (
-                              <a
-                                href={pc.attachment_url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="p-1.5 rounded-lg hover:bg-pw-surface-2 text-gray-400 hover:text-indigo-600"
-                                title={pc.attachment_name}
-                              >
-                                <Download size={16} />
-                              </a>
+                          <p className="text-xs text-pw-text-muted">
+                            {formatDate(pc.start_date)} — {formatDate(endDate.toISOString())}
+                            {pc.payment_timing && (
+                              <> &middot; {pc.payment_timing === 'inizio_mese' ? 'Anticipato' : 'Fine mese'}</>
                             )}
-                          </div>
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-semibold text-pw-text-muted">
+                            {formatCurrency(pc.monthly_fee * pc.duration_months)}
+                          </p>
+                          {pc.attachment_url && pc.attachment_name && (
+                            <a
+                              href={pc.attachment_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="p-1.5 rounded-lg hover:bg-pw-surface-2 text-pw-text-dim hover:text-pw-accent"
+                              title={pc.attachment_name}
+                            >
+                              <Download size={16} />
+                            </a>
+                          )}
                         </div>
                       </div>
-                    );
-                  })}
-                </div>
-              </CardContent>
-            </Card>
+                    </div>
+                  );
+                })}
+              </div>
+            </CollapsibleSection>
           )}
         </>
       )}

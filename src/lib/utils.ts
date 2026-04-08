@@ -114,3 +114,41 @@ export function getAttendanceStatusColor(status: string): string {
   };
   return colors[status] || 'bg-gray-100 text-gray-800';
 }
+
+export function getDevNoteCategoryColor(category: string): string {
+  const colors: Record<string, string> = {
+    bug: 'bg-red-500/15 text-red-400',
+    feature_request: 'bg-blue-500/15 text-blue-400',
+    improvement: 'bg-emerald-500/15 text-emerald-400',
+  };
+  return colors[category] || 'bg-gray-500/15 text-gray-400';
+}
+
+export function getDevNoteCategoryLabel(category: string): string {
+  const labels: Record<string, string> = {
+    bug: 'Bug',
+    feature_request: 'Nuova Funzionalità',
+    improvement: 'Miglioramento',
+  };
+  return labels[category] || category;
+}
+
+export function getDevNoteStatusColor(status: string): string {
+  const colors: Record<string, string> = {
+    open: 'bg-yellow-500/15 text-yellow-400',
+    in_progress: 'bg-blue-500/15 text-blue-400',
+    resolved: 'bg-green-500/15 text-green-400',
+    closed: 'bg-gray-500/15 text-gray-400',
+  };
+  return colors[status] || 'bg-gray-500/15 text-gray-400';
+}
+
+export function getDevNoteStatusLabel(status: string): string {
+  const labels: Record<string, string> = {
+    open: 'Aperta',
+    in_progress: 'In lavorazione',
+    resolved: 'Risolta',
+    closed: 'Chiusa',
+  };
+  return labels[status] || status;
+}

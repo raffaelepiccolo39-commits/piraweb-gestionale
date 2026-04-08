@@ -13,7 +13,8 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { ProjectForm, type ProjectFormData } from '@/components/projects/project-form';
 import { formatDate, getStatusColor } from '@/lib/utils';
 import type { Project } from '@/types/database';
-import { Plus, FolderKanban, Calendar, Users, ArrowRight } from 'lucide-react';
+import { useToast } from '@/components/ui/toast';
+import { Plus, FolderKanban, Calendar, Users, ArrowRight, AlertTriangle } from 'lucide-react';
 
 const statusLabels: Record<string, string> = {
   draft: 'Bozza',
@@ -30,23 +31,31 @@ export default function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [error, setError] = useState(false);
 
   const isAdmin = profile?.role === 'admin';
+  const toast = useToast();
 
   const fetchProjects = useCallback(async () => {
-    const { data } = await supabase
-      .from('projects')
-      .select(`
-        *,
-        client:clients(id, name),
-        members:project_members(
-          id, user_id,
-          profile:profiles(id, full_name, role, avatar_url)
-        )
-      `)
-      .order('created_at', { ascending: false });
-    setProjects((data as Project[]) || []);
-    setLoading(false);
+    try {
+      const { data, error } = await supabase
+        .from('projects')
+        .select(`
+          *,
+          client:clients(id, name),
+          members:project_members(
+            id, user_id,
+            profile:profiles(id, full_name, role, avatar_url)
+          )
+        `)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      setProjects((data as Project[]) || []);
+    } catch {
+      setError(true);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -54,40 +63,56 @@ export default function ProjectsPage() {
   }, [fetchProjects]);
 
   const handleCreate = async (data: ProjectFormData) => {
-    const { data: project, error } = await supabase
-      .from('projects')
-      .insert({
-        name: data.name,
-        description: data.description || null,
-        client_id: data.client_id || null,
-        status: data.status,
-        color: data.color,
-        deadline: data.deadline || null,
-        created_by: profile!.id,
-      })
-      .select()
-      .single();
+    try {
+      const { data: project, error } = await supabase
+        .from('projects')
+        .insert({
+          name: data.name,
+          description: data.description || null,
+          client_id: data.client_id || null,
+          status: data.status,
+          color: data.color,
+          deadline: data.deadline || null,
+          created_by: profile!.id,
+        })
+        .select()
+        .single();
 
-    if (error || !project) return;
+      if (error || !project) throw error || new Error('Creazione fallita');
 
-    // Add members
-    if (data.member_ids.length > 0) {
-      await supabase.from('project_members').insert(
-        data.member_ids.map((user_id) => ({
-          project_id: project.id,
-          user_id,
-        }))
-      );
+      // Add members
+      if (data.member_ids.length > 0) {
+        await supabase.from('project_members').insert(
+          data.member_ids.map((user_id) => ({
+            project_id: project.id,
+            user_id,
+          }))
+        );
+      }
+
+      setShowForm(false);
+      toast.success('Progetto creato con successo');
+      fetchProjects();
+    } catch {
+      toast.error('Errore durante la creazione del progetto');
     }
-
-    setShowForm(false);
-    fetchProjects();
   };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="w-8 h-8 border-4 border-pw-accent border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 text-center gap-4">
+        <AlertTriangle size={48} className="text-red-400" />
+        <h2 className="text-xl font-semibold text-pw-text">Errore nel caricamento</h2>
+        <p className="text-pw-text-muted max-w-md text-sm">Non è stato possibile caricare i dati. Riprova.</p>
+        <button onClick={() => { setLoading(true); setError(false); fetchProjects(); }} className="px-4 py-2 rounded-xl bg-pw-accent text-pw-bg text-sm font-medium hover:bg-pw-accent-hover transition-colors">Riprova</button>
       </div>
     );
   }

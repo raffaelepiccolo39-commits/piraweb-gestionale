@@ -1,5 +1,14 @@
 import nodemailer from 'nodemailer';
 
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST,
   port: Number(process.env.SMTP_PORT) || 465,
@@ -28,8 +37,10 @@ const roleLabels: Record<string, string> = {
 };
 
 export async function sendWelcomeEmail({ to, fullName, email, password, role, appUrl }: WelcomeEmailParams) {
-  const roleLabel = roleLabels[role] || role;
-  const firstName = fullName.split(' ')[0];
+  const roleLabel = escapeHtml(roleLabels[role] || role);
+  const firstName = escapeHtml(fullName.split(' ')[0]);
+  const safeEmail = escapeHtml(email);
+  const safePassword = escapeHtml(password);
 
   const html = `
 <!DOCTYPE html>
@@ -56,7 +67,7 @@ export async function sendWelcomeEmail({ to, fullName, email, password, role, ap
           <tr>
             <td style="padding:40px;">
               <h2 style="margin:0 0 8px;color:#111827;font-size:22px;font-weight:600;">
-                Benvenuto/a, ${firstName}! 🎉
+                Benvenuto/a, ${firstName}!
               </h2>
               <p style="margin:0 0 24px;color:#6b7280;font-size:15px;line-height:1.6;">
                 Il tuo account sul gestionale PiraWeb è stato creato. Ecco i tuoi dati di accesso:
@@ -69,11 +80,11 @@ export async function sendWelcomeEmail({ to, fullName, email, password, role, ap
                     <table width="100%" cellpadding="0" cellspacing="0">
                       <tr>
                         <td style="padding:6px 0;color:#6b7280;font-size:13px;width:100px;">Email</td>
-                        <td style="padding:6px 0;color:#111827;font-size:14px;font-weight:600;">${email}</td>
+                        <td style="padding:6px 0;color:#111827;font-size:14px;font-weight:600;">${safeEmail}</td>
                       </tr>
                       <tr>
                         <td style="padding:6px 0;color:#6b7280;font-size:13px;">Password</td>
-                        <td style="padding:6px 0;color:#111827;font-size:14px;font-weight:600;font-family:monospace;">${password}</td>
+                        <td style="padding:6px 0;color:#111827;font-size:14px;font-weight:600;font-family:monospace;">${safePassword}</td>
                       </tr>
                       <tr>
                         <td style="padding:6px 0;color:#6b7280;font-size:13px;">Ruolo</td>

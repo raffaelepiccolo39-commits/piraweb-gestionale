@@ -21,6 +21,7 @@ import {
   Clock,
   MessageCircle,
   Network,
+  MessageSquareWarning,
 } from 'lucide-react';
 
 interface NavItem {
@@ -35,13 +36,14 @@ const navItems: NavItem[] = [
   { label: 'Clienti', href: '/clients', icon: Users, roles: 'all' },
   { label: 'Lavori', href: '/projects', icon: FolderKanban, roles: 'all' },
   { label: 'Task', href: '/tasks', icon: ListTodo, roles: 'all' },
-  { label: 'AI Scripts', href: '/ai', icon: Sparkles, roles: ['admin', 'content_creator', 'social_media_manager'] },
+  { label: 'Contenuti AI', href: '/ai', icon: Sparkles, roles: ['admin', 'content_creator', 'social_media_manager'] },
   { label: 'Bacheca', href: '/bacheca', icon: MessageSquare, roles: 'all' },
   { label: 'Chat', href: '/chat', icon: MessageCircle, roles: 'all' },
   { label: 'Presenze', href: '/presenze', icon: Clock, roles: 'all' },
   { label: 'Efficienza', href: '/analytics', icon: BarChart3, roles: ['admin'] },
   { label: 'Cashflow', href: '/cashflow', icon: Euro, roles: ['admin'] },
   { label: 'Organigramma', href: '/organigramma', icon: Network, roles: 'all' },
+  { label: 'Note Dev', href: '/note-dev', icon: MessageSquareWarning, roles: 'all' },
   { label: 'Impostazioni', href: '/settings', icon: Settings, roles: ['admin'] },
 ];
 
@@ -81,7 +83,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 py-4 px-2 space-y-0.5 overflow-y-auto">
+      <nav aria-label="Navigazione principale" className="flex-1 py-4 px-2 space-y-0.5 overflow-y-auto">
         {filteredItems.map((item) => {
           const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
           const Icon = item.icon;
@@ -122,6 +124,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         <button
           onClick={onToggle}
           className="hidden lg:flex w-full items-center justify-center gap-2 px-3 py-2 rounded-xl text-sm text-pw-text-muted hover:text-pw-text hover:bg-pw-surface-2 transition-colors"
+          aria-label={collapsed ? 'Espandi barra laterale' : 'Comprimi barra laterale'}
         >
           {collapsed ? <PanelLeft size={18} /> : <PanelLeftClose size={18} />}
           {!collapsed && <span className="text-[12px]">Comprimi</span>}

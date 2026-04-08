@@ -23,7 +23,7 @@ async function callClaude(prompt: string, systemPrompt: string): Promise<{ text:
   return {
     text: data.content[0].text,
     model: 'claude-sonnet-4-20250514',
-    tokens: data.usage?.input_tokens + data.usage?.output_tokens || 0,
+    tokens: (data.usage?.input_tokens ?? 0) + (data.usage?.output_tokens ?? 0),
   };
 }
 
@@ -92,10 +92,23 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 });
   }
 
-  const { title, prompt, script_type, client_id, project_id, preferred_provider } = await request.json();
+  const validProviders = ['claude', 'openai', 'gemini'] as const;
+
+  let body: { title?: string; prompt?: string; script_type?: string; client_id?: string; project_id?: string; preferred_provider?: string };
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: 'Corpo della richiesta non valido' }, { status: 400 });
+  }
+
+  const { title, prompt, script_type, client_id, project_id, preferred_provider } = body;
 
   if (!prompt || !script_type) {
     return NextResponse.json({ error: 'Prompt e tipo script sono richiesti' }, { status: 400 });
+  }
+
+  if (typeof prompt !== 'string' || prompt.length > 50000) {
+    return NextResponse.json({ error: 'Prompt troppo lungo (max 50.000 caratteri)' }, { status: 400 });
   }
 
   // Get full client context including knowledge base
@@ -125,7 +138,7 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  const systemPrompt = scriptTypePrompts[script_type] || scriptTypePrompts.other;
+  const systemPrompt = scriptTypePrompts[script_type as string] || scriptTypePrompts.other;
   const fullPrompt = `${prompt}${clientContext}`;
 
   let result: { text: string; model: string; tokens: number } = { text: '', model: '', tokens: 0 };
@@ -138,7 +151,9 @@ export async function POST(request: NextRequest) {
   };
   const fallbackOrder = ['claude', 'gemini', 'openai'] as const;
 
-  const primary = (preferred_provider || 'claude') as keyof typeof callMap;
+  const primary: keyof typeof callMap = preferred_provider && (validProviders as readonly string[]).includes(preferred_provider)
+    ? (preferred_provider as keyof typeof callMap)
+    : 'claude';
   const fallbacks = fallbackOrder.filter((p) => p !== primary);
 
   try {

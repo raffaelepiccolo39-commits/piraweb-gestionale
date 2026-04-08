@@ -153,6 +153,9 @@ export function Header({ onMobileMenuToggle, mobileMenuOpen }: HeaderProps) {
               setShowUserMenu(false);
             }}
             className="p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg text-pw-text-muted hover:text-pw-text hover:bg-pw-surface-2 transition-colors relative"
+            aria-label="Notifiche"
+            aria-expanded={showNotifications}
+            aria-haspopup="true"
           >
             <Bell size={18} />
             {unreadCount > 0 && (
@@ -164,8 +167,8 @@ export function Header({ onMobileMenuToggle, mobileMenuOpen }: HeaderProps) {
 
           {showNotifications && (
             <>
-              <div className="fixed inset-0 z-40" onClick={() => setShowNotifications(false)} />
-              <div className="absolute right-0 top-12 w-80 max-w-[calc(100vw-1rem)] bg-pw-surface-2 rounded-xl shadow-2xl border border-pw-border z-50 max-h-96 overflow-hidden">
+              <div className="fixed inset-0 z-40" onClick={() => setShowNotifications(false)} aria-hidden="true" />
+              <div role="menu" className="absolute right-0 top-12 w-80 max-w-[calc(100vw-1rem)] bg-pw-surface-2 rounded-xl shadow-2xl border border-pw-border z-50 max-h-96 overflow-hidden">
                 <div className="flex items-center justify-between p-4 border-b border-pw-border">
                   <h3 className="font-semibold text-pw-text text-sm">Notifiche</h3>
                   {unreadCount > 0 && (
@@ -184,10 +187,11 @@ export function Header({ onMobileMenuToggle, mobileMenuOpen }: HeaderProps) {
                     </p>
                   ) : (
                     notifications.map((notif) => (
-                      <div
+                      <button
                         key={notif.id}
+                        role="menuitem"
                         className={cn(
-                          'p-3 border-b border-pw-border last:border-0 cursor-pointer hover:bg-pw-surface-3',
+                          'w-full text-left p-3 border-b border-pw-border last:border-0 cursor-pointer hover:bg-pw-surface-3',
                           !notif.is_read && 'bg-pw-accent/5'
                         )}
                         onClick={() => markAsRead(notif.id)}
@@ -203,7 +207,7 @@ export function Header({ onMobileMenuToggle, mobileMenuOpen }: HeaderProps) {
                         <p className="text-[10px] text-pw-text-dim mt-1">
                           {new Date(notif.created_at).toLocaleString('it-IT')}
                         </p>
-                      </div>
+                      </button>
                     ))
                   )}
                 </div>
@@ -220,6 +224,9 @@ export function Header({ onMobileMenuToggle, mobileMenuOpen }: HeaderProps) {
               setShowNotifications(false);
             }}
             className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-pw-surface-2 transition-colors"
+            aria-label="Menu utente"
+            aria-expanded={showUserMenu}
+            aria-haspopup="true"
           >
             <div className="w-8 h-8 rounded-full bg-pw-accent flex items-center justify-center">
               <span className="text-pw-bg text-xs font-bold">

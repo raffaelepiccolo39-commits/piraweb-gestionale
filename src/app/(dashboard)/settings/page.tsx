@@ -280,7 +280,7 @@ export default function SettingsPage() {
                       className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                         member.is_active
                           ? 'bg-green-500/15 text-green-400'
-                          : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'
+                          : 'bg-pw-surface-3 text-pw-text-dim'
                       } disabled:opacity-50`}
                     >
                       {member.is_active ? 'Attivo' : 'Disattivato'}
@@ -336,7 +336,7 @@ export default function SettingsPage() {
                 value={createForm.password}
                 onChange={(e) => setCreateForm({ ...createForm, password: e.target.value })}
                 placeholder="Inserisci password"
-                className="w-full px-4 py-2.5 rounded-xl border border-pw-border bg-pw-surface-2 text-pw-text focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none text-sm pr-10"
+                className="w-full px-4 py-2.5 rounded-xl border border-pw-border bg-pw-surface-2 text-pw-text focus:ring-2 focus:ring-pw-accent/30 focus:border-pw-accent/50 outline-none text-sm pr-10"
               />
               <button
                 type="button"
@@ -376,7 +376,7 @@ export default function SettingsPage() {
                     value={createForm.salary}
                     onChange={(e) => setCreateForm({ ...createForm, salary: e.target.value })}
                     placeholder="es. 1200"
-                    className="w-full px-4 py-2.5 rounded-xl border border-pw-border bg-pw-surface-2 text-pw-text focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none text-sm"
+                    className="w-full px-4 py-2.5 rounded-xl border border-pw-border bg-pw-surface-2 text-pw-text focus:ring-2 focus:ring-pw-accent/30 focus:border-pw-accent/50 outline-none text-sm"
                   />
                 </div>
                 <Select
@@ -521,7 +521,7 @@ export default function SettingsPage() {
                   value={editForm.salary}
                   onChange={(e) => setEditForm({ ...editForm, salary: e.target.value })}
                   placeholder="es. 1200"
-                  className="w-full px-4 py-2.5 rounded-xl border border-pw-border bg-pw-surface-2 text-pw-text focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none text-sm"
+                  className="w-full px-4 py-2.5 rounded-xl border border-pw-border bg-pw-surface-2 text-pw-text focus:ring-2 focus:ring-pw-accent/30 focus:border-pw-accent/50 outline-none text-sm"
                 />
               </div>
               <Select

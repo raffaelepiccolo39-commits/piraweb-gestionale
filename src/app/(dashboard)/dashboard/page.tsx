@@ -59,84 +59,90 @@ export default function DashboardPage() {
     deadline: string | null;
   }>>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   const isAdmin = profile?.role === 'admin';
 
   const fetchDashboardData = useCallback(async () => {
     if (!profile) return;
+    setError(false);
 
-    // Fetch stats in parallel
-    const [clientsRes, projectsRes, tasksRes, myTasksRes] = await Promise.all([
-      supabase.from('clients').select('id', { count: 'exact', head: true }).eq('is_active', true),
-      supabase.from('projects').select('id', { count: 'exact', head: true }).eq('status', 'active'),
-      supabase.from('tasks').select('id, status, deadline'),
-      isAdmin
-        ? supabase
-            .from('tasks')
-            .select(`
-              id, title, status, priority, deadline,
-              project:projects(name, color),
-              assignee:profiles!tasks_assigned_to_fkey(full_name)
-            `)
-            .neq('status', 'done')
-            .order('updated_at', { ascending: false })
-            .limit(10)
-        : supabase
-            .from('tasks')
-            .select(`
-              id, title, status, priority, deadline,
-              project:projects(name, color),
-              assignee:profiles!tasks_assigned_to_fkey(full_name)
-            `)
-            .eq('assigned_to', profile.id)
-            .neq('status', 'done')
-            .order('updated_at', { ascending: false })
-            .limit(10),
-    ]);
-
-    const allTasks = tasksRes.data || [];
-    const now = new Date().toISOString();
-
-    setStats({
-      totalClients: clientsRes.count || 0,
-      activeProjects: projectsRes.count || 0,
-      totalTasks: allTasks.length,
-      completedTasks: allTasks.filter((t) => t.status === 'done').length,
-      inProgressTasks: allTasks.filter((t) => t.status === 'in_progress').length,
-      overdueTasks: allTasks.filter(
-        (t) => t.deadline && t.deadline < now && t.status !== 'done'
-      ).length,
-    });
-
-    setRecentTasks((myTasksRes.data as unknown as typeof recentTasks) || []);
-
-    // Team stats (admin only) — single query instead of N+1
-    if (isAdmin) {
-      const [profilesRes, allTasksRes] = await Promise.all([
-        supabase.from('profiles').select('id, full_name, role').eq('is_active', true),
-        supabase.from('tasks').select('assigned_to, status'),
+    try {
+      // Fetch stats in parallel
+      const [clientsRes, projectsRes, tasksRes, myTasksRes] = await Promise.all([
+        supabase.from('clients').select('id', { count: 'exact', head: true }).eq('is_active', true),
+        supabase.from('projects').select('id', { count: 'exact', head: true }).eq('status', 'active'),
+        supabase.from('tasks').select('id, status, deadline'),
+        isAdmin
+          ? supabase
+              .from('tasks')
+              .select(`
+                id, title, status, priority, deadline,
+                project:projects(name, color),
+                assignee:profiles!tasks_assigned_to_fkey(full_name)
+              `)
+              .neq('status', 'done')
+              .order('updated_at', { ascending: false })
+              .limit(10)
+          : supabase
+              .from('tasks')
+              .select(`
+                id, title, status, priority, deadline,
+                project:projects(name, color),
+                assignee:profiles!tasks_assigned_to_fkey(full_name)
+              `)
+              .eq('assigned_to', profile.id)
+              .neq('status', 'done')
+              .order('updated_at', { ascending: false })
+              .limit(10),
       ]);
 
-      if (profilesRes.data) {
-        const tasksByUser = new Map<string, { total: number; completed: number; in_progress: number }>();
-        (allTasksRes.data || []).forEach((t) => {
-          if (!t.assigned_to) return;
-          const stats = tasksByUser.get(t.assigned_to) || { total: 0, completed: 0, in_progress: 0 };
-          stats.total++;
-          if (t.status === 'done') stats.completed++;
-          if (t.status === 'in_progress') stats.in_progress++;
-          tasksByUser.set(t.assigned_to, stats);
-        });
+      const allTasks = tasksRes.data || [];
+      const now = new Date().toISOString();
 
-        const memberStats: TeamMemberStats[] = profilesRes.data.map((p) => {
-          const stats = tasksByUser.get(p.id) || { total: 0, completed: 0, in_progress: 0 };
-          return { id: p.id, full_name: p.full_name, role: p.role, ...stats };
-        });
-        setTeamStats(memberStats);
+      setStats({
+        totalClients: clientsRes.count || 0,
+        activeProjects: projectsRes.count || 0,
+        totalTasks: allTasks.length,
+        completedTasks: allTasks.filter((t) => t.status === 'done').length,
+        inProgressTasks: allTasks.filter((t) => t.status === 'in_progress').length,
+        overdueTasks: allTasks.filter(
+          (t) => t.deadline && t.deadline < now && t.status !== 'done'
+        ).length,
+      });
+
+      setRecentTasks((myTasksRes.data as unknown as typeof recentTasks) || []);
+
+      // Team stats (admin only) — single query instead of N+1
+      if (isAdmin) {
+        const [profilesRes, allTasksRes] = await Promise.all([
+          supabase.from('profiles').select('id, full_name, role').eq('is_active', true),
+          supabase.from('tasks').select('assigned_to, status'),
+        ]);
+
+        if (profilesRes.data) {
+          const tasksByUser = new Map<string, { total: number; completed: number; in_progress: number }>();
+          (allTasksRes.data || []).forEach((t) => {
+            if (!t.assigned_to) return;
+            const stats = tasksByUser.get(t.assigned_to) || { total: 0, completed: 0, in_progress: 0 };
+            stats.total++;
+            if (t.status === 'done') stats.completed++;
+            if (t.status === 'in_progress') stats.in_progress++;
+            tasksByUser.set(t.assigned_to, stats);
+          });
+
+          const memberStats: TeamMemberStats[] = profilesRes.data.map((p) => {
+            const stats = tasksByUser.get(p.id) || { total: 0, completed: 0, in_progress: 0 };
+            return { id: p.id, full_name: p.full_name, role: p.role, ...stats };
+          });
+          setTeamStats(memberStats);
+        }
       }
+    } catch {
+      setError(true);
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   }, [profile, isAdmin]);
 
   useEffect(() => {
@@ -147,6 +153,24 @@ export default function DashboardPage() {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="w-8 h-8 border-4 border-pw-accent border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 text-center gap-4">
+        <AlertTriangle size={48} className="text-red-400" />
+        <h2 className="text-xl font-semibold text-pw-text">Errore nel caricamento</h2>
+        <p className="text-pw-text-muted max-w-md text-sm">
+          Non è stato possibile caricare i dati della dashboard. Riprova.
+        </p>
+        <button
+          onClick={() => { setLoading(true); fetchDashboardData(); }}
+          className="px-4 py-2 rounded-xl bg-pw-accent text-pw-bg text-sm font-medium hover:bg-pw-accent-hover transition-colors"
+        >
+          Riprova
+        </button>
       </div>
     );
   }
@@ -174,14 +198,14 @@ export default function DashboardPage() {
       ? [{ label: 'Clienti', value: stats.totalClients, icon: Users, color: 'text-blue-600 bg-blue-500/15' }]
       : []),
     { label: 'Progetti Attivi', value: stats.activeProjects, icon: FolderKanban, color: 'text-indigo-600 bg-indigo-500/15' },
-    { label: 'Task Totali', value: stats.totalTasks, icon: ListTodo, color: 'text-purple-600 bg-purple-500/15' },
-    { label: 'Completati', value: stats.completedTasks, icon: CheckCircle2, color: 'text-green-600 bg-green-500/15' },
-    { label: 'In Corso', value: stats.inProgressTasks, icon: Clock, color: 'text-yellow-600 bg-yellow-100 dark:bg-yellow-900' },
-    { label: 'In Ritardo', value: stats.overdueTasks, icon: AlertTriangle, color: 'text-red-600 bg-red-500/15' },
+    { label: 'Attività totali', value: stats.totalTasks, icon: ListTodo, color: 'text-purple-600 bg-purple-500/15' },
+    { label: 'Completate', value: stats.completedTasks, icon: CheckCircle2, color: 'text-green-600 bg-green-500/15' },
+    { label: 'In corso', value: stats.inProgressTasks, icon: Clock, color: 'text-yellow-600 bg-yellow-100 dark:bg-yellow-900' },
+    { label: 'In ritardo', value: stats.overdueTasks, icon: AlertTriangle, color: 'text-red-600 bg-red-500/15' },
   ];
 
   const statusLabels: Record<string, string> = {
-    backlog: 'Backlog', todo: 'Da fare', in_progress: 'In corso', review: 'Review', done: 'Fatto',
+    backlog: 'Backlog', todo: 'Da fare', in_progress: 'In corso', review: 'In revisione', done: 'Fatto',
   };
   const priorityLabels: Record<string, string> = {
     low: 'Bassa', medium: 'Media', high: 'Alta', urgent: 'Urgente',
@@ -195,7 +219,7 @@ export default function DashboardPage() {
           Ciao, {profile?.full_name?.split(' ')[0]}!
         </h1>
         <p className="text-sm text-pw-text-muted">
-          Ecco il riepilogo della tua giornata
+          Panoramica delle attività in corso
         </p>
       </div>
 
@@ -224,18 +248,18 @@ export default function DashboardPage() {
           <Card>
             <CardHeader>
               <h2 className="text-lg font-semibold text-pw-text font-[var(--font-syne)]">
-                {isAdmin ? 'Task Recenti' : 'I tuoi Task'}
+                {isAdmin ? 'Attività recenti' : 'Le tue attività'}
               </h2>
             </CardHeader>
             <CardContent className="p-0">
               {recentTasks.length === 0 ? (
                 <p className="p-6 text-sm text-pw-text-muted text-center">
-                  Nessun task in corso
+                  Nessuna attività in sospeso
                 </p>
               ) : (
                 <div className="divide-y divide-pw-border">
                   {recentTasks.map((task) => (
-                    <div key={task.id} className="px-6 py-3 flex items-center gap-3 hover:bg-pw-surface-2">
+                    <div key={task.id} className="px-6 py-3 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 hover:bg-pw-surface-2">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           {task.project && (
@@ -253,7 +277,7 @@ export default function DashboardPage() {
                           {task.assignee && isAdmin && ` · ${task.assignee.full_name}`}
                         </p>
                       </div>
-                      <div className="flex items-center gap-2 shrink-0">
+                      <div className="flex items-center gap-2 shrink-0 flex-wrap">
                         <Badge className={getStatusColor(task.status)}>
                           {statusLabels[task.status]}
                         </Badge>
@@ -280,7 +304,7 @@ export default function DashboardPage() {
           <Card>
             <CardHeader>
               <h2 className="text-lg font-semibold text-pw-text font-[var(--font-syne)]">
-                Team
+                Carico del team
               </h2>
             </CardHeader>
             <CardContent className="p-0">
@@ -303,8 +327,8 @@ export default function DashboardPage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-4 text-xs text-pw-text-muted ml-11">
-                      <span>{member.total} task</span>
-                      <span className="text-green-400">{member.completed} completati</span>
+                      <span>{member.total} assegnate</span>
+                      <span className="text-green-400">{member.completed} completate</span>
                       <span className="text-yellow-400">{member.in_progress} in corso</span>
                     </div>
                     {member.total > 0 && (

@@ -14,6 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ClientForm, type ClientFormData } from '@/components/clients/client-form';
 import type { Client } from '@/types/database';
+import { useToast } from '@/components/ui/toast';
 import {
   Plus,
   Search,
@@ -25,6 +26,7 @@ import {
   Phone,
   Building2,
   Eye,
+  AlertTriangle,
 } from 'lucide-react';
 
 export default function ClientsPage() {
@@ -35,20 +37,29 @@ export default function ClientsPage() {
   const [search, setSearch] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | undefined>();
+  const [editingMonthlyFee, setEditingMonthlyFee] = useState<number | undefined>();
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [error, setError] = useState(false);
 
   const router = useRouter();
+  const toast = useToast();
   const isAdmin = profile?.role === 'admin';
 
   const fetchClients = useCallback(async () => {
-    const query = supabase
-      .from('clients')
-      .select('*')
-      .eq('is_active', true)
-      .order('name');
-    const { data } = await query;
-    setClients((data as Client[]) || []);
-    setLoading(false);
+    try {
+      const query = supabase
+        .from('clients')
+        .select('*')
+        .eq('is_active', true)
+        .order('name');
+      const { data, error } = await query;
+      if (error) throw error;
+      setClients((data as Client[]) || []);
+    } catch {
+      setError(true);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -72,61 +83,114 @@ export default function ClientsPage() {
   };
 
   const handleCreate = async (data: ClientFormData) => {
-    const { logo, ...fields } = data;
-    const { data: newClient, error } = await supabase.from('clients').insert({
-      ...fields,
-      created_by: profile!.id,
-    }).select().single();
-    if (!error && newClient && logo) {
-      const logoUrl = await uploadLogo(logo, newClient.id);
-      if (logoUrl) {
-        await supabase.from('clients').update({ logo_url: logoUrl }).eq('id', newClient.id);
+    try {
+      const { logo, ...fields } = data;
+      const { data: newClient, error } = await supabase.from('clients').insert({
+        ...fields,
+        created_by: profile!.id,
+      }).select().single();
+      if (!error && newClient && logo) {
+        const logoUrl = await uploadLogo(logo, newClient.id);
+        if (logoUrl) {
+          await supabase.from('clients').update({ logo_url: logoUrl }).eq('id', newClient.id);
+        }
       }
-    }
-    if (!error) {
+      if (error) throw error;
       setShowForm(false);
+      toast.success('Cliente creato con successo');
       fetchClients();
+    } catch {
+      toast.error('Errore durante la creazione del cliente');
     }
   };
 
   const handleUpdate = async (data: ClientFormData) => {
     if (!editingClient) return;
-    const { logo, ...fields } = data;
-    let logoUrl = editingClient.logo_url;
-    if (logo) {
-      const uploaded = await uploadLogo(logo, editingClient.id);
-      if (uploaded) logoUrl = uploaded;
-    }
-    const { error } = await supabase
-      .from('clients')
-      .update({ ...fields, logo_url: logoUrl })
-      .eq('id', editingClient.id);
-    if (!error) {
+    try {
+      const { logo, monthly_fee, ...fields } = data;
+      let logoUrl = editingClient.logo_url;
+      if (logo) {
+        const uploaded = await uploadLogo(logo, editingClient.id);
+        if (uploaded) logoUrl = uploaded;
+      }
+      const { error } = await supabase
+        .from('clients')
+        .update({ ...fields, logo_url: logoUrl })
+        .eq('id', editingClient.id);
+      if (error) throw error;
+
+      // Update monthly fee on active contract if changed
+      if (monthly_fee !== undefined && monthly_fee !== editingMonthlyFee) {
+        const { data: activeContract } = await supabase
+          .from('client_contracts')
+          .select('id')
+          .eq('client_id', editingClient.id)
+          .eq('status', 'active')
+          .maybeSingle();
+        if (activeContract) {
+          await supabase
+            .from('client_contracts')
+            .update({ monthly_fee })
+            .eq('id', activeContract.id);
+          // Update future unpaid payments
+          await supabase
+            .from('client_payments')
+            .update({ amount: monthly_fee })
+            .eq('contract_id', activeContract.id)
+            .eq('is_paid', false);
+        }
+      }
+
       setEditingClient(undefined);
+      setEditingMonthlyFee(undefined);
+      toast.success('Cliente aggiornato con successo');
       fetchClients();
+    } catch {
+      toast.error('Errore durante l\'aggiornamento del cliente');
     }
   };
 
   const handleDelete = async (id: string) => {
-    const { error } = await supabase.from('clients').delete().eq('id', id);
-    if (!error) {
+    try {
+      const { error } = await supabase.from('clients').delete().eq('id', id);
+      if (error) throw error;
       setDeleteConfirm(null);
+      toast.success('Cliente eliminato con successo');
       fetchClients();
+    } catch {
+      toast.error('Errore durante l\'eliminazione del cliente');
     }
   };
 
   const handleToggleActive = async (client: Client) => {
-    await supabase
-      .from('clients')
-      .update({ is_active: !client.is_active })
-      .eq('id', client.id);
-    fetchClients();
+    try {
+      const { error } = await supabase
+        .from('clients')
+        .update({ is_active: !client.is_active })
+        .eq('id', client.id);
+      if (error) throw error;
+      toast.success(client.is_active ? 'Cliente disattivato' : 'Cliente attivato');
+      fetchClients();
+    } catch {
+      toast.error('Errore durante l\'aggiornamento dello stato');
+    }
   };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="w-8 h-8 border-4 border-pw-accent border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 text-center gap-4">
+        <AlertTriangle size={48} className="text-red-400" />
+        <h2 className="text-xl font-semibold text-pw-text">Errore nel caricamento</h2>
+        <p className="text-pw-text-muted max-w-md text-sm">Non è stato possibile caricare i dati. Riprova.</p>
+        <button onClick={() => { setLoading(true); setError(false); fetchClients(); }} className="px-4 py-2 rounded-xl bg-pw-accent text-pw-bg text-sm font-medium hover:bg-pw-accent-hover transition-colors">Riprova</button>
       </div>
     );
   }
@@ -254,7 +318,16 @@ export default function ClientsPage() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => setEditingClient(client)}
+                    onClick={async () => {
+                      setEditingClient(client);
+                      const { data: activeContract } = await supabase
+                        .from('client_contracts')
+                        .select('monthly_fee')
+                        .eq('client_id', client.id)
+                        .eq('status', 'active')
+                        .maybeSingle();
+                      setEditingMonthlyFee(activeContract?.monthly_fee ?? undefined);
+                    }}
                   >
                     <Pencil size={14} />
                     Modifica
@@ -326,8 +399,9 @@ export default function ClientsPage() {
             {editingClient && (
               <ClientForm
                 client={editingClient}
+                monthlyFee={editingMonthlyFee}
                 onSubmit={handleUpdate}
-                onCancel={() => setEditingClient(undefined)}
+                onCancel={() => { setEditingClient(undefined); setEditingMonthlyFee(undefined); }}
               />
             )}
           </Modal>
