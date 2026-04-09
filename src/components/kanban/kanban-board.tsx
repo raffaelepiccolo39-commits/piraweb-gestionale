@@ -159,7 +159,7 @@ export function KanbanBoard({ tasks, onTaskClick, onTasksUpdate }: KanbanBoardPr
                               </div>
                               {task.assignee && (
                                 <div
-                                  className="w-6 h-6 rounded-full bg-pw-accent flex items-center justify-center"
+                                  className="w-6 h-6 rounded-full bg-pw-purple flex items-center justify-center"
                                   title={task.assignee.full_name}
                                 >
                                   <span className="text-white text-[10px] font-semibold">
