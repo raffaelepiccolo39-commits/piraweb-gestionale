@@ -151,8 +151,11 @@ export default function DashboardPage() {
           supabase.from('profiles').select('id, full_name, role').eq('is_active', true),
           // 11: all tasks for team stats
           supabase.from('tasks').select('assigned_to, status'),
-          // 12: cashflow this month
-          supabase.from('client_payments').select('amount, is_paid').gte('due_date', `${currentMonth}-01`).lte('due_date', `${currentMonth}-31`),
+          // 12: cashflow this month - get last day properly
+          (() => {
+            const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+            return supabase.from('client_payments').select('amount, is_paid').gte('due_date', `${currentMonth}-01`).lte('due_date', `${currentMonth}-${lastDay}`);
+          })(),
           // 13: team attendance
           supabase.rpc('get_team_attendance_today'),
         );
@@ -204,9 +207,9 @@ export default function DashboardPage() {
 
         const payments = (results[12].data as Array<{ amount: number; is_paid: boolean }>) || [];
         setCashflow({
-          expected: payments.reduce((sum, p) => sum + p.amount, 0),
-          received: payments.filter((p) => p.is_paid).reduce((sum, p) => sum + p.amount, 0),
-          pending: payments.filter((p) => !p.is_paid).length,
+          expected: payments.reduce((sum, p) => sum + Number(p.amount), 0),
+          received: payments.filter((p) => p.is_paid).reduce((sum, p) => sum + Number(p.amount), 0),
+          pending: payments.filter((p) => !p.is_paid).reduce((sum, p) => sum + Number(p.amount), 0),
         });
 
         setTeamAttendance((results[13].data as typeof teamAttendance) || []);

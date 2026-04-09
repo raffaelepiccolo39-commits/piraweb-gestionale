@@ -32,7 +32,7 @@ export function CashflowSnapshot({ expected, received, pending }: CashflowSnapsh
           </div>
           <div>
             <p className="text-[10px] text-pw-text-dim uppercase tracking-wider">In attesa</p>
-            <p className="text-lg font-bold text-yellow-400">{pending}</p>
+            <p className="text-lg font-bold text-yellow-400">{formatCurrency(pending)}</p>
           </div>
         </div>
         <div className="mt-3 h-2 bg-pw-surface-3 rounded-full overflow-hidden">
