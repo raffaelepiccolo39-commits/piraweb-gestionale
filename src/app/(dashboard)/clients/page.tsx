@@ -45,6 +45,7 @@ export default function ClientsPage() {
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [error, setError] = useState(false);
+  const [paymentAlerts, setPaymentAlerts] = useState<Record<string, 'warning' | 'danger'>>({});
 
   const router = useRouter();
   const toast = useToast();
@@ -60,12 +61,39 @@ export default function ClientsPage() {
       const { data, error } = await query;
       if (error) throw error;
       setClients((data as Client[]) || []);
+
+      // Fetch unpaid payments for current month to show alerts
+      if (profile?.role === 'admin') {
+        const now = new Date();
+        const currentMonth = now.toISOString().slice(0, 7);
+        const { data: unpaidPayments } = await supabase
+          .from('client_payments')
+          .select('id, contract_id, due_date, is_paid, contract:client_contracts!client_payments_contract_id_fkey(client_id)')
+          .eq('is_paid', false)
+          .gte('due_date', `${currentMonth}-01`)
+          .lte('due_date', `${currentMonth}-31`);
+
+        if (unpaidPayments) {
+          const dayOfMonth = now.getDate();
+          const alerts: Record<string, 'warning' | 'danger'> = {};
+          for (const p of unpaidPayments) {
+            const clientId = (p.contract as { client_id: string } | null)?.client_id;
+            if (!clientId) continue;
+            if (dayOfMonth > 15) {
+              alerts[clientId] = 'danger';
+            } else if (dayOfMonth >= 1 && !alerts[clientId]) {
+              alerts[clientId] = 'warning';
+            }
+          }
+          setPaymentAlerts(alerts);
+        }
+      }
     } catch {
       setError(true);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [profile?.role]);
 
   useEffect(() => {
     fetchClients();
@@ -290,15 +318,27 @@ export default function ClientsPage() {
                       </p>
                     </div>
                   </div>
-                  <Badge
-                    className={
-                      client.is_active
-                        ? 'bg-green-500/10 text-green-400 border border-green-500/20'
-                        : 'bg-pw-surface-3 text-pw-text-dim'
-                    }
-                  >
-                    {client.is_active ? 'Attivo' : 'Inattivo'}
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    {paymentAlerts[client.id] === 'warning' && (
+                      <div className="w-6 h-6 rounded-full bg-amber-500/15 flex items-center justify-center" title="Pagamento non ancora ricevuto">
+                        <AlertTriangle size={14} className="text-amber-400" />
+                      </div>
+                    )}
+                    {paymentAlerts[client.id] === 'danger' && (
+                      <div className="w-6 h-6 rounded-full bg-red-500 flex items-center justify-center" title="Pagamento in ritardo">
+                        <span className="w-2 h-2 rounded-full bg-white" />
+                      </div>
+                    )}
+                    <Badge
+                      className={
+                        client.is_active
+                          ? 'bg-green-500/10 text-green-400 border border-green-500/20'
+                          : 'bg-pw-surface-3 text-pw-text-dim'
+                      }
+                    >
+                      {client.is_active ? 'Attivo' : 'Inattivo'}
+                    </Badge>
+                  </div>
                 </div>
 
                 <div className="space-y-1.5 mb-4">
