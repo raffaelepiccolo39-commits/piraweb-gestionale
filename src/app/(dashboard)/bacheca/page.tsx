@@ -27,6 +27,9 @@ import {
   CheckCircle2,
   AlertTriangle,
   Sparkles,
+  Paperclip,
+  X,
+  Loader2,
 } from 'lucide-react';
 
 const priorityLabels: Record<string, string> = {
@@ -50,6 +53,8 @@ export default function BachecaPage() {
   const [addingTask, setAddingTask] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [generatingAi, setGeneratingAi] = useState(false);
+  const [attachFiles, setAttachFiles] = useState<File[]>([]);
 
   const isAdmin = profile?.role === 'admin';
 
@@ -144,7 +149,28 @@ export default function BachecaPage() {
   const openAddTask = (memberId: string | null) => {
     setAddToMemberId(memberId);
     setNewTask({ title: '', description: '', client_id: '', priority: memberId ? 'medium' : 'urgent', deadline: '' });
+    setAttachFiles([]);
     setShowAddTask(true);
+  };
+
+  const handleAiDescription = async () => {
+    if (!newTask.title.trim()) return;
+    setGeneratingAi(true);
+    try {
+      const clientName = newTask.client_id
+        ? clients.find((c) => c.id === newTask.client_id)?.company || clients.find((c) => c.id === newTask.client_id)?.name || ''
+        : '';
+      const res = await fetch('/api/ai/describe-task', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: newTask.title, client_name: clientName }),
+      });
+      const data = await res.json();
+      if (res.ok && data.description) {
+        setNewTask((prev) => ({ ...prev, description: data.description }));
+      }
+    } catch { /* ignore */ }
+    setGeneratingAi(false);
   };
 
   const handleAddTask = async () => {
@@ -181,7 +207,7 @@ export default function BachecaPage() {
     }
 
     if (projectId) {
-      await supabase.from('tasks').insert({
+      const { data: createdTask } = await supabase.from('tasks').insert({
         title: newTask.title,
         description: newTask.description || null,
         project_id: projectId,
@@ -191,11 +217,32 @@ export default function BachecaPage() {
         status: 'todo',
         position: 0,
         created_by: profile.id,
-      });
+      }).select('id').single();
+
+      // Upload attachments
+      if (createdTask && attachFiles.length > 0) {
+        for (const file of attachFiles) {
+          const ext = file.name.split('.').pop();
+          const path = `${createdTask.id}/${Date.now()}_${file.name}`;
+          const { error: uploadError } = await supabase.storage.from('attachments').upload(path, file);
+          if (!uploadError) {
+            const { data: urlData } = supabase.storage.from('attachments').getPublicUrl(path);
+            await supabase.from('task_attachments').insert({
+              task_id: createdTask.id,
+              file_name: file.name,
+              file_url: urlData.publicUrl,
+              file_type: file.type,
+              file_size: file.size,
+              uploaded_by: profile.id,
+            });
+          }
+        }
+      }
     }
 
     setShowAddTask(false);
     setAddingTask(false);
+    setAttachFiles([]);
     fetchData();
   };
 
@@ -488,14 +535,70 @@ export default function BachecaPage() {
             options={clients.map((c) => ({ value: c.id, label: c.company || c.name }))}
             placeholder="Seleziona cliente"
           />
-          <Textarea
-            id="task-desc"
-            label="Descrizione"
-            value={newTask.description}
-            onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
-            placeholder="Dettagli del task..."
-            rows={3}
-          />
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-[11px] uppercase tracking-[0.08em] font-medium text-pw-text-muted">
+                Descrizione
+              </label>
+              <button
+                type="button"
+                onClick={handleAiDescription}
+                disabled={generatingAi || !newTask.title.trim()}
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium bg-pw-accent/15 text-pw-accent hover:bg-pw-accent/25 disabled:opacity-40 transition-colors"
+              >
+                {generatingAi ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
+                {generatingAi ? 'Generando...' : 'Scrivi con AI'}
+              </button>
+            </div>
+            <Textarea
+              id="task-desc"
+              value={newTask.description}
+              onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
+              placeholder="Dettagli del task..."
+              rows={3}
+            />
+          </div>
+
+          {/* File upload */}
+          <div>
+            <label className="block text-[11px] uppercase tracking-[0.08em] font-medium text-pw-text-muted mb-1.5">
+              Allegati
+            </label>
+            <label
+              htmlFor="task-files"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-dashed border-pw-border hover:border-pw-accent/50 cursor-pointer transition-colors text-sm text-pw-text-muted"
+            >
+              <Paperclip size={16} />
+              Carica documenti...
+              <input
+                id="task-files"
+                type="file"
+                multiple
+                className="hidden"
+                onChange={(e) => {
+                  if (e.target.files) {
+                    setAttachFiles((prev) => [...prev, ...Array.from(e.target.files!)]);
+                  }
+                }}
+              />
+            </label>
+            {attachFiles.length > 0 && (
+              <div className="mt-2 space-y-1">
+                {attachFiles.map((file, i) => (
+                  <div key={i} className="flex items-center justify-between px-3 py-1.5 rounded-lg bg-pw-surface-3 text-xs text-pw-text-muted">
+                    <span className="truncate">{file.name}</span>
+                    <button
+                      type="button"
+                      onClick={() => setAttachFiles((prev) => prev.filter((_, idx) => idx !== i))}
+                      className="shrink-0 ml-2 text-pw-text-dim hover:text-red-400 transition-colors"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
           <div className="grid grid-cols-2 gap-4">
             <Select
               id="task-priority"

@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { formatDate, formatDateTime, getInitials, getPriorityColor, getRoleLabel } from '@/lib/utils';
-import type { Task, Profile, TaskComment, Client } from '@/types/database';
+import type { Task, Profile, TaskComment, TaskAttachment, Client } from '@/types/database';
 import {
   Calendar,
   User,
@@ -19,6 +19,12 @@ import {
   Trash2,
   Send,
   Clock,
+  Paperclip,
+  FileText,
+  Download,
+  X,
+  Sparkles,
+  Loader2,
 } from 'lucide-react';
 
 interface TaskDetailModalProps {
@@ -58,6 +64,9 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
   const [newComment, setNewComment] = useState('');
   const [saving, setSaving] = useState(false);
   const [sendingComment, setSendingComment] = useState(false);
+  const [attachments, setAttachments] = useState<TaskAttachment[]>([]);
+  const [uploadingFile, setUploadingFile] = useState(false);
+  const [generatingAi, setGeneratingAi] = useState(false);
 
   useEffect(() => {
     if (task) {
@@ -69,6 +78,7 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
       setDeadline(task.deadline ? task.deadline.split('T')[0] : '');
       setEstimatedHours(task.estimated_hours ? String(task.estimated_hours) : '');
       fetchComments(task.id);
+      fetchAttachments(task.id);
     }
   }, [task]);
 
@@ -79,6 +89,62 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
       .eq('task_id', taskId)
       .order('created_at', { ascending: true });
     setComments((data as TaskComment[]) || []);
+  };
+
+  const fetchAttachments = async (taskId: string) => {
+    const { data } = await supabase
+      .from('task_attachments')
+      .select('*')
+      .eq('task_id', taskId)
+      .order('created_at', { ascending: false });
+    setAttachments((data as TaskAttachment[]) || []);
+  };
+
+  const handleFileUpload = async (files: FileList) => {
+    if (!task) return;
+    setUploadingFile(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setUploadingFile(false); return; }
+
+    for (const file of Array.from(files)) {
+      const path = `${task.id}/${Date.now()}_${file.name}`;
+      const { error: uploadError } = await supabase.storage.from('attachments').upload(path, file);
+      if (!uploadError) {
+        const { data: urlData } = supabase.storage.from('attachments').getPublicUrl(path);
+        await supabase.from('task_attachments').insert({
+          task_id: task.id,
+          file_name: file.name,
+          file_url: urlData.publicUrl,
+          file_type: file.type,
+          file_size: file.size,
+          uploaded_by: user.id,
+        });
+      }
+    }
+    await fetchAttachments(task.id);
+    setUploadingFile(false);
+  };
+
+  const handleDeleteAttachment = async (att: TaskAttachment) => {
+    await supabase.from('task_attachments').delete().eq('id', att.id);
+    if (task) await fetchAttachments(task.id);
+  };
+
+  const handleAiDescription = async () => {
+    if (!title.trim()) return;
+    setGeneratingAi(true);
+    try {
+      const res = await fetch('/api/ai/describe-task', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, client_name: clientName }),
+      });
+      const data = await res.json();
+      if (res.ok && data.description) {
+        setDescription(data.description);
+      }
+    } catch { /* ignore */ }
+    setGeneratingAi(false);
   };
 
   const handleSave = async () => {
@@ -204,10 +270,21 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
 
             {/* Description */}
             <div>
-              <label className="flex items-center gap-2 text-sm font-medium text-pw-text mb-2">
-                <MessageSquare size={16} />
-                Descrizione
-              </label>
+              <div className="flex items-center justify-between mb-2">
+                <label className="flex items-center gap-2 text-sm font-medium text-pw-text">
+                  <MessageSquare size={16} />
+                  Descrizione
+                </label>
+                <button
+                  type="button"
+                  onClick={handleAiDescription}
+                  disabled={generatingAi || !title.trim()}
+                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium bg-pw-accent/15 text-pw-accent hover:bg-pw-accent/25 disabled:opacity-40 transition-colors"
+                >
+                  {generatingAi ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
+                  {generatingAi ? 'Generando...' : 'Scrivi con AI'}
+                </button>
+              </div>
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
@@ -215,6 +292,63 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
                 rows={8}
                 className="w-full px-4 py-3 rounded-xl border border-pw-border bg-pw-surface-2 text-pw-text placeholder:text-pw-text-dim focus:ring-2 focus:ring-pw-accent/30 focus:border-pw-accent/50 outline-none transition-all text-sm resize-y"
               />
+            </div>
+
+            {/* Attachments */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="flex items-center gap-2 text-sm font-medium text-pw-text">
+                  <Paperclip size={16} />
+                  Allegati
+                </label>
+                <label
+                  htmlFor="detail-file-upload"
+                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium bg-pw-surface-3 text-pw-text-muted hover:bg-pw-surface-2 cursor-pointer transition-colors"
+                >
+                  {uploadingFile ? <Loader2 size={12} className="animate-spin" /> : <Paperclip size={12} />}
+                  {uploadingFile ? 'Caricando...' : 'Carica file'}
+                  <input
+                    id="detail-file-upload"
+                    type="file"
+                    multiple
+                    className="hidden"
+                    onChange={(e) => e.target.files && handleFileUpload(e.target.files)}
+                  />
+                </label>
+              </div>
+              {attachments.length === 0 ? (
+                <p className="text-xs text-pw-text-dim text-center py-3 border border-dashed border-pw-border rounded-xl">
+                  Nessun allegato
+                </p>
+              ) : (
+                <div className="space-y-1.5">
+                  {attachments.map((att) => (
+                    <div key={att.id} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-pw-surface-3">
+                      <FileText size={14} className="text-pw-accent shrink-0" />
+                      <span className="text-xs text-pw-text truncate flex-1">{att.file_name}</span>
+                      {att.file_size && (
+                        <span className="text-[10px] text-pw-text-dim shrink-0">
+                          {(att.file_size / 1024).toFixed(0)} KB
+                        </span>
+                      )}
+                      <a
+                        href={att.file_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="shrink-0 text-pw-text-dim hover:text-pw-accent transition-colors"
+                      >
+                        <Download size={14} />
+                      </a>
+                      <button
+                        onClick={() => handleDeleteAttachment(att)}
+                        className="shrink-0 text-pw-text-dim hover:text-red-400 transition-colors"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Save + Delete */}
