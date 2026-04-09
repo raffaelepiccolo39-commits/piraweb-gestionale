@@ -46,11 +46,22 @@ export default function ProjectsPage() {
           members:project_members(
             id, user_id,
             profile:profiles(id, full_name, role, avatar_url)
-          )
+          ),
+          tasks(assigned_to)
         `)
         .order('created_at', { ascending: false });
       if (error) throw error;
-      setProjects((data as Project[]) || []);
+      // Merge task assignees into members count
+      const projects = ((data || []) as Array<Project & { tasks?: Array<{ assigned_to: string | null }> }>).map((p) => {
+        const memberIds = new Set((p.members || []).map((m) => m.user_id));
+        if (p.tasks) {
+          for (const t of p.tasks) {
+            if (t.assigned_to) memberIds.add(t.assigned_to);
+          }
+        }
+        return { ...p, _teamCount: memberIds.size };
+      });
+      setProjects(projects as Project[]);
     } catch {
       setError(true);
     } finally {
@@ -195,10 +206,10 @@ export default function ProjectsPage() {
                         {formatDate(project.deadline)}
                       </span>
                     )}
-                    {project.members && project.members.length > 0 && (
+                    {((project as Project & { _teamCount?: number })._teamCount || project.members?.length || 0) > 0 && (
                       <span className="flex items-center gap-1">
                         <Users size={12} />
-                        {project.members.length}
+                        {(project as Project & { _teamCount?: number })._teamCount || project.members?.length || 0}
                       </span>
                     )}
                   </div>
