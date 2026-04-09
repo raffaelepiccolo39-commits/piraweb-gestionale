@@ -21,17 +21,13 @@ export function CashflowSnapshot({ expected, received, pending }: CashflowSnapsh
           <Euro size={16} className="text-yellow-500" />
           <span className="text-sm font-semibold text-pw-text">Cashflow Mensile</span>
         </div>
-        <div className="grid grid-cols-3 gap-3">
-          <div>
-            <p className="text-[10px] text-pw-text-dim uppercase tracking-wider">Atteso</p>
-            <p className="text-lg font-bold text-pw-text">{formatCurrency(expected)}</p>
-          </div>
+        <div className="grid grid-cols-2 gap-3">
           <div>
             <p className="text-[10px] text-pw-text-dim uppercase tracking-wider">Incassato</p>
             <p className="text-lg font-bold text-green-400">{formatCurrency(received)}</p>
           </div>
           <div>
-            <p className="text-[10px] text-pw-text-dim uppercase tracking-wider">In attesa</p>
+            <p className="text-[10px] text-pw-text-dim uppercase tracking-wider">Da incassare</p>
             <p className="text-lg font-bold text-yellow-400">{formatCurrency(pending)}</p>
           </div>
         </div>
