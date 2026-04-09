@@ -52,7 +52,7 @@ export default function CashflowPage() {
   const supabase = createClient();
   const router = useRouter();
   const now = new Date();
-  const [period, setPeriod] = useState<Period>('year');
+  const [period, setPeriod] = useState<Period>('month');
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth());
   const [selectedYear, setSelectedYear] = useState(now.getFullYear());
   const [customStart, setCustomStart] = useState('');
@@ -105,8 +105,8 @@ export default function CashflowPage() {
     ]);
 
     if (monthlyRes.data) setMonthly(monthlyRes.data as CashflowMonthly[]);
-    if (summaryRes.data?.[0]) setCashSummary(summaryRes.data[0] as CashflowSummary);
-    else setCashSummary(null);
+    if (summaryRes.data?.length) setCashSummary(summaryRes.data[0] as CashflowSummary);
+    else setCashSummary({ total_expected: 0, total_received: 0, total_pending: 0, active_contracts: 0, active_clients: 0, avg_monthly_revenue: 0 } as CashflowSummary);
     if (pnlRes.data?.[0]) setPnl(pnlRes.data[0] as ProfitLossSummary);
     else setPnl(null);
     if (expensesRes.data?.[0]) setExpenses(expensesRes.data[0] as MonthlyExpenses);
