@@ -122,14 +122,23 @@ export async function POST() {
 }
 
 function parseICalDate(str: string): string {
-  // Handle YYYYMMDD (all-day) and YYYYMMDDTHHmmssZ formats
+  // Handle YYYYMMDD (all-day)
   if (str.length === 8) {
-    return `${str.slice(0, 4)}-${str.slice(4, 6)}-${str.slice(6, 8)}T00:00:00Z`;
+    return `${str.slice(0, 4)}-${str.slice(4, 6)}-${str.slice(6, 8)}T00:00:00+02:00`;
   }
-  const cleaned = str.replace(/[TZ]/g, (m) => m === 'T' ? 'T' : 'Z');
-  const match = cleaned.match(/(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})/);
+
+  // If it ends with Z, it's already UTC - keep as-is
+  if (str.endsWith('Z')) {
+    const match = str.match(/(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z/);
+    if (match) {
+      return `${match[1]}-${match[2]}-${match[3]}T${match[4]}:${match[5]}:${match[6]}Z`;
+    }
+  }
+
+  // No Z = local time (Europe/Rome for iCloud Italy)
+  const match = str.match(/(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})/);
   if (match) {
-    return `${match[1]}-${match[2]}-${match[3]}T${match[4]}:${match[5]}:${match[6]}Z`;
+    return `${match[1]}-${match[2]}-${match[3]}T${match[4]}:${match[5]}:${match[6]}+02:00`;
   }
   return str;
 }

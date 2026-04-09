@@ -69,8 +69,25 @@ export default function CalendarioPage() {
         body: JSON.stringify(data),
       });
       if (!res.ok) throw new Error();
+      const { event } = await res.json();
+
+      // Push to CalDAV if sync is configured
+      if (event?.id && (data as EventFormData & { sync_caldav?: boolean }).sync_caldav) {
+        try {
+          await fetch('/api/calendar/push', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ event_id: event.id }),
+          });
+          toast.success('Evento creato e sincronizzato');
+        } catch {
+          toast.success('Evento creato (sincronizzazione fallita)');
+        }
+      } else {
+        toast.success('Evento creato');
+      }
+
       setShowEventForm(false);
-      toast.success('Evento creato');
       fetchEvents();
     } catch {
       toast.error('Errore nella creazione dell\'evento');

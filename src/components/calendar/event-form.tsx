@@ -23,6 +23,7 @@ export interface EventFormData {
   all_day: boolean;
   color: string;
   assigned_to: string[];
+  sync_caldav?: boolean;
 }
 
 const COLORS = [
@@ -54,6 +55,7 @@ export function EventForm({ event, defaultDate, onSubmit, onCancel }: EventFormP
     all_day: event?.all_day || false,
     color: event?.color || '#c8f55a',
     assigned_to: event?.assigned_to || [],
+    sync_caldav: !event, // default on for new events
   });
 
   useEffect(() => {
@@ -179,6 +181,19 @@ export function EventForm({ event, defaultDate, onSubmit, onCancel }: EventFormP
           ))}
         </div>
       </div>
+
+      {/* Sync to CalDAV */}
+      {!event && (
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={form.sync_caldav}
+            onChange={(e) => setForm((p) => ({ ...p, sync_caldav: e.target.checked }))}
+            className="w-4 h-4 rounded border-pw-border bg-pw-surface-2 accent-pw-accent"
+          />
+          <span className="text-sm text-pw-text">Sincronizza con calendario iCloud</span>
+        </label>
+      )}
 
       <div className="flex justify-end gap-3 pt-2">
         <Button type="button" variant="ghost" onClick={onCancel}>Annulla</Button>
