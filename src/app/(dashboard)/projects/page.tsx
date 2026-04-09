@@ -12,9 +12,9 @@ import { Modal } from '@/components/ui/modal';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ProjectForm, type ProjectFormData } from '@/components/projects/project-form';
 import { formatDate, getStatusColor } from '@/lib/utils';
-import type { Project } from '@/types/database';
+import type { Project, Profile } from '@/types/database';
 import { useToast } from '@/components/ui/toast';
-import { Plus, FolderKanban, Calendar, Users, ArrowRight, AlertTriangle } from 'lucide-react';
+import { Plus, FolderKanban, Calendar, Users, ArrowRight, AlertTriangle, Filter } from 'lucide-react';
 
 const statusLabels: Record<string, string> = {
   draft: 'Bozza',
@@ -29,6 +29,8 @@ export default function ProjectsPage() {
   const supabase = createClient();
   const router = useRouter();
   const [projects, setProjects] = useState<Project[]>([]);
+  const [members, setMembers] = useState<Profile[]>([]);
+  const [filterMember, setFilterMember] = useState('');
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [error, setError] = useState(false);
@@ -38,28 +40,40 @@ export default function ProjectsPage() {
 
   const fetchProjects = useCallback(async () => {
     try {
-      const { data, error } = await supabase
-        .from('projects')
-        .select(`
-          *,
-          client:clients(id, name),
-          members:project_members(
-            id, user_id,
-            profile:profiles(id, full_name, role, avatar_url)
-          ),
-          tasks(assigned_to)
-        `)
-        .order('created_at', { ascending: false });
-      if (error) throw error;
-      // Merge task assignees into members count
-      const projects = ((data || []) as Array<Project & { tasks?: Array<{ assigned_to: string | null }> }>).map((p) => {
+      const [projectsRes, membersRes] = await Promise.all([
+        supabase
+          .from('projects')
+          .select(`
+            *,
+            client:clients(id, name),
+            members:project_members(
+              id, user_id,
+              profile:profiles(id, full_name, role, avatar_url)
+            ),
+            tasks(assigned_to)
+          `)
+          .order('created_at', { ascending: false }),
+        supabase
+          .from('profiles')
+          .select('id, full_name')
+          .eq('is_active', true)
+          .order('full_name'),
+      ]);
+      if (projectsRes.error) throw projectsRes.error;
+      if (membersRes.data) setMembers(membersRes.data as Profile[]);
+      // Merge task assignees into members count + keep task assignee list
+      const projects = ((projectsRes.data || []) as Array<Project & { tasks?: Array<{ assigned_to: string | null }> }>).map((p) => {
         const memberIds = new Set((p.members || []).map((m) => m.user_id));
+        const taskAssignees = new Set<string>();
         if (p.tasks) {
           for (const t of p.tasks) {
-            if (t.assigned_to) memberIds.add(t.assigned_to);
+            if (t.assigned_to) {
+              memberIds.add(t.assigned_to);
+              taskAssignees.add(t.assigned_to);
+            }
           }
         }
-        return { ...p, _teamCount: memberIds.size };
+        return { ...p, _teamCount: memberIds.size, _taskAssignees: Array.from(taskAssignees) };
       });
       setProjects(projects as Project[]);
     } catch {
@@ -128,6 +142,11 @@ export default function ProjectsPage() {
     );
   }
 
+  type ProjectExt = Project & { _taskAssignees?: string[] };
+  const filteredProjects = filterMember
+    ? projects.filter((p) => (p as ProjectExt)._taskAssignees?.includes(filterMember))
+    : projects;
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -136,7 +155,8 @@ export default function ProjectsPage() {
             Progetti
           </h1>
           <p className="text-sm text-pw-text-muted">
-            {projects.length} progetti
+            {filteredProjects.length} progett{filteredProjects.length === 1 ? 'o' : 'i'}
+            {filterMember && ` per ${members.find((m) => m.id === filterMember)?.full_name}`}
           </p>
         </div>
         {isAdmin && (
@@ -147,7 +167,36 @@ export default function ProjectsPage() {
         )}
       </div>
 
-      {projects.length === 0 ? (
+      {/* Filter by member */}
+      {members.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => setFilterMember('')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+              !filterMember
+                ? 'bg-pw-accent text-pw-bg'
+                : 'bg-pw-surface-2 text-pw-text-muted hover:bg-pw-surface-3'
+            }`}
+          >
+            Tutti
+          </button>
+          {members.map((m) => (
+            <button
+              key={m.id}
+              onClick={() => setFilterMember(filterMember === m.id ? '' : m.id)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                filterMember === m.id
+                  ? 'bg-pw-accent text-pw-bg'
+                  : 'bg-pw-surface-2 text-pw-text-muted hover:bg-pw-surface-3'
+              }`}
+            >
+              {m.full_name}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {filteredProjects.length === 0 ? (
         <EmptyState
           icon={FolderKanban}
           title="Nessun progetto"
@@ -163,7 +212,7 @@ export default function ProjectsPage() {
         />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {projects.map((project) => (
+          {filteredProjects.map((project) => (
             <Card
               key={project.id}
               className="hover:shadow-md transition-shadow cursor-pointer group"
