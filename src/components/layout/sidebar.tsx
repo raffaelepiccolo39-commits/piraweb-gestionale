@@ -71,7 +71,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
       )}
     >
       {/* Logo */}
-      <div className="h-16 flex items-center justify-center px-4 border-b border-pw-border">
+      <div className="h-20 flex items-center justify-center px-4 border-b border-pw-border">
         <Link href="/dashboard">
           <Image
             src="/logo.png"
