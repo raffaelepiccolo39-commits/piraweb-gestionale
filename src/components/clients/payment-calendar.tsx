@@ -5,11 +5,13 @@ import { formatCurrency } from '@/lib/utils';
 import { Modal } from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
 import type { ClientPayment } from '@/types/database';
-import { Check, Clock, AlertTriangle } from 'lucide-react';
+import { Check, Clock, AlertTriangle, MessageCircle } from 'lucide-react';
 
 interface PaymentCalendarProps {
   payments: ClientPayment[];
   onTogglePaid: (payment: ClientPayment) => void;
+  clientPhone?: string | null;
+  clientName?: string | null;
 }
 
 function formatMonthLabel(dateStr: string): string {
@@ -41,12 +43,23 @@ function getPaymentAlert(payment: ClientPayment): PaymentAlert {
   return 'none';
 }
 
-export function PaymentCalendar({ payments, onTogglePaid }: PaymentCalendarProps) {
+export function PaymentCalendar({ payments, onTogglePaid, clientPhone, clientName }: PaymentCalendarProps) {
   const [confirmPayment, setConfirmPayment] = useState<ClientPayment | null>(null);
+  const [sendWhatsapp, setSendWhatsapp] = useState(true);
 
   const handleConfirm = () => {
     if (!confirmPayment) return;
+    const wasPaid = confirmPayment.is_paid;
     onTogglePaid(confirmPayment);
+
+    // Send WhatsApp message when marking as paid
+    if (!wasPaid && sendWhatsapp && clientPhone) {
+      const month = new Date(confirmPayment.due_date).toLocaleDateString('it-IT', { month: 'long', year: 'numeric' });
+      const message = `Buongiorno${clientName ? ` ${clientName}` : ''}, la informiamo che il pagamento per la mensilità di ${month} è stato registrato con successo. Grazie! 🙏`;
+      const phone = clientPhone.replace(/\s+/g, '').replace(/^\+/, '');
+      window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
+    }
+
     setConfirmPayment(null);
   };
 
@@ -177,6 +190,20 @@ export function PaymentCalendar({ payments, onTogglePaid }: PaymentCalendarProps
                 </p>
               </>
             )}
+            {/* WhatsApp option - only when confirming payment */}
+            {!confirmPayment.is_paid && clientPhone && (
+              <label className="flex items-center gap-2 cursor-pointer mb-4">
+                <input
+                  type="checkbox"
+                  checked={sendWhatsapp}
+                  onChange={(e) => setSendWhatsapp(e.target.checked)}
+                  className="w-4 h-4 rounded border-pw-border bg-pw-surface-2 accent-green-500"
+                />
+                <MessageCircle size={16} className="text-green-500" />
+                <span className="text-sm text-pw-text">Invia conferma su WhatsApp</span>
+              </label>
+            )}
+
             <div className="flex gap-3">
               <Button variant="outline" onClick={() => setConfirmPayment(null)} className="flex-1">
                 Annulla

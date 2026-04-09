@@ -616,7 +616,7 @@ export default function ClientDetailPage({
               {summary && <FinancialSummary summary={summary} />}
 
               <CollapsibleSection title="Calendario Pagamenti" icon={Calendar} defaultOpen>
-                <PaymentCalendar payments={payments} onTogglePaid={handleTogglePaid} />
+                <PaymentCalendar payments={payments} onTogglePaid={handleTogglePaid} clientPhone={client.phone} clientName={client.company || client.name} />
               </CollapsibleSection>
 
               {logs.length > 0 && (
