@@ -62,12 +62,12 @@ export function PaymentCalendar({ payments, onTogglePaid }: PaymentCalendarProps
               onClick={() => setConfirmPayment(payment)}
               className={`p-4 rounded-xl border-2 text-left transition-all hover:shadow-md ${
                 payment.is_paid
-                  ? 'border-green-300 bg-green-50 dark:border-green-700 dark:bg-green-950/30'
+                  ? 'border-green-500/30 bg-green-500/10'
                   : alert === 'danger'
-                  ? 'border-red-300 bg-red-50 dark:border-red-700 dark:bg-red-950/30'
+                  ? 'border-red-500/30 bg-red-500/10'
                   : alert === 'warning'
-                  ? 'border-amber-300 bg-amber-50 dark:border-amber-700 dark:bg-amber-950/30'
-                  : 'border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800 hover:border-indigo-300 dark:hover:border-indigo-600'
+                  ? 'border-amber-500/30 bg-amber-500/10'
+                  : 'border-pw-border bg-pw-surface-2 hover:border-pw-accent/30'
               }`}
             >
               <div className="flex items-center justify-between mb-2">
@@ -112,17 +112,17 @@ export function PaymentCalendar({ payments, onTogglePaid }: PaymentCalendarProps
                 </p>
               )}
               {!payment.is_paid && alert === 'danger' && (
-                <p className="text-[10px] text-red-500 dark:text-red-400 mt-1 font-medium">
+                <p className="text-[10px] text-red-400 mt-1 font-medium">
                   Pagamento in ritardo!
                 </p>
               )}
               {!payment.is_paid && alert === 'warning' && (
-                <p className="text-[10px] text-amber-500 dark:text-amber-400 mt-1 font-medium">
+                <p className="text-[10px] text-amber-400 mt-1 font-medium">
                   In scadenza
                 </p>
               )}
               {!payment.is_paid && alert === 'none' && (
-                <p className="text-[10px] text-gray-400 mt-1">
+                <p className="text-[10px] text-pw-text-dim mt-1">
                   Clicca per segnare come pagato
                 </p>
               )}
