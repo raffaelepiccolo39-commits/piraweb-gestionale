@@ -12,7 +12,8 @@ import { Badge } from '@/components/ui/badge';
 import { Modal } from '@/components/ui/modal';
 import { getRoleLabel, getRoleColor, getInitials, formatCurrency } from '@/lib/utils';
 import type { Profile } from '@/types/database';
-import { Settings, Users, Shield, Save, UserPlus, Eye, EyeOff, Pencil } from 'lucide-react';
+import { Settings, Users, Shield, Save, UserPlus, Eye, EyeOff, Pencil, Lock, ArrowRightLeft, AlertTriangle } from 'lucide-react';
+import { useToast } from '@/components/ui/toast';
 
 const roleOptions = [
   { value: 'admin', label: 'Admin' },
@@ -69,6 +70,68 @@ export default function SettingsPage() {
     contract_start_date: '',
   });
   const [editLoading, setEditLoading] = useState(false);
+
+  // Password change
+  const [passwordForm, setPasswordForm] = useState({ new_password: '', confirm_password: '' });
+  const [passwordLoading, setPasswordLoading] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+
+  // Reassign tasks
+  const [showReassign, setShowReassign] = useState(false);
+  const [reassignFrom, setReassignFrom] = useState<Profile | null>(null);
+  const [reassignTo, setReassignTo] = useState('');
+  const [reassignLoading, setReassignLoading] = useState(false);
+
+  const toast = useToast();
+
+  const handleChangePassword = async () => {
+    if (passwordForm.new_password !== passwordForm.confirm_password) {
+      toast.error('Le password non corrispondono');
+      return;
+    }
+    setPasswordLoading(true);
+    try {
+      const res = await fetch('/api/auth/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ new_password: passwordForm.new_password }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast.success('Password aggiornata con successo');
+        setPasswordForm({ new_password: '', confirm_password: '' });
+      } else {
+        toast.error(data.error || 'Errore nel cambio password');
+      }
+    } catch {
+      toast.error('Errore di connessione');
+    }
+    setPasswordLoading(false);
+  };
+
+  const handleReassignTasks = async () => {
+    if (!reassignFrom || !reassignTo) return;
+    setReassignLoading(true);
+    try {
+      const res = await fetch('/api/admin/reassign-tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ from_user_id: reassignFrom.id, to_user_id: reassignTo }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast.success(`${data.reassigned} task riassegnate con successo`);
+        setShowReassign(false);
+        setReassignFrom(null);
+        setReassignTo('');
+      } else {
+        toast.error(data.error || 'Errore nella riassegnazione');
+      }
+    } catch {
+      toast.error('Errore di connessione');
+    }
+    setReassignLoading(false);
+  };
 
   const fetchTeam = useCallback(async () => {
     const { data } = await supabase
@@ -234,6 +297,58 @@ export default function SettingsPage() {
           <Button onClick={handleUpdateProfile} loading={saving}>
             <Save size={16} />
             Salva Profilo
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Change password */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Lock size={20} className="text-gray-400" />
+            <h2 className="text-lg font-semibold text-pw-text">Cambia Password</h2>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="new-password" className="block text-sm font-medium text-pw-text-muted mb-1">
+                Nuova Password <span className="text-xs text-gray-400">(min. 8 caratteri)</span>
+              </label>
+              <div className="relative">
+                <input
+                  id="new-password"
+                  type={showNewPassword ? 'text' : 'password'}
+                  value={passwordForm.new_password}
+                  onChange={(e) => setPasswordForm({ ...passwordForm, new_password: e.target.value })}
+                  placeholder="Nuova password"
+                  className="w-full px-4 py-2.5 rounded-xl border border-pw-border bg-pw-surface-2 text-pw-text focus:ring-2 focus:ring-pw-accent/30 focus:border-pw-accent/50 outline-none text-sm pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowNewPassword(!showNewPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  {showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+            </div>
+            <Input
+              id="confirm-password"
+              label="Conferma Password"
+              type="password"
+              value={passwordForm.confirm_password}
+              onChange={(e) => setPasswordForm({ ...passwordForm, confirm_password: e.target.value })}
+              placeholder="Ripeti password"
+            />
+          </div>
+          <Button
+            onClick={handleChangePassword}
+            loading={passwordLoading}
+            disabled={!passwordForm.new_password || passwordForm.new_password.length < 8 || passwordForm.new_password !== passwordForm.confirm_password}
+          >
+            <Lock size={16} />
+            Aggiorna Password
           </Button>
         </CardContent>
       </Card>
@@ -481,23 +596,38 @@ export default function SettingsPage() {
               )}
             </div>
 
-            <div className="flex gap-3 pt-2">
-              <Button variant="outline" onClick={() => setViewingMember(null)} className="flex-1">
-                Chiudi
-              </Button>
-              <Button onClick={() => openEditMember(viewingMember)} className="flex-1">
-                <Pencil size={16} />
-                Modifica
-              </Button>
-              <select
-                value={viewingMember.role}
-                onChange={(e) => { handleUpdateRole(viewingMember.id, e.target.value); setViewingMember(null); }}
-                className="text-sm px-3 py-1.5 rounded-lg border border-pw-border bg-pw-surface-2 text-pw-text-muted"
+            <div className="flex flex-col gap-3 pt-2">
+              <div className="flex gap-3">
+                <Button variant="outline" onClick={() => setViewingMember(null)} className="flex-1">
+                  Chiudi
+                </Button>
+                <Button onClick={() => openEditMember(viewingMember)} className="flex-1">
+                  <Pencil size={16} />
+                  Modifica
+                </Button>
+                <select
+                  value={viewingMember.role}
+                  onChange={(e) => { handleUpdateRole(viewingMember.id, e.target.value); setViewingMember(null); }}
+                  className="text-sm px-3 py-1.5 rounded-lg border border-pw-border bg-pw-surface-2 text-pw-text-muted"
+                >
+                  {roleOptions.map((opt) => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              </div>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setReassignFrom(viewingMember);
+                  setReassignTo('');
+                  setShowReassign(true);
+                  setViewingMember(null);
+                }}
+                className="w-full"
               >
-                {roleOptions.map((opt) => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
-                ))}
-              </select>
+                <ArrowRightLeft size={16} />
+                Riassegna tutte le task a un altro utente
+              </Button>
             </div>
           </div>
         )}
@@ -586,6 +716,45 @@ export default function SettingsPage() {
               <Button onClick={handleSaveEmployee} loading={editLoading} className="flex-1">
                 <Save size={16} />
                 Salva Modifiche
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
+      {/* Reassign tasks modal */}
+      <Modal
+        open={showReassign}
+        onClose={() => setShowReassign(false)}
+        title="Riassegna Task"
+        size="sm"
+      >
+        {reassignFrom && (
+          <div className="space-y-4">
+            <div className="p-3 rounded-xl bg-amber-500/10 flex items-center gap-3">
+              <AlertTriangle size={20} className="text-amber-500 shrink-0" />
+              <p className="text-sm text-amber-400">
+                Tutte le task attive di <strong>{reassignFrom.full_name}</strong> verranno riassegnate
+              </p>
+            </div>
+
+            <Select
+              id="reassign-to"
+              label="Assegna a"
+              value={reassignTo}
+              onChange={(e) => setReassignTo(e.target.value)}
+              options={teamMembers
+                .filter((m) => m.id !== reassignFrom.id && m.is_active)
+                .map((m) => ({ value: m.id, label: m.full_name }))}
+              placeholder="Seleziona nuovo assegnatario"
+            />
+
+            <div className="flex gap-3 pt-2">
+              <Button variant="outline" onClick={() => setShowReassign(false)} className="flex-1">
+                Annulla
+              </Button>
+              <Button onClick={handleReassignTasks} loading={reassignLoading} disabled={!reassignTo} className="flex-1">
+                <ArrowRightLeft size={16} />
+                Riassegna
               </Button>
             </div>
           </div>
