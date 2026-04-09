@@ -31,6 +31,7 @@ export interface ClientFormData {
   cap: string;
   citta: string;
   provincia: string;
+  sector: string;
   service_types: string;
   relationship_start: string;
   monthly_fee?: number;
@@ -88,6 +89,7 @@ export function ClientForm({ client, monthlyFee, onSubmit, onCancel }: ClientFor
     cap: client?.cap || '',
     citta: client?.citta || '',
     provincia: client?.provincia || '',
+    sector: client?.sector || '',
     service_types: client?.service_types || '',
     relationship_start: client?.relationship_start || '',
   });
@@ -208,7 +210,13 @@ export function ClientForm({ client, monthlyFee, onSubmit, onCancel }: ClientFor
       </Section>
 
       {/* Dettagli Rapporto */}
-      <Section title="Dettagli Rapporto" defaultOpen={!!(client?.service_types || client?.relationship_start)}>
+      <Section title="Dettagli Rapporto" defaultOpen={!!(client?.sector || client?.service_types || client?.relationship_start)}>
+        <Input
+          label="Settore merceologico"
+          value={form.sector}
+          onChange={(e) => update('sector', e.target.value)}
+          placeholder="es. Ristorazione, Moda, Tecnologia, Sanità"
+        />
         <Input
           label="Tipo di servizi richiesti"
           value={form.service_types}

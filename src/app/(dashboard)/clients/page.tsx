@@ -31,6 +31,8 @@ import {
   ArrowUpAZ,
   Briefcase,
   CalendarDays,
+  Filter,
+  Tag,
 } from 'lucide-react';
 
 export default function ClientsPage() {
@@ -44,6 +46,7 @@ export default function ClientsPage() {
   const [editingMonthlyFee, setEditingMonthlyFee] = useState<number | undefined>();
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [sectorFilter, setSectorFilter] = useState('');
   const [error, setError] = useState(false);
   const [paymentAlerts, setPaymentAlerts] = useState<Record<string, 'warning' | 'danger'>>({});
 
@@ -99,12 +102,16 @@ export default function ClientsPage() {
     fetchClients();
   }, [fetchClients]);
 
+  // Extract unique sectors for filter dropdown
+  const sectors = [...new Set(clients.map((c) => c.sector).filter(Boolean))] as string[];
+
   const filteredClients = clients
     .filter(
       (c) =>
-        c.name.toLowerCase().includes(search.toLowerCase()) ||
+        (c.name.toLowerCase().includes(search.toLowerCase()) ||
         c.company?.toLowerCase().includes(search.toLowerCase()) ||
-        (isAdmin && c.email?.toLowerCase().includes(search.toLowerCase()))
+        (isAdmin && c.email?.toLowerCase().includes(search.toLowerCase()))) &&
+        (!sectorFilter || c.sector === sectorFilter)
     )
     .sort((a, b) => {
       const nameA = (a.company || a.name).toLowerCase();
@@ -266,6 +273,21 @@ export default function ClientsPage() {
             className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-pw-border bg-pw-surface-2 text-pw-text focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition"
           />
         </div>
+        {sectors.length > 0 && (
+          <div className="relative">
+            <Filter size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+            <select
+              value={sectorFilter}
+              onChange={(e) => setSectorFilter(e.target.value)}
+              className="pl-9 pr-4 py-2.5 rounded-xl border border-pw-border bg-pw-surface-2 text-pw-text text-sm outline-none appearance-none cursor-pointer"
+            >
+              <option value="">Tutti i settori</option>
+              {sectors.sort().map((s) => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
+          </div>
+        )}
         <Button
           variant="outline"
           size="sm"
@@ -362,8 +384,14 @@ export default function ClientsPage() {
                   )}
                 </div>
 
-                {(client.service_types || client.relationship_start) && (
+                {(client.sector || client.service_types || client.relationship_start) && (
                   <div className="space-y-1.5 mb-4">
+                    {client.sector && (
+                      <div className="flex items-center gap-2 text-sm text-pw-text-muted">
+                        <Tag size={14} />
+                        <span className="truncate">{client.sector}</span>
+                      </div>
+                    )}
                     {client.service_types && (
                       <div className="flex items-center gap-2 text-sm text-pw-text-muted">
                         <Briefcase size={14} />
