@@ -222,6 +222,28 @@ export default function DashboardPage() {
     fetchDashboardData();
   }, [fetchDashboardData]);
 
+  // Realtime: refresh dashboard when payments, tasks or messages change
+  useEffect(() => {
+    if (!profile) return;
+
+    const channel = supabase
+      .channel('dashboard-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'client_payments' }, () => {
+        fetchDashboardData();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, () => {
+        fetchDashboardData();
+      })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages' }, () => {
+        fetchDashboardData();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [profile, fetchDashboardData]);
+
   // Attendance actions
   const handleAttendanceAction = async (action: 'clock_in' | 'lunch_break' | 'clock_out') => {
     if (!profile) return;
