@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { createDAVClient } from 'tsdav';
 
 export async function PUT(
   request: NextRequest,
@@ -51,6 +52,51 @@ export async function DELETE(
   if (!user) return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 });
 
   const { id } = await params;
+
+  // Get event to check for ical_uid before deleting
+  const { data: event } = await supabase
+    .from('calendar_events')
+    .select('ical_uid')
+    .eq('id', id)
+    .single();
+
+  // Delete from CalDAV if synced
+  if (event?.ical_uid) {
+    try {
+      const { data: config } = await supabase
+        .from('calendar_sync_config')
+        .select('*')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (config?.caldav_username && config?.caldav_password) {
+        const client = await createDAVClient({
+          serverUrl: config.caldav_url || 'https://caldav.icloud.com',
+          credentials: {
+            username: config.caldav_username,
+            password: config.caldav_password,
+          },
+          authMethod: 'Basic',
+          defaultAccountType: 'caldav',
+        });
+
+        const calendars = await client.fetchCalendars();
+        const targetCalendar = config.calendar_path
+          ? calendars.find((c) => c.url === config.calendar_path) || calendars[0]
+          : calendars[0];
+
+        if (targetCalendar) {
+          const objects = await client.fetchCalendarObjects({ calendar: targetCalendar });
+          const match = objects.find((o) => o.data?.includes(event.ical_uid!));
+          if (match) {
+            await client.deleteCalendarObject({ calendarObject: { url: match.url, etag: match.etag || '' } });
+          }
+        }
+      }
+    } catch {
+      // CalDAV delete failed silently - still delete locally
+    }
+  }
 
   const { error } = await supabase
     .from('calendar_events')
