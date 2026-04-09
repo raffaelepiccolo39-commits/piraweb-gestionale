@@ -617,7 +617,7 @@ export default function CashflowPage() {
                         >
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium text-pw-text truncate">
-                              {client.client_name}
+                              {client.company || client.client_name}
                             </p>
                             <p className="text-xs text-pw-text-muted">
                               {formatCurrency(client.monthly_fee)}/mese &middot; {client.months_paid}/{client.months_total} mesi
