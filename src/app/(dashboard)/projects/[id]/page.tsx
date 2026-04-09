@@ -46,6 +46,7 @@ export default function ProjectDetailPage({
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [showProjectEdit, setShowProjectEdit] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [filterMember, setFilterMember] = useState('');
 
   const isAdmin = profile?.role === 'admin';
 
@@ -258,9 +259,44 @@ export default function ProjectDetailPage({
         </div>
       )}
 
+      {/* Filter by assignee */}
+      {(() => {
+        const assignees = new Map<string, string>();
+        for (const t of tasks) {
+          if (t.assigned_to && t.assignee) {
+            const a = t.assignee as { id: string; full_name: string };
+            assignees.set(a.id, a.full_name);
+          }
+        }
+        if (assignees.size <= 1) return null;
+        return (
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => setFilterMember('')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                !filterMember ? 'bg-pw-accent text-pw-bg' : 'bg-pw-surface-2 text-pw-text-muted hover:bg-pw-surface-3'
+              }`}
+            >
+              Tutti
+            </button>
+            {Array.from(assignees).map(([id, name]) => (
+              <button
+                key={id}
+                onClick={() => setFilterMember(filterMember === id ? '' : id)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                  filterMember === id ? 'bg-pw-accent text-pw-bg' : 'bg-pw-surface-2 text-pw-text-muted hover:bg-pw-surface-3'
+                }`}
+              >
+                {name}
+              </button>
+            ))}
+          </div>
+        );
+      })()}
+
       {/* Kanban Board */}
       <KanbanBoard
-        tasks={tasks}
+        tasks={filterMember ? tasks.filter((t) => t.assigned_to === filterMember) : tasks}
         onTaskClick={(task) => setEditingTask(task)}
         onTasksUpdate={fetchTasks}
       />
