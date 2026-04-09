@@ -71,7 +71,7 @@ export default function TasksPage() {
         .select(`
           *,
           project:projects(id, name, color),
-          assignee:profiles!tasks_assigned_to_fkey(id, full_name)
+          assignee:profiles!tasks_assigned_to_fkey(id, full_name, color)
         `);
 
       // Tutti vedono tutti i task per avere panoramica completa del team

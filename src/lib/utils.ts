@@ -32,6 +32,10 @@ export function getInitials(name: string): string {
     .slice(0, 2);
 }
 
+export function getUserColor(profile?: { color?: string | null } | null): string {
+  return profile?.color || '#8c7af5';
+}
+
 export function getRoleLabel(role: string): string {
   const labels: Record<string, string> = {
     admin: 'Admin',

@@ -20,6 +20,7 @@ export interface Profile {
   is_active: boolean;
   salary: number | null;
   iban: string | null;
+  color: string | null;
   contract_type: EmployeeContractType | null;
   contract_start_date: string | null;
   created_at: string;

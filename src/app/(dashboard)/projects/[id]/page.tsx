@@ -58,7 +58,7 @@ export default function ProjectDetailPage({
         client:clients(id, name),
         members:project_members(
           id, user_id,
-          profile:profiles(id, full_name, role, avatar_url)
+          profile:profiles(id, full_name, role, avatar_url, color)
         )
       `)
       .eq('id', id)
@@ -71,7 +71,7 @@ export default function ProjectDetailPage({
       .from('tasks')
       .select(`
         *,
-        assignee:profiles!tasks_assigned_to_fkey(id, full_name, role, avatar_url)
+        assignee:profiles!tasks_assigned_to_fkey(id, full_name, role, avatar_url, color)
       `)
       .eq('project_id', id)
       .order('position');
@@ -246,7 +246,8 @@ export default function ProjectDetailPage({
               return (
                 <div
                   key={member.id}
-                  className="w-8 h-8 rounded-full bg-pw-accent flex items-center justify-center border-2 border-white dark:border-gray-900"
+                  className="w-8 h-8 rounded-full flex items-center justify-center border-2 border-white dark:border-gray-900"
+                  style={{ backgroundColor: (member.profile as { color?: string })?.color || '#8c7af5' }}
                   title={memberProfile?.full_name || 'Membro'}
                 >
                   <span className="text-white text-[10px] font-semibold">

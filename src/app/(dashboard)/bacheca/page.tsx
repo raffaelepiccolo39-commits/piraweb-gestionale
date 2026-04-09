@@ -65,7 +65,7 @@ export default function BachecaPage() {
         .select(`
           *,
           project:projects(id, name, color, client_id, client:clients(id, name, company)),
-          assignee:profiles!tasks_assigned_to_fkey(id, full_name)
+          assignee:profiles!tasks_assigned_to_fkey(id, full_name, color)
         `)
         .not('status', 'eq', 'archived')
         .order('position'),
@@ -387,8 +387,8 @@ export default function BachecaPage() {
                 {/* Column header */}
                 <div className="flex items-center justify-between mb-3 px-1">
                   <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 rounded-full bg-pw-accent flex items-center justify-center">
-                      <span className="text-pw-bg text-[9px] font-bold">{getInitials(member.full_name)}</span>
+                    <div className="w-7 h-7 rounded-full flex items-center justify-center" style={{ backgroundColor: member.color || '#8c7af5' }}>
+                      <span className="text-white text-[9px] font-bold">{getInitials(member.full_name)}</span>
                     </div>
                     <div>
                       <p className="text-sm font-semibold text-pw-text uppercase tracking-wide">
