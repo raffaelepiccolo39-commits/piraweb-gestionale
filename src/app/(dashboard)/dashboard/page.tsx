@@ -111,8 +111,8 @@ export default function DashboardPage() {
         supabase.from('clients').select('id', { count: 'exact', head: true }).eq('is_active', true),
         // 1: projects count
         supabase.from('projects').select('id', { count: 'exact', head: true }).eq('status', 'active'),
-        // 2: all tasks for stats
-        supabase.from('tasks').select('id, status, deadline'),
+        // 2: all tasks for stats (only non-archived, limit for perf)
+        supabase.from('tasks').select('id, status, deadline').neq('status', 'archived').limit(500),
         // 3: recent tasks
         supabase.from('tasks').select(`
           id, title, status, priority, deadline,
@@ -226,24 +226,25 @@ export default function DashboardPage() {
     fetchDashboardData();
   }, [fetchDashboardData]);
 
-  // Realtime: refresh dashboard when payments, tasks or messages change
+  // Realtime: refresh dashboard with debounce to avoid overloading
   useEffect(() => {
     if (!profile) return;
 
+    let debounceTimer: NodeJS.Timeout;
+    const debouncedFetch = () => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => fetchDashboardData(), 3000);
+    };
+
     const channel = supabase
       .channel('dashboard-realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'client_payments' }, () => {
-        fetchDashboardData();
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, () => {
-        fetchDashboardData();
-      })
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages' }, () => {
-        fetchDashboardData();
-      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'client_payments' }, debouncedFetch)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, debouncedFetch)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages' }, debouncedFetch)
       .subscribe();
 
     return () => {
+      clearTimeout(debounceTimer);
       supabase.removeChannel(channel);
     };
   }, [profile, fetchDashboardData]);
