@@ -403,7 +403,7 @@ export default function LeadFinderPage() {
 
                     {/* Expanded detail */}
                     {isExpanded && (
-                      <div className="px-4 pb-4 border-t border-pw-border/30 pt-4 space-y-4 animate-slide-up">
+                      <div className="px-4 pb-4 border-t border-pw-border/30 pt-4 space-y-5 animate-slide-up">
                         {/* Contact info */}
                         <div className="flex flex-wrap gap-3 text-xs text-pw-text-muted">
                           {prospect.website && (
@@ -421,31 +421,148 @@ export default function LeadFinderPage() {
                               <MapPin size={11} /> Google Maps
                             </a>
                           )}
-                          {prospect.instagram_url && (
-                            <a href={prospect.instagram_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 hover:text-pw-text">Instagram</a>
-                          )}
-                          {prospect.facebook_url && (
-                            <a href={prospect.facebook_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 hover:text-pw-text">Facebook</a>
-                          )}
                         </div>
 
-                        {/* Issues found */}
-                        {allIssues.length > 0 && (
+                        {/* Analysis scores as visual bars */}
+                        {prospect.analyzed_at && (
+                          <div>
+                            <p className="text-xs font-semibold text-pw-text mb-3 flex items-center gap-1.5">
+                              <Target size={12} className="text-pw-accent" />
+                              Analisi Presenza Digitale
+                            </p>
+                            <div className="space-y-2.5">
+                              {([
+                                { label: 'Sito Web', icon: '🌐', score: prospect.score_website },
+                                { label: 'Social Media', icon: '📱', score: prospect.score_social },
+                                { label: 'Advertising', icon: '📢', score: prospect.score_advertising },
+                                { label: 'SEO', icon: '🔍', score: prospect.score_seo },
+                                { label: 'Contenuti', icon: '📝', score: prospect.score_content },
+                              ] as const).map((area) => {
+                                const barColor = area.score >= 61 ? 'bg-green-500' : area.score >= 31 ? 'bg-yellow-500' : 'bg-red-500';
+                                const textColor = area.score >= 61 ? 'text-green-400' : area.score >= 31 ? 'text-yellow-400' : 'text-red-400';
+                                const scoreLabel = area.score >= 71 ? 'Ottimo' : area.score >= 51 ? 'Discreto' : area.score >= 31 ? 'Da migliorare' : area.score > 0 ? 'Critico' : 'Assente';
+                                return (
+                                  <div key={area.label} className="flex items-center gap-3">
+                                    <span className="text-sm w-5 text-center shrink-0">{area.icon}</span>
+                                    <span className="text-xs text-pw-text-muted w-24 shrink-0">{area.label}</span>
+                                    <div className="flex-1 h-2.5 bg-pw-surface-2 rounded-full overflow-hidden">
+                                      <div
+                                        className={`h-full rounded-full ${barColor} transition-all duration-500`}
+                                        style={{ width: `${area.score}%` }}
+                                      />
+                                    </div>
+                                    <span className={`text-xs font-bold w-8 text-right shrink-0 ${textColor}`}>{area.score}</span>
+                                    <span className="text-[10px] text-pw-text-dim w-24 shrink-0">{scoreLabel}</span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Social media detection */}
+                        {prospect.analyzed_at && (
                           <div>
                             <p className="text-xs font-semibold text-pw-text mb-2 flex items-center gap-1.5">
-                              <AlertTriangle size={12} className="text-orange-400" />
-                              Problemi trovati ({allIssues.length})
+                              📱 Social Media Rilevati
                             </p>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-                              {allIssues.map((issue, i) => (
-                                <div key={i} className="flex items-start gap-2 text-xs text-pw-text-muted p-2 rounded-lg bg-red-500/5">
-                                  <XCircle size={10} className="text-red-400 shrink-0 mt-0.5" />
-                                  {issue}
+                            <div className="flex flex-wrap gap-3">
+                              {([
+                                { name: 'Instagram', url: prospect.instagram_url },
+                                { name: 'Facebook', url: prospect.facebook_url },
+                                { name: 'TikTok', url: prospect.tiktok_url },
+                              ] as const).map((platform) => (
+                                <div key={platform.name} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs ${platform.url ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'}`}>
+                                  {platform.url ? <CheckCircle size={12} /> : <XCircle size={12} />}
+                                  {platform.url ? (
+                                    <a href={platform.url} target="_blank" rel="noopener noreferrer" className="hover:underline font-medium">
+                                      {platform.name}
+                                    </a>
+                                  ) : (
+                                    <span>{platform.name}</span>
+                                  )}
+                                  {platform.url ? (
+                                    <a href={platform.url} target="_blank" rel="noopener noreferrer" className="ml-0.5">
+                                      <ExternalLink size={10} />
+                                    </a>
+                                  ) : null}
                                 </div>
                               ))}
                             </div>
                           </div>
                         )}
+
+                        {/* Issues grouped by category */}
+                        {prospect.analyzed_at && (() => {
+                          const issueCategories = [
+                            { key: 'website', label: 'Sito Web', icon: '🌐', issues: (notes?.website?.issues as string[]) || [] },
+                            { key: 'social', label: 'Social Media', icon: '📱', issues: (notes?.social?.issues as string[]) || [] },
+                            { key: 'advertising', label: 'Advertising', icon: '📢', issues: prospect.score_advertising < 20 ? ['Nessuna campagna pubblicitaria rilevata'] : [] },
+                            { key: 'seo', label: 'SEO', icon: '🔍', issues: (notes?.seo?.issues as string[]) || [] },
+                            { key: 'content', label: 'Contenuti', icon: '📝', issues: (notes?.content?.issues as string[]) || [] },
+                          ].filter(cat => cat.issues.length > 0);
+
+                          if (issueCategories.length === 0) return null;
+
+                          return (
+                            <div>
+                              <p className="text-xs font-semibold text-pw-text mb-3 flex items-center gap-1.5">
+                                <AlertTriangle size={12} className="text-orange-400" />
+                                Problemi trovati ({issueCategories.reduce((sum, cat) => sum + cat.issues.length, 0)})
+                              </p>
+                              <div className="space-y-3">
+                                {issueCategories.map((cat) => (
+                                  <div key={cat.key} className="rounded-xl border border-pw-border/20 overflow-hidden">
+                                    <div className="px-3 py-2 bg-pw-surface-2/50 flex items-center gap-2">
+                                      <span className="text-sm">{cat.icon}</span>
+                                      <span className="text-xs font-semibold text-pw-text">{cat.label}</span>
+                                      <span className="text-[10px] text-pw-text-dim ml-auto">{cat.issues.length} {cat.issues.length === 1 ? 'problema' : 'problemi'}</span>
+                                    </div>
+                                    <div className="p-2 space-y-1">
+                                      {cat.issues.map((issue, i) => (
+                                        <div key={i} className="flex items-start gap-2 text-xs text-pw-text-muted px-2 py-1.5">
+                                          <XCircle size={10} className="text-red-400 shrink-0 mt-0.5" />
+                                          {issue}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        })()}
+
+                        {/* Opportunita' di vendita */}
+                        {prospect.analyzed_at && (() => {
+                          const opportunities = [
+                            ...(prospect.score_social < 40 ? [{ service: 'Gestione Social Media', icon: '📱' }] : []),
+                            ...(prospect.score_website < 40 ? [{ service: 'Sviluppo/Restyling Sito Web', icon: '🌐' }] : []),
+                            ...(prospect.score_advertising === 0 ? [{ service: 'Campagne Advertising', icon: '📢' }] : []),
+                            ...(prospect.score_content < 40 ? [{ service: 'Content Marketing', icon: '📝' }] : []),
+                            ...(prospect.score_seo < 40 ? [{ service: 'Ottimizzazione SEO', icon: '🔍' }] : []),
+                          ];
+
+                          if (opportunities.length === 0) return null;
+
+                          return (
+                            <div className="p-4 rounded-xl bg-pw-accent/5 border border-pw-accent/20">
+                              <p className="text-xs font-semibold text-pw-accent mb-3 flex items-center gap-1.5">
+                                <Sparkles size={12} />
+                                Opportunita&apos; di vendita ({opportunities.length} {opportunities.length === 1 ? 'servizio' : 'servizi'})
+                              </p>
+                              <div className="flex flex-wrap gap-2">
+                                {opportunities.map((opp) => (
+                                  <div key={opp.service} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-pw-accent/10 text-xs font-medium text-pw-accent">
+                                    <span>{opp.icon}</span>
+                                    <ArrowRight size={10} />
+                                    {opp.service}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        })()}
 
                         {/* Re-analyze */}
                         {prospect.analyzed_at && (
