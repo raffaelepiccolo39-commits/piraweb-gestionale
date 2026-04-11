@@ -24,6 +24,10 @@ import {
   Tv,
   Share2,
   MessageCircle,
+  Link2,
+  Send,
+  CheckCircle,
+  Loader2,
 } from 'lucide-react';
 
 const PLATFORM_ICONS: Record<string, typeof Hash> = {
@@ -99,6 +103,14 @@ export default function SocialCalendarPage() {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [filterClient, setFilterClient] = useState('');
   const [filterPlatform, setFilterPlatform] = useState('');
+  // Meta integration
+  const [metaConnected, setMetaConnected] = useState(false);
+  const [metaPages, setMetaPages] = useState<{ id: string; page_name: string; instagram_username: string | null; client_id: string | null }[]>([]);
+  const [metaUserName, setMetaUserName] = useState('');
+  const [publishingId, setPublishingId] = useState<string | null>(null);
+  const [showPublish, setShowPublish] = useState<SocialPost | null>(null);
+  const [publishPage, setPublishPage] = useState('');
+  const [publishPlatform, setPublishPlatform] = useState('facebook');
 
   const isAdmin = profile?.role === 'admin';
 
@@ -141,6 +153,12 @@ export default function SocialCalendarPage() {
 
   useEffect(() => {
     Promise.all([fetchPosts(), fetchClients()]).finally(() => setLoading(false));
+    // Fetch Meta connection
+    fetch('/api/meta/pages').then((r) => r.json()).then((data) => {
+      setMetaConnected(data.connected || false);
+      setMetaPages(data.pages || []);
+      setMetaUserName(data.user_name || '');
+    }).catch(() => {});
   }, [fetchPosts, fetchClients]);
 
   const handleCreate = async () => {
@@ -218,10 +236,23 @@ export default function SocialCalendarPage() {
           </h1>
           <p className="text-sm text-pw-text-muted mt-1">Pianifica e gestisci i contenuti social dei tuoi clienti</p>
         </div>
-        <Button onClick={() => { setShowForm(true); setForm((f) => ({ ...f, scheduled_at: selectedDate || '' })); }}>
-          <Plus size={16} />
-          Nuovo Post
-        </Button>
+        <div className="flex gap-2">
+          {metaConnected ? (
+            <Badge className="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300 flex items-center gap-1">
+              <CheckCircle size={10} />
+              Meta: {metaUserName}
+            </Badge>
+          ) : isAdmin ? (
+            <Button variant="outline" size="sm" onClick={() => window.location.href = '/api/meta/auth'}>
+              <Link2 size={14} />
+              Collega Meta
+            </Button>
+          ) : null}
+          <Button onClick={() => { setShowForm(true); setForm((f) => ({ ...f, scheduled_at: selectedDate || '' })); }}>
+            <Plus size={16} />
+            Nuovo Post
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -369,6 +400,11 @@ export default function SocialCalendarPage() {
                       Segna Pubblicato
                     </button>
                   )}
+                  {metaConnected && (post.status === 'ready' || post.status === 'scheduled') && (
+                    <button onClick={() => { setShowPublish(post); setPublishPage(''); setPublishPlatform(post.platforms.includes('instagram') ? 'instagram' : 'facebook'); }} className="text-[10px] px-2 py-1 rounded-md bg-pw-accent/10 text-pw-accent hover:bg-pw-accent/20 flex items-center gap-1">
+                      <Send size={8} /> Pubblica su Meta
+                    </button>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -459,6 +495,100 @@ export default function SocialCalendarPage() {
             <Button onClick={handleCreate}>Crea Post</Button>
           </div>
         </div>
+      </Modal>
+
+      {/* Publish to Meta modal */}
+      <Modal open={!!showPublish} onClose={() => setShowPublish(null)} title="Pubblica su Meta">
+        {showPublish && (
+          <div className="space-y-4">
+            <p className="text-sm text-pw-text">
+              Pubblica <strong>&ldquo;{showPublish.title}&rdquo;</strong> su Facebook o Instagram
+            </p>
+
+            <Select
+              label="Pagina Meta"
+              value={publishPage}
+              onChange={(e) => setPublishPage(e.target.value)}
+              options={metaPages.map((p) => ({
+                value: p.id,
+                label: `${p.page_name}${p.instagram_username ? ` (@${p.instagram_username})` : ''}`,
+              }))}
+              placeholder="Seleziona pagina..."
+            />
+
+            <div>
+              <label className="block text-[11px] uppercase tracking-[0.08em] font-medium text-pw-text-muted mb-2">Piattaforma</label>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPublishPlatform('facebook')}
+                  className={`px-4 py-2 rounded-xl text-xs font-medium border transition-all ${publishPlatform === 'facebook' ? 'border-blue-500 bg-blue-500/10 text-blue-400' : 'border-pw-border text-pw-text-muted'}`}
+                >
+                  Facebook
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPublishPlatform('instagram')}
+                  className={`px-4 py-2 rounded-xl text-xs font-medium border transition-all ${publishPlatform === 'instagram' ? 'border-pink-500 bg-pink-500/10 text-pink-400' : 'border-pw-border text-pw-text-muted'}`}
+                >
+                  Instagram
+                </button>
+              </div>
+            </div>
+
+            {publishPlatform === 'instagram' && (
+              <p className="text-[10px] text-orange-400 bg-orange-500/5 p-2 rounded-lg">
+                Instagram richiede un&apos;immagine. Assicurati che il post abbia un URL immagine nelle media.
+              </p>
+            )}
+
+            <div className="p-3 rounded-xl bg-pw-surface-2 text-sm text-pw-text-muted">
+              <p className="font-medium text-pw-text mb-1">Anteprima:</p>
+              <p className="whitespace-pre-wrap">{showPublish.caption || showPublish.title}</p>
+              {showPublish.hashtags && <p className="mt-1 text-pw-accent">{showPublish.hashtags}</p>}
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="ghost" onClick={() => setShowPublish(null)}>Annulla</Button>
+              <Button
+                loading={publishingId === showPublish.id}
+                disabled={!publishPage}
+                onClick={async () => {
+                  if (!showPublish || !publishPage) return;
+                  setPublishingId(showPublish.id);
+                  try {
+                    const message = `${showPublish.caption || showPublish.title}${showPublish.hashtags ? '\n\n' + showPublish.hashtags : ''}`;
+                    const res = await fetch('/api/meta/publish', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        page_id: publishPage,
+                        platform: publishPlatform,
+                        message,
+                        media_url: showPublish.media_urls?.[0] || null,
+                        social_post_id: showPublish.id,
+                      }),
+                    });
+                    const data = await res.json();
+                    if (res.ok) {
+                      toast.success(`Post ${data.status === 'scheduled' ? 'programmato' : 'pubblicato'} su ${publishPlatform}!`);
+                      setShowPublish(null);
+                      fetchPosts();
+                    } else {
+                      toast.error(data.error || 'Errore nella pubblicazione');
+                    }
+                  } catch {
+                    toast.error('Errore di connessione');
+                  }
+                  setPublishingId(null);
+                }}
+              >
+                <Send size={14} />
+                {publishPlatform === 'facebook' ? 'Pubblica su Facebook' : 'Pubblica su Instagram'}
+              </Button>
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   );
