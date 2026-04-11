@@ -64,7 +64,15 @@ export default function LeadFinderPage() {
   const [searchCity, setSearchCity] = useState('');
   const [searchSector, setSearchSector] = useState('');
   const [searchName, setSearchName] = useState('');
-  const [searchMode, setSearchMode] = useState<'sector' | 'name'>('sector');
+  const [searchMode, setSearchMode] = useState<'sector' | 'name' | 'manual'>('sector');
+  // Manual entry fields
+  const [manualName, setManualName] = useState('');
+  const [manualWebsite, setManualWebsite] = useState('');
+  const [manualInstagram, setManualInstagram] = useState('');
+  const [manualFacebook, setManualFacebook] = useState('');
+  const [manualPhone, setManualPhone] = useState('');
+  const [manualCity, setManualCity] = useState('');
+  const [manualSector, setManualSector] = useState('');
   const [searching, setSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<Record<string, unknown>[]>([]);
   const [prospects, setProspects] = useState<LeadProspect[]>([]);
@@ -113,6 +121,41 @@ export default function LeadFinderPage() {
         toast.success(`Trovati ${data.count} risultati`);
       } else {
         toast.error(data.error || 'Errore nella ricerca');
+      }
+    } catch {
+      toast.error('Errore di connessione');
+    }
+    setSearching(false);
+  };
+
+  const handleManualAnalysis = async () => {
+    if (!manualName) {
+      toast.error('Inserisci almeno il nome dell\'attivita\'');
+      return;
+    }
+    setSearching(true);
+    setSearchResults([]);
+
+    try {
+      const res = await fetch('/api/prospects/analyze-manual', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          business_name: manualName,
+          website: manualWebsite || null,
+          instagram_url: manualInstagram || null,
+          facebook_url: manualFacebook || null,
+          phone: manualPhone || null,
+          city: manualCity || null,
+          sector: manualSector || null,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setSearchResults([data.result]);
+        toast.success('Analisi completata');
+      } else {
+        toast.error(data.error || 'Errore nell\'analisi');
       }
     } catch {
       toast.error('Errore di connessione');
@@ -256,51 +299,86 @@ export default function LeadFinderPage() {
                   onClick={() => setSearchMode('sector')}
                   className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${searchMode === 'sector' ? 'bg-pw-accent text-pw-bg' : 'bg-pw-surface-2 text-pw-text-muted hover:text-pw-text'}`}
                 >
-                  Cerca per settore + citta'
+                  Per settore + citta'
                 </button>
                 <button
                   onClick={() => setSearchMode('name')}
                   className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${searchMode === 'name' ? 'bg-pw-accent text-pw-bg' : 'bg-pw-surface-2 text-pw-text-muted hover:text-pw-text'}`}
                 >
-                  Cerca per nome attivita'
+                  Per nome attivita'
+                </button>
+                <button
+                  onClick={() => setSearchMode('manual')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${searchMode === 'manual' ? 'bg-pw-accent text-pw-bg' : 'bg-pw-surface-2 text-pw-text-muted hover:text-pw-text'}`}
+                >
+                  Analisi manuale
                 </button>
               </div>
 
-              <div className="flex flex-col sm:flex-row gap-3">
-                {searchMode === 'sector' ? (
+              {/* Sector / Name search */}
+              {searchMode !== 'manual' && (
+                <div className="flex flex-col sm:flex-row gap-3">
+                  {searchMode === 'sector' ? (
+                    <div className="flex-1">
+                      <Input
+                        label="Settore / Tipo attivita'"
+                        value={searchSector}
+                        onChange={(e) => setSearchSector(e.target.value)}
+                        placeholder="Es: ristoranti, parrucchieri, palestre, dentisti..."
+                      />
+                    </div>
+                  ) : (
+                    <div className="flex-1">
+                      <Input
+                        label="Nome attivita'"
+                        value={searchName}
+                        onChange={(e) => setSearchName(e.target.value)}
+                        placeholder="Es: Pizzeria Da Mario, Salone Bella Vita..."
+                      />
+                    </div>
+                  )}
                   <div className="flex-1">
                     <Input
-                      label="Settore / Tipo attivita'"
-                      value={searchSector}
-                      onChange={(e) => setSearchSector(e.target.value)}
-                      placeholder="Es: ristoranti, parrucchieri, palestre, dentisti..."
+                      label="Citta' (opzionale)"
+                      value={searchCity}
+                      onChange={(e) => setSearchCity(e.target.value)}
+                      placeholder="Es: Roma, Milano, Napoli..."
                     />
                   </div>
-                ) : (
-                  <div className="flex-1">
-                    <Input
-                      label="Nome attivita'"
-                      value={searchName}
-                      onChange={(e) => setSearchName(e.target.value)}
-                      placeholder="Es: Pizzeria Da Mario, Salone Bella Vita..."
-                    />
+                  <div className="flex items-end">
+                    <Button onClick={handleSearch} loading={searching} className="w-full sm:w-auto">
+                      <Search size={16} />
+                      Cerca
+                    </Button>
                   </div>
-                )}
-                <div className={searchMode === 'name' ? 'flex-1' : 'flex-1'}>
-                  <Input
-                    label="Citta' (opzionale)"
-                    value={searchCity}
-                    onChange={(e) => setSearchCity(e.target.value)}
-                    placeholder="Es: Roma, Milano, Napoli..."
-                  />
                 </div>
-                <div className="flex items-end">
-                  <Button onClick={handleSearch} loading={searching} className="w-full sm:w-auto">
+              )}
+
+              {/* Manual entry */}
+              {searchMode === 'manual' && (
+                <div className="space-y-3">
+                  <p className="text-xs text-pw-text-dim">
+                    Inserisci i dati che conosci dell'attivita'. Il sistema analizzera' sito web, profili social e advertising.
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <Input label="Nome attivita' *" value={manualName} onChange={(e) => setManualName(e.target.value)} placeholder="Es: Pizzeria Da Mario" />
+                    <Input label="Citta'" value={manualCity} onChange={(e) => setManualCity(e.target.value)} placeholder="Es: Casapesenna" />
+                  </div>
+                  <Input label="Sito web" value={manualWebsite} onChange={(e) => setManualWebsite(e.target.value)} placeholder="https://www.esempio.it" />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <Input label="Profilo Instagram" value={manualInstagram} onChange={(e) => setManualInstagram(e.target.value)} placeholder="https://instagram.com/nomeprofilo" />
+                    <Input label="Pagina Facebook" value={manualFacebook} onChange={(e) => setManualFacebook(e.target.value)} placeholder="https://facebook.com/nomepagina" />
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <Input label="Telefono" value={manualPhone} onChange={(e) => setManualPhone(e.target.value)} placeholder="+39 081..." />
+                    <Input label="Settore" value={manualSector} onChange={(e) => setManualSector(e.target.value)} placeholder="Es: ristorazione, parrucchiere..." />
+                  </div>
+                  <Button onClick={handleManualAnalysis} loading={searching} className="w-full">
                     <Search size={16} />
-                    Cerca
+                    Analizza Attivita'
                   </Button>
                 </div>
-              </div>
+              )}
             </CardContent>
           </Card>
 
