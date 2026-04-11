@@ -439,6 +439,7 @@ export default function LeadFinderPage() {
                 const verdict = scoreTotal >= 60 ? 'Ben gestito' : scoreTotal >= 35 ? 'Da migliorare' : 'Opportunita\' alta';
                 const verdictColor = scoreTotal >= 60 ? 'text-green-400' : scoreTotal >= 35 ? 'text-yellow-400' : 'text-red-400';
                 const verdictBg = scoreTotal >= 60 ? 'bg-green-500/10 border-green-500/20' : scoreTotal >= 35 ? 'bg-yellow-500/10 border-yellow-500/20' : 'bg-red-500/10 border-red-500/20';
+                const isOpen = expandedId === `search-${i}`;
 
                 const ScoreBar = ({ score, label }: { score: number; label: string }) => (
                   <div className="flex items-center gap-2">
@@ -452,12 +453,14 @@ export default function LeadFinderPage() {
 
                 return (
                   <Card key={i}>
-                    <CardContent className="p-4">
-                      {/* Header */}
-                      <div className="flex items-start gap-3 mb-3">
-                        {/* Score circle */}
-                        <div className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 border-2 ${verdictBg}`}>
-                          <span className={`text-sm font-bold ${verdictColor}`}>{scoreTotal}</span>
+                    <CardContent className="p-0">
+                      {/* Compact header row - always visible */}
+                      <button
+                        onClick={() => setExpandedId(isOpen ? null : `search-${i}`)}
+                        className="w-full text-left p-4 flex items-center gap-3 hover:bg-white/[0.02] transition-colors"
+                      >
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 border-2 ${verdictBg}`}>
+                          <span className={`text-xs font-bold ${verdictColor}`}>{scoreTotal}</span>
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
@@ -470,140 +473,106 @@ export default function LeadFinderPage() {
                             ) : null}
                           </div>
                           <p className="text-[10px] text-pw-text-dim">{r.address as string}</p>
+                        </div>
+                        {/* Mini indicators */}
+                        <div className="hidden sm:flex items-center gap-1.5 shrink-0">
+                          <span className={`w-2 h-2 rounded-full ${r.has_website ? 'bg-green-500' : 'bg-red-500'}`} title="Sito web" />
+                          <span className={`w-2 h-2 rounded-full ${r.instagram_url ? 'bg-green-500' : 'bg-red-500'}`} title="Instagram" />
+                          <span className={`w-2 h-2 rounded-full ${r.facebook_url ? 'bg-green-500' : 'bg-red-500'}`} title="Facebook" />
+                          <span className={`w-2 h-2 rounded-full ${r.has_facebook_pixel || r.has_google_ads || r.has_meta_ads ? 'bg-green-500' : 'bg-red-500'}`} title="ADV" />
+                        </div>
+                        <p className={`text-[10px] font-semibold shrink-0 hidden md:block ${verdictColor}`}>{verdict}</p>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); handleSaveProspect(r); }}>
+                            Salva
+                          </Button>
+                          {isOpen ? <ChevronUp size={14} className="text-pw-text-dim" /> : <ChevronDown size={14} className="text-pw-text-dim" />}
+                        </div>
+                      </button>
+
+                      {/* Expanded details - dropdown */}
+                      {isOpen && (
+                        <div className="px-4 pb-4 border-t border-pw-border/20 pt-3 space-y-3 animate-slide-up">
                           {/* Quick links */}
-                          <div className="flex items-center gap-2 mt-1">
+                          <div className="flex items-center gap-3 text-[10px]">
                             {r.website ? (
-                              <a href={String(r.website)} target="_blank" rel="noopener noreferrer" className="text-[10px] text-pw-accent hover:underline flex items-center gap-0.5">
-                                <Globe size={9} /> Sito web
+                              <a href={String(r.website)} target="_blank" rel="noopener noreferrer" className="text-pw-accent hover:underline flex items-center gap-1">
+                                <Globe size={9} /> Sito web <ExternalLink size={7} />
                               </a>
                             ) : (
-                              <span className="text-[10px] text-red-400 flex items-center gap-0.5"><XCircle size={9} /> No sito</span>
+                              <span className="text-red-400 flex items-center gap-1"><XCircle size={9} /> No sito</span>
                             )}
                             {r.google_maps_url ? (
-                              <a href={String(r.google_maps_url)} target="_blank" rel="noopener noreferrer" className="text-[10px] text-pw-accent hover:underline flex items-center gap-0.5">
-                                <MapPin size={9} /> Google Maps
+                              <a href={String(r.google_maps_url)} target="_blank" rel="noopener noreferrer" className="text-pw-accent hover:underline flex items-center gap-1">
+                                <MapPin size={9} /> Google Maps <ExternalLink size={7} />
                               </a>
                             ) : null}
                             {r.phone ? (
-                              <a href={`tel:${String(r.phone)}`} className="text-[10px] text-pw-text-muted hover:text-pw-text flex items-center gap-0.5">
+                              <a href={`tel:${String(r.phone)}`} className="text-pw-text-muted hover:text-pw-text flex items-center gap-1">
                                 <Phone size={9} /> {String(r.phone)}
                               </a>
                             ) : null}
                           </div>
-                          <p className={`text-[10px] font-semibold mt-0.5 ${verdictColor}`}>{verdict} — {totalIssues} problemi trovati</p>
-                        </div>
-                      </div>
 
-                      {/* Score bars */}
-                      <div className="space-y-1.5 mb-3">
-                        <ScoreBar score={scoreW} label="Sito" />
-                        <ScoreBar score={scoreS} label="Social" />
-                        <ScoreBar score={scoreA} label="ADV" />
-                        <ScoreBar score={scoreE} label="SEO" />
-                      </div>
+                          {/* Score bars */}
+                          <div className="space-y-1.5">
+                            <ScoreBar score={scoreW} label="Sito" />
+                            <ScoreBar score={scoreS} label="Social" />
+                            <ScoreBar score={scoreA} label="ADV" />
+                            <ScoreBar score={scoreE} label="SEO" />
+                          </div>
 
-                      {/* Instagram verdict */}
-                      {r.instagram_verdict ? (
-                        <div className={`text-[10px] mb-2 px-2 py-1.5 rounded ${r.instagram_is_curated === false ? 'text-orange-400 bg-orange-500/5' : r.instagram_is_curated === true ? 'text-green-400 bg-green-500/5' : 'text-pw-text-dim bg-pw-surface-2/50'}`}>
-                          <span className="font-semibold">Instagram:</span> {String(r.instagram_verdict)}
-                          {r.instagram_posts_last_month != null && Number(r.instagram_posts_last_month) < 10 ? (
-                            <span className="block mt-0.5 text-red-400">
-                              Solo {String(r.instagram_posts_last_month)} post nell&apos;ultimo mese (servono almeno 10 tra foto, grafiche e reel)
-                            </span>
+                          {/* Instagram verdict */}
+                          {r.instagram_verdict ? (
+                            <div className={`text-[10px] px-2 py-1.5 rounded ${r.instagram_is_curated === false ? 'text-orange-400 bg-orange-500/5' : r.instagram_is_curated === true ? 'text-green-400 bg-green-500/5' : 'text-pw-text-dim bg-pw-surface-2/50'}`}>
+                              <span className="font-semibold">Instagram:</span> {String(r.instagram_verdict)}
+                              {r.instagram_posts_last_month != null && Number(r.instagram_posts_last_month) < 10 ? (
+                                <span className="block mt-0.5 text-red-400">
+                                  Solo {String(r.instagram_posts_last_month)} post nell&apos;ultimo mese (servono almeno 10)
+                                </span>
+                              ) : null}
+                            </div>
                           ) : null}
-                        </div>
-                      ) : null}
 
-                      {/* Quick checks */}
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 mb-3 text-[10px]">
-                        <div className={`flex items-center gap-1 px-2 py-1 rounded ${r.has_website ? 'text-green-400' : 'text-red-400'}`}>
-                          {r.has_website ? <CheckCircle size={9} /> : <XCircle size={9} />} Sito web
-                        </div>
-                        <div className={`flex items-center gap-1 px-2 py-1 rounded ${r.has_ssl ? 'text-green-400' : 'text-red-400'}`}>
-                          {r.has_ssl ? <CheckCircle size={9} /> : <XCircle size={9} />} HTTPS
-                        </div>
-                        <div className={`flex items-center gap-1 px-2 py-1 rounded ${r.has_mobile ? 'text-green-400' : 'text-red-400'}`}>
-                          {r.has_mobile ? <CheckCircle size={9} /> : <XCircle size={9} />} Mobile
-                        </div>
-                        <div className={`flex items-center gap-1 px-2 py-1 rounded ${r.has_analytics ? 'text-green-400' : 'text-red-400'}`}>
-                          {r.has_analytics ? <CheckCircle size={9} /> : <XCircle size={9} />} Analytics
-                        </div>
-                      </div>
+                          {/* Checklist grid */}
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 text-[10px]">
+                            {[
+                              { label: 'Sito web', ok: r.has_website },
+                              { label: 'HTTPS', ok: r.has_ssl },
+                              { label: 'Mobile', ok: r.has_mobile },
+                              { label: 'Analytics', ok: r.has_analytics },
+                            ].map((c) => (
+                              <div key={c.label} className={`flex items-center gap-1 px-2 py-1 rounded ${c.ok ? 'text-green-400' : 'text-red-400'}`}>
+                                {c.ok ? <CheckCircle size={9} /> : <XCircle size={9} />} {c.label}
+                              </div>
+                            ))}
+                          </div>
 
-                      {/* Social detection */}
-                      <div className="flex flex-wrap gap-1.5 mb-3 text-[10px]">
-                        {/* Instagram with details */}
-                        {r.instagram_url ? (
-                          <a href={String(r.instagram_url)} target="_blank" rel="noopener noreferrer" className={`flex items-center gap-1 px-2 py-0.5 rounded hover:underline ${r.instagram_is_curated === false ? 'text-orange-400 bg-orange-500/10' : 'text-green-400 bg-green-500/10'}`}>
-                            {r.instagram_is_curated === false ? <AlertTriangle size={8} /> : <CheckCircle size={8} />}
-                            IG {r.instagram_posts_last_month != null
-                              ? `(${r.instagram_posts_last_month} post/mese${r.instagram_posts ? `, ${r.instagram_posts} totali` : ''}${r.instagram_followers ? `, ${r.instagram_followers} foll.` : ''})`
-                              : r.instagram_posts != null
-                              ? `(${r.instagram_posts} post${r.instagram_followers ? `, ${r.instagram_followers} foll.` : ''})`
-                              : ''}
-                          </a>
-                        ) : (
-                          <span className="flex items-center gap-1 px-2 py-0.5 rounded text-red-400 bg-red-500/10">
-                            <XCircle size={8} /> IG
-                          </span>
-                        )}
-                        {/* Facebook */}
-                        {r.facebook_url ? (
-                          <a href={String(r.facebook_url)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 px-2 py-0.5 rounded text-green-400 bg-green-500/10 hover:underline">
-                            <CheckCircle size={8} /> FB
-                          </a>
-                        ) : (
-                          <span className="flex items-center gap-1 px-2 py-0.5 rounded text-red-400 bg-red-500/10">
-                            <XCircle size={8} /> FB
-                          </span>
-                        )}
-                        {/* TikTok */}
-                        {r.tiktok_url ? (
-                          <a href={String(r.tiktok_url)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 px-2 py-0.5 rounded text-green-400 bg-green-500/10 hover:underline">
-                            <CheckCircle size={8} /> TK
-                          </a>
-                        ) : (
-                          <span className="flex items-center gap-1 px-2 py-0.5 rounded text-red-400 bg-red-500/10">
-                            <XCircle size={8} /> TK
-                          </span>
-                        )}
-                        {/* ADV checks */}
-                        <span className={`flex items-center gap-1 px-2 py-0.5 rounded ${r.has_facebook_pixel ? 'text-green-400 bg-green-500/10' : 'text-red-400 bg-red-500/10'}`}>
-                          {r.has_facebook_pixel ? <CheckCircle size={8} /> : <XCircle size={8} />} FB Pixel
-                        </span>
-                        <span className={`flex items-center gap-1 px-2 py-0.5 rounded ${r.has_google_ads ? 'text-green-400 bg-green-500/10' : 'text-red-400 bg-red-500/10'}`}>
-                          {r.has_google_ads ? <CheckCircle size={8} /> : <XCircle size={8} />} Google Ads
-                        </span>
-                        {r.has_meta_ads ? (
-                          <a href={String(r.meta_ads_url)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 px-2 py-0.5 rounded text-green-400 bg-green-500/10 hover:underline">
-                            <CheckCircle size={8} /> Meta Ads ({String(r.meta_ads_count)})
-                          </a>
-                        ) : (
-                          <span className="flex items-center gap-1 px-2 py-0.5 rounded text-red-400 bg-red-500/10">
-                            <XCircle size={8} /> No Meta Ads
-                          </span>
-                        )}
-                      </div>
+                          {/* Social + ADV pills */}
+                          <div className="flex flex-wrap gap-1.5 text-[10px]">
+                            {[
+                              { label: 'IG', url: r.instagram_url, ok: !!r.instagram_url, warn: r.instagram_is_curated === false },
+                              { label: 'FB', url: r.facebook_url, ok: !!r.facebook_url, warn: false },
+                              { label: 'TK', url: r.tiktok_url, ok: !!r.tiktok_url, warn: false },
+                              { label: 'FB Pixel', url: null, ok: !!r.has_facebook_pixel, warn: false },
+                              { label: 'Google Ads', url: null, ok: !!r.has_google_ads, warn: false },
+                              { label: 'Meta Ads', url: r.meta_ads_url, ok: !!r.has_meta_ads, warn: false },
+                            ].map((p) => (
+                              <span key={p.label} className={`flex items-center gap-1 px-2 py-0.5 rounded ${p.warn ? 'text-orange-400 bg-orange-500/10' : p.ok ? 'text-green-400 bg-green-500/10' : 'text-red-400 bg-red-500/10'}`}>
+                                {p.warn ? <AlertTriangle size={8} /> : p.ok ? <CheckCircle size={8} /> : <XCircle size={8} />}
+                                {p.url && p.ok ? (
+                                  <a href={String(p.url)} target="_blank" rel="noopener noreferrer" className="hover:underline">{p.label}</a>
+                                ) : p.label}
+                              </span>
+                            ))}
+                          </div>
 
-                      {/* Contact + actions */}
-                      <div className="flex items-center justify-between pt-2 border-t border-pw-border/20">
-                        <div className="flex items-center gap-3 text-[10px] text-pw-text-muted">
-                          {r.website ? (
-                            <a href={String(r.website)} target="_blank" rel="noopener noreferrer" className="text-pw-accent hover:underline flex items-center gap-1">
-                              <Globe size={9} /> Sito
-                            </a>
-                          ) : null}
-                          {r.phone ? <span className="flex items-center gap-1"><Phone size={9} /> {String(r.phone)}</span> : null}
-                          {r.google_maps_url ? (
-                            <a href={String(r.google_maps_url)} target="_blank" rel="noopener noreferrer" className="hover:text-pw-text flex items-center gap-1">
-                              <MapPin size={9} /> Maps
-                            </a>
-                          ) : null}
+                          {/* Verdict */}
+                          <p className={`text-xs font-semibold ${verdictColor}`}>
+                            {verdict} — {totalIssues} problemi trovati
+                          </p>
                         </div>
-                        <Button size="sm" variant="outline" onClick={() => handleSaveProspect(r)}>
-                          Salva
-                        </Button>
-                      </div>
+                      )}
                     </CardContent>
                   </Card>
                 );
