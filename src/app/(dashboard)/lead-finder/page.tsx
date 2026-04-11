@@ -444,6 +444,26 @@ export default function LeadFinderPage() {
                             ) : null}
                           </div>
                           <p className="text-[10px] text-pw-text-dim">{r.address as string}</p>
+                          {/* Quick links */}
+                          <div className="flex items-center gap-2 mt-1">
+                            {r.website ? (
+                              <a href={String(r.website)} target="_blank" rel="noopener noreferrer" className="text-[10px] text-pw-accent hover:underline flex items-center gap-0.5">
+                                <Globe size={9} /> Sito web
+                              </a>
+                            ) : (
+                              <span className="text-[10px] text-red-400 flex items-center gap-0.5"><XCircle size={9} /> No sito</span>
+                            )}
+                            {r.google_maps_url ? (
+                              <a href={String(r.google_maps_url)} target="_blank" rel="noopener noreferrer" className="text-[10px] text-pw-accent hover:underline flex items-center gap-0.5">
+                                <MapPin size={9} /> Google Maps
+                              </a>
+                            ) : null}
+                            {r.phone ? (
+                              <a href={`tel:${String(r.phone)}`} className="text-[10px] text-pw-text-muted hover:text-pw-text flex items-center gap-0.5">
+                                <Phone size={9} /> {String(r.phone)}
+                              </a>
+                            ) : null}
+                          </div>
                           <p className={`text-[10px] font-semibold mt-0.5 ${verdictColor}`}>{verdict} — {totalIssues} problemi trovati</p>
                         </div>
                       </div>
