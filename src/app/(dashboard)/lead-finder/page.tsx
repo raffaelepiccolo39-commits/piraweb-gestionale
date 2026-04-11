@@ -120,13 +120,15 @@ export default function LeadFinderPage() {
       sector: searchSector,
       phone: result.phone,
       website: result.website,
-      google_place_id: result.google_place_id,
+      google_place_id: result.google_place_id || null,
       google_rating: result.google_rating,
       google_reviews_count: result.google_reviews_count,
       google_maps_url: result.google_maps_url,
+      instagram_url: result.instagram_url || null,
+      facebook_url: result.facebook_url || null,
       search_query: `${searchSector} ${searchCity}`,
       created_by: profile!.id,
-    }, { onConflict: 'google_place_id' });
+    });
 
     if (!error) {
       toast.success(`${result.business_name} salvato`);
