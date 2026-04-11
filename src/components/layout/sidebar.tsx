@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
@@ -37,6 +38,7 @@ import {
   Zap,
   LogOut,
   Search,
+  ChevronDown,
 } from 'lucide-react';
 
 interface NavItem {
@@ -98,9 +100,17 @@ interface SidebarProps {
   onToggle: () => void;
 }
 
+const SECTION_ICONS: Record<string, React.ElementType> = {
+  content: Calendar,
+  team: Users,
+  business: Crown,
+  config: Settings,
+};
+
 export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const pathname = usePathname();
   const { profile } = useAuth();
+  const [openSections, setOpenSections] = useState<Set<string>>(new Set());
 
   const filteredItems = navItems.filter((item) => {
     if (item.roles === 'all') return true;
@@ -114,6 +124,22 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
     if (!sections.has(section)) sections.set(section, []);
     sections.get(section)!.push(item);
   });
+
+  // Auto-open section if current page is in it
+  const currentSection = filteredItems.find(
+    (item) => pathname === item.href || pathname.startsWith(item.href + '/')
+  )?.section || 'core';
+
+  const toggleSection = (section: string) => {
+    setOpenSections((prev) => {
+      const next = new Set(prev);
+      if (next.has(section)) next.delete(section);
+      else next.add(section);
+      return next;
+    });
+  };
+
+  const isSectionOpen = (section: string) => openSections.has(section) || currentSection === section;
 
   return (
     <aside
@@ -138,19 +164,38 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
 
       {/* Navigation */}
       <nav aria-label="Navigazione principale" className="flex-1 py-3 px-2 overflow-y-auto no-scrollbar">
-        {Array.from(sections.entries()).map(([section, sectionItems]) => (
-          <div key={section} className="mb-1">
-            {/* Section label */}
-            {!collapsed && SECTION_LABELS[section] && (
-              <p className="text-[9px] uppercase tracking-[0.15em] font-semibold text-pw-text-dim px-3 pt-4 pb-1.5">
-                {SECTION_LABELS[section]}
-              </p>
-            )}
-            {collapsed && SECTION_LABELS[section] && (
-              <div className="mx-auto w-6 h-px bg-pw-border my-2" />
-            )}
+        {Array.from(sections.entries()).map(([section, sectionItems]) => {
+          const hasLabel = !!SECTION_LABELS[section];
+          const isOpen = isSectionOpen(section);
+          const SectionIcon = SECTION_ICONS[section];
+          const hasActiveChild = sectionItems.some(
+            (item) => pathname === item.href || pathname.startsWith(item.href + '/')
+          );
 
-            {sectionItems.map((item) => {
+          return (
+          <div key={section} className="mb-0.5">
+            {/* Section header - collapsible */}
+            {!collapsed && hasLabel ? (
+              <button
+                onClick={() => toggleSection(section)}
+                className={cn(
+                  'w-full flex items-center gap-2 px-3 py-2 my-0.5 rounded-xl text-[11px] uppercase tracking-[0.1em] font-semibold transition-all duration-200',
+                  hasActiveChild ? 'text-pw-accent' : 'text-pw-text-dim hover:text-pw-text-muted hover:bg-white/[0.02]'
+                )}
+              >
+                {SectionIcon && <SectionIcon size={14} className="shrink-0" />}
+                <span className="flex-1 text-left">{SECTION_LABELS[section]}</span>
+                <ChevronDown size={12} className={cn('transition-transform duration-200', isOpen && 'rotate-180')} />
+                {!isOpen && hasActiveChild && (
+                  <div className="w-1.5 h-1.5 rounded-full bg-pw-accent" />
+                )}
+              </button>
+            ) : collapsed && hasLabel ? (
+              <div className="mx-auto w-6 h-px bg-pw-border my-2" />
+            ) : null}
+
+            {/* Section items */}
+            {(!hasLabel || isOpen || collapsed) && sectionItems.map((item) => {
               const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
               const Icon = item.icon;
 
@@ -195,7 +240,8 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
               );
             })}
           </div>
-        ))}
+          );
+        })}
       </nav>
 
       {/* User info & collapse toggle */}
