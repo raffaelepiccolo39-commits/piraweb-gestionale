@@ -492,43 +492,151 @@ export default function LeadFinderPage() {
                           </div>
                         )}
 
-                        {/* Issues grouped by category */}
+                        {/* Report dettagliato per categoria */}
                         {prospect.analyzed_at && (() => {
-                          const issueCategories = [
-                            { key: 'website', label: 'Sito Web', icon: '🌐', issues: (notes?.website?.issues as string[]) || [] },
-                            { key: 'social', label: 'Social Media', icon: '📱', issues: (notes?.social?.issues as string[]) || [] },
-                            { key: 'advertising', label: 'Advertising', icon: '📢', issues: prospect.score_advertising < 20 ? ['Nessuna campagna pubblicitaria rilevata'] : [] },
-                            { key: 'seo', label: 'SEO', icon: '🔍', issues: (notes?.seo?.issues as string[]) || [] },
-                            { key: 'content', label: 'Contenuti', icon: '📝', issues: (notes?.content?.issues as string[]) || [] },
-                          ].filter(cat => cat.issues.length > 0);
+                          // Issues can be AnalysisIssue objects { area, detail, severity } or strings
+                          const extractIssues = (data: unknown): string[] => {
+                            if (!Array.isArray(data)) return [];
+                            return data.map((item: unknown) => {
+                              if (typeof item === 'string') return item;
+                              if (item && typeof item === 'object' && 'detail' in item) return (item as { detail: string }).detail;
+                              return String(item);
+                            });
+                          };
 
-                          if (issueCategories.length === 0) return null;
+                          const websiteAnalysis = notes?.website as Record<string, unknown> | undefined;
+                          const socialAnalysis = notes?.social as Record<string, unknown> | undefined;
+                          const seoAnalysis = notes?.seo as Record<string, unknown> | undefined;
+                          const contentAnalysis = notes?.content as Record<string, unknown> | undefined;
+
+                          const issueCategories = [
+                            { key: 'website', label: 'Sito Web', icon: '🌐', score: prospect.score_website, issues: extractIssues(websiteAnalysis?.issues), details: websiteAnalysis },
+                            { key: 'social', label: 'Social Media', icon: '📱', score: prospect.score_social, issues: extractIssues(socialAnalysis?.issues), details: socialAnalysis },
+                            { key: 'advertising', label: 'Advertising', icon: '📢', score: prospect.score_advertising, issues: prospect.score_advertising < 20 ? ['Nessuna campagna pubblicitaria online rilevata (Facebook Ads, Google Ads, TikTok Ads)'] : [], details: null },
+                            { key: 'seo', label: 'SEO / Google', icon: '🔍', score: prospect.score_seo, issues: extractIssues(seoAnalysis?.issues), details: seoAnalysis },
+                            { key: 'content', label: 'Contenuti', icon: '📝', score: prospect.score_content, issues: extractIssues(contentAnalysis?.issues), details: contentAnalysis },
+                          ];
+
+                          const totalIssues = issueCategories.reduce((sum, cat) => sum + cat.issues.length, 0);
 
                           return (
-                            <div>
-                              <p className="text-xs font-semibold text-pw-text mb-3 flex items-center gap-1.5">
-                                <AlertTriangle size={12} className="text-orange-400" />
-                                Problemi trovati ({issueCategories.reduce((sum, cat) => sum + cat.issues.length, 0)})
-                              </p>
-                              <div className="space-y-3">
-                                {issueCategories.map((cat) => (
-                                  <div key={cat.key} className="rounded-xl border border-pw-border/20 overflow-hidden">
-                                    <div className="px-3 py-2 bg-pw-surface-2/50 flex items-center gap-2">
-                                      <span className="text-sm">{cat.icon}</span>
-                                      <span className="text-xs font-semibold text-pw-text">{cat.label}</span>
-                                      <span className="text-[10px] text-pw-text-dim ml-auto">{cat.issues.length} {cat.issues.length === 1 ? 'problema' : 'problemi'}</span>
-                                    </div>
-                                    <div className="p-2 space-y-1">
-                                      {cat.issues.map((issue, i) => (
-                                        <div key={i} className="flex items-start gap-2 text-xs text-pw-text-muted px-2 py-1.5">
-                                          <XCircle size={10} className="text-red-400 shrink-0 mt-0.5" />
-                                          {issue}
-                                        </div>
-                                      ))}
-                                    </div>
-                                  </div>
-                                ))}
+                            <div className="space-y-4">
+                              {/* Report header */}
+                              <div className="p-4 rounded-xl bg-pw-surface-2/80 border border-pw-border/30">
+                                <div className="flex items-center justify-between mb-3">
+                                  <p className="text-sm font-bold text-pw-text flex items-center gap-2">
+                                    <AlertTriangle size={14} className="text-orange-400" />
+                                    Report Analisi Digitale
+                                  </p>
+                                  <span className={`text-lg font-bold ${prospect.score_total >= 60 ? 'text-green-400' : prospect.score_total >= 35 ? 'text-yellow-400' : 'text-red-400'}`}>
+                                    {prospect.score_total}/100
+                                  </span>
+                                </div>
+                                <p className="text-xs text-pw-text-muted">
+                                  {totalIssues} {totalIssues === 1 ? 'problema trovato' : 'problemi trovati'} —
+                                  {prospect.score_total < 35
+                                    ? ' Presenza digitale molto debole. Cliente ideale per proporre i nostri servizi.'
+                                    : prospect.score_total < 60
+                                    ? ' Presenza digitale da migliorare. Ci sono buone opportunita\' di vendita.'
+                                    : ' Presenza digitale discreta. Possiamo proporre ottimizzazioni mirate.'}
+                                </p>
                               </div>
+
+                              {/* Detailed sections per category */}
+                              {issueCategories.map((cat) => {
+                                const barColor = cat.score >= 61 ? 'bg-green-500' : cat.score >= 31 ? 'bg-yellow-500' : 'bg-red-500';
+                                const textColor = cat.score >= 61 ? 'text-green-400' : cat.score >= 31 ? 'text-yellow-400' : 'text-red-400';
+                                const verdict = cat.score >= 71 ? 'Buono' : cat.score >= 51 ? 'Discreto' : cat.score >= 31 ? 'Da migliorare' : cat.score > 0 ? 'Critico' : 'Assente';
+
+                                return (
+                                  <div key={cat.key} className="rounded-xl border border-pw-border/20 overflow-hidden">
+                                    {/* Category header with score */}
+                                    <div className="px-4 py-3 bg-pw-surface-2/50 flex items-center gap-3">
+                                      <span className="text-base">{cat.icon}</span>
+                                      <span className="text-xs font-bold text-pw-text flex-1">{cat.label}</span>
+                                      <div className="w-24 h-2 bg-pw-surface rounded-full overflow-hidden">
+                                        <div className={`h-full rounded-full ${barColor}`} style={{ width: `${cat.score}%` }} />
+                                      </div>
+                                      <span className={`text-xs font-bold w-8 text-right ${textColor}`}>{cat.score}</span>
+                                      <span className={`text-[10px] font-medium ${textColor}`}>{verdict}</span>
+                                    </div>
+
+                                    {/* Website specific details */}
+                                    {cat.key === 'website' && cat.details && (
+                                      <div className="px-4 py-3 border-b border-pw-border/10">
+                                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[10px]">
+                                          {[
+                                            { label: 'HTTPS/SSL', ok: cat.details.ssl },
+                                            { label: 'Mobile', ok: cat.details.mobile_responsive },
+                                            { label: 'Analytics', ok: cat.details.has_analytics },
+                                            { label: 'Form contatto', ok: cat.details.has_contact_form },
+                                            { label: 'Cookie/GDPR', ok: cat.details.has_cookie_banner },
+                                            { label: 'SEO Tags', ok: cat.details.has_og_tags },
+                                            { label: 'Schema.org', ok: cat.details.has_structured_data },
+                                            { label: 'Design moderno', ok: !cat.details.looks_outdated },
+                                          ].map((check) => (
+                                            <div key={check.label} className={`flex items-center gap-1.5 px-2 py-1 rounded ${check.ok ? 'text-green-400' : 'text-red-400'}`}>
+                                              {check.ok ? <CheckCircle size={9} /> : <XCircle size={9} />}
+                                              {check.label}
+                                            </div>
+                                          ))}
+                                        </div>
+                                        {cat.details.response_time_ms ? (
+                                          <p className="text-[10px] text-pw-text-dim mt-2">
+                                            Tempo di risposta: {String(cat.details.response_time_ms)}ms
+                                            {Number(cat.details.response_time_ms) > 3000 ? ' (lento!)' : Number(cat.details.response_time_ms) > 1500 ? ' (migliorabile)' : ' (buono)'}
+                                          </p>
+                                        ) : null}
+                                      </div>
+                                    )}
+
+                                    {/* Social specific details */}
+                                    {cat.key === 'social' && cat.details && (
+                                      <div className="px-4 py-3 border-b border-pw-border/10">
+                                        <div className="flex flex-wrap gap-2 text-[10px]">
+                                          {['Instagram', 'Facebook', 'TikTok', 'LinkedIn', 'YouTube'].map((platform) => {
+                                            const urls = (cat.details as Record<string, unknown>)?.detected_urls as Record<string, string | null> | undefined;
+                                            const url = urls?.[platform.toLowerCase()] || null;
+                                            const found = ((cat.details as Record<string, unknown>)?.platforms_found as string[] || []).includes(platform.toLowerCase());
+                                            return (
+                                              <div key={platform} className={`flex items-center gap-1 px-2 py-1 rounded ${found ? 'text-green-400 bg-green-500/5' : 'text-red-400 bg-red-500/5'}`}>
+                                                {found ? <CheckCircle size={9} /> : <XCircle size={9} />}
+                                                {url ? (
+                                                  <a href={url} target="_blank" rel="noopener noreferrer" className="hover:underline">{platform}</a>
+                                                ) : platform}
+                                              </div>
+                                            );
+                                          })}
+                                        </div>
+                                        {(cat.details as Record<string, unknown>)?.instagram_meta ? (
+                                          <div className="mt-2 text-[10px] text-pw-text-dim">
+                                            Instagram: {String(((cat.details as Record<string, unknown>)?.instagram_meta as Record<string, string | null>)?.followers || '?')} follower, {String(((cat.details as Record<string, unknown>)?.instagram_meta as Record<string, string | null>)?.posts || '?')} post
+                                          </div>
+                                        ) : null}
+                                      </div>
+                                    )}
+
+                                    {/* Issues */}
+                                    {cat.issues.length > 0 && (
+                                      <div className="p-3 space-y-1.5">
+                                        {cat.issues.map((issue, i) => (
+                                          <div key={i} className="flex items-start gap-2 text-xs text-pw-text-muted px-1 py-1">
+                                            <XCircle size={10} className="text-red-400 shrink-0 mt-0.5" />
+                                            <span>{issue}</span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+                                    {cat.issues.length === 0 && cat.score > 0 && (
+                                      <div className="px-4 py-2">
+                                        <p className="text-[10px] text-green-400 flex items-center gap-1">
+                                          <CheckCircle size={9} /> Nessun problema critico trovato
+                                        </p>
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })}
                             </div>
                           );
                         })()}
