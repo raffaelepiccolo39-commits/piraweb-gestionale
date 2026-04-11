@@ -94,13 +94,45 @@ export async function POST(request: NextRequest) {
         response_time_ms: null,
       };
 
+      // ═══════ Check Meta Ad Library (works for ALL businesses) ═══════
+      const adLibraryResult = await checkMetaAdLibrary(name, city || '');
+      result.has_meta_ads = adLibraryResult.hasAds;
+      result.meta_ads_count = adLibraryResult.adCount;
+      result.meta_ads_url = adLibraryResult.libraryUrl;
+
+      // ═══════ Try to find social profiles via Google search ═══════
+      const socialSearch = await findSocialProfiles(name, city || '', apiKey);
+      if (socialSearch.instagram) result.instagram_url = socialSearch.instagram;
+      if (socialSearch.facebook) result.facebook_url = socialSearch.facebook;
+      if (socialSearch.tiktok) result.tiktok_url = socialSearch.tiktok;
+
       // No website = already a big finding
       if (!website) {
         result.website_issues = ['Nessun sito web'];
-        result.social_issues = ['Impossibile verificare - no sito web'];
-        result.adv_issues = ['Nessuna pubblicita\' online rilevabile'];
+
+        // But we can still check social and ads
+        let socialCount = 0;
+        const socialIssues: string[] = [];
+        if (result.instagram_url) socialCount++; else socialIssues.push('Instagram non trovato');
+        if (result.facebook_url) socialCount++; else socialIssues.push('Facebook non trovato');
+        if (result.tiktok_url) socialCount++; else socialIssues.push('TikTok non trovato');
+        result.social_count = socialCount;
+        result.social_issues = socialIssues;
+        result.score_social = socialCount >= 3 ? 70 : socialCount === 2 ? 50 : socialCount === 1 ? 25 : 0;
+
+        const advIssues: string[] = [];
+        if (!adLibraryResult.hasAds) advIssues.push('Nessuna pubblicita\' attiva su Facebook/Instagram');
+        result.adv_issues = advIssues;
+        result.score_advertising = adLibraryResult.hasAds ? 40 : 0;
+        if (adLibraryResult.hasAds) result.has_facebook_pixel = true; // they do ads at least
+
         result.score_seo = rating && rating >= 4 && reviews && reviews > 20 ? 60 : rating ? 30 : 10;
-        result.score_total = Math.round((result.score_seo as number) * 0.2);
+        result.score_total = Math.round(
+          (result.score_social as number) * 0.3 +
+          (result.score_advertising as number) * 0.3 +
+          (result.score_seo as number) * 0.2 +
+          0 * 0.2 // no website
+        );
         return result;
       }
 
@@ -205,10 +237,13 @@ export async function POST(request: NextRequest) {
         if (hasTikTokPixel) advCount++;
         if (hasLinkedInTag) advCount++;
         if (hasAnyRetargeting) advCount++;
+        // Add Meta Ad Library result
+        if (adLibraryResult.hasAds) advCount++;
         result.adv_count = advCount;
 
         const advIssues: string[] = [];
-        if (!hasFBPixel) advIssues.push('Nessun Facebook/Meta Pixel');
+        if (!hasFBPixel && !adLibraryResult.hasAds) advIssues.push('Nessun Facebook/Meta Pixel e nessuna ADV attiva su Meta');
+        else if (!hasFBPixel && adLibraryResult.hasAds) advIssues.push('Fanno ADV su Meta ma manca il Pixel sul sito (non tracciano conversioni!)');
         if (!hasGoogleAds) advIssues.push('Nessun Google Ads');
         if (!hasTikTokPixel) advIssues.push('Nessun TikTok Pixel');
         if (advCount === 0) advIssues.push('Nessuna campagna ADV attiva');
@@ -249,4 +284,89 @@ export async function POST(request: NextRequest) {
   results.sort((a, b) => (a.score_total as number) - (b.score_total as number));
 
   return NextResponse.json({ results, count: results.length });
+}
+
+/**
+ * Check Meta Ad Library for active ads.
+ * Uses the public Facebook Ad Library search page.
+ */
+async function checkMetaAdLibrary(businessName: string, city: string): Promise<{ hasAds: boolean; adCount: number; libraryUrl: string }> {
+  const query = encodeURIComponent(`${businessName} ${city}`);
+  const libraryUrl = `https://www.facebook.com/ads/library/?active_status=active&ad_type=all&country=IT&q=${query}`;
+
+  try {
+    // Use Facebook Ad Library API (public, no auth needed for basic search)
+    const res = await fetch(
+      `https://www.facebook.com/ads/library/async/search_ads/?q=${query}&count=5&active_status=active&ad_type=all&country=IT&session_id=1`,
+      {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept': 'text/html,application/xhtml+xml',
+        },
+      }
+    );
+
+    if (res.ok) {
+      const text = await res.text();
+      // Check if there are ad results in the response
+      const hasAds = text.includes('ad_archive_id') || text.includes('ad_snapshot_url') || text.includes('sponsor');
+      // Try to count ads
+      const adMatches = text.match(/ad_archive_id/g);
+      const adCount = adMatches ? adMatches.length : 0;
+      return { hasAds, adCount, libraryUrl };
+    }
+  } catch {
+    // Ad Library check failed, not critical
+  }
+
+  return { hasAds: false, adCount: 0, libraryUrl };
+}
+
+/**
+ * Find social profiles by searching Google Places for the business.
+ * Uses textQuery to find associated social links.
+ */
+async function findSocialProfiles(businessName: string, city: string, apiKey: string): Promise<{ instagram: string | null; facebook: string | null; tiktok: string | null }> {
+  const result = { instagram: null as string | null, facebook: null as string | null, tiktok: null as string | null };
+
+  try {
+    // Search for the business + "instagram" to find their profile
+    const searches = [
+      { platform: 'instagram', query: `${businessName} ${city} instagram` },
+      { platform: 'facebook', query: `${businessName} ${city} facebook` },
+    ];
+
+    for (const search of searches) {
+      try {
+        const res = await fetch('https://places.googleapis.com/v1/places:searchText', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Goog-Api-Key': apiKey,
+            'X-Goog-FieldMask': 'places.websiteUri',
+          },
+          body: JSON.stringify({ textQuery: search.query, languageCode: 'it', maxResultCount: 1 }),
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          const firstPlace = data.places?.[0];
+          const uri = firstPlace?.websiteUri as string | undefined;
+          if (uri) {
+            if (search.platform === 'instagram' && uri.includes('instagram.com')) {
+              result.instagram = uri;
+            } else if (search.platform === 'facebook' && uri.includes('facebook.com')) {
+              result.facebook = uri;
+            }
+          }
+        }
+      } catch {
+        // Individual search failed, continue
+      }
+    }
+  } catch {
+    // Social search failed entirely
+  }
+
+  return result;
 }

@@ -378,6 +378,15 @@ export default function LeadFinderPage() {
                         <span className={`flex items-center gap-1 px-2 py-0.5 rounded ${r.has_google_ads ? 'text-green-400 bg-green-500/10' : 'text-red-400 bg-red-500/10'}`}>
                           {r.has_google_ads ? <CheckCircle size={8} /> : <XCircle size={8} />} Google Ads
                         </span>
+                        {r.has_meta_ads ? (
+                          <a href={String(r.meta_ads_url)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 px-2 py-0.5 rounded text-green-400 bg-green-500/10 hover:underline">
+                            <CheckCircle size={8} /> Meta Ads ({String(r.meta_ads_count)})
+                          </a>
+                        ) : (
+                          <span className="flex items-center gap-1 px-2 py-0.5 rounded text-red-400 bg-red-500/10">
+                            <XCircle size={8} /> No Meta Ads
+                          </span>
+                        )}
                       </div>
 
                       {/* Contact + actions */}
