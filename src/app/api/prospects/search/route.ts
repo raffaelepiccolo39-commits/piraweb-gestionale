@@ -3,8 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 
 /**
- * Search for businesses using AI (Gemini/Claude) to find local businesses.
- * Falls back to Google Places API if available.
+ * Search for businesses using Google Places API (New) with Maps Platform key.
  * POST /api/prospects/search
  */
 export async function POST(request: NextRequest) {
@@ -18,20 +17,42 @@ export async function POST(request: NextRequest) {
   const { query, city, sector } = await request.json();
   if (!query) return NextResponse.json({ error: 'Query obbligatoria' }, { status: 400 });
 
-  const searchText = query.trim();
+  // Try all available Google API keys
+  const keysToTry = [
+    process.env.GOOGLE_PLACES_API_KEY,
+    process.env.GOOGLE_MAPS_API_KEY,
+    process.env.GOOGLE_AI_API_KEY,
+  ].filter(Boolean) as string[];
 
-  // ══════════ Strategy 1: Google Places API (New) ══════════
-  const placesKey = process.env.GOOGLE_PLACES_API_KEY;
-  if (placesKey) {
+  if (keysToTry.length === 0) {
+    return NextResponse.json({ error: 'Nessuna chiave Google API configurata.' }, { status: 500 });
+  }
+
+  // ══════════ Try Places API (New) with each key ══════════
+  for (const apiKey of keysToTry) {
     try {
       const response = await fetch('https://places.googleapis.com/v1/places:searchText', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Goog-Api-Key': placesKey,
-          'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.rating,places.userRatingCount,places.websiteUri,places.nationalPhoneNumber,places.googleMapsUri',
+          'X-Goog-Api-Key': apiKey,
+          'X-Goog-FieldMask': [
+            'places.id',
+            'places.displayName',
+            'places.formattedAddress',
+            'places.rating',
+            'places.userRatingCount',
+            'places.websiteUri',
+            'places.nationalPhoneNumber',
+            'places.googleMapsUri',
+            'places.internationalPhoneNumber',
+          ].join(','),
         },
-        body: JSON.stringify({ textQuery: searchText, languageCode: 'it', maxResultCount: 20 }),
+        body: JSON.stringify({
+          textQuery: query,
+          languageCode: 'it',
+          maxResultCount: 20,
+        }),
       });
 
       if (response.ok) {
@@ -39,168 +60,108 @@ export async function POST(request: NextRequest) {
         if (data.places && data.places.length > 0) {
           const results = data.places.map((place: Record<string, unknown>) => ({
             business_name: (place.displayName as Record<string, string>)?.text || '',
-            address: place.formattedAddress as string || '',
-            city: city || '',
+            address: (place.formattedAddress as string) || '',
+            city: city || extractCity((place.formattedAddress as string) || ''),
             sector: sector || '',
             google_place_id: place.id as string,
-            google_rating: place.rating as number || null,
-            google_reviews_count: place.userRatingCount as number || null,
-            google_maps_url: place.googleMapsUri as string || null,
-            website: place.websiteUri as string || null,
-            phone: place.nationalPhoneNumber as string || null,
+            google_rating: (place.rating as number) || null,
+            google_reviews_count: (place.userRatingCount as number) || null,
+            google_maps_url: (place.googleMapsUri as string) || null,
+            website: (place.websiteUri as string) || null,
+            phone: (place.nationalPhoneNumber as string) || (place.internationalPhoneNumber as string) || null,
           }));
-          return NextResponse.json({ results, count: results.length, source: 'google_places' });
+          return NextResponse.json({ results, count: results.length, source: 'google_places_new' });
         }
+        // API worked but 0 results
+        return NextResponse.json({ results: [], count: 0, source: 'google_places_new' });
       }
+
+      // Check specific error
+      const errorData = await response.json().catch(() => ({}));
+      const errorMsg = (errorData as Record<string, Record<string, string>>)?.error?.message || '';
+
+      // If billing error or permission denied, try next key
+      if (response.status === 403 || response.status === 401) {
+        continue;
+      }
+
+      // Other error, return it
+      return NextResponse.json({
+        error: `Google Places API errore: ${errorMsg || response.statusText}. Assicurati che la fatturazione sia abilitata su Google Cloud Console.`,
+      }, { status: 500 });
+
     } catch {
-      // Places API failed, continue to AI search
+      continue; // Try next key
     }
   }
 
-  // ══════════ Strategy 2: AI-powered search (Gemini) ══════════
-  const geminiKey = process.env.GOOGLE_AI_API_KEY;
-  if (geminiKey) {
+  // ══════════ All keys failed - try legacy Places API ══════════
+  for (const apiKey of keysToTry) {
     try {
-      const results = await searchWithGemini(searchText, city, sector, geminiKey);
-      if (results.length > 0) {
-        return NextResponse.json({ results, count: results.length, source: 'gemini_ai' });
+      const searchQuery = encodeURIComponent(query);
+      const response = await fetch(
+        `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${searchQuery}&language=it&key=${apiKey}`
+      );
+
+      if (!response.ok) continue;
+      const data = await response.json();
+
+      if (data.status === 'OK' && data.results?.length > 0) {
+        // Fetch details for each
+        const results = await Promise.all(
+          (data.results as Record<string, unknown>[]).slice(0, 20).map(async (place) => {
+            let website = null;
+            let phone = null;
+            let mapsUrl = `https://www.google.com/maps/place/?q=place_id:${place.place_id}`;
+
+            try {
+              const detailRes = await fetch(
+                `https://maps.googleapis.com/maps/api/place/details/json?place_id=${place.place_id}&fields=website,formatted_phone_number,url&language=it&key=${apiKey}`
+              );
+              const detail = await detailRes.json();
+              if (detail.result) {
+                website = detail.result.website || null;
+                phone = detail.result.formatted_phone_number || null;
+                mapsUrl = detail.result.url || mapsUrl;
+              }
+            } catch { /* skip detail */ }
+
+            return {
+              business_name: place.name as string,
+              address: (place.formatted_address as string) || '',
+              city: city || extractCity((place.formatted_address as string) || ''),
+              sector: sector || '',
+              google_place_id: place.place_id as string,
+              google_rating: (place.rating as number) || null,
+              google_reviews_count: (place.user_ratings_total as number) || null,
+              google_maps_url: mapsUrl,
+              website,
+              phone,
+            };
+          })
+        );
+        return NextResponse.json({ results, count: results.length, source: 'google_places_legacy' });
+      }
+
+      if (data.status === 'REQUEST_DENIED') {
+        continue; // Try next key
       }
     } catch {
-      // Gemini failed, try Claude
+      continue;
     }
   }
 
-  // ══════════ Strategy 3: AI-powered search (Claude) ══════════
-  const claudeKey = process.env.ANTHROPIC_API_KEY;
-  if (claudeKey) {
-    try {
-      const results = await searchWithClaude(searchText, city, sector, claudeKey);
-      if (results.length > 0) {
-        return NextResponse.json({ results, count: results.length, source: 'claude_ai' });
-      }
-    } catch {
-      // Claude failed too
-    }
-  }
-
+  // ══════════ Everything failed ══════════
   return NextResponse.json({
-    error: 'Nessun risultato trovato. Verifica la connessione o prova con termini diversi.',
+    error: 'Impossibile cercare attivita\'. Per usare il Lead Finder devi abilitare la fatturazione su Google Cloud Console (console.cloud.google.com/billing) e collegare il progetto. Google offre $200/mese gratis.',
   }, { status: 500 });
 }
 
-// ══════════════════════════════════════════════════════
-// AI Search Functions
-// ══════════════════════════════════════════════════════
-
-const AI_PROMPT = (query: string, city: string, sector: string) => `Cerca su Google le attività commerciali reali per: "${query}"
-
-Ho bisogno di una lista di attività REALI e VERIFICATE di tipo "${sector || query}" nella città di "${city || 'Italia'}".
-
-Usa Google Search per trovare queste attività. Cerca su Google Maps, Pagine Gialle, TripAdvisor, Yelp o altre fonti per trovare nomi reali, indirizzi reali, numeri di telefono reali e siti web reali.
-
-Rispondi ESCLUSIVAMENTE con un array JSON valido (senza markdown, senza backtick, solo JSON puro) con questa struttura:
-[
-  {
-    "business_name": "Nome Esatto Attività",
-    "address": "Indirizzo completo reale",
-    "phone": "numero telefono reale oppure null",
-    "website": "URL sito web reale oppure null",
-    "google_rating": 4.2,
-    "google_reviews_count": 150,
-    "instagram_url": "URL profilo Instagram reale oppure null",
-    "facebook_url": "URL pagina Facebook reale oppure null",
-    "notes": "tipo di cucina, specialità, o breve descrizione"
+function extractCity(address: string): string {
+  const parts = address.split(',').map((p) => p.trim());
+  if (parts.length >= 2) {
+    const cityPart = parts[parts.length - 2] || '';
+    return cityPart.replace(/^\d{5}\s*/, '').trim();
   }
-]
-
-REGOLE TASSATIVE:
-- SOLO attività che esistono REALMENTE e che hai trovato cercando su Google
-- NON inventare nomi, indirizzi o numeri di telefono
-- Se non trovi un dato specifico metti null
-- Cerca di trovare almeno 10-15 attività reali
-- Rispondi SOLO con il JSON`;
-
-async function searchWithGemini(query: string, city: string, sector: string, apiKey: string): Promise<Record<string, unknown>[]> {
-  // Use Gemini with Google Search grounding for REAL results
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: AI_PROMPT(query, city, sector) }] }],
-        generationConfig: { maxOutputTokens: 4000, temperature: 0.0 },
-        tools: [{ google_search: {} }],
-      }),
-    }
-  );
-
-  if (!response.ok) throw new Error('Gemini API error');
-
-  const data = await response.json();
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-
-  return parseAIResults(text, city, sector);
-}
-
-async function searchWithClaude(query: string, city: string, sector: string, apiKey: string): Promise<Record<string, unknown>[]> {
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-    },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 4000,
-      messages: [{ role: 'user', content: AI_PROMPT(query, city, sector) }],
-    }),
-  });
-
-  if (!response.ok) throw new Error('Claude API error');
-
-  const data = await response.json();
-  const text = data.content[0].text;
-
-  return parseAIResults(text, city, sector);
-}
-
-function parseAIResults(text: string, city: string, sector: string): Record<string, unknown>[] {
-  let cleaned = text.trim();
-
-  // Remove markdown code blocks if present
-  if (cleaned.startsWith('```')) {
-    cleaned = cleaned.replace(/```json?\n?/g, '').replace(/```$/g, '').trim();
-  }
-
-  // Find the JSON array in the text
-  const arrayStart = cleaned.indexOf('[');
-  const arrayEnd = cleaned.lastIndexOf(']');
-  if (arrayStart === -1 || arrayEnd === -1) return [];
-
-  cleaned = cleaned.substring(arrayStart, arrayEnd + 1);
-
-  try {
-    const parsed = JSON.parse(cleaned);
-    if (!Array.isArray(parsed)) return [];
-
-    return parsed.map((item: Record<string, unknown>, i: number) => ({
-      business_name: item.business_name || item.name || `Attività ${i + 1}`,
-      address: item.address || '',
-      city: city || '',
-      sector: sector || '',
-      google_place_id: null,
-      google_rating: typeof item.google_rating === 'number' ? item.google_rating : null,
-      google_reviews_count: typeof item.google_reviews_count === 'number' ? item.google_reviews_count : null,
-      google_maps_url: item.google_maps_url || null,
-      website: item.website || null,
-      phone: item.phone || null,
-      instagram_url: item.instagram_url || null,
-      facebook_url: item.facebook_url || null,
-      notes: item.notes || null,
-    }));
-  } catch {
-    return [];
-  }
+  return '';
 }
