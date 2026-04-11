@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import Link from 'next/link';
 import type { UserRole } from '@/types/database';
 import { ListTodo, FolderKanban, Sparkles } from 'lucide-react';
@@ -14,7 +15,7 @@ const actions = [
   { label: 'Genera con AI', icon: Sparkles, href: '/ai', roles: ['admin', 'content_creator', 'social_media_manager'] as string[] },
 ];
 
-export function QuickActions({ role }: QuickActionsProps) {
+export const QuickActions = memo(function QuickActions({ role }: QuickActionsProps) {
   const filtered = actions.filter((a) => a.roles === 'all' || a.roles.includes(role));
 
   return (
@@ -31,4 +32,4 @@ export function QuickActions({ role }: QuickActionsProps) {
       ))}
     </div>
   );
-}
+});

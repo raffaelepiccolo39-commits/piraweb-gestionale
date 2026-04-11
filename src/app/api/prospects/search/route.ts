@@ -18,8 +18,25 @@ export async function POST(request: NextRequest) {
   const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
   if (profile?.role !== 'admin') return NextResponse.json({ error: 'Solo admin' }, { status: 403 });
 
-  const { query, city, sector } = await request.json();
+  // ── Input validation ──
+  const contentType = request.headers.get('content-type');
+  if (!contentType || !contentType.includes('application/json')) {
+    return NextResponse.json({ error: 'Content-Type deve essere application/json' }, { status: 415 });
+  }
+
+  let body: Record<string, unknown>;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: 'Corpo della richiesta non è JSON valido' }, { status: 400 });
+  }
+
+  const query = typeof body.query === 'string' ? body.query.trim().slice(0, 500) : '';
+  const city = typeof body.city === 'string' ? body.city.trim().slice(0, 200) : '';
+  const sector = typeof body.sector === 'string' ? body.sector.trim().slice(0, 200) : '';
+
   if (!query) return NextResponse.json({ error: 'Query obbligatoria' }, { status: 400 });
+  if (query.length < 2) return NextResponse.json({ error: 'Query troppo corta (minimo 2 caratteri)' }, { status: 400 });
 
   const apiKey = process.env.GOOGLE_PLACES_API_KEY;
   if (!apiKey) return NextResponse.json({ error: 'GOOGLE_PLACES_API_KEY non configurata' }, { status: 500 });

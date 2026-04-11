@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/components/ui/toast';
@@ -289,7 +289,7 @@ export default function LeadFinderPage() {
     toast.success('Copiato negli appunti!');
   };
 
-  const lowScoreProspects = prospects.filter((p) => p.score_total > 0 && p.score_total < 50);
+  const lowScoreProspects = useMemo(() => prospects.filter((p) => p.score_total > 0 && p.score_total < 50), [prospects]);
 
   return (
     <div className="space-y-6">

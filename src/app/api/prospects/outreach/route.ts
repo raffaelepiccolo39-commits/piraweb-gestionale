@@ -102,8 +102,31 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Troppe richieste. Riprova tra qualche minuto.' }, { status: 429 });
   }
 
-  const { prospect_id, channel } = await request.json();
+  // ── Input validation ──
+  const contentType = request.headers.get('content-type');
+  if (!contentType || !contentType.includes('application/json')) {
+    return NextResponse.json({ error: 'Content-Type deve essere application/json' }, { status: 415 });
+  }
+
+  let body: Record<string, unknown>;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: 'Corpo della richiesta non è JSON valido' }, { status: 400 });
+  }
+
+  const prospect_id = typeof body.prospect_id === 'string' ? body.prospect_id.trim() : '';
+  const channel = typeof body.channel === 'string' ? body.channel.trim() : '';
+
   if (!prospect_id) return NextResponse.json({ error: 'prospect_id obbligatorio' }, { status: 400 });
+
+  const VALID_CHANNELS = ['whatsapp', 'email'] as const;
+  if (!VALID_CHANNELS.includes(channel as typeof VALID_CHANNELS[number])) {
+    return NextResponse.json(
+      { error: `channel deve essere uno tra: ${VALID_CHANNELS.join(', ')}` },
+      { status: 400 },
+    );
+  }
 
   const { data: prospect } = await supabase.from('lead_prospects').select('*').eq('id', prospect_id).single();
   if (!prospect) return NextResponse.json({ error: 'Prospect non trovato' }, { status: 404 });

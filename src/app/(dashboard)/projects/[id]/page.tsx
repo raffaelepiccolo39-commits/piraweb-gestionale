@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
+import { Breadcrumb } from '@/components/ui/breadcrumb';
 import { Badge } from '@/components/ui/badge';
 import { Modal } from '@/components/ui/modal';
 import { KanbanBoard } from '@/components/kanban/kanban-board';
@@ -182,6 +183,8 @@ export default function ProjectDetailPage({
 
   return (
     <div className="space-y-6">
+      <Breadcrumb items={[{ label: 'Progetti', href: '/projects' }, { label: project.name }]} />
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex items-center gap-4">

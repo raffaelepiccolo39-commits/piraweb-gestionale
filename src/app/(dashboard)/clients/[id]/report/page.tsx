@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Breadcrumb } from '@/components/ui/breadcrumb';
 import { Badge } from '@/components/ui/badge';
 import { formatCurrency, getInitials, getUserColor } from '@/lib/utils';
 import { STATUS_LABELS } from '@/lib/constants';
@@ -189,6 +190,8 @@ export default function ClientReportPage({ params }: { params: Promise<{ id: str
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
+      <Breadcrumb items={[{ label: 'Clienti', href: '/clients' }, { label: 'Report' }]} />
+
       {/* Header */}
       <div className="flex items-center gap-3">
         <Link href={`/clients/${clientId}`} className="p-2 rounded-lg hover:bg-pw-surface-2 text-pw-text-muted">

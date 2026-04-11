@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -19,7 +20,7 @@ interface UrgentTasksProps {
   isAdmin: boolean;
 }
 
-export function UrgentTasks({ tasks, isAdmin }: UrgentTasksProps) {
+export const UrgentTasks = memo(function UrgentTasks({ tasks, isAdmin }: UrgentTasksProps) {
   if (tasks.length === 0) return null;
 
   const today = new Date().toISOString().split('T')[0];
@@ -65,4 +66,4 @@ export function UrgentTasks({ tasks, isAdmin }: UrgentTasksProps) {
       </CardContent>
     </Card>
   );
-}
+});

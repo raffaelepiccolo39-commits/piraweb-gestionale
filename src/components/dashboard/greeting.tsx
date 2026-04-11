@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import type { Profile } from '@/types/database';
 
 function getGreeting(): string {
@@ -16,7 +17,7 @@ interface GreetingProps {
   inProgressTasks: number;
 }
 
-export function Greeting({ profile, overdueTasks, dueTodayCount, inProgressTasks }: GreetingProps) {
+export const Greeting = memo(function Greeting({ profile, overdueTasks, dueTodayCount, inProgressTasks }: GreetingProps) {
   function getSubtitle(): string {
     if (overdueTasks > 0) return `Hai ${overdueTasks} attività in ritardo da gestire`;
     if (dueTodayCount > 0) return `${dueTodayCount} attività in scadenza oggi`;
@@ -37,4 +38,4 @@ export function Greeting({ profile, overdueTasks, dueTodayCount, inProgressTasks
       </p>
     </div>
   );
-}
+});

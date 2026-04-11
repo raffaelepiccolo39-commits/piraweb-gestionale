@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
 import { Card, CardContent } from '@/components/ui/card';
+import { Breadcrumb } from '@/components/ui/breadcrumb';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Modal } from '@/components/ui/modal';
@@ -360,6 +361,8 @@ export default function ClientDetailPage({
 
   return (
     <div className="space-y-6">
+      <Breadcrumb items={[{ label: 'Clienti', href: '/clients' }, { label: client.name }]} />
+
       {/* Header */}
       <div className="flex items-center gap-4">
         <Button variant="ghost" onClick={() => router.push('/clients')}>

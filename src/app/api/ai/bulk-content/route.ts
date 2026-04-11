@@ -181,14 +181,37 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // ── Input validation ──
+  const contentType = request.headers.get('content-type');
+  if (!contentType || !contentType.includes('application/json')) {
+    return NextResponse.json({ error: 'Content-Type deve essere application/json' }, { status: 415 });
+  }
+
   let body: { brief_id?: string; manual_input?: BriefInput };
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ error: 'Corpo della richiesta non valido' }, { status: 400 });
+    return NextResponse.json({ error: 'Corpo della richiesta non è JSON valido' }, { status: 400 });
   }
 
-  const { brief_id, manual_input } = body;
+  const MAX_FIELD_LENGTH = 1000;
+
+  // Sanitize brief_id
+  const brief_id = typeof body.brief_id === 'string' ? body.brief_id.trim() : undefined;
+
+  // Sanitize manual_input fields
+  let manual_input: BriefInput | undefined;
+  if (body.manual_input && typeof body.manual_input === 'object') {
+    const mi = body.manual_input;
+    manual_input = {
+      title: typeof mi.title === 'string' ? mi.title.trim().slice(0, MAX_FIELD_LENGTH) : '',
+      objective: typeof mi.objective === 'string' ? mi.objective.trim().slice(0, MAX_FIELD_LENGTH) : '',
+      target_audience: typeof mi.target_audience === 'string' ? mi.target_audience.trim().slice(0, MAX_FIELD_LENGTH) : '',
+      tone_of_voice: typeof mi.tone_of_voice === 'string' ? mi.tone_of_voice.trim().slice(0, MAX_FIELD_LENGTH) : '',
+      sector: typeof mi.sector === 'string' ? mi.sector.trim().slice(0, MAX_FIELD_LENGTH) : '',
+      client_name: typeof mi.client_name === 'string' ? mi.client_name.trim().slice(0, 200) : '',
+    };
+  }
 
   if (!brief_id && !manual_input) {
     return NextResponse.json({ error: 'Specifica un brief_id o manual_input' }, { status: 400 });

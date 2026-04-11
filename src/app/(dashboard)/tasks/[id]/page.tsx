@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/components/ui/toast';
+import { Breadcrumb } from '@/components/ui/breadcrumb';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -168,26 +169,15 @@ export default function TaskDetailPage({
   return (
     <div className="max-w-5xl mx-auto space-y-6">
       {/* Breadcrumb */}
-      <div className="flex items-center gap-2 text-sm text-pw-text-muted">
-        <Link href="/tasks" className="hover:text-pw-accent transition-colors flex items-center gap-1">
-          <ArrowLeft size={14} />
-          Task
-        </Link>
-        <span>/</span>
-        {task.project && (
-          <>
-            <Link
-              href={`/projects/${task.project.id}`}
-              className="hover:text-pw-accent transition-colors flex items-center gap-1"
-            >
-              <FolderKanban size={12} />
-              {task.project.name}
-            </Link>
-            <span>/</span>
-          </>
-        )}
-        <span className="text-pw-text truncate">{task.title}</span>
-      </div>
+      <Breadcrumb
+        items={[
+          { label: 'Task', href: '/tasks' },
+          ...(task.project
+            ? [{ label: task.project.name, href: `/projects/${task.project.id}` }]
+            : []),
+          { label: task.title },
+        ]}
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main content */}

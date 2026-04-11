@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -15,7 +16,7 @@ interface AttendanceWidgetProps {
   onClockOut: () => Promise<void>;
 }
 
-export function AttendanceWidget({ record, loading, onClockIn, onLunchBreak, onClockOut }: AttendanceWidgetProps) {
+export const AttendanceWidget = memo(function AttendanceWidget({ record, loading, onClockIn, onLunchBreak, onClockOut }: AttendanceWidgetProps) {
   const status = record?.status || 'absent';
 
   return (
@@ -77,4 +78,4 @@ export function AttendanceWidget({ record, loading, onClockIn, onLunchBreak, onC
       )}
     </Card>
   );
-}
+});
