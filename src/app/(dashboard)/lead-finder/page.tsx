@@ -63,6 +63,8 @@ export default function LeadFinderPage() {
 
   const [searchCity, setSearchCity] = useState('');
   const [searchSector, setSearchSector] = useState('');
+  const [searchName, setSearchName] = useState('');
+  const [searchMode, setSearchMode] = useState<'sector' | 'name'>('sector');
   const [searching, setSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<Record<string, unknown>[]>([]);
   const [prospects, setProspects] = useState<LeadProspect[]>([]);
@@ -85,19 +87,25 @@ export default function LeadFinderPage() {
   }, [fetchProspects]);
 
   const handleSearch = async () => {
-    if (!searchCity && !searchSector) {
+    if (searchMode === 'sector' && !searchCity && !searchSector) {
       toast.error('Inserisci almeno citta\' o settore');
+      return;
+    }
+    if (searchMode === 'name' && !searchName) {
+      toast.error('Inserisci il nome dell\'attivita\'');
       return;
     }
     setSearching(true);
     setSearchResults([]);
 
     try {
-      const query = `${searchSector} ${searchCity}`.trim();
+      const query = searchMode === 'name'
+        ? `${searchName} ${searchCity}`.trim()
+        : `${searchSector} ${searchCity}`.trim();
       const res = await fetch('/api/prospects/search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query, city: searchCity, sector: searchSector }),
+        body: JSON.stringify({ query, city: searchCity, sector: searchMode === 'name' ? searchName : searchSector }),
       });
       const data = await res.json();
       if (res.ok) {
@@ -241,19 +249,46 @@ export default function LeadFinderPage() {
         <>
           {/* Search bar */}
           <Card>
-            <CardContent className="p-4">
+            <CardContent className="p-4 space-y-3">
+              {/* Search mode toggle */}
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setSearchMode('sector')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${searchMode === 'sector' ? 'bg-pw-accent text-pw-bg' : 'bg-pw-surface-2 text-pw-text-muted hover:text-pw-text'}`}
+                >
+                  Cerca per settore + citta'
+                </button>
+                <button
+                  onClick={() => setSearchMode('name')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${searchMode === 'name' ? 'bg-pw-accent text-pw-bg' : 'bg-pw-surface-2 text-pw-text-muted hover:text-pw-text'}`}
+                >
+                  Cerca per nome attivita'
+                </button>
+              </div>
+
               <div className="flex flex-col sm:flex-row gap-3">
-                <div className="flex-1">
+                {searchMode === 'sector' ? (
+                  <div className="flex-1">
+                    <Input
+                      label="Settore / Tipo attivita'"
+                      value={searchSector}
+                      onChange={(e) => setSearchSector(e.target.value)}
+                      placeholder="Es: ristoranti, parrucchieri, palestre, dentisti..."
+                    />
+                  </div>
+                ) : (
+                  <div className="flex-1">
+                    <Input
+                      label="Nome attivita'"
+                      value={searchName}
+                      onChange={(e) => setSearchName(e.target.value)}
+                      placeholder="Es: Pizzeria Da Mario, Salone Bella Vita..."
+                    />
+                  </div>
+                )}
+                <div className={searchMode === 'name' ? 'flex-1' : 'flex-1'}>
                   <Input
-                    label="Settore / Tipo attivita'"
-                    value={searchSector}
-                    onChange={(e) => setSearchSector(e.target.value)}
-                    placeholder="Es: ristoranti, parrucchieri, palestre, dentisti..."
-                  />
-                </div>
-                <div className="flex-1">
-                  <Input
-                    label="Citta'"
+                    label="Citta' (opzionale)"
                     value={searchCity}
                     onChange={(e) => setSearchCity(e.target.value)}
                     placeholder="Es: Roma, Milano, Napoli..."
