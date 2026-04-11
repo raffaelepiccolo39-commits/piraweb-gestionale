@@ -151,9 +151,28 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // ══════════ Everything failed ══════════
+  // ══════════ Everything failed - show debug info ══════════
+  // Try one more time to get the exact error message
+  let debugError = 'Nessun dettaglio disponibile';
+  const debugKey = keysToTry[0];
+  try {
+    const debugRes = await fetch('https://places.googleapis.com/v1/places:searchText', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Goog-Api-Key': debugKey,
+        'X-Goog-FieldMask': 'places.displayName',
+      },
+      body: JSON.stringify({ textQuery: 'pizza roma', languageCode: 'it', maxResultCount: 1 }),
+    });
+    const debugData = await debugRes.json();
+    debugError = JSON.stringify(debugData).substring(0, 500);
+  } catch (e) {
+    debugError = e instanceof Error ? e.message : 'fetch failed';
+  }
+
   return NextResponse.json({
-    error: 'Impossibile cercare attivita\'. Per usare il Lead Finder devi abilitare la fatturazione su Google Cloud Console (console.cloud.google.com/billing) e collegare il progetto. Google offre $200/mese gratis.',
+    error: `Errore Google Places API. Dettaglio: ${debugError}`,
   }, { status: 500 });
 }
 
