@@ -69,6 +69,10 @@ export async function POST(request: NextRequest) {
         // Analysis results
         has_website: !!website,
         instagram_url: null,
+        instagram_followers: null as number | null,
+        instagram_posts: null as number | null,
+        instagram_is_curated: null as boolean | null,
+        instagram_verdict: '' as string,
         facebook_url: null,
         tiktok_url: null,
         linkedin_url: null,
@@ -106,6 +110,15 @@ export async function POST(request: NextRequest) {
       if (socialSearch.facebook) result.facebook_url = socialSearch.facebook;
       if (socialSearch.tiktok) result.tiktok_url = socialSearch.tiktok;
 
+      // ═══════ Analyze Instagram profile if found ═══════
+      if (result.instagram_url) {
+        const igAnalysis = await analyzeInstagramProfile(result.instagram_url as string);
+        result.instagram_followers = igAnalysis.followers;
+        result.instagram_posts = igAnalysis.posts;
+        result.instagram_is_curated = igAnalysis.isCurated;
+        result.instagram_verdict = igAnalysis.verdict;
+      }
+
       // No website = already a big finding
       if (!website) {
         result.website_issues = ['Nessun sito web'];
@@ -113,12 +126,22 @@ export async function POST(request: NextRequest) {
         // But we can still check social and ads
         let socialCount = 0;
         const socialIssues: string[] = [];
-        if (result.instagram_url) socialCount++; else socialIssues.push('Instagram non trovato');
+        if (result.instagram_url) {
+          socialCount++;
+          if (result.instagram_is_curated === false) socialIssues.push(`Instagram trovato ma ${result.instagram_verdict}`);
+        } else {
+          socialIssues.push('Instagram non trovato');
+        }
         if (result.facebook_url) socialCount++; else socialIssues.push('Facebook non trovato');
         if (result.tiktok_url) socialCount++; else socialIssues.push('TikTok non trovato');
         result.social_count = socialCount;
         result.social_issues = socialIssues;
-        result.score_social = socialCount >= 3 ? 70 : socialCount === 2 ? 50 : socialCount === 1 ? 25 : 0;
+
+        // Social score considers curation
+        let scoreS = socialCount >= 3 ? 70 : socialCount === 2 ? 50 : socialCount === 1 ? 25 : 0;
+        if (result.instagram_url && result.instagram_is_curated === false) scoreS = Math.max(scoreS - 20, 5);
+        if (result.instagram_url && result.instagram_is_curated === true) scoreS = Math.min(scoreS + 15, 100);
+        result.score_social = scoreS;
 
         const advIssues: string[] = [];
         if (!adLibraryResult.hasAds) advIssues.push('Nessuna pubblicita\' attiva su Facebook/Instagram');
@@ -193,23 +216,33 @@ export async function POST(request: NextRequest) {
         const liMatch = html.match(/linkedin\.com\/(company|in)\/([a-zA-Z0-9_-]+)/);
         const ytMatch = html.match(/youtube\.com\/(channel|c|@)\/([a-zA-Z0-9_-]+)/);
 
-        if (igMatch) result.instagram_url = `https://instagram.com/${igMatch[1]}`;
-        if (fbMatch) result.facebook_url = `https://facebook.com/${fbMatch[1]}`;
+        if (igMatch && !result.instagram_url) result.instagram_url = `https://instagram.com/${igMatch[1]}`;
+        if (fbMatch && !result.facebook_url) result.facebook_url = `https://facebook.com/${fbMatch[1]}`;
         if (tkMatch) result.tiktok_url = `https://tiktok.com/@${tkMatch[1]}`;
         if (liMatch) result.linkedin_url = `https://linkedin.com/${liMatch[0]}`;
         if (ytMatch) result.youtube_url = `https://youtube.com/${ytMatch[0]}`;
 
+        // Analyze Instagram if found (from website or earlier search)
+        if (result.instagram_url && !result.instagram_followers) {
+          const igAnalysis = await analyzeInstagramProfile(result.instagram_url as string);
+          result.instagram_followers = igAnalysis.followers;
+          result.instagram_posts = igAnalysis.posts;
+          result.instagram_is_curated = igAnalysis.isCurated;
+          result.instagram_verdict = igAnalysis.verdict;
+        }
+
         let socialCount = 0;
-        if (igMatch) socialCount++;
-        if (fbMatch) socialCount++;
+        if (result.instagram_url) socialCount++;
+        if (result.facebook_url) socialCount++;
         if (tkMatch) socialCount++;
         if (liMatch) socialCount++;
         if (ytMatch) socialCount++;
         result.social_count = socialCount;
 
         const socialIssues: string[] = [];
-        if (!igMatch) socialIssues.push('Instagram non trovato');
-        if (!fbMatch) socialIssues.push('Facebook non trovato');
+        if (!result.instagram_url) socialIssues.push('Instagram non trovato');
+        else if (result.instagram_is_curated === false) socialIssues.push(`Instagram: ${result.instagram_verdict}`);
+        if (!result.facebook_url) socialIssues.push('Facebook non trovato');
         if (!tkMatch) socialIssues.push('TikTok non trovato');
         result.social_issues = socialIssues;
 
@@ -369,4 +402,131 @@ async function findSocialProfiles(businessName: string, city: string, apiKey: st
   }
 
   return result;
+}
+
+/**
+ * Analyze an Instagram profile to check if it's well-managed.
+ * Fetches the public profile page and extracts follower/post count from meta tags.
+ * Criteria: curated = at least some posts and active presence.
+ */
+async function analyzeInstagramProfile(profileUrl: string): Promise<{
+  followers: number | null;
+  posts: number | null;
+  isCurated: boolean | null;
+  verdict: string;
+}> {
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 6000);
+
+    const res = await fetch(profileUrl, {
+      signal: controller.signal,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml',
+        'Accept-Language': 'it-IT,it;q=0.9',
+      },
+      redirect: 'follow',
+    });
+    clearTimeout(timer);
+
+    if (!res.ok) return { followers: null, posts: null, isCurated: null, verdict: 'Profilo non accessibile' };
+
+    const html = await res.text();
+
+    // Extract from meta description: "X Followers, Y Following, Z Posts - ..."
+    // Or from og:description
+    let followers: number | null = null;
+    let posts: number | null = null;
+
+    // Pattern 1: "123 Followers, 45 Following, 67 Posts"
+    const metaDesc = html.match(/content="([\d.,KkMm]+)\s*Follower/i);
+    if (metaDesc) {
+      followers = parseCount(metaDesc[1]);
+    }
+
+    const postsMatch = html.match(/([\d.,KkMm]+)\s*Post/i);
+    if (postsMatch) {
+      posts = parseCount(postsMatch[1]);
+    }
+
+    // Pattern 2: og:description or description meta tag
+    if (followers === null) {
+      const ogDesc = html.match(/og:description[^>]*content="([^"]+)"/i);
+      if (ogDesc) {
+        const desc = ogDesc[1];
+        const fMatch = desc.match(/([\d.,KkMm]+)\s*Follower/i);
+        const pMatch = desc.match(/([\d.,KkMm]+)\s*Post/i);
+        if (fMatch) followers = parseCount(fMatch[1]);
+        if (pMatch) posts = parseCount(pMatch[1]);
+      }
+    }
+
+    // Pattern 3: JSON-LD or script data
+    if (followers === null) {
+      const jsonMatch = html.match(/"edge_followed_by":\s*\{"count":\s*(\d+)/);
+      if (jsonMatch) followers = parseInt(jsonMatch[1]);
+      const postsJsonMatch = html.match(/"edge_owner_to_timeline_media":\s*\{"count":\s*(\d+)/);
+      if (postsJsonMatch) posts = parseInt(postsJsonMatch[1]);
+    }
+
+    // Determine if curated
+    // Criteria: at least 10 posts means they post regularly
+    // Less than 10 posts = not curated
+    // 0 posts = abandoned
+    let isCurated: boolean | null = null;
+    let verdict = '';
+
+    if (posts !== null) {
+      if (posts === 0) {
+        isCurated = false;
+        verdict = 'Profilo vuoto (0 post)';
+      } else if (posts < 10) {
+        isCurated = false;
+        verdict = `Solo ${posts} post - profilo abbandonato o appena creato`;
+      } else if (posts < 30) {
+        isCurated = false;
+        verdict = `${posts} post - pubblicazione poco frequente`;
+      } else if (posts < 100) {
+        isCurated = true;
+        verdict = `${posts} post - profilo moderatamente attivo`;
+      } else {
+        isCurated = true;
+        verdict = `${posts} post - profilo ben curato`;
+      }
+
+      if (followers !== null) {
+        if (followers < 100) {
+          isCurated = false;
+          verdict += `, solo ${followers} follower`;
+        } else if (followers < 500) {
+          verdict += `, ${followers} follower (crescita possibile)`;
+        } else {
+          verdict += `, ${followers} follower`;
+        }
+      }
+    } else if (followers !== null) {
+      // We have followers but not posts
+      if (followers < 100) {
+        isCurated = false;
+        verdict = `Solo ${followers} follower - profilo poco seguito`;
+      } else {
+        isCurated = null; // can't tell without post count
+        verdict = `${followers} follower - verificare attivita\' manualmente`;
+      }
+    } else {
+      verdict = 'Dati non disponibili - verificare manualmente';
+    }
+
+    return { followers, posts, isCurated, verdict };
+  } catch {
+    return { followers: null, posts: null, isCurated: null, verdict: 'Errore nell\'analisi del profilo' };
+  }
+}
+
+function parseCount(str: string): number {
+  const clean = str.replace(/[.,]/g, '').trim();
+  if (clean.toLowerCase().endsWith('k')) return parseInt(clean) * 1000;
+  if (clean.toLowerCase().endsWith('m')) return parseInt(clean) * 1000000;
+  return parseInt(clean) || 0;
 }

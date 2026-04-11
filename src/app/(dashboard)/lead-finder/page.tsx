@@ -343,6 +343,13 @@ export default function LeadFinderPage() {
                         <ScoreBar score={scoreE} label="SEO" />
                       </div>
 
+                      {/* Instagram verdict */}
+                      {r.instagram_verdict ? (
+                        <p className={`text-[10px] mb-2 px-2 py-1 rounded ${r.instagram_is_curated === false ? 'text-orange-400 bg-orange-500/5' : r.instagram_is_curated === true ? 'text-green-400 bg-green-500/5' : 'text-pw-text-dim'}`}>
+                          Instagram: {String(r.instagram_verdict)}
+                        </p>
+                      ) : null}
+
                       {/* Quick checks */}
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 mb-3 text-[10px]">
                         <div className={`flex items-center gap-1 px-2 py-1 rounded ${r.has_website ? 'text-green-400' : 'text-red-400'}`}>
@@ -361,16 +368,37 @@ export default function LeadFinderPage() {
 
                       {/* Social detection */}
                       <div className="flex flex-wrap gap-1.5 mb-3 text-[10px]">
-                        {[
-                          { name: 'IG', url: r.instagram_url as string | null },
-                          { name: 'FB', url: r.facebook_url as string | null },
-                          { name: 'TK', url: r.tiktok_url as string | null },
-                        ].map((s) => (
-                          <span key={s.name} className={`flex items-center gap-1 px-2 py-0.5 rounded ${s.url ? 'text-green-400 bg-green-500/10' : 'text-red-400 bg-red-500/10'}`}>
-                            {s.url ? <CheckCircle size={8} /> : <XCircle size={8} />}
-                            {s.url ? <a href={s.url} target="_blank" rel="noopener noreferrer" className="hover:underline">{s.name}</a> : s.name}
+                        {/* Instagram with details */}
+                        {r.instagram_url ? (
+                          <a href={String(r.instagram_url)} target="_blank" rel="noopener noreferrer" className={`flex items-center gap-1 px-2 py-0.5 rounded hover:underline ${r.instagram_is_curated === false ? 'text-orange-400 bg-orange-500/10' : 'text-green-400 bg-green-500/10'}`}>
+                            {r.instagram_is_curated === false ? <AlertTriangle size={8} /> : <CheckCircle size={8} />}
+                            IG {r.instagram_posts != null ? `(${r.instagram_posts} post${r.instagram_followers ? `, ${r.instagram_followers} foll.` : ''})` : ''}
+                          </a>
+                        ) : (
+                          <span className="flex items-center gap-1 px-2 py-0.5 rounded text-red-400 bg-red-500/10">
+                            <XCircle size={8} /> IG
                           </span>
-                        ))}
+                        )}
+                        {/* Facebook */}
+                        {r.facebook_url ? (
+                          <a href={String(r.facebook_url)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 px-2 py-0.5 rounded text-green-400 bg-green-500/10 hover:underline">
+                            <CheckCircle size={8} /> FB
+                          </a>
+                        ) : (
+                          <span className="flex items-center gap-1 px-2 py-0.5 rounded text-red-400 bg-red-500/10">
+                            <XCircle size={8} /> FB
+                          </span>
+                        )}
+                        {/* TikTok */}
+                        {r.tiktok_url ? (
+                          <a href={String(r.tiktok_url)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 px-2 py-0.5 rounded text-green-400 bg-green-500/10 hover:underline">
+                            <CheckCircle size={8} /> TK
+                          </a>
+                        ) : (
+                          <span className="flex items-center gap-1 px-2 py-0.5 rounded text-red-400 bg-red-500/10">
+                            <XCircle size={8} /> TK
+                          </span>
+                        )}
                         {/* ADV checks */}
                         <span className={`flex items-center gap-1 px-2 py-0.5 rounded ${r.has_facebook_pixel ? 'text-green-400 bg-green-500/10' : 'text-red-400 bg-red-500/10'}`}>
                           {r.has_facebook_pixel ? <CheckCircle size={8} /> : <XCircle size={8} />} FB Pixel
