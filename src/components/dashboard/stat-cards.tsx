@@ -1,5 +1,6 @@
 'use client';
 
+import { memo, useMemo } from 'react';
 import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
 import { Users, FolderKanban, ListTodo, CheckCircle2, Clock, AlertTriangle } from 'lucide-react';
@@ -18,8 +19,8 @@ interface StatCardsProps {
   isAdmin: boolean;
 }
 
-export function StatCards({ stats, isAdmin }: StatCardsProps) {
-  const cards = [
+export const StatCards = memo(function StatCards({ stats, isAdmin }: StatCardsProps) {
+  const cards = useMemo(() => [
     ...(isAdmin
       ? [{ label: 'Clienti', value: stats.totalClients, icon: Users, color: 'text-blue-600 bg-blue-500/15', href: '/clients' }]
       : []),
@@ -29,7 +30,7 @@ export function StatCards({ stats, isAdmin }: StatCardsProps) {
     { label: 'Completate', value: stats.completedTasks, icon: CheckCircle2, color: 'text-green-600 bg-green-500/15', href: '/tasks' },
     { label: 'In corso', value: stats.inProgressTasks, icon: Clock, color: 'text-yellow-600 bg-yellow-100 dark:bg-yellow-900', href: '/tasks' },
     { label: 'In ritardo', value: stats.overdueTasks, icon: AlertTriangle, color: 'text-red-600 bg-red-500/15', href: '/tasks' },
-  ];
+  ], [stats, isAdmin]);
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
@@ -49,4 +50,4 @@ export function StatCards({ stats, isAdmin }: StatCardsProps) {
       ))}
     </div>
   );
-}
+});

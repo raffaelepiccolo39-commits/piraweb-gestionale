@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
 import { formatCurrency } from '@/lib/utils';
@@ -11,7 +12,7 @@ interface CashflowSnapshotProps {
   pending: number;
 }
 
-export function CashflowSnapshot({ expected, received, pending }: CashflowSnapshotProps) {
+export const CashflowSnapshot = memo(function CashflowSnapshot({ expected, received, pending }: CashflowSnapshotProps) {
   const pct = expected > 0 ? Math.round((received / expected) * 100) : 0;
 
   return (
@@ -43,4 +44,4 @@ export function CashflowSnapshot({ expected, received, pending }: CashflowSnapsh
       </CardContent>
     </Card>
   );
-}
+});

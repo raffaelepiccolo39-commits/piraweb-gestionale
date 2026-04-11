@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -19,7 +20,7 @@ interface MessagesPreviewProps {
   unreadCount: number;
 }
 
-export function MessagesPreview({ messages, unreadCount }: MessagesPreviewProps) {
+export const MessagesPreview = memo(function MessagesPreview({ messages, unreadCount }: MessagesPreviewProps) {
   return (
     <Card>
       <CardHeader>
@@ -62,4 +63,4 @@ export function MessagesPreview({ messages, unreadCount }: MessagesPreviewProps)
       </CardContent>
     </Card>
   );
-}
+});

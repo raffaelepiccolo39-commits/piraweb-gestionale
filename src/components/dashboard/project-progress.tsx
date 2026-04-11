@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { FolderKanban } from 'lucide-react';
@@ -15,7 +16,7 @@ interface ProjectProgressProps {
   projects: ProjectWithTasks[];
 }
 
-export function ProjectProgress({ projects }: ProjectProgressProps) {
+export const ProjectProgress = memo(function ProjectProgress({ projects }: ProjectProgressProps) {
   if (projects.length === 0) return null;
 
   return (
@@ -63,4 +64,4 @@ export function ProjectProgress({ projects }: ProjectProgressProps) {
       </CardContent>
     </Card>
   );
-}
+});

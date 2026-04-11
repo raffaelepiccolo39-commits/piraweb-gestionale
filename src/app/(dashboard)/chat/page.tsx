@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { getInitials } from '@/lib/utils';
 import type { ChatChannel, ChatMessage, ChatChannelMember, Profile } from '@/types/database';
-import { ArrowLeft, MessageCircle, FolderKanban, Users, Check, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, MessageCircle, FolderKanban, Users, Check, AlertTriangle, Search, X } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
 
 export default function ChatPage() {
@@ -32,6 +32,8 @@ export default function ChatPage() {
   const [groupMembers, setGroupMembers] = useState<string[]>([]);
   const [creatingGroup, setCreatingGroup] = useState(false);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showSearch, setShowSearch] = useState(false);
 
   // Fetch channels
   const fetchChannels = useCallback(async () => {
@@ -392,17 +394,48 @@ export default function ChatPage() {
               </p>
             )}
           </div>
+          <div className="ml-auto flex items-center gap-2">
+            {showSearch ? (
+              <div className="flex items-center gap-1">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Cerca nei messaggi..."
+                  className="w-48 px-3 py-1.5 rounded-lg border border-pw-border bg-pw-surface-2 text-pw-text text-xs focus:ring-2 focus:ring-pw-accent/30 outline-none"
+                  autoFocus
+                />
+                <button
+                  onClick={() => { setShowSearch(false); setSearchQuery(''); }}
+                  className="p-1.5 rounded-lg text-pw-text-dim hover:text-pw-text hover:bg-pw-surface-2"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setShowSearch(true)}
+                className="p-2 rounded-lg text-pw-text-dim hover:text-pw-text hover:bg-pw-surface-2 transition-colors"
+                title="Cerca nei messaggi"
+              >
+                <Search size={16} />
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Messages */}
         {selectedChannelId ? (
           <>
             <MessageList
-              messages={messages}
+              messages={searchQuery
+                ? messages.filter((m) => m.content.toLowerCase().includes(searchQuery.toLowerCase()))
+                : messages
+              }
               currentUserId={profile.id}
               loading={messagesLoading}
             />
-            <MessageInput onSend={handleSendMessage} />
+            <MessageInput onSend={handleSendMessage} members={teamMembers} />
           </>
         ) : (
           <div className="flex-1 flex items-center justify-center">

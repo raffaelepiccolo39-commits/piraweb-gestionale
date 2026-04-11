@@ -25,8 +25,8 @@ const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
           aria-invalid={!!error || undefined}
           aria-describedby={errorId}
           className={cn(
-            'w-full px-4 py-2.5 rounded-xl border bg-pw-surface-2 text-pw-text placeholder:text-pw-text-dim focus:ring-2 focus:ring-pw-accent/30 focus:border-pw-accent/50 outline-none transition-all resize-y min-h-[80px] text-sm',
-            error ? 'border-red-500/50' : 'border-pw-border',
+            'w-full px-4 py-2.5 rounded-xl border bg-pw-surface-2/80 text-pw-text placeholder:text-pw-text-dim focus:ring-2 focus:ring-pw-accent/20 focus:border-pw-accent/40 focus:bg-pw-surface-2 outline-none transition-all duration-200 resize-y min-h-[80px] text-sm hover:border-pw-border-hover',
+            error ? 'border-red-500/50 focus:ring-red-500/20 focus:border-red-500/40' : 'border-pw-border/60',
             className
           )}
           {...props}

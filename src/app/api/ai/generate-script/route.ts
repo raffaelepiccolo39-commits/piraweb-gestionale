@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { checkRateLimit, AI_RATE_LIMIT } from '@/lib/rate-limit';
 
 async function callClaude(prompt: string, systemPrompt: string): Promise<{ text: string; model: string; tokens: number }> {
   const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -90,6 +91,15 @@ export async function POST(request: NextRequest) {
 
   if (!user) {
     return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 });
+  }
+
+  // Rate limiting: max 20 AI requests per hour per user
+  const rateLimit = checkRateLimit(`ai:generate:${user.id}`, AI_RATE_LIMIT);
+  if (!rateLimit.allowed) {
+    return NextResponse.json(
+      { error: 'Troppe richieste AI. Riprova tra qualche minuto.' },
+      { status: 429, headers: { 'Retry-After': String(Math.ceil((rateLimit.resetAt - Date.now()) / 1000)) } }
+    );
   }
 
   const validProviders = ['claude', 'openai', 'gemini'] as const;

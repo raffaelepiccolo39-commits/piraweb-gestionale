@@ -49,7 +49,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="it" className={`${inter.variable} ${syne.variable} ${bebasNeue.variable} h-full dark`} suppressHydrationWarning>
-      <body className={`${inter.className} min-h-full bg-black text-pw-text antialiased`}>
+      <body className={`${inter.className} min-h-full bg-pw-bg text-pw-text antialiased`}>
         {children}
       </body>
     </html>

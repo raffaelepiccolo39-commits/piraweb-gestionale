@@ -150,10 +150,11 @@ export function KanbanBoard({ tasks, onTaskClick, onTasksUpdate }: KanbanBoardPr
                                     {formatDate(task.deadline)}
                                   </span>
                                 )}
-                                {task.estimated_hours && (
-                                  <span className="flex items-center gap-1">
+                                {(task.estimated_hours || task.logged_hours > 0) && (
+                                  <span className={`flex items-center gap-1 ${task.estimated_hours && task.logged_hours > task.estimated_hours ? 'text-red-400' : ''}`}>
                                     <Clock size={11} />
-                                    {task.estimated_hours}h
+                                    {task.logged_hours > 0 ? `${Number(task.logged_hours).toFixed(1)}h` : ''}
+                                    {task.estimated_hours ? `${task.logged_hours > 0 ? '/' : ''}${task.estimated_hours}h` : ''}
                                   </span>
                                 )}
                               </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { getInitials, formatTime } from '@/lib/utils';
 import type { ChatMessage } from '@/types/database';
 
@@ -22,6 +22,24 @@ function getDateLabel(dateStr: string): string {
   return date.toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
+/** Render message content with @mention highlights */
+function MessageContent({ content, isOwn }: { content: string; isOwn: boolean }) {
+  const parts = content.split(/(@\S+(?:\s\S+)?)/g);
+  return (
+    <>
+      {parts.map((part, i) =>
+        part.startsWith('@') ? (
+          <span key={i} className={`font-semibold ${isOwn ? 'text-white/90' : 'text-pw-accent'}`}>
+            {part}
+          </span>
+        ) : (
+          <span key={i}>{part}</span>
+        )
+      )}
+    </>
+  );
+}
+
 export function MessageList({ messages, currentUserId, loading }: MessageListProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -30,18 +48,21 @@ export function MessageList({ messages, currentUserId, loading }: MessageListPro
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages.length]);
 
-  // Group messages by date
-  const grouped: { date: string; messages: ChatMessage[] }[] = [];
-  let currentDate = '';
-  messages.forEach((msg) => {
-    const dateLabel = getDateLabel(msg.created_at);
-    if (dateLabel !== currentDate) {
-      currentDate = dateLabel;
-      grouped.push({ date: dateLabel, messages: [msg] });
-    } else {
-      grouped[grouped.length - 1].messages.push(msg);
-    }
-  });
+  // Group messages by date (memoized to avoid recalc on every render)
+  const grouped = useMemo(() => {
+    const result: { date: string; messages: ChatMessage[] }[] = [];
+    let currentDate = '';
+    messages.forEach((msg) => {
+      const dateLabel = getDateLabel(msg.created_at);
+      if (dateLabel !== currentDate) {
+        currentDate = dateLabel;
+        result.push({ date: dateLabel, messages: [msg] });
+      } else {
+        result[result.length - 1].messages.push(msg);
+      }
+    });
+    return result;
+  }, [messages]);
 
   return (
     <div ref={containerRef} className="flex-1 overflow-y-auto p-4 space-y-4">
@@ -105,7 +126,7 @@ export function MessageList({ messages, currentUserId, loading }: MessageListPro
                           : 'bg-pw-surface-3 text-pw-text rounded-bl-md'
                       }`}
                     >
-                      {msg.content}
+                      <MessageContent content={msg.content} isOwn={isOwn} />
                     </div>
                     <p className={`text-[10px] text-pw-text-dim mt-0.5 ${isOwn ? 'text-right mr-1' : 'ml-1'}`}>
                       {formatTime(msg.created_at)}

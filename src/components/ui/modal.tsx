@@ -17,7 +17,6 @@ export function Modal({ open, onClose, title, children, size = 'md' }: ModalProp
   const dialogRef = useRef<HTMLDivElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
 
-  // Focus trap
   const handleTabKey = useCallback((e: KeyboardEvent) => {
     if (e.key !== 'Tab' || !dialogRef.current) return;
     const focusable = dialogRef.current.querySelectorAll<HTMLElement>(
@@ -28,22 +27,15 @@ export function Modal({ open, onClose, title, children, size = 'md' }: ModalProp
     const last = focusable[focusable.length - 1];
 
     if (e.shiftKey) {
-      if (document.activeElement === first) {
-        e.preventDefault();
-        last.focus();
-      }
+      if (document.activeElement === first) { e.preventDefault(); last.focus(); }
     } else {
-      if (document.activeElement === last) {
-        e.preventDefault();
-        first.focus();
-      }
+      if (document.activeElement === last) { e.preventDefault(); first.focus(); }
     }
   }, []);
 
   useEffect(() => {
     if (!open) {
       document.body.style.overflow = '';
-      // Return focus to the element that opened the modal
       if (previousFocusRef.current) {
         previousFocusRef.current.focus();
         previousFocusRef.current = null;
@@ -51,11 +43,9 @@ export function Modal({ open, onClose, title, children, size = 'md' }: ModalProp
       return;
     }
 
-    // Store current focus before opening
     previousFocusRef.current = document.activeElement as HTMLElement;
     document.body.style.overflow = 'hidden';
 
-    // Focus the dialog
     requestAnimationFrame(() => {
       if (dialogRef.current) {
         const firstFocusable = dialogRef.current.querySelector<HTMLElement>(
@@ -87,8 +77,15 @@ export function Modal({ open, onClose, title, children, size = 'md' }: ModalProp
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-in fade-in duration-150">
-      <div className="fixed inset-0 bg-black/70 animate-in fade-in duration-150" onClick={onClose} aria-hidden="true" />
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      {/* Backdrop with blur */}
+      <div
+        className="fixed inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
+        onClick={onClose}
+        aria-hidden="true"
+      />
+
+      {/* Dialog */}
       <div
         ref={dialogRef}
         role="dialog"
@@ -96,18 +93,19 @@ export function Modal({ open, onClose, title, children, size = 'md' }: ModalProp
         aria-labelledby={title ? titleId : undefined}
         tabIndex={-1}
         className={cn(
-          'relative w-full bg-pw-surface rounded-2xl shadow-2xl border border-pw-border max-h-[90vh] overflow-y-auto overscroll-contain animate-in fade-in zoom-in-95 duration-150',
+          'relative w-full glass rounded-2xl shadow-2xl shadow-black/40 max-h-[90vh] overflow-y-auto overscroll-contain',
+          'animate-in fade-in zoom-in-95 slide-in-from-bottom-4 duration-250',
           sizes[size]
         )}
       >
         {title && (
-          <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-pw-border">
+          <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-pw-border/40">
             <h2 id={titleId} className="text-lg font-[var(--font-syne)] font-semibold text-pw-text">
               {title}
             </h2>
             <button
               onClick={onClose}
-              className="p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg text-pw-text-muted hover:text-pw-text hover:bg-pw-surface-2 transition-colors"
+              className="p-2 min-h-[40px] min-w-[40px] flex items-center justify-center rounded-xl text-pw-text-dim hover:text-pw-text hover:bg-white/[0.05] transition-all duration-200"
               aria-label="Chiudi"
             >
               <X size={18} />

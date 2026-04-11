@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { getInitials, getAttendanceStatusLabel } from '@/lib/utils';
@@ -23,7 +24,7 @@ const statusColors: Record<string, string> = {
   absent: 'bg-pw-surface-3',
 };
 
-export function TeamAttendance({ team }: TeamAttendanceProps) {
+export const TeamAttendance = memo(function TeamAttendance({ team }: TeamAttendanceProps) {
   if (team.length === 0) return null;
 
   return (
@@ -62,4 +63,4 @@ export function TeamAttendance({ team }: TeamAttendanceProps) {
       </CardContent>
     </Card>
   );
-}
+});

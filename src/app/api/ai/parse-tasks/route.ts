@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { checkRateLimit, AI_RATE_LIMIT } from '@/lib/rate-limit';
 
 interface ParsedTask {
   title: string;
@@ -55,6 +56,14 @@ export async function POST(request: NextRequest) {
 
   if (!user) {
     return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 });
+  }
+
+  const rateLimit = checkRateLimit(`ai:parse:${user.id}`, AI_RATE_LIMIT);
+  if (!rateLimit.allowed) {
+    return NextResponse.json(
+      { error: 'Troppe richieste AI. Riprova tra qualche minuto.' },
+      { status: 429 }
+    );
   }
 
   const { input, project_id } = await request.json();

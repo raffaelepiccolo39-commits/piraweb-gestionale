@@ -1,5 +1,6 @@
 'use client';
 
+import { memo, useMemo } from 'react';
 import { getInitials, formatTime } from '@/lib/utils';
 import type { ChatChannel, Profile } from '@/types/database';
 import { Hash, FolderKanban, Users, Plus } from 'lucide-react';
@@ -14,7 +15,7 @@ interface ChannelListProps {
   onCreateGroup: () => void;
 }
 
-export function ChannelList({
+export const ChannelList = memo(function ChannelList({
   channels,
   teamMembers,
   selectedChannelId,
@@ -23,10 +24,12 @@ export function ChannelList({
   onStartDirect,
   onCreateGroup,
 }: ChannelListProps) {
-  const teamChannels = channels.filter((c) => c.type === 'team');
-  const projectChannels = channels.filter((c) => c.type === 'project');
-  const groupChannels = channels.filter((c) => c.type === 'group');
-  const directChannels = channels.filter((c) => c.type === 'direct');
+  const { teamChannels, projectChannels, groupChannels, directChannels } = useMemo(() => ({
+    teamChannels: channels.filter((c) => c.type === 'team'),
+    projectChannels: channels.filter((c) => c.type === 'project'),
+    groupChannels: channels.filter((c) => c.type === 'group'),
+    directChannels: channels.filter((c) => c.type === 'direct'),
+  }), [channels]);
 
   const getDirectName = (channel: ChatChannel): string => {
     const other = channel.members?.find((m) => m.user_id !== currentUserId);
@@ -187,4 +190,4 @@ export function ChannelList({
       </div>
     </div>
   );
-}
+});

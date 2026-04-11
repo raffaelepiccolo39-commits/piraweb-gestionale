@@ -72,7 +72,7 @@ export default function SettingsPage() {
   const [editLoading, setEditLoading] = useState(false);
 
   // Password change
-  const [passwordForm, setPasswordForm] = useState({ new_password: '', confirm_password: '' });
+  const [passwordForm, setPasswordForm] = useState({ current_password: '', new_password: '', confirm_password: '' });
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
 
@@ -94,12 +94,12 @@ export default function SettingsPage() {
       const res = await fetch('/api/auth/change-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ new_password: passwordForm.new_password }),
+        body: JSON.stringify({ current_password: passwordForm.current_password, new_password: passwordForm.new_password }),
       });
       const data = await res.json();
       if (res.ok) {
         toast.success('Password aggiornata con successo');
-        setPasswordForm({ new_password: '', confirm_password: '' });
+        setPasswordForm({ current_password: '', new_password: '', confirm_password: '' });
       } else {
         toast.error(data.error || 'Errore nel cambio password');
       }
@@ -310,6 +310,14 @@ export default function SettingsPage() {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
+          <Input
+            id="current-password"
+            label="Password Attuale"
+            type="password"
+            value={passwordForm.current_password}
+            onChange={(e) => setPasswordForm({ ...passwordForm, current_password: e.target.value })}
+            placeholder="Inserisci la password attuale"
+          />
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label htmlFor="new-password" className="block text-sm font-medium text-pw-text-muted mb-1">
@@ -345,7 +353,7 @@ export default function SettingsPage() {
           <Button
             onClick={handleChangePassword}
             loading={passwordLoading}
-            disabled={!passwordForm.new_password || passwordForm.new_password.length < 8 || passwordForm.new_password !== passwordForm.confirm_password}
+            disabled={!passwordForm.current_password || !passwordForm.new_password || passwordForm.new_password.length < 8 || passwordForm.new_password !== passwordForm.confirm_password}
           >
             <Lock size={16} />
             Aggiorna Password

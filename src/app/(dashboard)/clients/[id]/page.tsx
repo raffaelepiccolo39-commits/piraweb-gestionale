@@ -14,6 +14,7 @@ import { PaymentCalendar } from '@/components/clients/payment-calendar';
 import { FinancialSummary } from '@/components/clients/financial-summary';
 import { KnowledgeBaseForm } from '@/components/clients/knowledge-base-form';
 import { OnboardingSection } from '@/components/clients/onboarding-section';
+import { AssetLibrary } from '@/components/clients/asset-library';
 import { formatDate, formatCurrency } from '@/lib/utils';
 import type { Client, ClientContract, ClientPayment, ClientFinancialSummary, PaymentLog, ClientKnowledgeBase } from '@/types/database';
 import {
@@ -35,6 +36,7 @@ import {
   Archive,
   Brain,
   ChevronDown,
+  FolderOpen,
 } from 'lucide-react';
 
 function CollapsibleSection({
@@ -376,6 +378,11 @@ export default function ClientDetailPage({
             )}
           </div>
         </div>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => router.push(`/clients/${id}/report`)}>
+            Report
+          </Button>
+        </div>
       </div>
 
       {/* Expiry alert */}
@@ -507,6 +514,11 @@ export default function ClientDetailPage({
           <KnowledgeBaseForm data={knowledgeBase} onSave={handleSaveKnowledgeBase} />
         </CollapsibleSection>
       )}
+
+      {/* Asset Library */}
+      <CollapsibleSection title="Asset Library" icon={FolderOpen}>
+        <AssetLibrary clientId={id} />
+      </CollapsibleSection>
 
       {/* Contract section (admin only) */}
       {isAdmin && (

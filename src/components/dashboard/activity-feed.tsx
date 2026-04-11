@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { getInitials, timeAgo } from '@/lib/utils';
 import { Activity } from 'lucide-react';
@@ -30,7 +31,7 @@ function getActionLabel(action: string, entityType: string): string {
   return labels[action]?.[entityType] || `ha ${action}`;
 }
 
-export function ActivityFeed({ activities }: ActivityFeedProps) {
+export const ActivityFeed = memo(function ActivityFeed({ activities }: ActivityFeedProps) {
   if (activities.length === 0) return null;
 
   return (
@@ -66,4 +67,4 @@ export function ActivityFeed({ activities }: ActivityFeedProps) {
       </CardContent>
     </Card>
   );
-}
+});

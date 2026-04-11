@@ -23,9 +23,8 @@ interface WelcomeEmailParams {
   to: string;
   fullName: string;
   email: string;
-  password: string;
   role: string;
-  appUrl: string;
+  resetLink: string;
 }
 
 const roleLabels: Record<string, string> = {
@@ -36,11 +35,10 @@ const roleLabels: Record<string, string> = {
   graphic_brand: 'Graphic Brand',
 };
 
-export async function sendWelcomeEmail({ to, fullName, email, password, role, appUrl }: WelcomeEmailParams) {
+export async function sendWelcomeEmail({ to, fullName, email, role, resetLink }: WelcomeEmailParams) {
   const roleLabel = escapeHtml(roleLabels[role] || role);
   const firstName = escapeHtml(fullName.split(' ')[0]);
   const safeEmail = escapeHtml(email);
-  const safePassword = escapeHtml(password);
 
   const html = `
 <!DOCTYPE html>
@@ -70,10 +68,13 @@ export async function sendWelcomeEmail({ to, fullName, email, password, role, ap
                 Benvenuto/a, ${firstName}!
               </h2>
               <p style="margin:0 0 24px;color:#6b7280;font-size:15px;line-height:1.6;">
-                Il tuo account sul gestionale PiraWeb è stato creato. Ecco i tuoi dati di accesso:
+                Il tuo account sul gestionale PiraWeb è stato creato con il ruolo di
+                <span style="display:inline-block;background-color:#EEF2FF;color:#4F46E5;padding:2px 8px;border-radius:6px;font-size:13px;font-weight:600;">
+                  ${roleLabel}
+                </span>.
               </p>
 
-              <!-- Credentials Box -->
+              <!-- Info Box -->
               <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f9fafb;border:1px solid #e5e7eb;border-radius:12px;margin-bottom:24px;">
                 <tr>
                   <td style="padding:24px;">
@@ -82,19 +83,11 @@ export async function sendWelcomeEmail({ to, fullName, email, password, role, ap
                         <td style="padding:6px 0;color:#6b7280;font-size:13px;width:100px;">Email</td>
                         <td style="padding:6px 0;color:#111827;font-size:14px;font-weight:600;">${safeEmail}</td>
                       </tr>
-                      <tr>
-                        <td style="padding:6px 0;color:#6b7280;font-size:13px;">Password</td>
-                        <td style="padding:6px 0;color:#111827;font-size:14px;font-weight:600;font-family:monospace;">${safePassword}</td>
-                      </tr>
-                      <tr>
-                        <td style="padding:6px 0;color:#6b7280;font-size:13px;">Ruolo</td>
-                        <td style="padding:6px 0;">
-                          <span style="display:inline-block;background-color:#EEF2FF;color:#4F46E5;padding:3px 10px;border-radius:6px;font-size:12px;font-weight:600;">
-                            ${roleLabel}
-                          </span>
-                        </td>
-                      </tr>
                     </table>
+                    <p style="margin:16px 0 0;color:#6b7280;font-size:13px;line-height:1.5;">
+                      Clicca il pulsante qui sotto per impostare la tua password e accedere al gestionale.
+                      Il link scade tra 24 ore.
+                    </p>
                   </td>
                 </tr>
               </table>
@@ -103,15 +96,15 @@ export async function sendWelcomeEmail({ to, fullName, email, password, role, ap
               <table width="100%" cellpadding="0" cellspacing="0">
                 <tr>
                   <td align="center" style="padding-bottom:24px;">
-                    <a href="${appUrl}/login" style="display:inline-block;background:linear-gradient(135deg,#4F46E5,#7C3AED);color:#ffffff;text-decoration:none;padding:14px 32px;border-radius:12px;font-size:15px;font-weight:600;">
-                      Accedi al Gestionale
+                    <a href="${resetLink}" style="display:inline-block;background:linear-gradient(135deg,#4F46E5,#7C3AED);color:#ffffff;text-decoration:none;padding:14px 32px;border-radius:12px;font-size:15px;font-weight:600;">
+                      Imposta Password e Accedi
                     </a>
                   </td>
                 </tr>
               </table>
 
               <p style="margin:0;color:#9ca3af;font-size:13px;line-height:1.5;">
-                Ti consigliamo di cambiare la password al primo accesso dalle Impostazioni del tuo profilo.
+                Se non hai richiesto questo account, puoi ignorare questa email.
               </p>
             </td>
           </tr>

@@ -77,15 +77,30 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Send welcome email with credentials
+  // Generate a password reset link so the user sets their own password
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  let resetLink = `${appUrl}/login`;
+  try {
+    const { data: linkData, error: linkError } = await serviceClient.auth.admin.generateLink({
+      type: 'magiclink',
+      email,
+      options: { redirectTo: `${appUrl}/dashboard` },
+    });
+    if (!linkError && linkData?.properties?.action_link) {
+      resetLink = linkData.properties.action_link;
+    }
+  } catch {
+    // If link generation fails, fall back to login URL
+  }
+
+  // Send welcome email with reset link (no password in email)
   try {
     await sendWelcomeEmail({
       to: email,
       fullName: full_name,
       email,
-      password,
       role,
-      appUrl: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+      resetLink,
     });
   } catch (emailError) {
     // User created successfully, email failed - don't block

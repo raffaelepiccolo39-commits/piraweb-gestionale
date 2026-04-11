@@ -135,12 +135,17 @@ export interface Task {
   position: number;
   deadline: string | null;
   estimated_hours: number | null;
+  logged_hours: number;
   ai_generated: boolean;
   created_by: string;
   created_at: string;
   updated_at: string;
   project?: Project;
   assignee?: Profile;
+  time_entries?: TimeEntry[];
+  comments?: TaskComment[];
+  attachments?: TaskAttachment[];
+  approvals?: ContentApproval[];
 }
 
 export interface TaskComment {
@@ -488,6 +493,369 @@ export interface DeveloperNote {
   author?: Profile;
   resolver?: Profile;
   resolved_task?: Task;
+}
+
+// === TIME TRACKING ===
+export interface TimeEntry {
+  id: string;
+  task_id: string;
+  user_id: string;
+  description: string | null;
+  started_at: string;
+  ended_at: string | null;
+  duration_minutes: number | null;
+  is_running: boolean;
+  created_at: string;
+  updated_at: string;
+  user?: Profile;
+}
+
+// === CONTENT APPROVAL ===
+export type ApprovalStatus = 'pending' | 'approved' | 'rejected' | 'revision_requested';
+
+export interface ContentApproval {
+  id: string;
+  task_id: string;
+  title: string;
+  description: string | null;
+  content_url: string | null;
+  attachment_urls: string[];
+  status: ApprovalStatus;
+  submitted_by: string;
+  reviewed_by: string | null;
+  review_comment: string | null;
+  share_token: string | null;
+  submitted_at: string;
+  reviewed_at: string | null;
+  created_at: string;
+  updated_at: string;
+  submitter?: Profile;
+  reviewer?: Profile;
+}
+
+// === SOCIAL MEDIA CALENDAR ===
+export type SocialPlatform = 'instagram' | 'facebook' | 'tiktok' | 'linkedin' | 'youtube' | 'twitter' | 'pinterest' | 'other';
+export type SocialPostStatus = 'idea' | 'draft' | 'ready' | 'scheduled' | 'published' | 'rejected';
+
+export interface SocialPost {
+  id: string;
+  client_id: string;
+  project_id: string | null;
+  task_id: string | null;
+  title: string;
+  caption: string | null;
+  platforms: SocialPlatform[];
+  status: SocialPostStatus;
+  scheduled_at: string | null;
+  published_at: string | null;
+  media_urls: string[];
+  hashtags: string | null;
+  notes: string | null;
+  color: string;
+  created_by: string;
+  assigned_to: string | null;
+  created_at: string;
+  updated_at: string;
+  client?: Client;
+  assignee?: Profile;
+}
+
+// === ASSET LIBRARY ===
+export type AssetType = 'logo' | 'color' | 'font' | 'image' | 'template' | 'guideline' | 'video' | 'other';
+
+export interface ClientAsset {
+  id: string;
+  client_id: string;
+  name: string;
+  description: string | null;
+  type: AssetType;
+  file_url: string | null;
+  file_name: string | null;
+  file_size: number | null;
+  metadata: Record<string, unknown>;
+  tags: string[];
+  uploaded_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// === MEETINGS ===
+export interface Meeting {
+  id: string;
+  title: string;
+  description: string | null;
+  client_id: string | null;
+  project_id: string | null;
+  scheduled_at: string;
+  duration_minutes: number;
+  location: string | null;
+  notes: string | null;
+  created_by: string;
+  attendees: string[];
+  completed: boolean;
+  created_at: string;
+  updated_at: string;
+  client?: Client;
+  project?: Project;
+  creator?: Profile;
+  action_items?: MeetingActionItem[];
+}
+
+export interface MeetingActionItem {
+  id: string;
+  meeting_id: string;
+  content: string;
+  assigned_to: string | null;
+  task_id: string | null;
+  completed: boolean;
+  created_at: string;
+  assignee?: Profile;
+}
+
+// === CLIENT HEALTH ===
+export type RiskLevel = 'healthy' | 'needs_attention' | 'at_risk' | 'critical';
+
+export interface ClientHealth {
+  health_score: number;
+  payment_score: number;
+  delivery_score: number;
+  budget_score: number;
+  engagement_score: number;
+  risk_level: RiskLevel;
+}
+
+// === AUTOMATIONS ===
+export type AutomationTrigger = 'deal_stage_changed' | 'task_completed' | 'task_overdue' | 'client_payment_overdue' | 'approval_submitted' | 'approval_reviewed';
+export type AutomationAction = 'create_project_from_template' | 'create_notification' | 'change_task_status' | 'assign_task' | 'send_email';
+
+export interface Automation {
+  id: string;
+  name: string;
+  description: string | null;
+  trigger_type: AutomationTrigger;
+  trigger_config: Record<string, unknown>;
+  action_type: AutomationAction;
+  action_config: Record<string, unknown>;
+  is_active: boolean;
+  run_count: number;
+  last_run_at: string | null;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AutomationLog {
+  id: string;
+  automation_id: string;
+  trigger_data: Record<string, unknown> | null;
+  action_result: Record<string, unknown> | null;
+  success: boolean;
+  error_message: string | null;
+  created_at: string;
+}
+
+// === INVOICING ===
+export type InvoiceStatus = 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled';
+
+export interface Invoice {
+  id: string;
+  invoice_number: string;
+  client_id: string;
+  contract_id: string | null;
+  subtotal: number;
+  vat_rate: number;
+  vat_amount: number;
+  total: number;
+  description: string | null;
+  period_start: string | null;
+  period_end: string | null;
+  issue_date: string;
+  due_date: string;
+  status: InvoiceStatus;
+  paid_at: string | null;
+  payment_method: string | null;
+  notes: string | null;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+  client?: Client;
+  items?: InvoiceItem[];
+}
+
+export interface InvoiceItem {
+  id: string;
+  invoice_id: string;
+  description: string;
+  quantity: number;
+  unit_price: number;
+  total: number;
+  created_at: string;
+}
+
+// === CRM / DEALS ===
+export type DealStage = 'lead' | 'qualified' | 'proposal' | 'negotiation' | 'closed_won' | 'closed_lost';
+export type DealSource = 'website' | 'referral' | 'social_media' | 'cold_outreach' | 'event' | 'ads' | 'other';
+export type DealActivityType = 'call' | 'email' | 'meeting' | 'note' | 'stage_change' | 'proposal_sent' | 'follow_up';
+
+export interface Deal {
+  id: string;
+  title: string;
+  company_name: string | null;
+  contact_name: string | null;
+  contact_email: string | null;
+  contact_phone: string | null;
+  stage: DealStage;
+  value: number;
+  monthly_value: number | null;
+  probability: number;
+  source: DealSource;
+  services: string | null;
+  notes: string | null;
+  expected_close_date: string | null;
+  actual_close_date: string | null;
+  lost_reason: string | null;
+  converted_client_id: string | null;
+  owner_id: string;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+  owner?: Profile;
+  activities?: DealActivity[];
+}
+
+export interface DealActivity {
+  id: string;
+  deal_id: string;
+  type: DealActivityType;
+  title: string;
+  description: string | null;
+  scheduled_at: string | null;
+  completed: boolean;
+  created_by: string;
+  created_at: string;
+  creator?: Profile;
+}
+
+export interface DealFile {
+  id: string;
+  deal_id: string;
+  file_name: string;
+  file_url: string;
+  file_type: string | null;
+  uploaded_by: string;
+  created_at: string;
+}
+
+// === PROJECT TEMPLATES ===
+export interface ProjectTemplate {
+  id: string;
+  name: string;
+  description: string | null;
+  default_color: string;
+  category: string | null;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+  tasks?: TemplateTask[];
+}
+
+export interface TemplateTask {
+  id: string;
+  template_id: string;
+  title: string;
+  description: string | null;
+  assigned_role: string | null;
+  priority: TaskPriority;
+  estimated_hours: number | null;
+  position: number;
+  day_offset: number;
+  created_at: string;
+}
+
+// === RECURRING TASKS ===
+export type RecurrenceType = 'daily' | 'weekly' | 'biweekly' | 'monthly';
+
+export interface RecurringTask {
+  id: string;
+  title: string;
+  description: string | null;
+  project_id: string;
+  assigned_to: string | null;
+  priority: TaskPriority;
+  estimated_hours: number | null;
+  recurrence_type: RecurrenceType;
+  recurrence_day: number | null;
+  is_active: boolean;
+  last_generated_at: string | null;
+  next_due_at: string | null;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+  project?: Project;
+  assignee?: Profile;
+}
+
+// === CREATIVE BRIEFS ===
+export type BriefStatus = 'draft' | 'approved' | 'in_progress' | 'completed';
+
+export interface CreativeBrief {
+  id: string;
+  project_id: string;
+  client_id: string | null;
+  title: string;
+  objective: string | null;
+  target_audience: string | null;
+  key_message: string | null;
+  tone_of_voice: string | null;
+  deliverables: string | null;
+  references_urls: string[];
+  do_list: string | null;
+  dont_list: string | null;
+  budget_notes: string | null;
+  deadline: string | null;
+  status: BriefStatus;
+  created_by: string;
+  approved_by: string | null;
+  approved_at: string | null;
+  created_at: string;
+  updated_at: string;
+  project?: Project;
+  client?: Client;
+  creator?: Profile;
+}
+
+// === FREELANCERS ===
+export type FreelancerSpecialty = 'graphic_designer' | 'copywriter' | 'video_editor' | 'photographer' | 'developer' | 'social_media' | 'seo_specialist' | 'other';
+
+export interface Freelancer {
+  id: string;
+  full_name: string;
+  email: string | null;
+  phone: string | null;
+  specialty: string;
+  hourly_rate: number | null;
+  portfolio_url: string | null;
+  notes: string | null;
+  is_active: boolean;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TaskFreelancerAssignment {
+  id: string;
+  task_id: string;
+  freelancer_id: string;
+  agreed_rate: number | null;
+  estimated_hours: number | null;
+  actual_hours: number | null;
+  total_cost: number | null;
+  status: 'assigned' | 'in_progress' | 'completed' | 'cancelled';
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+  freelancer?: Freelancer;
+  task?: Task;
 }
 
 // === CALENDARIO ===

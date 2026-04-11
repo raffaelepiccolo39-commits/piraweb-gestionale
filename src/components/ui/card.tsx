@@ -3,13 +3,19 @@ import { cn } from '@/lib/utils';
 interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
   className?: string;
+  hover?: boolean;
+  glass?: boolean;
 }
 
-export function Card({ children, className, ...props }: CardProps) {
+export function Card({ children, className, hover = false, glass = false, ...props }: CardProps) {
   return (
     <div
       className={cn(
-        'bg-pw-surface rounded-2xl border border-pw-border',
+        'rounded-2xl border border-pw-border/60 overflow-hidden',
+        glass
+          ? 'glass'
+          : 'bg-gradient-to-br from-pw-surface via-pw-surface to-pw-surface-2/50',
+        hover && 'card-hover cursor-pointer',
         className
       )}
       {...props}
@@ -21,7 +27,7 @@ export function Card({ children, className, ...props }: CardProps) {
 
 export function CardHeader({ children, className }: CardProps) {
   return (
-    <div className={cn('px-6 py-4 border-b border-pw-border', className)}>
+    <div className={cn('px-6 py-4 border-b border-pw-border/40', className)}>
       {children}
     </div>
   );

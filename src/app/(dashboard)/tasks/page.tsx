@@ -303,7 +303,9 @@ export default function TasksPage() {
                         )}
                       </div>
                       <h3 className="font-medium text-pw-text mb-2">
-                        {task.title}
+                        <a href={`/tasks/${task.id}`} className="hover:text-pw-accent transition-colors">
+                          {task.title}
+                        </a>
                       </h3>
                       {task.description && (
                         <p className="text-xs text-pw-text-muted mb-2 line-clamp-1">{task.description}</p>

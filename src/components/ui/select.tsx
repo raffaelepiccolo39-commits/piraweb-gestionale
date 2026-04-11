@@ -27,8 +27,8 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(
           aria-invalid={!!error || undefined}
           aria-describedby={errorId}
           className={cn(
-            'w-full px-4 py-2.5 rounded-xl border bg-pw-surface-2 text-pw-text focus:ring-2 focus:ring-pw-accent/30 focus:border-pw-accent/50 outline-none transition-all text-sm',
-            error ? 'border-red-500/50' : 'border-pw-border',
+            'w-full px-4 py-2.5 rounded-xl border bg-pw-surface-2/80 text-pw-text focus:ring-2 focus:ring-pw-accent/20 focus:border-pw-accent/40 focus:bg-pw-surface-2 outline-none transition-all duration-200 text-sm hover:border-pw-border-hover',
+            error ? 'border-red-500/50 focus:ring-red-500/20' : 'border-pw-border/60',
             className
           )}
           {...props}

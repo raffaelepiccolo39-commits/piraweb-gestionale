@@ -16,7 +16,7 @@ export default function DashboardLayout({
 
   return (
     <ToastProvider>
-    <div className="min-h-screen bg-black">
+    <div className="min-h-screen bg-pw-bg">
       <a
         href="#main-content"
         className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[60] focus:px-4 focus:py-2 focus:rounded-xl focus:bg-pw-accent focus:text-pw-bg focus:font-semibold focus:text-sm"
@@ -36,7 +36,7 @@ export default function DashboardLayout({
       {mobileMenuOpen && (
         <div className="lg:hidden" role="dialog" aria-modal="true" aria-label="Menu di navigazione">
           <div
-            className="fixed inset-0 bg-black/60 z-30"
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-30"
             onClick={() => setMobileMenuOpen(false)}
             aria-hidden="true"
           />
@@ -47,8 +47,8 @@ export default function DashboardLayout({
       {/* Main content */}
       <div
         className={cn(
-          'transition-all duration-200',
-          sidebarCollapsed ? 'lg:ml-16' : 'lg:ml-64'
+          'sidebar-transition',
+          sidebarCollapsed ? 'lg:ml-[68px]' : 'lg:ml-[260px]'
         )}
       >
         <Header

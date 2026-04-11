@@ -125,7 +125,7 @@ export function Header({ onMobileMenuToggle, mobileMenuOpen }: HeaderProps) {
   };
 
   return (
-    <header className="h-14 bg-black border-b border-pw-border flex items-center justify-between px-4 lg:px-6 sticky top-0 z-30">
+    <header className="h-14 glass border-b border-pw-border/40 flex items-center justify-between px-4 lg:px-6 sticky top-0 z-30">
       {/* Mobile menu button */}
       <button
         onClick={onMobileMenuToggle}
@@ -159,7 +159,7 @@ export function Header({ onMobileMenuToggle, mobileMenuOpen }: HeaderProps) {
           >
             <Bell size={18} />
             {unreadCount > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-pw-accent text-pw-bg text-[10px] font-bold rounded-full flex items-center justify-center">
+              <span className="absolute -top-0.5 -right-0.5 w-4.5 h-4.5 bg-pw-accent text-pw-bg text-[9px] font-bold rounded-full flex items-center justify-center shadow-[0_0_8px_rgba(184,247,71,0.5)] pulse-dot">
                 {unreadCount > 9 ? '9+' : unreadCount}
               </span>
             )}
@@ -168,7 +168,7 @@ export function Header({ onMobileMenuToggle, mobileMenuOpen }: HeaderProps) {
           {showNotifications && (
             <>
               <div className="fixed inset-0 z-40" onClick={() => setShowNotifications(false)} aria-hidden="true" />
-              <div role="menu" className="absolute right-0 top-12 w-80 max-w-[calc(100vw-1rem)] bg-pw-surface-2 rounded-xl shadow-2xl border border-pw-border z-50 max-h-96 overflow-hidden">
+              <div role="menu" className="absolute right-0 top-12 w-80 max-w-[calc(100vw-1rem)] glass rounded-2xl shadow-2xl shadow-black/40 border border-pw-border/40 z-50 max-h-96 overflow-hidden animate-slide-up">
                 <div className="flex items-center justify-between p-4 border-b border-pw-border">
                   <h3 className="font-semibold text-pw-text text-sm">Notifiche</h3>
                   {unreadCount > 0 && (

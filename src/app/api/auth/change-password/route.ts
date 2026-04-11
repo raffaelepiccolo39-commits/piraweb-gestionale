@@ -14,9 +14,24 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'JSON non valido' }, { status: 400 });
   }
 
-  const { new_password } = body;
+  const { current_password, new_password } = body;
+
+  if (!current_password) {
+    return NextResponse.json({ error: 'La password attuale è obbligatoria' }, { status: 400 });
+  }
+
   if (!new_password || new_password.length < 8) {
-    return NextResponse.json({ error: 'La password deve avere almeno 8 caratteri' }, { status: 400 });
+    return NextResponse.json({ error: 'La nuova password deve avere almeno 8 caratteri' }, { status: 400 });
+  }
+
+  // Verify current password by re-authenticating
+  const { error: authError } = await supabase.auth.signInWithPassword({
+    email: user.email!,
+    password: current_password,
+  });
+
+  if (authError) {
+    return NextResponse.json({ error: 'Password attuale non corretta' }, { status: 401 });
   }
 
   const { error } = await supabase.auth.updateUser({ password: new_password });
