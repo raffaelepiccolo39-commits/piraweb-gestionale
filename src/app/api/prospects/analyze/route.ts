@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -766,6 +767,9 @@ export async function POST(request: NextRequest) {
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 });
+
+  const rateLimit = checkRateLimit(`analyze:${user.id}`, { maxRequests: 30, windowSeconds: 3600 });
+  if (!rateLimit.allowed) return NextResponse.json({ error: 'Troppe analisi. Riprova tra poco.' }, { status: 429 });
 
   const { prospect_id, website, business_name, instagram_url, facebook_url } = await request.json();
 

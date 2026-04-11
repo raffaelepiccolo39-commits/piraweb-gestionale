@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 /**
  * Analyze a business from manually provided data (website, social, etc.)
@@ -11,6 +12,9 @@ export async function POST(request: NextRequest) {
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 });
+
+  const rateLimit = checkRateLimit(`analyze-manual:${user.id}`, { maxRequests: 20, windowSeconds: 3600 });
+  if (!rateLimit.allowed) return NextResponse.json({ error: 'Troppe analisi. Riprova tra poco.' }, { status: 429 });
 
   const { business_name, website, instagram_url, facebook_url, phone, city, sector } = await request.json();
   if (!business_name) return NextResponse.json({ error: 'Nome attivita\' obbligatorio' }, { status: 400 });

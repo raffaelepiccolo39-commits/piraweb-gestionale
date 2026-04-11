@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 /**
  * Search businesses AND analyze their digital presence in one step.
@@ -10,6 +11,9 @@ export async function POST(request: NextRequest) {
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 });
+
+  const rateLimit = checkRateLimit(`search:${user.id}`, { maxRequests: 15, windowSeconds: 3600 });
+  if (!rateLimit.allowed) return NextResponse.json({ error: 'Troppe ricerche. Riprova tra poco.' }, { status: 429 });
 
   const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
   if (profile?.role !== 'admin') return NextResponse.json({ error: 'Solo admin' }, { status: 403 });

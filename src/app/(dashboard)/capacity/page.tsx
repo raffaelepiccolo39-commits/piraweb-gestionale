@@ -35,7 +35,7 @@ export default function CapacityPage() {
 
     const [profilesRes, tasksRes, timeRes] = await Promise.all([
       supabase.from('profiles').select('*').eq('is_active', true).order('full_name'),
-      supabase.from('tasks').select('id, assigned_to, status, estimated_hours, logged_hours').not('status', 'in', '("done","archived")'),
+      supabase.from('tasks').select('id, assigned_to, status, estimated_hours, logged_hours').not('status', 'in', '(done,archived)'),
       supabase.from('time_entries').select('user_id, duration_minutes').gte('started_at', monthStart).not('duration_minutes', 'is', null),
     ]);
 
