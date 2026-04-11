@@ -504,9 +504,14 @@ export default function LeadFinderPage() {
 
                       {/* Instagram verdict */}
                       {r.instagram_verdict ? (
-                        <p className={`text-[10px] mb-2 px-2 py-1 rounded ${r.instagram_is_curated === false ? 'text-orange-400 bg-orange-500/5' : r.instagram_is_curated === true ? 'text-green-400 bg-green-500/5' : 'text-pw-text-dim'}`}>
-                          Instagram: {String(r.instagram_verdict)}
-                        </p>
+                        <div className={`text-[10px] mb-2 px-2 py-1.5 rounded ${r.instagram_is_curated === false ? 'text-orange-400 bg-orange-500/5' : r.instagram_is_curated === true ? 'text-green-400 bg-green-500/5' : 'text-pw-text-dim bg-pw-surface-2/50'}`}>
+                          <span className="font-semibold">Instagram:</span> {String(r.instagram_verdict)}
+                          {r.instagram_posts_last_month != null && Number(r.instagram_posts_last_month) < 10 ? (
+                            <span className="block mt-0.5 text-red-400">
+                              Solo {String(r.instagram_posts_last_month)} post nell&apos;ultimo mese (servono almeno 10 tra foto, grafiche e reel)
+                            </span>
+                          ) : null}
+                        </div>
                       ) : null}
 
                       {/* Quick checks */}
@@ -531,7 +536,11 @@ export default function LeadFinderPage() {
                         {r.instagram_url ? (
                           <a href={String(r.instagram_url)} target="_blank" rel="noopener noreferrer" className={`flex items-center gap-1 px-2 py-0.5 rounded hover:underline ${r.instagram_is_curated === false ? 'text-orange-400 bg-orange-500/10' : 'text-green-400 bg-green-500/10'}`}>
                             {r.instagram_is_curated === false ? <AlertTriangle size={8} /> : <CheckCircle size={8} />}
-                            IG {r.instagram_posts != null ? `(${r.instagram_posts} post${r.instagram_followers ? `, ${r.instagram_followers} foll.` : ''})` : ''}
+                            IG {r.instagram_posts_last_month != null
+                              ? `(${r.instagram_posts_last_month} post/mese${r.instagram_posts ? `, ${r.instagram_posts} totali` : ''}${r.instagram_followers ? `, ${r.instagram_followers} foll.` : ''})`
+                              : r.instagram_posts != null
+                              ? `(${r.instagram_posts} post${r.instagram_followers ? `, ${r.instagram_followers} foll.` : ''})`
+                              : ''}
                           </a>
                         ) : (
                           <span className="flex items-center gap-1 px-2 py-0.5 rounded text-red-400 bg-red-500/10">

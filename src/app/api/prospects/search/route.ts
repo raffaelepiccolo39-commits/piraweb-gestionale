@@ -71,6 +71,7 @@ export async function POST(request: NextRequest) {
         instagram_url: null,
         instagram_followers: null as number | null,
         instagram_posts: null as number | null,
+        instagram_posts_last_month: null as number | null,
         instagram_is_curated: null as boolean | null,
         instagram_verdict: '' as string,
         facebook_url: null,
@@ -115,6 +116,7 @@ export async function POST(request: NextRequest) {
         const igAnalysis = await analyzeInstagramProfile(result.instagram_url as string);
         result.instagram_followers = igAnalysis.followers;
         result.instagram_posts = igAnalysis.posts;
+        result.instagram_posts_last_month = igAnalysis.recentPostsLastMonth;
         result.instagram_is_curated = igAnalysis.isCurated;
         result.instagram_verdict = igAnalysis.verdict;
       }
@@ -412,6 +414,7 @@ async function findSocialProfiles(businessName: string, city: string, apiKey: st
 async function analyzeInstagramProfile(profileUrl: string): Promise<{
   followers: number | null;
   posts: number | null;
+  recentPostsLastMonth: number | null;
   isCurated: boolean | null;
   verdict: string;
 }> {
@@ -430,27 +433,22 @@ async function analyzeInstagramProfile(profileUrl: string): Promise<{
     });
     clearTimeout(timer);
 
-    if (!res.ok) return { followers: null, posts: null, isCurated: null, verdict: 'Profilo non accessibile' };
+    if (!res.ok) return { followers: null, posts: null, recentPostsLastMonth: null, isCurated: null, verdict: 'Profilo non accessibile' };
 
     const html = await res.text();
 
-    // Extract from meta description: "X Followers, Y Following, Z Posts - ..."
-    // Or from og:description
     let followers: number | null = null;
     let posts: number | null = null;
+    let recentPostsLastMonth: number | null = null;
 
-    // Pattern 1: "123 Followers, 45 Following, 67 Posts"
+    // Pattern 1: meta description "X Followers, Y Following, Z Posts"
     const metaDesc = html.match(/content="([\d.,KkMm]+)\s*Follower/i);
-    if (metaDesc) {
-      followers = parseCount(metaDesc[1]);
-    }
+    if (metaDesc) followers = parseCount(metaDesc[1]);
 
     const postsMatch = html.match(/([\d.,KkMm]+)\s*Post/i);
-    if (postsMatch) {
-      posts = parseCount(postsMatch[1]);
-    }
+    if (postsMatch) posts = parseCount(postsMatch[1]);
 
-    // Pattern 2: og:description or description meta tag
+    // Pattern 2: og:description
     if (followers === null) {
       const ogDesc = html.match(/og:description[^>]*content="([^"]+)"/i);
       if (ogDesc) {
@@ -462,7 +460,7 @@ async function analyzeInstagramProfile(profileUrl: string): Promise<{
       }
     }
 
-    // Pattern 3: JSON-LD or script data
+    // Pattern 3: JSON embedded data
     if (followers === null) {
       const jsonMatch = html.match(/"edge_followed_by":\s*\{"count":\s*(\d+)/);
       if (jsonMatch) followers = parseInt(jsonMatch[1]);
@@ -470,57 +468,101 @@ async function analyzeInstagramProfile(profileUrl: string): Promise<{
       if (postsJsonMatch) posts = parseInt(postsJsonMatch[1]);
     }
 
-    // Determine if curated
-    // Criteria: at least 10 posts means they post regularly
-    // Less than 10 posts = not curated
-    // 0 posts = abandoned
+    // Try to extract recent post timestamps from embedded JSON
+    const thirtyDaysAgo = Math.floor(Date.now() / 1000) - (30 * 24 * 60 * 60);
+
+    // Look for post timestamps in the HTML (Instagram embeds these)
+    const timestamps = html.match(/"taken_at_timestamp":\s*(\d+)/g);
+    if (timestamps && timestamps.length > 0) {
+      const recentPosts = timestamps.filter((t) => {
+        const ts = parseInt(t.replace(/"taken_at_timestamp":\s*/, ''));
+        return ts >= thirtyDaysAgo;
+      });
+      recentPostsLastMonth = recentPosts.length;
+    }
+
+    // Alternative: look for datetime in time elements or data attributes
+    if (recentPostsLastMonth === null) {
+      const dateMatches = html.match(/datetime="(\d{4}-\d{2}-\d{2})T/g);
+      if (dateMatches && dateMatches.length > 0) {
+        const thirtyDaysAgoDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+        const recentPosts = dateMatches.filter((d) => {
+          const dateStr = d.replace('datetime="', '').replace('T', '');
+          return new Date(dateStr) >= thirtyDaysAgoDate;
+        });
+        recentPostsLastMonth = recentPosts.length;
+      }
+    }
+
+    // Estimate monthly posts from total if we can't get exact data
+    // Instagram profiles created years ago: total_posts / estimated_months
+    if (recentPostsLastMonth === null && posts !== null && posts > 0) {
+      // Look for account creation indicators or just estimate
+      // Average active account posts ~8-12/month, inactive ~0-3
+      // We'll mark as "estimated" in the verdict
+    }
+
+    // Build verdict
     let isCurated: boolean | null = null;
     let verdict = '';
 
-    if (posts !== null) {
+    // If we have recent post count, that's the most reliable indicator
+    if (recentPostsLastMonth !== null) {
+      if (recentPostsLastMonth === 0) {
+        isCurated = false;
+        verdict = `0 post nell'ultimo mese - profilo inattivo`;
+      } else if (recentPostsLastMonth < 4) {
+        isCurated = false;
+        verdict = `Solo ${recentPostsLastMonth} post nell'ultimo mese (meno di 1/settimana)`;
+      } else if (recentPostsLastMonth < 8) {
+        isCurated = false;
+        verdict = `${recentPostsLastMonth} post nell'ultimo mese (~${Math.round(recentPostsLastMonth / 4)}/settimana) - sotto la media`;
+      } else if (recentPostsLastMonth < 15) {
+        isCurated = true;
+        verdict = `${recentPostsLastMonth} post nell'ultimo mese (~${Math.round(recentPostsLastMonth / 4)}/settimana) - frequenza discreta`;
+      } else {
+        isCurated = true;
+        verdict = `${recentPostsLastMonth} post nell'ultimo mese - profilo molto attivo`;
+      }
+    } else if (posts !== null) {
+      // Fallback to total post count
       if (posts === 0) {
         isCurated = false;
         verdict = 'Profilo vuoto (0 post)';
       } else if (posts < 10) {
         isCurated = false;
-        verdict = `Solo ${posts} post - profilo abbandonato o appena creato`;
+        verdict = `Solo ${posts} post totali - profilo abbandonato`;
       } else if (posts < 30) {
         isCurated = false;
-        verdict = `${posts} post - pubblicazione poco frequente`;
+        verdict = `${posts} post totali - probabilmente poco attivo`;
       } else if (posts < 100) {
-        isCurated = true;
-        verdict = `${posts} post - profilo moderatamente attivo`;
+        isCurated = null;
+        verdict = `${posts} post totali - verificare frequenza recente`;
       } else {
         isCurated = true;
-        verdict = `${posts} post - profilo ben curato`;
-      }
-
-      if (followers !== null) {
-        if (followers < 100) {
-          isCurated = false;
-          verdict += `, solo ${followers} follower`;
-        } else if (followers < 500) {
-          verdict += `, ${followers} follower (crescita possibile)`;
-        } else {
-          verdict += `, ${followers} follower`;
-        }
-      }
-    } else if (followers !== null) {
-      // We have followers but not posts
-      if (followers < 100) {
-        isCurated = false;
-        verdict = `Solo ${followers} follower - profilo poco seguito`;
-      } else {
-        isCurated = null; // can't tell without post count
-        verdict = `${followers} follower - verificare attivita\' manualmente`;
+        verdict = `${posts} post totali - profilo con storico`;
       }
     } else {
       verdict = 'Dati non disponibili - verificare manualmente';
     }
 
-    return { followers, posts, isCurated, verdict };
+    // Add follower info
+    if (followers !== null) {
+      if (followers < 100) {
+        isCurated = false;
+        verdict += `, solo ${followers} follower`;
+      } else if (followers < 500) {
+        verdict += `, ${followers} follower`;
+      } else if (followers < 5000) {
+        verdict += `, ${followers} follower`;
+      } else {
+        verdict += `, ${followers.toLocaleString('it-IT')} follower`;
+      }
+    }
+
+    return { followers, posts, recentPostsLastMonth, isCurated, verdict };
   } catch {
-    return { followers: null, posts: null, isCurated: null, verdict: 'Errore nell\'analisi del profilo' };
+    return { followers: null, posts: null, recentPostsLastMonth: null, isCurated: null, verdict: 'Errore nell\'analisi del profilo' };
   }
 }
 
