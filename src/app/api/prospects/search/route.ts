@@ -92,33 +92,36 @@ export async function POST(request: NextRequest) {
 // AI Search Functions
 // ══════════════════════════════════════════════════════
 
-const AI_PROMPT = (query: string, city: string, sector: string) => `Cerca attività commerciali reali per questa ricerca: "${query}"
+const AI_PROMPT = (query: string, city: string, sector: string) => `Cerca su Google le attività commerciali reali per: "${query}"
 
-Trova 15-20 attività REALI (non inventate) di tipo "${sector || query}" nella città di "${city || 'Italia'}".
+Ho bisogno di una lista di attività REALI e VERIFICATE di tipo "${sector || query}" nella città di "${city || 'Italia'}".
 
-Per ogni attività fornisci le informazioni che conosci. Rispondi ESCLUSIVAMENTE con un array JSON valido, senza markdown, senza backtick, solo JSON puro:
+Usa Google Search per trovare queste attività. Cerca su Google Maps, Pagine Gialle, TripAdvisor, Yelp o altre fonti per trovare nomi reali, indirizzi reali, numeri di telefono reali e siti web reali.
+
+Rispondi ESCLUSIVAMENTE con un array JSON valido (senza markdown, senza backtick, solo JSON puro) con questa struttura:
 [
   {
-    "business_name": "Nome Reale Attività",
-    "address": "Via Example 123, Città",
-    "phone": "+39 081 1234567 oppure null",
-    "website": "https://www.example.com oppure null",
+    "business_name": "Nome Esatto Attività",
+    "address": "Indirizzo completo reale",
+    "phone": "numero telefono reale oppure null",
+    "website": "URL sito web reale oppure null",
     "google_rating": 4.2,
     "google_reviews_count": 150,
-    "instagram_url": "https://instagram.com/example oppure null",
-    "facebook_url": "https://facebook.com/example oppure null",
-    "notes": "breve descrizione dell'attività"
+    "instagram_url": "URL profilo Instagram reale oppure null",
+    "facebook_url": "URL pagina Facebook reale oppure null",
+    "notes": "tipo di cucina, specialità, o breve descrizione"
   }
 ]
 
-IMPORTANTE:
-- Fornisci SOLO attività che esistono realmente
-- Se non conosci un dato metti null
-- Il rating deve essere tra 1.0 e 5.0 o null
-- Includi sito web e social media se li conosci
-- Rispondi SOLO con il JSON, nient'altro`;
+REGOLE TASSATIVE:
+- SOLO attività che esistono REALMENTE e che hai trovato cercando su Google
+- NON inventare nomi, indirizzi o numeri di telefono
+- Se non trovi un dato specifico metti null
+- Cerca di trovare almeno 10-15 attività reali
+- Rispondi SOLO con il JSON`;
 
 async function searchWithGemini(query: string, city: string, sector: string, apiKey: string): Promise<Record<string, unknown>[]> {
+  // Use Gemini with Google Search grounding for REAL results
   const response = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
     {
@@ -126,7 +129,8 @@ async function searchWithGemini(query: string, city: string, sector: string, api
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{ parts: [{ text: AI_PROMPT(query, city, sector) }] }],
-        generationConfig: { maxOutputTokens: 4000, temperature: 0.1 },
+        generationConfig: { maxOutputTokens: 4000, temperature: 0.0 },
+        tools: [{ google_search: {} }],
       }),
     }
   );
