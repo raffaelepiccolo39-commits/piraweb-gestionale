@@ -68,6 +68,7 @@ const navItems: NavItem[] = [
   { label: 'CRM Pipeline', href: '/crm', icon: Target, roles: ['admin'], section: 'business' },
   { label: 'Clienti', href: '/clients', icon: Users, roles: ['admin'], section: 'business' },
   { label: 'Capacita\' Team', href: '/capacity', icon: BarChart3, roles: ['admin'], section: 'business' },
+  { label: 'Profittabilita\'', href: '/profitability', icon: Euro, roles: ['admin'], section: 'business' },
   { label: 'Fatturazione', href: '/invoices', icon: Receipt, roles: ['admin'], section: 'business' },
   { label: 'Cashflow', href: '/cashflow', icon: Euro, roles: ['admin'], section: 'business' },
   { label: 'Efficienza', href: '/analytics', icon: BarChart3, roles: ['admin'], section: 'business' },
