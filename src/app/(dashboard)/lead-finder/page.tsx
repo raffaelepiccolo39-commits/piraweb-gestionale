@@ -32,6 +32,7 @@ import {
   ChevronUp,
   RefreshCw,
   Eye,
+  FileText,
 } from 'lucide-react';
 
 function ScoreDot({ score, label }: { score: number; label: string }) {
@@ -80,6 +81,9 @@ export default function LeadFinderPage() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [analyzingId, setAnalyzingId] = useState<string | null>(null);
   const [generatingId, setGeneratingId] = useState<string | null>(null);
+  const [reportId, setReportId] = useState<string | null>(null);
+  const [reportContent, setReportContent] = useState<string | null>(null);
+  const [generatingReport, setGeneratingReport] = useState<string | null>(null);
   const [tab, setTab] = useState<'search' | 'saved'>('search');
 
   const fetchProspects = useCallback(async () => {
@@ -230,6 +234,28 @@ export default function LeadFinderPage() {
       toast.error('Errore di connessione');
     }
     setAnalyzingId(null);
+  };
+
+  const handleGenerateReport = async (prospectId: string) => {
+    setGeneratingReport(prospectId);
+    try {
+      const res = await fetch('/api/prospects/report', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prospect_id: prospectId }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setReportId(prospectId);
+        setReportContent(data.report);
+        toast.success('Report generato');
+      } else {
+        toast.error(data.error || 'Errore nella generazione');
+      }
+    } catch {
+      toast.error('Errore di connessione');
+    }
+    setGeneratingReport(null);
   };
 
   const handleGenerateOutreach = async (prospectId: string, channel: string) => {
@@ -957,6 +983,55 @@ export default function LeadFinderPage() {
                             <span className="text-[10px] text-pw-text-dim">
                               Analizzato {formatDate(prospect.analyzed_at)}
                             </span>
+                          </div>
+                        )}
+
+                        {/* Marketing Report */}
+                        {prospect.analyzed_at && (
+                          <div className="border-t border-pw-border/30 pt-4">
+                            <p className="text-xs font-semibold text-pw-text mb-3 flex items-center gap-1.5">
+                              <FileText size={12} className="text-pw-accent" />
+                              Report Marketing
+                            </p>
+
+                            {reportId === prospect.id && reportContent ? (
+                              <div className="space-y-3">
+                                <div className="p-4 rounded-xl bg-pw-surface-2 prose prose-invert prose-sm max-w-none max-h-[500px] overflow-y-auto text-sm text-pw-text-muted leading-relaxed whitespace-pre-wrap">
+                                  {reportContent}
+                                </div>
+                                <div className="flex gap-2">
+                                  <Button size="sm" variant="outline" onClick={() => { navigator.clipboard.writeText(reportContent); toast.success('Report copiato!'); }}>
+                                    <Copy size={12} /> Copia Report
+                                  </Button>
+                                  <Button size="sm" variant="ghost" onClick={() => handleGenerateReport(prospect.id)} loading={generatingReport === prospect.id}>
+                                    <RefreshCw size={12} /> Rigenera
+                                  </Button>
+                                </div>
+                              </div>
+                            ) : prospect.outreach_notes && prospect.outreach_notes.includes('# Audit') ? (
+                              <div className="space-y-3">
+                                <div className="p-4 rounded-xl bg-pw-surface-2 max-h-[500px] overflow-y-auto text-sm text-pw-text-muted leading-relaxed whitespace-pre-wrap">
+                                  {prospect.outreach_notes}
+                                </div>
+                                <div className="flex gap-2">
+                                  <Button size="sm" variant="outline" onClick={() => { navigator.clipboard.writeText(prospect.outreach_notes!); toast.success('Report copiato!'); }}>
+                                    <Copy size={12} /> Copia Report
+                                  </Button>
+                                  <Button size="sm" variant="ghost" onClick={() => handleGenerateReport(prospect.id)} loading={generatingReport === prospect.id}>
+                                    <RefreshCw size={12} /> Rigenera
+                                  </Button>
+                                </div>
+                              </div>
+                            ) : (
+                              <Button
+                                size="sm"
+                                onClick={() => handleGenerateReport(prospect.id)}
+                                loading={generatingReport === prospect.id}
+                              >
+                                <FileText size={12} />
+                                Genera Report Dettagliato
+                              </Button>
+                            )}
                           </div>
                         )}
 
