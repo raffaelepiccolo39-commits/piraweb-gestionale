@@ -612,6 +612,46 @@ export interface MeetingActionItem {
   assignee?: Profile;
 }
 
+// === LEAD PROSPECTING ===
+export type OutreachStatus = 'new' | 'to_contact' | 'contacted' | 'interested' | 'not_interested' | 'converted';
+export type OutreachChannel = 'whatsapp' | 'email' | 'phone' | 'instagram_dm';
+
+export interface LeadProspect {
+  id: string;
+  business_name: string;
+  address: string | null;
+  city: string | null;
+  sector: string | null;
+  phone: string | null;
+  website: string | null;
+  google_maps_url: string | null;
+  google_place_id: string | null;
+  google_rating: number | null;
+  google_reviews_count: number | null;
+  instagram_url: string | null;
+  facebook_url: string | null;
+  tiktok_url: string | null;
+  linkedin_url: string | null;
+  score_website: number;
+  score_social: number;
+  score_content: number;
+  score_advertising: number;
+  score_seo: number;
+  score_total: number;
+  analysis_notes: Record<string, unknown>;
+  analyzed_at: string | null;
+  outreach_status: OutreachStatus;
+  outreach_message: string | null;
+  outreach_channel: OutreachChannel | null;
+  outreach_sent_at: string | null;
+  outreach_notes: string | null;
+  converted_deal_id: string | null;
+  search_query: string | null;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
 // === CLIENT HEALTH ===
 export type RiskLevel = 'healthy' | 'needs_attention' | 'at_risk' | 'critical';
 
