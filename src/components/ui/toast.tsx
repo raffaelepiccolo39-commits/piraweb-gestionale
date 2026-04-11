@@ -77,7 +77,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               key={t.id}
               role="alert"
               className={cn(
-                'flex items-center gap-3 px-4 py-3 rounded-xl border shadow-lg backdrop-blur-sm animate-in slide-in-from-right fade-in duration-200',
+                'flex items-center gap-3 px-4 py-3 rounded-xl border shadow-lg backdrop-blur-sm animate-slide-up animate-in slide-in-from-right fade-in duration-200',
                 styles[t.type]
               )}
             >

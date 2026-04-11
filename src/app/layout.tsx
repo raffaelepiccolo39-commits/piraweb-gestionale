@@ -25,6 +25,7 @@ export const metadata: Metadata = {
     template: '%s | PiraWeb Gestionale',
   },
   description: 'Gestionale interno PiraWeb - Gestione clienti, progetti e team',
+  applicationName: 'PiraWeb',
   icons: {
     icon: '/logo.png',
     apple: '/logo.png',
@@ -51,6 +52,13 @@ export default function RootLayout({
     <html lang="it" className={`${inter.variable} ${syne.variable} ${bebasNeue.variable} h-full dark`} suppressHydrationWarning>
       <body className={`${inter.className} min-h-full bg-pw-bg text-pw-text antialiased`}>
         {children}
+        <script dangerouslySetInnerHTML={{ __html: `
+          if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+              navigator.serviceWorker.register('/sw.js').catch(() => {});
+            });
+          }
+        `}} />
       </body>
     </html>
   );

@@ -36,7 +36,7 @@ export const StatCards = memo(function StatCards({ stats, isAdmin }: StatCardsPr
     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
       {cards.map((stat, i) => (
         <Link key={stat.label} href={stat.href}>
-          <Card className="hover:scale-[1.02] hover:shadow-lg hover:shadow-pw-accent/5 transition-all duration-200 cursor-pointer"
+          <Card className="card-hover hover:scale-[1.02] hover:shadow-lg hover:shadow-pw-accent/5 transition-all duration-200 cursor-pointer"
             style={{ animationDelay: `${i * 50}ms` }}>
             <CardContent className="p-4">
               <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 ${stat.color}`}>
