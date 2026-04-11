@@ -3,8 +3,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 
 /**
- * Search for businesses using Google Places API (New) with Maps Platform key.
- * POST /api/prospects/search
+ * Search businesses AND analyze their digital presence in one step.
+ * Returns real data from Google Places + website scanning.
  */
 export async function POST(request: NextRequest) {
   const supabase = await createServerSupabaseClient();
@@ -17,170 +17,236 @@ export async function POST(request: NextRequest) {
   const { query, city, sector } = await request.json();
   if (!query) return NextResponse.json({ error: 'Query obbligatoria' }, { status: 400 });
 
-  // Try all available Google API keys
-  const keysToTry = [
-    process.env.GOOGLE_PLACES_API_KEY,
-    process.env.GOOGLE_MAPS_API_KEY,
-    process.env.GOOGLE_AI_API_KEY,
-  ].filter(Boolean) as string[];
+  const apiKey = process.env.GOOGLE_PLACES_API_KEY;
+  if (!apiKey) return NextResponse.json({ error: 'GOOGLE_PLACES_API_KEY non configurata' }, { status: 500 });
 
-  if (keysToTry.length === 0) {
-    return NextResponse.json({ error: 'Nessuna chiave Google API configurata.' }, { status: 500 });
-  }
-
-  // ══════════ Try Places API (New) with each key ══════════
-  for (const apiKey of keysToTry) {
-    try {
-      const response = await fetch('https://places.googleapis.com/v1/places:searchText', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Goog-Api-Key': apiKey,
-          'X-Goog-FieldMask': [
-            'places.id',
-            'places.displayName',
-            'places.formattedAddress',
-            'places.rating',
-            'places.userRatingCount',
-            'places.websiteUri',
-            'places.nationalPhoneNumber',
-            'places.googleMapsUri',
-            'places.internationalPhoneNumber',
-          ].join(','),
-        },
-        body: JSON.stringify({
-          textQuery: query,
-          languageCode: 'it',
-          maxResultCount: 20,
-        }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        if (data.places && data.places.length > 0) {
-          const results = data.places.map((place: Record<string, unknown>) => ({
-            business_name: (place.displayName as Record<string, string>)?.text || '',
-            address: (place.formattedAddress as string) || '',
-            city: city || extractCity((place.formattedAddress as string) || ''),
-            sector: sector || '',
-            google_place_id: place.id as string,
-            google_rating: (place.rating as number) || null,
-            google_reviews_count: (place.userRatingCount as number) || null,
-            google_maps_url: (place.googleMapsUri as string) || null,
-            website: (place.websiteUri as string) || null,
-            phone: (place.nationalPhoneNumber as string) || (place.internationalPhoneNumber as string) || null,
-          }));
-          return NextResponse.json({ results, count: results.length, source: 'google_places_new' });
-        }
-        // API worked but 0 results
-        return NextResponse.json({ results: [], count: 0, source: 'google_places_new' });
-      }
-
-      // Check specific error
-      const errorData = await response.json().catch(() => ({}));
-      const errorMsg = (errorData as Record<string, Record<string, string>>)?.error?.message || '';
-
-      // If billing error or permission denied, try next key
-      if (response.status === 403 || response.status === 401) {
-        continue;
-      }
-
-      // Other error, return it
-      return NextResponse.json({
-        error: `Google Places API errore: ${errorMsg || response.statusText}. Assicurati che la fatturazione sia abilitata su Google Cloud Console.`,
-      }, { status: 500 });
-
-    } catch {
-      continue; // Try next key
-    }
-  }
-
-  // ══════════ All keys failed - try legacy Places API ══════════
-  for (const apiKey of keysToTry) {
-    try {
-      const searchQuery = encodeURIComponent(query);
-      const response = await fetch(
-        `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${searchQuery}&language=it&key=${apiKey}`
-      );
-
-      if (!response.ok) continue;
-      const data = await response.json();
-
-      if (data.status === 'OK' && data.results?.length > 0) {
-        // Fetch details for each
-        const results = await Promise.all(
-          (data.results as Record<string, unknown>[]).slice(0, 20).map(async (place) => {
-            let website = null;
-            let phone = null;
-            let mapsUrl = `https://www.google.com/maps/place/?q=place_id:${place.place_id}`;
-
-            try {
-              const detailRes = await fetch(
-                `https://maps.googleapis.com/maps/api/place/details/json?place_id=${place.place_id}&fields=website,formatted_phone_number,url&language=it&key=${apiKey}`
-              );
-              const detail = await detailRes.json();
-              if (detail.result) {
-                website = detail.result.website || null;
-                phone = detail.result.formatted_phone_number || null;
-                mapsUrl = detail.result.url || mapsUrl;
-              }
-            } catch { /* skip detail */ }
-
-            return {
-              business_name: place.name as string,
-              address: (place.formatted_address as string) || '',
-              city: city || extractCity((place.formatted_address as string) || ''),
-              sector: sector || '',
-              google_place_id: place.place_id as string,
-              google_rating: (place.rating as number) || null,
-              google_reviews_count: (place.user_ratings_total as number) || null,
-              google_maps_url: mapsUrl,
-              website,
-              phone,
-            };
-          })
-        );
-        return NextResponse.json({ results, count: results.length, source: 'google_places_legacy' });
-      }
-
-      if (data.status === 'REQUEST_DENIED') {
-        continue; // Try next key
-      }
-    } catch {
-      continue;
-    }
-  }
-
-  // ══════════ Everything failed - show debug info ══════════
-  // Try one more time to get the exact error message
-  let debugError = 'Nessun dettaglio disponibile';
-  const debugKey = keysToTry[0];
+  // ═══════ Step 1: Search Google Places ═══════
+  let places: Record<string, unknown>[] = [];
   try {
-    const debugRes = await fetch('https://places.googleapis.com/v1/places:searchText', {
+    const res = await fetch('https://places.googleapis.com/v1/places:searchText', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-Goog-Api-Key': debugKey,
-        'X-Goog-FieldMask': 'places.displayName',
+        'X-Goog-Api-Key': apiKey,
+        'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.rating,places.userRatingCount,places.websiteUri,places.nationalPhoneNumber,places.googleMapsUri',
       },
-      body: JSON.stringify({ textQuery: 'pizza roma', languageCode: 'it', maxResultCount: 1 }),
+      body: JSON.stringify({ textQuery: query, languageCode: 'it', maxResultCount: 20 }),
     });
-    const debugData = await debugRes.json();
-    debugError = JSON.stringify(debugData).substring(0, 500);
-  } catch (e) {
-    debugError = e instanceof Error ? e.message : 'fetch failed';
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      return NextResponse.json({ error: `Google API: ${(err as Record<string, Record<string, string>>)?.error?.message || res.statusText}` }, { status: 500 });
+    }
+    const data = await res.json();
+    places = data.places || [];
+  } catch {
+    return NextResponse.json({ error: 'Errore nella connessione a Google Places' }, { status: 500 });
   }
 
-  return NextResponse.json({
-    error: `Errore Google Places API. Dettaglio: ${debugError}`,
-  }, { status: 500 });
-}
-
-function extractCity(address: string): string {
-  const parts = address.split(',').map((p) => p.trim());
-  if (parts.length >= 2) {
-    const cityPart = parts[parts.length - 2] || '';
-    return cityPart.replace(/^\d{5}\s*/, '').trim();
+  if (places.length === 0) {
+    return NextResponse.json({ results: [], count: 0 });
   }
-  return '';
+
+  // ═══════ Step 2: For each place, scan website for REAL analysis ═══════
+  const results = await Promise.all(
+    places.map(async (place) => {
+      const name = (place.displayName as Record<string, string>)?.text || '';
+      const website = (place.websiteUri as string) || null;
+      const rating = (place.rating as number) || null;
+      const reviews = (place.userRatingCount as number) || null;
+
+      // Base result from Google
+      const result: Record<string, unknown> = {
+        business_name: name,
+        address: (place.formattedAddress as string) || '',
+        city: city || '',
+        sector: sector || '',
+        google_place_id: place.id,
+        google_rating: rating,
+        google_reviews_count: reviews,
+        google_maps_url: (place.googleMapsUri as string) || null,
+        website,
+        phone: (place.nationalPhoneNumber as string) || null,
+        // Analysis results
+        has_website: !!website,
+        instagram_url: null,
+        facebook_url: null,
+        tiktok_url: null,
+        linkedin_url: null,
+        youtube_url: null,
+        has_ssl: false,
+        has_mobile: false,
+        has_analytics: false,
+        has_facebook_pixel: false,
+        has_google_ads: false,
+        has_tiktok_pixel: false,
+        has_contact_form: false,
+        has_cookie_banner: false,
+        social_count: 0,
+        adv_count: 0,
+        website_issues: [] as string[],
+        social_issues: [] as string[],
+        adv_issues: [] as string[],
+        score_website: 0,
+        score_social: 0,
+        score_advertising: 0,
+        score_seo: 0,
+        score_total: 0,
+        response_time_ms: null,
+      };
+
+      // No website = already a big finding
+      if (!website) {
+        result.website_issues = ['Nessun sito web'];
+        result.social_issues = ['Impossibile verificare - no sito web'];
+        result.adv_issues = ['Nessuna pubblicita\' online rilevabile'];
+        result.score_seo = rating && rating >= 4 && reviews && reviews > 20 ? 60 : rating ? 30 : 10;
+        result.score_total = Math.round((result.score_seo as number) * 0.2);
+        return result;
+      }
+
+      // ═══════ Scan website ═══════
+      try {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 8000);
+        const startTime = Date.now();
+
+        const siteRes = await fetch(website, {
+          signal: controller.signal,
+          headers: { 'User-Agent': 'Mozilla/5.0 (compatible; PiraWebBot/1.0)' },
+          redirect: 'follow',
+        });
+        clearTimeout(timer);
+
+        const elapsed = Date.now() - startTime;
+        result.response_time_ms = elapsed;
+
+        const html = await siteRes.text();
+        const lower = html.toLowerCase();
+
+        // ── Website checks ──
+        const hasSSL = website.startsWith('https') || siteRes.url.startsWith('https');
+        const hasViewport = lower.includes('viewport');
+        const hasAnalytics = lower.includes('google-analytics') || lower.includes('gtag(') || lower.includes('googletagmanager');
+        const hasContactForm = lower.includes('type="email"') || lower.includes('type=\'email\'') || lower.includes('contact') || lower.includes('contatt');
+        const hasCookieBanner = lower.includes('cookie') || lower.includes('iubenda') || lower.includes('cookiebot') || lower.includes('gdpr');
+
+        result.has_ssl = hasSSL;
+        result.has_mobile = hasViewport;
+        result.has_analytics = hasAnalytics;
+        result.has_contact_form = hasContactForm;
+        result.has_cookie_banner = hasCookieBanner;
+
+        const websiteIssues: string[] = [];
+        if (!hasSSL) websiteIssues.push('Manca HTTPS/SSL');
+        if (!hasViewport) websiteIssues.push('Non ottimizzato per mobile');
+        if (!hasAnalytics) websiteIssues.push('Nessun Analytics/tracking');
+        if (!hasContactForm) websiteIssues.push('Nessun form di contatto');
+        if (!hasCookieBanner) websiteIssues.push('Manca banner cookie/GDPR');
+        if (elapsed > 3000) websiteIssues.push(`Sito lento (${elapsed}ms)`);
+        result.website_issues = websiteIssues;
+
+        let scoreW = 20; // ha un sito
+        if (hasSSL) scoreW += 15;
+        if (hasViewport) scoreW += 20;
+        if (hasAnalytics) scoreW += 15;
+        if (hasContactForm) scoreW += 10;
+        if (hasCookieBanner) scoreW += 10;
+        if (elapsed < 2000) scoreW += 10;
+        result.score_website = Math.min(scoreW, 100);
+
+        // ── Social media detection from website HTML ──
+        const igMatch = html.match(/instagram\.com\/([a-zA-Z0-9_.]+)/);
+        const fbMatch = html.match(/facebook\.com\/([a-zA-Z0-9_.]+)/);
+        const tkMatch = html.match(/tiktok\.com\/@([a-zA-Z0-9_.]+)/);
+        const liMatch = html.match(/linkedin\.com\/(company|in)\/([a-zA-Z0-9_-]+)/);
+        const ytMatch = html.match(/youtube\.com\/(channel|c|@)\/([a-zA-Z0-9_-]+)/);
+
+        if (igMatch) result.instagram_url = `https://instagram.com/${igMatch[1]}`;
+        if (fbMatch) result.facebook_url = `https://facebook.com/${fbMatch[1]}`;
+        if (tkMatch) result.tiktok_url = `https://tiktok.com/@${tkMatch[1]}`;
+        if (liMatch) result.linkedin_url = `https://linkedin.com/${liMatch[0]}`;
+        if (ytMatch) result.youtube_url = `https://youtube.com/${ytMatch[0]}`;
+
+        let socialCount = 0;
+        if (igMatch) socialCount++;
+        if (fbMatch) socialCount++;
+        if (tkMatch) socialCount++;
+        if (liMatch) socialCount++;
+        if (ytMatch) socialCount++;
+        result.social_count = socialCount;
+
+        const socialIssues: string[] = [];
+        if (!igMatch) socialIssues.push('Instagram non trovato');
+        if (!fbMatch) socialIssues.push('Facebook non trovato');
+        if (!tkMatch) socialIssues.push('TikTok non trovato');
+        result.social_issues = socialIssues;
+
+        let scoreS = 0;
+        if (socialCount >= 4) scoreS = 90;
+        else if (socialCount >= 3) scoreS = 70;
+        else if (socialCount === 2) scoreS = 50;
+        else if (socialCount === 1) scoreS = 25;
+        result.score_social = scoreS;
+
+        // ── Advertising detection ──
+        const hasFBPixel = lower.includes('fbq(') || lower.includes('fbevents.js') || lower.includes('facebook.com/tr');
+        const hasGoogleAds = lower.includes('google_conversion') || lower.includes('googleads') || lower.includes('ads/ga-audiences');
+        const hasTikTokPixel = lower.includes('ttq.load') || lower.includes('analytics.tiktok.com');
+        const hasLinkedInTag = lower.includes('snap.licdn.com') || lower.includes('linkedin.com/px');
+        const hasAnyRetargeting = lower.includes('criteo') || lower.includes('adroll') || lower.includes('doubleclick');
+
+        result.has_facebook_pixel = hasFBPixel;
+        result.has_google_ads = hasGoogleAds;
+        result.has_tiktok_pixel = hasTikTokPixel;
+
+        let advCount = 0;
+        if (hasFBPixel) advCount++;
+        if (hasGoogleAds) advCount++;
+        if (hasTikTokPixel) advCount++;
+        if (hasLinkedInTag) advCount++;
+        if (hasAnyRetargeting) advCount++;
+        result.adv_count = advCount;
+
+        const advIssues: string[] = [];
+        if (!hasFBPixel) advIssues.push('Nessun Facebook/Meta Pixel');
+        if (!hasGoogleAds) advIssues.push('Nessun Google Ads');
+        if (!hasTikTokPixel) advIssues.push('Nessun TikTok Pixel');
+        if (advCount === 0) advIssues.push('Nessuna campagna ADV attiva');
+        result.adv_issues = advIssues;
+
+        let scoreA = 0;
+        if (advCount >= 3) scoreA = 90;
+        else if (advCount === 2) scoreA = 65;
+        else if (advCount === 1) scoreA = 35;
+        result.score_advertising = scoreA;
+
+      } catch {
+        result.website_issues = ['Sito non raggiungibile o troppo lento'];
+        result.score_website = 5;
+      }
+
+      // ── SEO score from Google data ──
+      let scoreE = 10;
+      if (rating && rating >= 4.5 && reviews && reviews > 50) scoreE = 90;
+      else if (rating && rating >= 4.0 && reviews && reviews > 20) scoreE = 70;
+      else if (rating && rating >= 3.5 && reviews && reviews > 10) scoreE = 50;
+      else if (rating) scoreE = 30;
+      result.score_seo = scoreE;
+
+      // ── Total ──
+      result.score_total = Math.round(
+        (result.score_website as number) * 0.3 +
+        (result.score_social as number) * 0.25 +
+        (result.score_advertising as number) * 0.25 +
+        (result.score_seo as number) * 0.2
+      );
+
+      return result;
+    })
+  );
+
+  // Sort by score ascending (worst first = best leads)
+  results.sort((a, b) => (a.score_total as number) - (b.score_total as number));
+
+  return NextResponse.json({ results, count: results.length });
 }

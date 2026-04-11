@@ -269,50 +269,140 @@ export default function LeadFinderPage() {
             </CardContent>
           </Card>
 
-          {/* Search results */}
-          {searchResults.length > 0 && (
+          {/* Search results with analysis */}
+          {searching && (
+            <div className="text-center py-12">
+              <Loader2 size={32} className="text-pw-accent mx-auto mb-3 animate-spin" />
+              <p className="text-sm text-pw-text-muted">Ricerca e analisi in corso...</p>
+              <p className="text-xs text-pw-text-dim mt-1">Sto cercando le attivita' e analizzando siti web, social e advertising</p>
+            </div>
+          )}
+
+          {!searching && searchResults.length > 0 && (
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <p className="text-sm font-semibold text-pw-text">{searchResults.length} risultati trovati</p>
+                <p className="text-sm font-semibold text-pw-text">{searchResults.length} risultati analizzati</p>
                 <Button size="sm" variant="secondary" onClick={handleSaveAll}>
-                  Salva tutti e analizza
+                  Salva tutti
                 </Button>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 stagger-children">
-                {searchResults.map((result, i) => (
-                  <Card key={i} hover>
+
+              {searchResults.map((r, i) => {
+                const scoreTotal = r.score_total as number;
+                const scoreW = r.score_website as number;
+                const scoreS = r.score_social as number;
+                const scoreA = r.score_advertising as number;
+                const scoreE = r.score_seo as number;
+                const wIssues = (r.website_issues as string[]) || [];
+                const sIssues = (r.social_issues as string[]) || [];
+                const aIssues = (r.adv_issues as string[]) || [];
+                const totalIssues = wIssues.length + sIssues.length + aIssues.length;
+                const verdict = scoreTotal >= 60 ? 'Ben gestito' : scoreTotal >= 35 ? 'Da migliorare' : 'Opportunita\' alta';
+                const verdictColor = scoreTotal >= 60 ? 'text-green-400' : scoreTotal >= 35 ? 'text-yellow-400' : 'text-red-400';
+                const verdictBg = scoreTotal >= 60 ? 'bg-green-500/10 border-green-500/20' : scoreTotal >= 35 ? 'bg-yellow-500/10 border-yellow-500/20' : 'bg-red-500/10 border-red-500/20';
+
+                const ScoreBar = ({ score, label }: { score: number; label: string }) => (
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] text-pw-text-dim w-10 shrink-0">{label}</span>
+                    <div className="flex-1 h-1.5 bg-pw-surface rounded-full overflow-hidden">
+                      <div className={`h-full rounded-full ${score >= 60 ? 'bg-green-500' : score >= 30 ? 'bg-yellow-500' : 'bg-red-500'}`} style={{ width: `${score}%` }} />
+                    </div>
+                    <span className={`text-[10px] font-bold w-6 text-right ${score >= 60 ? 'text-green-400' : score >= 30 ? 'text-yellow-400' : 'text-red-400'}`}>{score}</span>
+                  </div>
+                );
+
+                return (
+                  <Card key={i}>
                     <CardContent className="p-4">
-                      <div className="flex items-start justify-between gap-2 mb-2">
-                        <h3 className="text-sm font-semibold text-pw-text">{result.business_name as string}</h3>
-                        {result.google_rating ? (
-                          <div className="flex items-center gap-1 shrink-0">
-                            <Star size={12} className="text-yellow-400 fill-yellow-400" />
-                            <span className="text-xs text-pw-text">{String(result.google_rating)}</span>
-                            <span className="text-[10px] text-pw-text-dim">({String(result.google_reviews_count)})</span>
+                      {/* Header */}
+                      <div className="flex items-start gap-3 mb-3">
+                        {/* Score circle */}
+                        <div className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 border-2 ${verdictBg}`}>
+                          <span className={`text-sm font-bold ${verdictColor}`}>{scoreTotal}</span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <h3 className="text-sm font-bold text-pw-text truncate">{r.business_name as string}</h3>
+                            {r.google_rating ? (
+                              <div className="flex items-center gap-0.5 shrink-0">
+                                <Star size={10} className="text-yellow-400 fill-yellow-400" />
+                                <span className="text-[10px] text-pw-text">{String(r.google_rating)}</span>
+                              </div>
+                            ) : null}
                           </div>
-                        ) : null}
+                          <p className="text-[10px] text-pw-text-dim">{r.address as string}</p>
+                          <p className={`text-[10px] font-semibold mt-0.5 ${verdictColor}`}>{verdict} — {totalIssues} problemi trovati</p>
+                        </div>
                       </div>
-                      <p className="text-[10px] text-pw-text-dim flex items-center gap-1 mb-2">
-                        <MapPin size={9} />
-                        {result.address as string}
-                      </p>
-                      <div className="flex items-center gap-3 text-[10px] text-pw-text-muted mb-3">
-                        {result.website ? (
-                          <a href={String(result.website)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-pw-accent hover:underline">
-                            <Globe size={9} /> Sito web
-                          </a>
-                        ) : (
-                          <span className="flex items-center gap-1 text-red-400"><XCircle size={9} /> No sito</span>
-                        )}
-                        {result.phone ? <span className="flex items-center gap-1"><Phone size={9} /> {String(result.phone)}</span> : null}
+
+                      {/* Score bars */}
+                      <div className="space-y-1.5 mb-3">
+                        <ScoreBar score={scoreW} label="Sito" />
+                        <ScoreBar score={scoreS} label="Social" />
+                        <ScoreBar score={scoreA} label="ADV" />
+                        <ScoreBar score={scoreE} label="SEO" />
                       </div>
-                      <Button size="sm" variant="outline" onClick={() => handleSaveProspect(result)} className="w-full">
-                        Salva prospect
-                      </Button>
+
+                      {/* Quick checks */}
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 mb-3 text-[10px]">
+                        <div className={`flex items-center gap-1 px-2 py-1 rounded ${r.has_website ? 'text-green-400' : 'text-red-400'}`}>
+                          {r.has_website ? <CheckCircle size={9} /> : <XCircle size={9} />} Sito web
+                        </div>
+                        <div className={`flex items-center gap-1 px-2 py-1 rounded ${r.has_ssl ? 'text-green-400' : 'text-red-400'}`}>
+                          {r.has_ssl ? <CheckCircle size={9} /> : <XCircle size={9} />} HTTPS
+                        </div>
+                        <div className={`flex items-center gap-1 px-2 py-1 rounded ${r.has_mobile ? 'text-green-400' : 'text-red-400'}`}>
+                          {r.has_mobile ? <CheckCircle size={9} /> : <XCircle size={9} />} Mobile
+                        </div>
+                        <div className={`flex items-center gap-1 px-2 py-1 rounded ${r.has_analytics ? 'text-green-400' : 'text-red-400'}`}>
+                          {r.has_analytics ? <CheckCircle size={9} /> : <XCircle size={9} />} Analytics
+                        </div>
+                      </div>
+
+                      {/* Social detection */}
+                      <div className="flex flex-wrap gap-1.5 mb-3 text-[10px]">
+                        {[
+                          { name: 'IG', url: r.instagram_url as string | null },
+                          { name: 'FB', url: r.facebook_url as string | null },
+                          { name: 'TK', url: r.tiktok_url as string | null },
+                        ].map((s) => (
+                          <span key={s.name} className={`flex items-center gap-1 px-2 py-0.5 rounded ${s.url ? 'text-green-400 bg-green-500/10' : 'text-red-400 bg-red-500/10'}`}>
+                            {s.url ? <CheckCircle size={8} /> : <XCircle size={8} />}
+                            {s.url ? <a href={s.url} target="_blank" rel="noopener noreferrer" className="hover:underline">{s.name}</a> : s.name}
+                          </span>
+                        ))}
+                        {/* ADV checks */}
+                        <span className={`flex items-center gap-1 px-2 py-0.5 rounded ${r.has_facebook_pixel ? 'text-green-400 bg-green-500/10' : 'text-red-400 bg-red-500/10'}`}>
+                          {r.has_facebook_pixel ? <CheckCircle size={8} /> : <XCircle size={8} />} FB Pixel
+                        </span>
+                        <span className={`flex items-center gap-1 px-2 py-0.5 rounded ${r.has_google_ads ? 'text-green-400 bg-green-500/10' : 'text-red-400 bg-red-500/10'}`}>
+                          {r.has_google_ads ? <CheckCircle size={8} /> : <XCircle size={8} />} Google Ads
+                        </span>
+                      </div>
+
+                      {/* Contact + actions */}
+                      <div className="flex items-center justify-between pt-2 border-t border-pw-border/20">
+                        <div className="flex items-center gap-3 text-[10px] text-pw-text-muted">
+                          {r.website ? (
+                            <a href={String(r.website)} target="_blank" rel="noopener noreferrer" className="text-pw-accent hover:underline flex items-center gap-1">
+                              <Globe size={9} /> Sito
+                            </a>
+                          ) : null}
+                          {r.phone ? <span className="flex items-center gap-1"><Phone size={9} /> {String(r.phone)}</span> : null}
+                          {r.google_maps_url ? (
+                            <a href={String(r.google_maps_url)} target="_blank" rel="noopener noreferrer" className="hover:text-pw-text flex items-center gap-1">
+                              <MapPin size={9} /> Maps
+                            </a>
+                          ) : null}
+                        </div>
+                        <Button size="sm" variant="outline" onClick={() => handleSaveProspect(r)}>
+                          Salva
+                        </Button>
+                      </div>
                     </CardContent>
                   </Card>
-                ))}
-              </div>
+                );
+              })}
             </div>
           )}
         </>
