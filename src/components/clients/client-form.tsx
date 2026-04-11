@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import type { Client } from '@/types/database';
-import { Upload, X, ChevronDown } from 'lucide-react';
+import { Upload, X, ChevronDown, Check } from 'lucide-react';
 
 interface ClientFormProps {
   client?: Client;
@@ -217,12 +217,47 @@ export function ClientForm({ client, monthlyFee, onSubmit, onCancel }: ClientFor
           onChange={(e) => update('sector', e.target.value)}
           placeholder="es. Ristorazione, Moda, Tecnologia, Sanità"
         />
-        <Input
-          label="Tipo di servizi richiesti"
-          value={form.service_types}
-          onChange={(e) => update('service_types', e.target.value)}
-          placeholder="es. Social media, Grafica, Web design"
-        />
+        <div>
+          <label className="block text-[11px] uppercase tracking-[0.08em] font-medium text-pw-text-muted mb-2">
+            Servizi richiesti
+          </label>
+          <div className="flex flex-wrap gap-2">
+            {[
+              { value: 'gestione_social', label: 'Gestione Social' },
+              { value: 'gestione_full', label: 'Gestione Full (Social + E-commerce)' },
+              { value: 'sito_web', label: 'Sito Web' },
+              { value: 'ecommerce', label: 'E-Commerce' },
+              { value: 'foto', label: 'Servizio Fotografico' },
+              { value: 'branding', label: 'Branding / Logo' },
+              { value: 'advertising', label: 'Advertising / Campagne ADV' },
+              { value: 'seo', label: 'SEO' },
+              { value: 'video', label: 'Video / Reel' },
+            ].map((service) => {
+              const selected = form.service_types.split(',').map(s => s.trim()).filter(Boolean).includes(service.value);
+              return (
+                <button
+                  key={service.value}
+                  type="button"
+                  onClick={() => {
+                    const current = form.service_types.split(',').map(s => s.trim()).filter(Boolean);
+                    const updated = selected
+                      ? current.filter(s => s !== service.value)
+                      : [...current, service.value];
+                    update('service_types', updated.join(','));
+                  }}
+                  className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium transition-all border ${
+                    selected
+                      ? 'border-pw-accent bg-pw-accent/10 text-pw-accent'
+                      : 'border-pw-border bg-pw-surface-2 text-pw-text-muted hover:border-pw-accent/50'
+                  }`}
+                >
+                  {selected && <Check size={12} />}
+                  {service.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
         <Input
           label="Inizio rapporto lavorativo"
           type="date"

@@ -142,11 +142,199 @@ export default function ClientsPage() {
         }
       }
       if (error) throw error;
+
+      // Auto-create projects based on selected services
+      if (newClient && fields.service_types) {
+        const services = fields.service_types.split(',').map(s => s.trim()).filter(Boolean);
+        await createProjectsForServices(newClient.id, newClient.name || newClient.company || '', services);
+      }
+
       setShowForm(false);
       toast.success('Cliente creato con successo');
       fetchClients();
     } catch {
       toast.error('Errore durante la creazione del cliente');
+    }
+  };
+
+  const SERVICE_PROJECT_CONFIG: Record<string, { name: string; color: string; tasks: { title: string; priority: string; estimated_hours: number; role: string }[] }> = {
+    gestione_social: {
+      name: 'Gestione Social Media',
+      color: '#ec4899',
+      tasks: [
+        { title: 'Raccolta brief e brand guidelines', priority: 'high', estimated_hours: 2, role: 'admin' },
+        { title: 'Setup credenziali social', priority: 'high', estimated_hours: 1, role: 'social_media_manager' },
+        { title: 'Analisi competitor sui social', priority: 'medium', estimated_hours: 4, role: 'social_media_manager' },
+        { title: 'Definizione strategia editoriale', priority: 'high', estimated_hours: 6, role: 'social_media_manager' },
+        { title: 'Creazione piano editoriale mese 1', priority: 'high', estimated_hours: 4, role: 'content_creator' },
+        { title: 'Design template grafici social', priority: 'high', estimated_hours: 8, role: 'graphic_social' },
+        { title: 'Produzione contenuti settimana 1', priority: 'medium', estimated_hours: 6, role: 'content_creator' },
+        { title: 'Review e approvazione cliente', priority: 'high', estimated_hours: 2, role: 'admin' },
+      ],
+    },
+    gestione_full: {
+      name: 'Gestione Full (Social + E-commerce)',
+      color: '#8b5cf6',
+      tasks: [
+        { title: 'Raccolta brief completo', priority: 'high', estimated_hours: 3, role: 'admin' },
+        { title: 'Setup credenziali social + e-commerce', priority: 'high', estimated_hours: 2, role: 'social_media_manager' },
+        { title: 'Analisi competitor e mercato', priority: 'high', estimated_hours: 6, role: 'social_media_manager' },
+        { title: 'Strategia social media', priority: 'high', estimated_hours: 6, role: 'social_media_manager' },
+        { title: 'Strategia e-commerce e catalogo', priority: 'high', estimated_hours: 8, role: 'admin' },
+        { title: 'Piano editoriale integrato', priority: 'high', estimated_hours: 5, role: 'content_creator' },
+        { title: 'Design template social + banner e-commerce', priority: 'high', estimated_hours: 10, role: 'graphic_social' },
+        { title: 'Setup campagne ADV social + shopping', priority: 'medium', estimated_hours: 6, role: 'social_media_manager' },
+        { title: 'Produzione contenuti mese 1', priority: 'medium', estimated_hours: 8, role: 'content_creator' },
+        { title: 'Review e approvazione cliente', priority: 'high', estimated_hours: 2, role: 'admin' },
+      ],
+    },
+    sito_web: {
+      name: 'Sviluppo Sito Web',
+      color: '#3b82f6',
+      tasks: [
+        { title: 'Raccolta requisiti e brief', priority: 'high', estimated_hours: 3, role: 'admin' },
+        { title: 'Analisi competitor e benchmark', priority: 'medium', estimated_hours: 4, role: 'content_creator' },
+        { title: 'Wireframe e struttura pagine', priority: 'high', estimated_hours: 6, role: 'graphic_brand' },
+        { title: 'Design UI mockup', priority: 'high', estimated_hours: 12, role: 'graphic_brand' },
+        { title: 'Approvazione design dal cliente', priority: 'high', estimated_hours: 2, role: 'admin' },
+        { title: 'Sviluppo sito', priority: 'high', estimated_hours: 20, role: 'admin' },
+        { title: 'Copywriting pagine', priority: 'medium', estimated_hours: 6, role: 'content_creator' },
+        { title: 'SEO on-page', priority: 'medium', estimated_hours: 4, role: 'content_creator' },
+        { title: 'Test e QA', priority: 'high', estimated_hours: 4, role: 'admin' },
+        { title: 'Go live e consegna', priority: 'high', estimated_hours: 2, role: 'admin' },
+      ],
+    },
+    ecommerce: {
+      name: 'Sviluppo E-Commerce',
+      color: '#f59e0b',
+      tasks: [
+        { title: 'Raccolta requisiti e catalogo prodotti', priority: 'high', estimated_hours: 4, role: 'admin' },
+        { title: 'Scelta piattaforma e setup', priority: 'high', estimated_hours: 6, role: 'admin' },
+        { title: 'Design UI e-commerce', priority: 'high', estimated_hours: 14, role: 'graphic_brand' },
+        { title: 'Sviluppo e configurazione shop', priority: 'high', estimated_hours: 24, role: 'admin' },
+        { title: 'Caricamento prodotti e foto', priority: 'medium', estimated_hours: 8, role: 'content_creator' },
+        { title: 'Setup pagamenti e spedizioni', priority: 'high', estimated_hours: 4, role: 'admin' },
+        { title: 'SEO prodotti', priority: 'medium', estimated_hours: 6, role: 'content_creator' },
+        { title: 'Test ordini e checkout', priority: 'high', estimated_hours: 4, role: 'admin' },
+        { title: 'Go live e formazione cliente', priority: 'high', estimated_hours: 3, role: 'admin' },
+      ],
+    },
+    foto: {
+      name: 'Servizio Fotografico',
+      color: '#10b981',
+      tasks: [
+        { title: 'Brief fotografico e mood board', priority: 'high', estimated_hours: 2, role: 'admin' },
+        { title: 'Organizzazione shooting (location, props)', priority: 'medium', estimated_hours: 3, role: 'admin' },
+        { title: 'Shooting fotografico', priority: 'high', estimated_hours: 4, role: 'graphic_brand' },
+        { title: 'Post-produzione e ritocco', priority: 'high', estimated_hours: 6, role: 'graphic_brand' },
+        { title: 'Consegna e selezione con cliente', priority: 'medium', estimated_hours: 2, role: 'admin' },
+      ],
+    },
+    branding: {
+      name: 'Branding / Logo Design',
+      color: '#6366f1',
+      tasks: [
+        { title: 'Brief di branding e analisi valori', priority: 'high', estimated_hours: 3, role: 'admin' },
+        { title: 'Ricerca e moodboard', priority: 'medium', estimated_hours: 4, role: 'graphic_brand' },
+        { title: 'Proposte logo (3 concept)', priority: 'high', estimated_hours: 10, role: 'graphic_brand' },
+        { title: 'Revisioni e finalizzazione', priority: 'high', estimated_hours: 6, role: 'graphic_brand' },
+        { title: 'Brand guidelines document', priority: 'medium', estimated_hours: 8, role: 'graphic_brand' },
+        { title: 'Consegna file e declinazioni', priority: 'medium', estimated_hours: 3, role: 'graphic_brand' },
+      ],
+    },
+    advertising: {
+      name: 'Campagne Advertising',
+      color: '#ef4444',
+      tasks: [
+        { title: 'Definizione obiettivi e budget', priority: 'high', estimated_hours: 2, role: 'admin' },
+        { title: 'Setup Business Manager e Pixel', priority: 'high', estimated_hours: 3, role: 'social_media_manager' },
+        { title: 'Creazione audience e targeting', priority: 'high', estimated_hours: 4, role: 'social_media_manager' },
+        { title: 'Design creativita\' ADV', priority: 'high', estimated_hours: 6, role: 'graphic_social' },
+        { title: 'Copywriting annunci', priority: 'medium', estimated_hours: 3, role: 'content_creator' },
+        { title: 'Lancio campagne', priority: 'high', estimated_hours: 3, role: 'social_media_manager' },
+        { title: 'Monitoraggio e ottimizzazione settimanale', priority: 'medium', estimated_hours: 4, role: 'social_media_manager' },
+        { title: 'Report risultati mese 1', priority: 'medium', estimated_hours: 3, role: 'social_media_manager' },
+      ],
+    },
+    seo: {
+      name: 'Ottimizzazione SEO',
+      color: '#22d3ee',
+      tasks: [
+        { title: 'Audit SEO sito attuale', priority: 'high', estimated_hours: 6, role: 'content_creator' },
+        { title: 'Ricerca keyword', priority: 'high', estimated_hours: 4, role: 'content_creator' },
+        { title: 'Ottimizzazione on-page', priority: 'high', estimated_hours: 8, role: 'content_creator' },
+        { title: 'Setup Google Search Console + Analytics', priority: 'medium', estimated_hours: 2, role: 'content_creator' },
+        { title: 'Strategia link building', priority: 'medium', estimated_hours: 4, role: 'content_creator' },
+        { title: 'Report posizionamento mese 1', priority: 'medium', estimated_hours: 3, role: 'content_creator' },
+      ],
+    },
+    video: {
+      name: 'Produzione Video / Reel',
+      color: '#f97316',
+      tasks: [
+        { title: 'Brief video e concept', priority: 'high', estimated_hours: 2, role: 'admin' },
+        { title: 'Storyboard e script', priority: 'high', estimated_hours: 4, role: 'content_creator' },
+        { title: 'Shooting video', priority: 'high', estimated_hours: 4, role: 'graphic_social' },
+        { title: 'Montaggio e post-produzione', priority: 'high', estimated_hours: 8, role: 'graphic_social' },
+        { title: 'Revisioni e consegna', priority: 'medium', estimated_hours: 3, role: 'admin' },
+      ],
+    },
+  };
+
+  const createProjectsForServices = async (clientId: string, clientName: string, services: string[]) => {
+    for (const service of services) {
+      const config = SERVICE_PROJECT_CONFIG[service];
+      if (!config) continue;
+
+      // Create project
+      const { data: project, error: projError } = await supabase.from('projects').insert({
+        name: `${config.name} - ${clientName}`,
+        client_id: clientId,
+        status: 'active',
+        color: config.color,
+        created_by: profile!.id,
+      }).select('id').single();
+
+      if (projError || !project) continue;
+
+      // Add creator as member
+      await supabase.from('project_members').insert({
+        project_id: project.id,
+        user_id: profile!.id,
+      });
+
+      // Create tasks
+      for (let i = 0; i < config.tasks.length; i++) {
+        const task = config.tasks[i];
+        // Find user with matching role
+        let assignedTo: string | null = null;
+        const { data: roleUser } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('role', task.role)
+          .eq('is_active', true)
+          .limit(1)
+          .maybeSingle();
+        if (roleUser) {
+          assignedTo = roleUser.id;
+          // Add as project member
+          await supabase.from('project_members').insert({
+            project_id: project.id,
+            user_id: roleUser.id,
+          }).select().maybeSingle(); // ignore conflict
+        }
+
+        await supabase.from('tasks').insert({
+          title: task.title,
+          project_id: project.id,
+          assigned_to: assignedTo,
+          priority: task.priority,
+          estimated_hours: task.estimated_hours,
+          position: i,
+          status: 'backlog',
+          created_by: profile!.id,
+        });
+      }
     }
   };
 
