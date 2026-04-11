@@ -19,13 +19,9 @@ export async function POST(request: NextRequest) {
   const { query, city, sector } = await request.json();
   if (!query) return NextResponse.json({ error: 'Query obbligatoria' }, { status: 400 });
 
-  const apiKey = process.env.GOOGLE_PLACES_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_PLACES_API_KEY;
+  const apiKey = process.env.GOOGLE_PLACES_API_KEY || process.env.GOOGLE_AI_API_KEY;
   if (!apiKey) {
-    // Log available env var names (not values) for debugging
-    const envKeys = Object.keys(process.env).filter(k => k.includes('GOOGLE') || k.includes('PLACES')).join(', ');
-    return NextResponse.json({
-      error: `GOOGLE_PLACES_API_KEY non configurata. Variabili Google trovate: ${envKeys || 'nessuna'}. Aggiungi la chiave nelle variabili d'ambiente di Vercel e fai Redeploy.`
-    }, { status: 500 });
+    return NextResponse.json({ error: 'Nessuna chiave Google API configurata.' }, { status: 500 });
   }
 
   try {
