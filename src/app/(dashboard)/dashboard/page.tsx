@@ -112,7 +112,7 @@ export default function DashboardPage() {
         // 1: projects count
         supabase.from('projects').select('id', { count: 'exact', head: true }).eq('status', 'active'),
         // 2: all tasks for stats (only non-archived, limit for perf)
-        supabase.from('tasks').select('id, status, deadline').neq('status', 'archived').limit(500),
+        supabase.from('tasks').select('id, status, deadline').neq('status', 'archived').limit(200),
         // 3: recent tasks
         supabase.from('tasks').select(`
           id, title, status, priority, deadline,
@@ -150,7 +150,7 @@ export default function DashboardPage() {
           // 10: team profiles
           supabase.from('profiles').select('id, full_name, role').eq('is_active', true),
           // 11: all tasks for team stats
-          supabase.from('tasks').select('assigned_to, status'),
+          supabase.from('tasks').select('assigned_to, status').limit(300),
           // 12: cashflow this month - only active contracts
           (() => {
             const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
@@ -289,8 +289,21 @@ export default function DashboardPage() {
 
   if (loading || authLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-4 border-pw-accent border-t-transparent rounded-full animate-spin" />
+      <div className="space-y-6 animate-pulse">
+        {/* Greeting skeleton */}
+        <div className="h-8 w-64 bg-pw-surface-2 rounded-xl" />
+        <div className="h-4 w-48 bg-pw-surface-2 rounded-lg" />
+        {/* Stat cards skeleton */}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="h-24 bg-pw-surface-2 rounded-2xl" />
+          ))}
+        </div>
+        {/* Content skeleton */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 h-64 bg-pw-surface-2 rounded-2xl" />
+          <div className="h-64 bg-pw-surface-2 rounded-2xl" />
+        </div>
       </div>
     );
   }
