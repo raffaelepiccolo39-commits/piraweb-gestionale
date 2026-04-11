@@ -113,24 +113,40 @@ export default function LeadFinderPage() {
   };
 
   const handleSaveProspect = async (result: Record<string, unknown>) => {
-    const { error } = await supabase.from('lead_prospects').upsert({
+    // Check if already saved (by place_id or name+city)
+    const placeId = result.google_place_id as string | null;
+    if (placeId) {
+      const { data: existing } = await supabase
+        .from('lead_prospects')
+        .select('id')
+        .eq('google_place_id', placeId)
+        .maybeSingle();
+      if (existing) {
+        toast.error(`${result.business_name} gia' salvato`);
+        return;
+      }
+    }
+
+    const { error } = await supabase.from('lead_prospects').insert({
       business_name: result.business_name,
       address: result.address,
       city: result.city || searchCity,
       sector: searchSector,
-      phone: result.phone,
-      website: result.website,
-      google_place_id: result.google_place_id || null,
-      google_rating: result.google_rating,
-      google_reviews_count: result.google_reviews_count,
-      google_maps_url: result.google_maps_url,
+      phone: result.phone || null,
+      website: result.website || null,
+      google_place_id: placeId,
+      google_rating: result.google_rating || null,
+      google_reviews_count: result.google_reviews_count || null,
+      google_maps_url: result.google_maps_url || null,
       instagram_url: result.instagram_url || null,
       facebook_url: result.facebook_url || null,
       search_query: `${searchSector} ${searchCity}`,
       created_by: profile!.id,
     });
 
-    if (!error) {
+    if (error) {
+      toast.error(`Errore nel salvataggio: ${error.message}`);
+    } else {
       toast.success(`${result.business_name} salvato`);
       fetchProspects();
     }
