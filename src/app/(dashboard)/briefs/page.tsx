@@ -198,8 +198,13 @@ export default function BriefsPage() {
           })}
           {briefs.length === 0 && (
             <div className="text-center py-12">
-              <FileEdit size={32} className="text-pw-text-dim mx-auto mb-2" />
-              <p className="text-sm text-pw-text-muted">Nessun brief ancora</p>
+              <FileEdit size={48} className="text-pw-text-dim mx-auto mb-3" />
+              <p className="text-pw-text-muted">Nessun brief ancora</p>
+              <p className="text-xs text-pw-text-dim mt-1">Crea brief strutturati per guidare il lavoro creativo</p>
+              <Button className="mt-4" onClick={() => setShowForm(true)}>
+                <Plus size={14} />
+                Crea Brief
+              </Button>
             </div>
           )}
         </div>

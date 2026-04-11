@@ -43,6 +43,7 @@ export default function InvoicesPage() {
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [createLoading, setCreateLoading] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [items, setItems] = useState<InvoiceItem[]>([]);
   const [showAddItem, setShowAddItem] = useState(false);
@@ -79,22 +80,27 @@ export default function InvoicesPage() {
 
   const handleCreate = async () => {
     if (!form.client_id || !form.due_date) { toast.error('Cliente e scadenza obbligatori'); return; }
-    const { data, error } = await supabase.from('invoices').insert({
-      client_id: form.client_id,
-      description: form.description || null,
-      vat_rate: parseFloat(form.vat_rate) || 22,
-      due_date: form.due_date,
-      period_start: form.period_start || null,
-      period_end: form.period_end || null,
-      notes: form.notes || null,
-      created_by: profile!.id,
-    }).select().single();
-    if (!error && data) {
-      toast.success(`Fattura ${(data as Invoice).invoice_number} creata`);
-      setShowForm(false);
-      setForm({ client_id: '', description: '', vat_rate: '22', due_date: '', period_start: '', period_end: '', notes: '' });
-      fetchInvoices();
-      setSelectedInvoice(data as Invoice);
+    setCreateLoading(true);
+    try {
+      const { data, error } = await supabase.from('invoices').insert({
+        client_id: form.client_id,
+        description: form.description || null,
+        vat_rate: parseFloat(form.vat_rate) || 22,
+        due_date: form.due_date,
+        period_start: form.period_start || null,
+        period_end: form.period_end || null,
+        notes: form.notes || null,
+        created_by: profile!.id,
+      }).select().single();
+      if (!error && data) {
+        toast.success(`Fattura ${(data as Invoice).invoice_number} creata`);
+        setShowForm(false);
+        setForm({ client_id: '', description: '', vat_rate: '22', due_date: '', period_start: '', period_end: '', notes: '' });
+        fetchInvoices();
+        setSelectedInvoice(data as Invoice);
+      }
+    } finally {
+      setCreateLoading(false);
     }
   };
 
@@ -198,7 +204,17 @@ export default function InvoicesPage() {
               </button>
             );
           })}
-          {invoices.length === 0 && <p className="text-sm text-pw-text-dim text-center py-8">Nessuna fattura</p>}
+          {invoices.length === 0 && (
+            <div className="text-center py-12">
+              <Receipt size={48} className="text-pw-text-dim mx-auto mb-3" />
+              <p className="text-pw-text-muted">Nessuna fattura ancora</p>
+              <p className="text-xs text-pw-text-dim mt-1">Genera e gestisci le fatture per i tuoi clienti</p>
+              <Button className="mt-4" onClick={() => setShowForm(true)}>
+                <Plus size={14} />
+                Crea Fattura
+              </Button>
+            </div>
+          )}
         </div>
 
         {/* Invoice detail */}
@@ -317,7 +333,7 @@ export default function InvoicesPage() {
           </div>
           <Input label="Aliquota IVA (%)" type="number" value={form.vat_rate} onChange={(e) => setForm({ ...form, vat_rate: e.target.value })} />
           <Textarea label="Note" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={2} />
-          <div className="flex justify-end gap-2 pt-2"><Button variant="ghost" onClick={() => setShowForm(false)}>Annulla</Button><Button onClick={handleCreate}>Crea Fattura</Button></div>
+          <div className="flex justify-end gap-2 pt-2"><Button variant="ghost" onClick={() => setShowForm(false)}>Annulla</Button><Button onClick={handleCreate} loading={createLoading}>Crea Fattura</Button></div>
         </div>
       </Modal>
 

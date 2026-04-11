@@ -57,6 +57,7 @@ const navItems: NavItem[] = [
   { label: 'Piano Editoriale', href: '/social-calendar', icon: Calendar, roles: ['admin', 'social_media_manager', 'content_creator'], section: 'content' },
   { label: 'Brief Creativi', href: '/briefs', icon: FileEdit, roles: 'all', section: 'content' },
   { label: 'Contenuti AI', href: '/ai', icon: Sparkles, roles: ['admin', 'content_creator', 'social_media_manager'], section: 'content' },
+  { label: 'AI Bulk Content', href: '/ai-content', icon: Sparkles, roles: ['admin', 'content_creator', 'social_media_manager'], section: 'content' },
   // Team
   { label: 'Meeting', href: '/meetings', icon: Video, roles: 'all', section: 'team' },
   { label: 'Timesheet', href: '/timesheet', icon: Timer, roles: 'all', section: 'team' },
@@ -80,7 +81,7 @@ const navItems: NavItem[] = [
   { label: 'Templates', href: '/templates', icon: LayoutTemplate, roles: ['admin'], section: 'config' },
   { label: 'Task Ricorrenti', href: '/recurring-tasks', icon: RefreshCw, roles: ['admin'], section: 'config' },
   { label: 'Automazioni', href: '/automations', icon: Zap, roles: ['admin'], section: 'config' },
-  { label: 'Note Dev', href: '/note-dev', icon: MessageSquareWarning, roles: 'all', section: 'config' },
+  { label: 'Note Dev', href: '/note-dev', icon: MessageSquareWarning, roles: ['admin'], section: 'config' },
   { label: 'Impostazioni', href: '/settings', icon: Settings, roles: ['admin'], section: 'config' },
 ];
 

@@ -197,6 +197,12 @@ export default function RecurringTasksPage() {
           <RefreshCw size={48} className="text-pw-text-dim mx-auto mb-3" />
           <p className="text-pw-text-muted">Nessuna task ricorrente</p>
           <p className="text-xs text-pw-text-dim mt-1">Crea task che si rigenerano automaticamente ogni settimana o mese</p>
+          {isAdmin && (
+            <Button className="mt-4" onClick={() => setShowForm(true)}>
+              <Plus size={14} />
+              Crea Task Ricorrente
+            </Button>
+          )}
         </div>
       )}
 

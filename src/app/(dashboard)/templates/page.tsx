@@ -178,7 +178,17 @@ export default function TemplatesPage() {
             </button>
           ))}
           {templates.length === 0 && (
-            <p className="text-sm text-pw-text-dim text-center py-8">Nessun template ancora</p>
+            <div className="text-center py-12">
+              <LayoutTemplate size={48} className="text-pw-text-dim mx-auto mb-3" />
+              <p className="text-pw-text-muted">Nessun template ancora</p>
+              <p className="text-xs text-pw-text-dim mt-1">Crea template riutilizzabili per avviare progetti rapidamente</p>
+              {isAdmin && (
+                <Button className="mt-4" onClick={() => setShowCreate(true)}>
+                  <Plus size={14} />
+                  Crea Template
+                </Button>
+              )}
+            </div>
           )}
         </div>
 
