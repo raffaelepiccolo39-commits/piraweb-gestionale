@@ -67,6 +67,7 @@ const navItems: NavItem[] = [
   // Business (admin)
   { label: 'Direzione', href: '/direzione', icon: Crown, roles: ['admin'], section: 'business' },
   { label: 'Lead Finder', href: '/lead-finder', icon: Search, roles: ['admin'], section: 'business' },
+  { label: 'Indagine Mercato', href: '/market-research', icon: BarChart3, roles: ['admin'], section: 'business' },
   { label: 'CRM Pipeline', href: '/crm', icon: Target, roles: ['admin'], section: 'business' },
   { label: 'Clienti', href: '/clients', icon: Users, roles: ['admin'], section: 'business' },
   { label: 'Capacita\' Team', href: '/capacity', icon: BarChart3, roles: ['admin'], section: 'business' },
