@@ -96,6 +96,24 @@ async function handleCron(request: NextRequest) {
             to: email,
             businessName,
             messageBody: message,
+            scores: {
+              website: lead.score_website as number || 0,
+              social: lead.score_social as number || 0,
+              advertising: lead.score_advertising as number || 0,
+              seo: lead.score_seo as number || 0,
+              content: lead.score_content as number || 0,
+              total: lead.score_total as number || 0,
+            },
+            businessData: {
+              city: lead.city as string || undefined,
+              sector: lead.sector as string || undefined,
+              website: lead.website as string || undefined,
+              rating: lead.google_rating as number || undefined,
+              reviews: lead.google_reviews_count as number || undefined,
+              hasInstagram: !!(lead.instagram_url),
+              hasFacebook: !!(lead.facebook_url),
+              hasTiktok: !!(lead.tiktok_url),
+            },
           });
 
           await supabase.from('lead_prospects').update({
@@ -125,6 +143,24 @@ async function handleCron(request: NextRequest) {
             to: email,
             businessName,
             messageBody: message,
+            scores: {
+              website: lead.score_website as number || 0,
+              social: lead.score_social as number || 0,
+              advertising: lead.score_advertising as number || 0,
+              seo: lead.score_seo as number || 0,
+              content: lead.score_content as number || 0,
+              total: lead.score_total as number || 0,
+            },
+            businessData: {
+              city: lead.city as string || undefined,
+              sector: lead.sector as string || undefined,
+              website: lead.website as string || undefined,
+              rating: lead.google_rating as number || undefined,
+              reviews: lead.google_reviews_count as number || undefined,
+              hasInstagram: !!(lead.instagram_url),
+              hasFacebook: !!(lead.facebook_url),
+              hasTiktok: !!(lead.tiktok_url),
+            },
           });
 
           await supabase.from('lead_prospects').update({

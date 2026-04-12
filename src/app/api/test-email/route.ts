@@ -22,37 +22,50 @@ export async function POST(request: NextRequest) {
 
   if (!testEmail) return NextResponse.json({ error: 'Nessuna email' }, { status: 400 });
 
-  // Messaggio di esempio realistico
-  const sampleMessage = `Oggetto: Ho dato un'occhiata alla vostra presenza online - posso aiutarvi
+  const sampleMessage = `Gentile titolare,
 
-Buongiorno,
+Mi chiamo Raffaele Antonio Piccolo e sono il fondatore di PiraWeb, un'agenzia digitale con sede a Casapesenna che supporta le imprese italiane nella crescita online.
 
-Ho trovato la vostra attivita' su Google Maps e devo dire che le recensioni dei vostri clienti parlano chiaro: siete un punto di riferimento nella zona con le vostre 4.5 stelle e oltre 120 recensioni. Complimenti davvero.
+Abbiamo analizzato la presenza digitale della vostra attivita' e abbiamo individuato alcune aree dove potreste ottenere risultati importanti con interventi mirati.
 
-Pero' ho notato tre cose che vi stanno facendo perdere clienti ogni giorno:
+Il vostro sito web attualmente non e' ottimizzato per i dispositivi mobili. Considerando che oltre il 75% degli utenti oggi naviga da smartphone, questo significa che la maggior parte dei potenziali clienti non riesce a visualizzare correttamente i vostri contenuti e abbandona il sito entro pochi secondi.
 
-Il vostro sito web non e' ottimizzato per i cellulari. Oggi il 75% delle persone cerca attivita' come la vostra dallo smartphone - se il sito non si vede bene, vanno dal concorrente in 3 secondi.
+La vostra presenza sui social media e' attualmente limitata. Non abbiamo rilevato un profilo Instagram attivo, che rappresenta oggi il canale principale attraverso cui le attivita' locali acquisiscono nuovi clienti nella fascia 18-45 anni.
 
-Non avete una presenza attiva su Instagram. Nella vostra zona, il 60% dei potenziali clienti sotto i 40 anni scopre nuove attivita' proprio su Instagram. Senza un profilo curato, state lasciando questi clienti ai concorrenti.
+Non risultano campagne pubblicitarie attive su Google o Meta. I vostri concorrenti nella zona stanno investendo in visibilita' online e intercettano i clienti che potrebbero raggiungere voi.
 
-Non state facendo nessun tipo di pubblicita' online. I vostri concorrenti che investono anche solo 5-10 euro al giorno su Google o Instagram vi stanno portando via clienti ogni singolo giorno.
+Sulla base di questa analisi, vi offriamo un audit gratuito e approfondito della vostra presenza digitale, della durata di circa 15 minuti, in cui vi mostreremo nel dettaglio le opportunita' di crescita e le azioni concrete da intraprendere.
 
-Vi propongo una cosa senza nessun impegno: un audit gratuito di 15 minuti dove vi mostro esattamente cosa migliorare e come. Niente vendite aggressive, solo numeri e fatti.
-
-Ho 3 slot disponibili questa settimana. Se vi interessa, rispondete a questa email o chiamateci.
-
-Un saluto,
-Il team PiraWeb`;
+Rimaniamo a disposizione per fissare un incontro senza alcun impegno.`;
 
   try {
     if (!process.env.RESEND_API_KEY) {
-      return NextResponse.json({ error: 'RESEND_API_KEY non configurata. Vai su resend.com per creare un account gratuito.' }, { status: 500 });
+      return NextResponse.json({ error: 'RESEND_API_KEY non configurata.' }, { status: 500 });
     }
 
     await sendOutreachEmail({
       to: testEmail,
-      businessName: 'Ristorante Da Mario (TEST)',
+      businessName: 'Ristorante Da Mario',
       messageBody: sampleMessage,
+      subject: 'Report Analisi Digitale - Ristorante Da Mario',
+      scores: {
+        website: 35,
+        social: 15,
+        advertising: 0,
+        seo: 55,
+        content: 20,
+        total: 25,
+      },
+      businessData: {
+        city: 'Aversa',
+        sector: 'Ristorazione',
+        website: 'www.ristorantedamario.it',
+        rating: 4.5,
+        reviews: 127,
+        hasInstagram: false,
+        hasFacebook: true,
+        hasTiktok: false,
+      },
     });
 
     return NextResponse.json({

@@ -16,13 +16,68 @@ interface OutreachEmailParams {
   businessName: string;
   messageBody: string;
   subject?: string;
+  scores?: {
+    website: number;
+    social: number;
+    advertising: number;
+    seo: number;
+    content: number;
+    total: number;
+  };
+  businessData?: {
+    city?: string;
+    sector?: string;
+    website?: string;
+    rating?: number;
+    reviews?: number;
+    hasInstagram?: boolean;
+    hasFacebook?: boolean;
+    hasTiktok?: boolean;
+  };
+}
+
+function getScoreColor(score: number): string {
+  if (score >= 70) return '#10B981'; // verde
+  if (score >= 50) return '#F59E0B'; // giallo
+  if (score >= 30) return '#F97316'; // arancione
+  return '#EF4444'; // rosso
+}
+
+function getScoreLabel(score: number): string {
+  if (score >= 80) return 'Ottimo';
+  if (score >= 60) return 'Buono';
+  if (score >= 40) return 'Da migliorare';
+  if (score >= 20) return 'Critico';
+  return 'Assente';
+}
+
+function buildScoreBar(label: string, score: number): string {
+  const color = getScoreColor(score);
+  const scoreLabel = getScoreLabel(score);
+  const width = Math.max(score, 5);
+  return `
+    <tr>
+      <td style="padding:8px 0;width:120px;">
+        <span style="color:#374151;font-size:13px;font-weight:600;">${label}</span>
+      </td>
+      <td style="padding:8px 0;width:100%;">
+        <div style="background-color:#F3F4F6;border-radius:8px;height:24px;overflow:hidden;position:relative;">
+          <div style="background-color:${color};height:100%;width:${width}%;border-radius:8px;"></div>
+        </div>
+      </td>
+      <td style="padding:8px 0 8px 12px;white-space:nowrap;">
+        <span style="color:${color};font-size:14px;font-weight:700;">${score}/100</span>
+        <span style="color:#9CA3AF;font-size:11px;display:block;">${scoreLabel}</span>
+      </td>
+    </tr>`;
 }
 
 /**
- * Invia email di outreach a un prospect tramite Resend.
+ * Invia email di outreach professionale con report di analisi digitale.
  */
-export async function sendOutreachEmail({ to, businessName, messageBody, subject }: OutreachEmailParams) {
+export async function sendOutreachEmail({ to, businessName, messageBody, subject, scores, businessData }: OutreachEmailParams) {
   const safeName = escapeHtml(businessName);
+  const logoUrl = 'https://gestionale.piraweb.it/logo.png';
 
   // Estrai l'oggetto dal messaggio se inizia con "Oggetto: ..."
   let emailSubject = subject || '';
@@ -35,14 +90,86 @@ export async function sendOutreachEmail({ to, businessName, messageBody, subject
   }
 
   if (!emailSubject) {
-    emailSubject = `Opportunita\' digitale per ${safeName}`;
+    emailSubject = `Report Analisi Digitale - ${safeName}`;
   }
 
   // Converti il testo in paragrafi HTML
   const bodyHtml = body
     .split('\n\n')
-    .map(p => `<p style="margin:0 0 16px;color:#374151;font-size:15px;line-height:1.7;">${escapeHtml(p.trim()).replace(/\n/g, '<br>')}</p>`)
+    .map(p => `<p style="margin:0 0 14px;color:#374151;font-size:14px;line-height:1.7;">${escapeHtml(p.trim()).replace(/\n/g, '<br>')}</p>`)
     .join('');
+
+  // Sezione score (se disponibili)
+  let scoreSection = '';
+  if (scores) {
+    const totalColor = getScoreColor(scores.total);
+    scoreSection = `
+          <!-- Score Report -->
+          <tr>
+            <td style="padding:0 40px 30px;">
+              <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#F9FAFB;border:1px solid #E5E7EB;border-radius:12px;overflow:hidden;">
+                <tr>
+                  <td style="padding:24px 24px 16px;">
+                    <h3 style="margin:0 0 4px;color:#111827;font-size:16px;font-weight:700;">
+                      Analisi Presenza Digitale
+                    </h3>
+                    <p style="margin:0;color:#6B7280;font-size:12px;">Report generato automaticamente da PiraWeb</p>
+                  </td>
+                </tr>
+                <!-- Score Totale -->
+                <tr>
+                  <td style="padding:0 24px 20px;" align="center">
+                    <table cellpadding="0" cellspacing="0">
+                      <tr>
+                        <td align="center" style="padding:12px 0;">
+                          <div style="width:90px;height:90px;border-radius:50%;border:4px solid ${totalColor};display:inline-block;text-align:center;line-height:82px;">
+                            <span style="color:${totalColor};font-size:28px;font-weight:800;">${scores.total}</span>
+                          </div>
+                          <p style="margin:8px 0 0;color:#6B7280;font-size:12px;font-weight:600;">SCORE TOTALE</p>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+                <!-- Score Dettagliati -->
+                <tr>
+                  <td style="padding:0 24px 20px;">
+                    <table width="100%" cellpadding="0" cellspacing="0">
+                      ${buildScoreBar('Sito Web', scores.website)}
+                      ${buildScoreBar('Social Media', scores.social)}
+                      ${buildScoreBar('Advertising', scores.advertising)}
+                      ${buildScoreBar('SEO / Google', scores.seo)}
+                      ${buildScoreBar('Contenuti', scores.content)}
+                    </table>
+                  </td>
+                </tr>
+                ${businessData ? `
+                <!-- Info Azienda -->
+                <tr>
+                  <td style="padding:0 24px 20px;">
+                    <table width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid #E5E7EB;padding-top:16px;">
+                      <tr>
+                        <td style="padding:12px 0;">
+                          <span style="color:#6B7280;font-size:11px;text-transform:uppercase;font-weight:600;letter-spacing:0.5px;">Dati rilevati</span>
+                        </td>
+                      </tr>
+                      ${businessData.website ? `<tr><td style="padding:2px 0;"><span style="color:#6B7280;font-size:12px;">Sito web:</span> <span style="color:#111827;font-size:12px;font-weight:500;">${escapeHtml(businessData.website)}</span></td></tr>` : '<tr><td style="padding:2px 0;"><span style="color:#EF4444;font-size:12px;font-weight:500;">Nessun sito web rilevato</span></td></tr>'}
+                      ${businessData.rating ? `<tr><td style="padding:2px 0;"><span style="color:#6B7280;font-size:12px;">Google:</span> <span style="color:#111827;font-size:12px;font-weight:500;">&#9733; ${businessData.rating}/5 (${businessData.reviews || 0} recensioni)</span></td></tr>` : ''}
+                      <tr>
+                        <td style="padding:6px 0 2px;">
+                          ${businessData.hasInstagram ? '<span style="display:inline-block;background:#E0E7FF;color:#4338CA;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;margin-right:4px;">Instagram &#10003;</span>' : '<span style="display:inline-block;background:#FEE2E2;color:#DC2626;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;margin-right:4px;">Instagram &#10007;</span>'}
+                          ${businessData.hasFacebook ? '<span style="display:inline-block;background:#E0E7FF;color:#4338CA;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;margin-right:4px;">Facebook &#10003;</span>' : '<span style="display:inline-block;background:#FEE2E2;color:#DC2626;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;margin-right:4px;">Facebook &#10007;</span>'}
+                          ${businessData.hasTiktok ? '<span style="display:inline-block;background:#E0E7FF;color:#4338CA;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;">TikTok &#10003;</span>' : ''}
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+                ` : ''}
+              </table>
+            </td>
+          </tr>`;
+  }
 
   const html = `
 <!DOCTYPE html>
@@ -51,32 +178,81 @@ export async function sendOutreachEmail({ to, businessName, messageBody, subject
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
-<body style="margin:0;padding:0;background-color:#f3f4f6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f3f4f6;padding:40px 20px;">
+<body style="margin:0;padding:0;background-color:#F3F4F6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#F3F4F6;padding:40px 20px;">
     <tr>
       <td align="center">
-        <table width="600" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 6px rgba(0,0,0,0.07);">
+        <table width="620" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
 
-          <!-- Header -->
+          <!-- Header con logo -->
           <tr>
-            <td style="background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%); padding: 30px 40px;">
-              <h1 style="margin:0;color:#ffffff;font-size:24px;font-weight:700;">PiraWeb</h1>
-              <p style="margin:4px 0 0;color:rgba(255,255,255,0.85);font-size:13px;">Agenzia Web &amp; Digital Marketing</p>
+            <td style="background-color:#1A1A2E;padding:32px 40px;text-align:center;">
+              <img src="${logoUrl}" alt="PiraWeb" width="180" style="display:inline-block;max-width:180px;height:auto;" />
             </td>
           </tr>
 
-          <!-- Body -->
+          <!-- Titolo Report -->
           <tr>
-            <td style="padding:36px 40px;">
-              ${bodyHtml}
+            <td style="padding:32px 40px 8px;">
+              <p style="margin:0;color:#6B7280;font-size:12px;text-transform:uppercase;letter-spacing:1px;font-weight:600;">Report Analisi Digitale</p>
+              <h2 style="margin:6px 0 0;color:#111827;font-size:22px;font-weight:700;">${safeName}</h2>
+              ${businessData?.city ? `<p style="margin:4px 0 0;color:#9CA3AF;font-size:13px;">${escapeHtml(businessData.city)}${businessData.sector ? ' &mdash; ' + escapeHtml(businessData.sector) : ''}</p>` : ''}
+            </td>
+          </tr>
 
-              <!-- CTA -->
-              <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:8px;">
+          <!-- Linea separatrice -->
+          <tr>
+            <td style="padding:16px 40px;">
+              <hr style="border:none;border-top:1px solid #E5E7EB;margin:0;" />
+            </td>
+          </tr>
+
+          ${scoreSection}
+
+          <!-- Corpo messaggio -->
+          <tr>
+            <td style="padding:8px 40px 24px;">
+              ${bodyHtml}
+            </td>
+          </tr>
+
+          <!-- CTA -->
+          <tr>
+            <td style="padding:0 40px 32px;" align="center">
+              <a href="https://piraweb.it" style="display:inline-block;background-color:#1A1A2E;color:#FFD700;text-decoration:none;padding:14px 36px;border-radius:8px;font-size:14px;font-weight:700;letter-spacing:0.3px;">
+                Richiedi Audit Gratuito
+              </a>
+            </td>
+          </tr>
+
+          <!-- Divider -->
+          <tr>
+            <td style="padding:0 40px;">
+              <hr style="border:none;border-top:1px solid #E5E7EB;margin:0;" />
+            </td>
+          </tr>
+
+          <!-- Chi siamo -->
+          <tr>
+            <td style="padding:24px 40px;">
+              <table width="100%" cellpadding="0" cellspacing="0">
                 <tr>
-                  <td align="center" style="padding:16px 0;">
-                    <a href="https://piraweb.it" style="display:inline-block;background:linear-gradient(135deg,#4F46E5,#7C3AED);color:#ffffff;text-decoration:none;padding:14px 28px;border-radius:12px;font-size:14px;font-weight:600;">
-                      Scopri PiraWeb
-                    </a>
+                  <td style="vertical-align:top;width:60px;">
+                    <div style="width:48px;height:48px;border-radius:50%;background-color:#1A1A2E;text-align:center;line-height:48px;">
+                      <span style="color:#FFD700;font-size:18px;font-weight:700;">RP</span>
+                    </div>
+                  </td>
+                  <td style="vertical-align:top;padding-left:12px;">
+                    <p style="margin:0;color:#111827;font-size:14px;font-weight:700;">Piccolo Raffaele Antonio</p>
+                    <p style="margin:2px 0 0;color:#6B7280;font-size:12px;">Fondatore &amp; Digital Strategist</p>
+                    <p style="margin:2px 0 0;color:#6B7280;font-size:12px;">PiraWeb &mdash; Creative Agency</p>
+                    <table cellpadding="0" cellspacing="0" style="margin-top:8px;">
+                      <tr>
+                        <td style="padding-right:16px;"><a href="tel:+39XXXXXXXXXX" style="color:#4F46E5;font-size:12px;text-decoration:none;">Chiamaci</a></td>
+                        <td style="padding-right:16px;"><a href="https://piraweb.it" style="color:#4F46E5;font-size:12px;text-decoration:none;">piraweb.it</a></td>
+                        <td><a href="https://instagram.com/piraweb" style="color:#4F46E5;font-size:12px;text-decoration:none;">Instagram</a></td>
+                      </tr>
+                    </table>
                   </td>
                 </tr>
               </table>
@@ -85,11 +261,17 @@ export async function sendOutreachEmail({ to, businessName, messageBody, subject
 
           <!-- Footer -->
           <tr>
-            <td style="padding:20px 40px;background-color:#f9fafb;border-top:1px solid #e5e7eb;">
-              <p style="margin:0 0 4px;color:#6b7280;font-size:12px;text-align:center;">
-                PiraWeb &mdash; Servizi Web, Marketing Digitale &amp; Social Media
+            <td style="padding:20px 40px;background-color:#F9FAFB;border-top:1px solid #E5E7EB;">
+              <p style="margin:0 0 4px;color:#374151;font-size:12px;font-weight:600;text-align:center;">
+                PiraWeb &mdash; Creative Agency
               </p>
-              <p style="margin:0;color:#9ca3af;font-size:11px;text-align:center;">
+              <p style="margin:0 0 2px;color:#9CA3AF;font-size:11px;text-align:center;">
+                Sviluppo Web &bull; Marketing Digitale &bull; Social Media Management &bull; SEO &bull; Branding
+              </p>
+              <p style="margin:0 0 2px;color:#9CA3AF;font-size:11px;text-align:center;">
+                Casapesenna (CE) &mdash; Operiamo in tutta Italia
+              </p>
+              <p style="margin:8px 0 0;color:#D1D5DB;font-size:10px;text-align:center;">
                 Se non desideri ricevere altre comunicazioni, rispondi con "cancellami".
               </p>
             </td>
