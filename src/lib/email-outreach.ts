@@ -232,27 +232,23 @@ export async function sendOutreachEmail({ to, businessName, messageBody, subject
             </td>
           </tr>
 
-          <!-- Chi siamo -->
+          <!-- Firma -->
           <tr>
             <td style="padding:24px 40px;">
               <table width="100%" cellpadding="0" cellspacing="0">
                 <tr>
-                  <td style="vertical-align:top;width:60px;">
-                    <div style="width:48px;height:48px;border-radius:50%;background-color:#1A1A2E;text-align:center;line-height:48px;">
-                      <span style="color:#FFD700;font-size:18px;font-weight:700;">RP</span>
-                    </div>
+                  <td style="padding-bottom:16px;border-bottom:2px solid #1A1A2E;">
+                    <img src="${logoUrl}" alt="PiraWeb Creative Agency" width="160" style="display:block;max-width:160px;height:auto;" />
                   </td>
-                  <td style="vertical-align:top;padding-left:12px;">
-                    <p style="margin:0;color:#111827;font-size:14px;font-weight:700;">Piccolo Raffaele Antonio</p>
-                    <p style="margin:2px 0 0;color:#6B7280;font-size:12px;">Fondatore &amp; Digital Strategist</p>
-                    <p style="margin:2px 0 0;color:#6B7280;font-size:12px;">PiraWeb &mdash; Creative Agency</p>
-                    <table cellpadding="0" cellspacing="0" style="margin-top:8px;">
-                      <tr>
-                        <td style="padding-right:16px;"><a href="tel:+39XXXXXXXXXX" style="color:#4F46E5;font-size:12px;text-decoration:none;">Chiamaci</a></td>
-                        <td style="padding-right:16px;"><a href="https://piraweb.it" style="color:#4F46E5;font-size:12px;text-decoration:none;">piraweb.it</a></td>
-                        <td><a href="https://instagram.com/piraweb" style="color:#4F46E5;font-size:12px;text-decoration:none;">Instagram</a></td>
-                      </tr>
-                    </table>
+                </tr>
+                <tr>
+                  <td style="padding-top:16px;">
+                    <p style="margin:0;color:#111827;font-size:14px;font-weight:700;">Ing. Raffaele Antonio Piccolo <span style="color:#6B7280;font-weight:400;">|</span> CEO &amp; Project Manager</p>
+                    <p style="margin:6px 0 0;">
+                      <a href="mailto:info@piraweb.it" style="color:#2563EB;font-size:13px;text-decoration:none;">info@piraweb.it</a>
+                    </p>
+                    <p style="margin:4px 0 0;color:#374151;font-size:13px;">+39 331 853 5698</p>
+                    <p style="margin:2px 0 0;color:#374151;font-size:13px;">+39 081 1756 0017</p>
                   </td>
                 </tr>
               </table>
