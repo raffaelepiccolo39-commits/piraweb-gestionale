@@ -32,14 +32,15 @@ export async function updateSession(request: NextRequest) {
   const isAuthPage = request.nextUrl.pathname.startsWith('/login');
   const isApiRoute = request.nextUrl.pathname.startsWith('/api');
   const isCallbackRoute = request.nextUrl.pathname.startsWith('/api/auth/callback');
+  const isPublicPage = request.nextUrl.pathname.startsWith('/consulenza') || request.nextUrl.pathname.startsWith('/review');
 
   // Allow callback route
   if (isCallbackRoute) {
     return supabaseResponse;
   }
 
-  // Redirect unauthenticated users to login
-  if (!user && !isAuthPage && !isApiRoute) {
+  // Redirect unauthenticated users to login (except public pages)
+  if (!user && !isAuthPage && !isApiRoute && !isPublicPage) {
     const url = request.nextUrl.clone();
     url.pathname = '/login';
     const redirectResponse = NextResponse.redirect(url);

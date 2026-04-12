@@ -271,7 +271,7 @@ export async function sendOutreachEmail({ to, businessName, messageBody, subject
                           Se volete approfondire i risultati di questa analisi, sono disponibile per una <strong>consulenza gratuita di 15 minuti</strong> in cui vi mostro nel dettaglio cosa migliorare e come. Nessun impegno, solo valore concreto per la vostra attivita\'.
                         </p>
                         <p style="margin:10px 0 0;">
-                          <a href="https://www.piraweb.it" style="color:#333;font-size:13px;font-weight:600;text-decoration:underline;">Fissa una consulenza gratuita &rarr;</a>
+                          <a href="https://gestionale.piraweb.it/consulenza" style="color:#333;font-size:13px;font-weight:600;text-decoration:underline;">Fissa una consulenza gratuita &rarr;</a>
                         </p>
                       </td>
                     </tr>
