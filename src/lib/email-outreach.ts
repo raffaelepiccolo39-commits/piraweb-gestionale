@@ -305,11 +305,17 @@ export async function sendOutreachEmail({ to, businessName, messageBody, subject
             </td>
           </tr>
 
-          <!-- Footer minimo -->
+          <!-- Footer -->
           <tr>
-            <td style="padding:12px 32px;background:#FAFAFA;border-top:1px solid #EEEEEE;">
-              <p style="margin:0;color:#BBB;font-size:10px;text-align:center;">
-                Questa analisi &egrave; stata realizzata con strumenti automatizzati a scopo informativo.
+            <td style="padding:16px 32px;background:#FAFAFA;border-top:1px solid #EEEEEE;">
+              <p style="margin:0 0 4px;color:#999;font-size:10px;text-align:center;">
+                <strong>Pira Web S.R.L.</strong> &mdash; P.IVA 04891370613
+              </p>
+              <p style="margin:0 0 4px;color:#BBB;font-size:10px;text-align:center;">
+                Casapesenna (CE) &mdash; www.piraweb.it
+              </p>
+              <p style="margin:0;color:#CCC;font-size:9px;text-align:center;">
+                Questa analisi &egrave; stata realizzata a scopo informativo.
                 Se non desideri ricevere comunicazioni, rispondi con &ldquo;cancellami&rdquo;.
               </p>
             </td>
