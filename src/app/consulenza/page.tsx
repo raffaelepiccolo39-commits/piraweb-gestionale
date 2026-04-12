@@ -61,7 +61,7 @@ export default function ConsulenzaPage() {
   const [company, setCompany] = useState('');
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [booked, setBooked] = useState<{ date: string; time: string } | null>(null);
+  const [booked, setBooked] = useState<{ date: string; time: string; duration?: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const fetchSlots = useCallback(async (date: string) => {
