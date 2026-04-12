@@ -10,7 +10,15 @@ import { createServiceRoleClient } from '@/lib/supabase/server';
  * Call this via Vercel Cron or external scheduler every hour:
  * POST /api/cron with Authorization: Bearer CRON_SECRET
  */
+export async function GET(request: NextRequest) {
+  return handleCron(request);
+}
+
 export async function POST(request: NextRequest) {
+  return handleCron(request);
+}
+
+async function handleCron(request: NextRequest) {
   // Verify cron secret
   const authHeader = request.headers.get('authorization');
   const cronSecret = process.env.CRON_SECRET;

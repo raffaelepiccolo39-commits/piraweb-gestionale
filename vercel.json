@@ -1,0 +1,24 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron",
+      "schedule": "0 8 * * *"
+    },
+    {
+      "path": "/api/cron/lead-scout",
+      "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/cron/lead-analyzer",
+      "schedule": "0 7 * * *"
+    },
+    {
+      "path": "/api/cron/lead-outreach",
+      "schedule": "0 8 * * 1-5"
+    },
+    {
+      "path": "/api/cron/lead-sender",
+      "schedule": "0 9,11,14,16 * * 1-5"
+    }
+  ]
+}
