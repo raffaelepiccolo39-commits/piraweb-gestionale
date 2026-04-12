@@ -45,6 +45,10 @@ Un saluto,
 Il team PiraWeb`;
 
   try {
+    if (!process.env.RESEND_API_KEY) {
+      return NextResponse.json({ error: 'RESEND_API_KEY non configurata. Vai su resend.com per creare un account gratuito.' }, { status: 500 });
+    }
+
     await sendOutreachEmail({
       to: testEmail,
       businessName: 'Ristorante Da Mario (TEST)',

@@ -1,4 +1,6 @@
-import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 function escapeHtml(str: string): string {
   return str
@@ -9,18 +11,6 @@ function escapeHtml(str: string): string {
     .replace(/'/g, '&#39;');
 }
 
-const smtpPort = Number(process.env.SMTP_PORT) || 465;
-
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: smtpPort,
-  secure: smtpPort === 465,
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-});
-
 interface OutreachEmailParams {
   to: string;
   businessName: string;
@@ -29,8 +19,7 @@ interface OutreachEmailParams {
 }
 
 /**
- * Invia email di outreach a un prospect.
- * Il messaggio viene generato dall'agente lead-outreach con AI.
+ * Invia email di outreach a un prospect tramite Resend.
  */
 export async function sendOutreachEmail({ to, businessName, messageBody, subject }: OutreachEmailParams) {
   const safeName = escapeHtml(businessName);
@@ -113,12 +102,12 @@ export async function sendOutreachEmail({ to, businessName, messageBody, subject
 </body>
 </html>`;
 
-  await transporter.sendMail({
-    from: process.env.SMTP_FROM || process.env.SMTP_USER,
+  await resend.emails.send({
+    from: process.env.RESEND_FROM || 'PiraWeb <info@piraweb.it>',
     to,
     subject: emailSubject,
     html,
-    text: body, // Versione plain text come fallback
+    text: body,
   });
 }
 
@@ -126,18 +115,14 @@ export async function sendOutreachEmail({ to, businessName, messageBody, subject
  * Genera il link WhatsApp pre-compilato con il messaggio.
  */
 export function generateWhatsAppLink(phone: string, message: string): string {
-  // Pulisci il numero: rimuovi spazi, trattini, parentesi
   let cleanPhone = phone.replace(/[\s\-\(\)\.]/g, '');
 
-  // Se inizia con 0, sostituisci con +39 (Italia)
   if (cleanPhone.startsWith('0')) {
     cleanPhone = '39' + cleanPhone.substring(1);
   }
-  // Se non ha prefisso internazionale, aggiungi +39
   if (!cleanPhone.startsWith('+') && !cleanPhone.startsWith('39')) {
     cleanPhone = '39' + cleanPhone;
   }
-  // Rimuovi il + iniziale per wa.me
   cleanPhone = cleanPhone.replace(/^\+/, '');
 
   const encodedMessage = encodeURIComponent(message);
