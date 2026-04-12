@@ -207,20 +207,71 @@ export async function sendOutreachEmail({ to, businessName, messageBody, subject
             </td>
           </tr>
 
-          ${scoreSection}
+          <!-- Chi siamo - Intro PiraWeb -->
+          <tr>
+            <td style="padding:8px 40px 20px;">
+              <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#F0F0FF;border-left:4px solid #1A1A2E;border-radius:0 8px 8px 0;">
+                <tr>
+                  <td style="padding:16px 20px;">
+                    <p style="margin:0 0 6px;color:#1A1A2E;font-size:13px;font-weight:700;">Chi siamo</p>
+                    <p style="margin:0;color:#374151;font-size:13px;line-height:1.6;">
+                      <strong>PiraWeb</strong> &egrave; un&rsquo;agenzia digitale con sede a Casapesenna (CE) specializzata nello sviluppo web, marketing digitale, social media management, SEO e branding. Aiutiamo le imprese italiane a crescere online con strategie concrete e misurabili, trasformando la presenza digitale in un vero strumento di acquisizione clienti.
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
 
-          <!-- Corpo messaggio -->
+          <!-- Corpo messaggio (testo principale) -->
           <tr>
             <td style="padding:8px 40px 24px;">
               ${bodyHtml}
             </td>
           </tr>
 
+          ${scoreSection}
+
+          <!-- Portfolio -->
+          <tr>
+            <td style="padding:8px 40px 24px;">
+              <h3 style="margin:0 0 12px;color:#111827;font-size:15px;font-weight:700;">Alcuni dei nostri lavori</h3>
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="width:33%;padding:0 6px 0 0;vertical-align:top;">
+                    <table width="100%" cellpadding="0" cellspacing="0" style="background:#F9FAFB;border:1px solid #E5E7EB;border-radius:8px;overflow:hidden;">
+                      <tr><td style="padding:14px 12px 6px;"><span style="color:#111827;font-size:12px;font-weight:700;">Marietta Capasso</span></td></tr>
+                      <tr><td style="padding:0 12px 4px;"><span style="color:#6B7280;font-size:11px;">Gioielleria</span></td></tr>
+                      <tr><td style="padding:0 12px 12px;"><span style="display:inline-block;background:#E0E7FF;color:#4338CA;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;">Logo &bull; Brand &bull; E-commerce</span></td></tr>
+                    </table>
+                  </td>
+                  <td style="width:33%;padding:0 3px;vertical-align:top;">
+                    <table width="100%" cellpadding="0" cellspacing="0" style="background:#F9FAFB;border:1px solid #E5E7EB;border-radius:8px;overflow:hidden;">
+                      <tr><td style="padding:14px 12px 6px;"><span style="color:#111827;font-size:12px;font-weight:700;">DAGA</span></td></tr>
+                      <tr><td style="padding:0 12px 4px;"><span style="color:#6B7280;font-size:11px;">Fashion</span></td></tr>
+                      <tr><td style="padding:0 12px 12px;"><span style="display:inline-block;background:#E0E7FF;color:#4338CA;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;">Sito &bull; E-commerce &bull; Social</span></td></tr>
+                    </table>
+                  </td>
+                  <td style="width:33%;padding:0 0 0 6px;vertical-align:top;">
+                    <table width="100%" cellpadding="0" cellspacing="0" style="background:#F9FAFB;border:1px solid #E5E7EB;border-radius:8px;overflow:hidden;">
+                      <tr><td style="padding:14px 12px 6px;"><span style="color:#111827;font-size:12px;font-weight:700;">BLUEMOON</span></td></tr>
+                      <tr><td style="padding:0 12px 4px;"><span style="color:#6B7280;font-size:11px;">Pasticceria</span></td></tr>
+                      <tr><td style="padding:0 12px 12px;"><span style="display:inline-block;background:#E0E7FF;color:#4338CA;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;">Sito &bull; E-commerce &bull; Social</span></td></tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+              <p style="margin:10px 0 0;text-align:center;">
+                <a href="https://www.piraweb.it/progetti" style="color:#4F46E5;font-size:12px;text-decoration:none;font-weight:600;">Vedi tutti i nostri progetti &rarr;</a>
+              </p>
+            </td>
+          </tr>
+
           <!-- CTA -->
           <tr>
             <td style="padding:0 40px 32px;" align="center">
-              <a href="https://piraweb.it" style="display:inline-block;background-color:#1A1A2E;color:#FFD700;text-decoration:none;padding:14px 36px;border-radius:8px;font-size:14px;font-weight:700;letter-spacing:0.3px;">
-                Richiedi Audit Gratuito
+              <a href="https://www.piraweb.it" style="display:inline-block;background-color:#1A1A2E;color:#FFD700;text-decoration:none;padding:16px 40px;border-radius:8px;font-size:15px;font-weight:700;letter-spacing:0.3px;">
+                Fissa una consulenza gratuita
               </a>
             </td>
           </tr>
