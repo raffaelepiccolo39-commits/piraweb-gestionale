@@ -37,49 +37,43 @@ interface OutreachEmailParams {
 }
 
 function getScoreColor(score: number): string {
-  if (score >= 70) return '#10B981'; // verde
-  if (score >= 50) return '#F59E0B'; // giallo
-  if (score >= 30) return '#F97316'; // arancione
-  return '#EF4444'; // rosso
+  if (score >= 70) return '#16A34A';
+  if (score >= 50) return '#CA8A04';
+  if (score >= 30) return '#EA580C';
+  return '#DC2626';
 }
 
 function getScoreLabel(score: number): string {
-  if (score >= 80) return 'Ottimo';
-  if (score >= 60) return 'Buono';
-  if (score >= 40) return 'Da migliorare';
-  if (score >= 20) return 'Critico';
-  return 'Assente';
+  if (score >= 70) return 'Buono';
+  if (score >= 50) return 'Sufficiente';
+  if (score >= 30) return 'Da migliorare';
+  return 'Critico';
 }
 
-function buildScoreBar(label: string, score: number): string {
+function buildScoreRow(label: string, score: number): string {
   const color = getScoreColor(score);
   const scoreLabel = getScoreLabel(score);
-  const width = Math.max(score, 5);
   return `
-    <tr>
-      <td style="padding:8px 0;width:120px;">
-        <span style="color:#374151;font-size:13px;font-weight:600;">${label}</span>
-      </td>
-      <td style="padding:8px 0;width:100%;">
-        <div style="background-color:#F3F4F6;border-radius:8px;height:24px;overflow:hidden;position:relative;">
-          <div style="background-color:${color};height:100%;width:${width}%;border-radius:8px;"></div>
-        </div>
-      </td>
-      <td style="padding:8px 0 8px 12px;white-space:nowrap;">
-        <span style="color:${color};font-size:14px;font-weight:700;">${score}/100</span>
-        <span style="color:#9CA3AF;font-size:11px;display:block;">${scoreLabel}</span>
-      </td>
-    </tr>`;
+                      <tr>
+                        <td style="padding:6px 0;color:#555;font-size:13px;width:130px;">${label}</td>
+                        <td style="padding:6px 0;">
+                          <table cellpadding="0" cellspacing="0" width="100%"><tr>
+                            <td style="background:#EEEEEE;border-radius:4px;height:8px;"><div style="background:${color};height:8px;width:${Math.max(score, 4)}%;border-radius:4px;"></div></td>
+                          </tr></table>
+                        </td>
+                        <td style="padding:6px 0 6px 10px;text-align:right;white-space:nowrap;width:90px;">
+                          <span style="color:${color};font-size:12px;font-weight:600;">${score}/100</span>
+                          <span style="color:#999;font-size:10px;"> ${scoreLabel}</span>
+                        </td>
+                      </tr>`;
 }
 
 /**
- * Invia email di outreach professionale con report di analisi digitale.
+ * Invia email di outreach professionale - stile consulenza, non marketing.
  */
 export async function sendOutreachEmail({ to, businessName, messageBody, subject, scores, businessData }: OutreachEmailParams) {
   const safeName = escapeHtml(businessName);
-  const logoUrl = 'https://gestionale.piraweb.it/logo.png';
 
-  // Estrai l'oggetto dal messaggio se inizia con "Oggetto: ..."
   let emailSubject = subject || '';
   let body = messageBody;
 
@@ -90,85 +84,120 @@ export async function sendOutreachEmail({ to, businessName, messageBody, subject
   }
 
   if (!emailSubject) {
-    emailSubject = `Report Analisi Digitale - ${safeName}`;
+    emailSubject = `Analisi digitale gratuita per ${safeName}`;
   }
 
-  // Converti il testo in paragrafi HTML
+  // Converti il testo in paragrafi HTML - stile email personale
   const bodyHtml = body
     .split('\n\n')
-    .map(p => `<p style="margin:0 0 14px;color:#374151;font-size:14px;line-height:1.7;">${escapeHtml(p.trim()).replace(/\n/g, '<br>')}</p>`)
+    .map(p => `<p style="margin:0 0 12px;color:#333;font-size:14px;line-height:1.65;">${escapeHtml(p.trim()).replace(/\n/g, '<br>')}</p>`)
     .join('');
 
-  // Sezione score (se disponibili)
-  let scoreSection = '';
+  // Sezione analisi (solo se ci sono scores)
+  let analysisSection = '';
   if (scores) {
     const totalColor = getScoreColor(scores.total);
-    scoreSection = `
-          <!-- Score Report -->
-          <tr>
-            <td style="padding:0 40px 30px;">
-              <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#F9FAFB;border:1px solid #E5E7EB;border-radius:12px;overflow:hidden;">
-                <tr>
-                  <td style="padding:24px 24px 16px;">
-                    <h3 style="margin:0 0 4px;color:#111827;font-size:16px;font-weight:700;">
-                      Analisi Presenza Digitale
-                    </h3>
-                    <p style="margin:0;color:#6B7280;font-size:12px;">Report generato automaticamente da PiraWeb</p>
-                  </td>
-                </tr>
-                <!-- Score Totale -->
-                <tr>
-                  <td style="padding:0 24px 20px;" align="center">
-                    <table cellpadding="0" cellspacing="0">
-                      <tr>
-                        <td align="center" style="padding:12px 0;">
-                          <div style="width:90px;height:90px;border-radius:50%;border:4px solid ${totalColor};display:inline-block;text-align:center;line-height:82px;">
-                            <span style="color:${totalColor};font-size:28px;font-weight:800;">${scores.total}</span>
-                          </div>
-                          <p style="margin:8px 0 0;color:#6B7280;font-size:12px;font-weight:600;">SCORE TOTALE</p>
-                        </td>
-                      </tr>
-                    </table>
-                  </td>
-                </tr>
-                <!-- Score Dettagliati -->
-                <tr>
-                  <td style="padding:0 24px 20px;">
-                    <table width="100%" cellpadding="0" cellspacing="0">
-                      ${buildScoreBar('Sito Web', scores.website)}
-                      ${buildScoreBar('Social Media', scores.social)}
-                      ${buildScoreBar('Advertising', scores.advertising)}
-                      ${buildScoreBar('SEO / Google', scores.seo)}
-                      ${buildScoreBar('Contenuti', scores.content)}
-                    </table>
-                  </td>
-                </tr>
-                ${businessData ? `
-                <!-- Info Azienda -->
-                <tr>
-                  <td style="padding:0 24px 20px;">
-                    <table width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid #E5E7EB;padding-top:16px;">
-                      <tr>
-                        <td style="padding:12px 0;">
-                          <span style="color:#6B7280;font-size:11px;text-transform:uppercase;font-weight:600;letter-spacing:0.5px;">Dati rilevati</span>
-                        </td>
-                      </tr>
-                      ${businessData.website ? `<tr><td style="padding:2px 0;"><span style="color:#6B7280;font-size:12px;">Sito web:</span> <span style="color:#111827;font-size:12px;font-weight:500;">${escapeHtml(businessData.website)}</span></td></tr>` : '<tr><td style="padding:2px 0;"><span style="color:#EF4444;font-size:12px;font-weight:500;">Nessun sito web rilevato</span></td></tr>'}
-                      ${businessData.rating ? `<tr><td style="padding:2px 0;"><span style="color:#6B7280;font-size:12px;">Google:</span> <span style="color:#111827;font-size:12px;font-weight:500;">&#9733; ${businessData.rating}/5 (${businessData.reviews || 0} recensioni)</span></td></tr>` : ''}
-                      <tr>
-                        <td style="padding:6px 0 2px;">
-                          ${businessData.hasInstagram ? '<span style="display:inline-block;background:#E0E7FF;color:#4338CA;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;margin-right:4px;">Instagram &#10003;</span>' : '<span style="display:inline-block;background:#FEE2E2;color:#DC2626;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;margin-right:4px;">Instagram &#10007;</span>'}
-                          ${businessData.hasFacebook ? '<span style="display:inline-block;background:#E0E7FF;color:#4338CA;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;margin-right:4px;">Facebook &#10003;</span>' : '<span style="display:inline-block;background:#FEE2E2;color:#DC2626;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;margin-right:4px;">Facebook &#10007;</span>'}
-                          ${businessData.hasTiktok ? '<span style="display:inline-block;background:#E0E7FF;color:#4338CA;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;">TikTok &#10003;</span>' : ''}
-                        </td>
-                      </tr>
-                    </table>
-                  </td>
-                </tr>
-                ` : ''}
-              </table>
-            </td>
-          </tr>`;
+
+    // Problemi rilevati
+    const issues: string[] = [];
+    if (scores.website === 0) issues.push('Nessun sito web rilevato');
+    else if (scores.website < 40) issues.push('Sito web con carenze tecniche importanti');
+    if (scores.social < 30) issues.push('Presenza social assente o insufficiente');
+    if (scores.advertising === 0) issues.push('Nessuna campagna pubblicitaria online attiva');
+    if (scores.seo < 40) issues.push('Bassa visibilita\' sui motori di ricerca');
+    if (scores.content < 30) issues.push('Contenuti digitali insufficienti');
+
+    // Opportunita'
+    const opportunities: string[] = [];
+    if (scores.website < 50) opportunities.push('Un sito moderno e veloce puo\' aumentare le richieste di contatto del 40-60%');
+    if (scores.social < 40) opportunities.push('Una presenza social curata porta visibilita\' gratuita ogni giorno');
+    if (scores.advertising === 0) opportunities.push('Con 5-10&euro;/giorno di ADV potreste raggiungere centinaia di clienti nella vostra zona');
+    if (scores.seo < 50) opportunities.push('Migliorando la SEO potreste comparire tra i primi risultati quando qualcuno cerca i vostri servizi');
+
+    analysisSection = `
+              <!-- Separatore -->
+              <tr><td style="padding:20px 0 0;"><hr style="border:none;border-top:1px solid #E8E8E8;margin:0;" /></td></tr>
+
+              <!-- Titolo Analisi -->
+              <tr>
+                <td style="padding:20px 0 12px;">
+                  <p style="margin:0;color:#333;font-size:15px;font-weight:600;">Risultati dell'analisi</p>
+                  <p style="margin:4px 0 0;color:#888;font-size:12px;">Dati raccolti automaticamente dai nostri strumenti di analisi</p>
+                </td>
+              </tr>
+
+              <!-- Score Totale -->
+              <tr>
+                <td style="padding:0 0 16px;">
+                  <table cellpadding="0" cellspacing="0" width="100%" style="background:#FAFAFA;border:1px solid #EAEAEA;border-radius:8px;">
+                    <tr>
+                      <td style="padding:16px 20px;" width="80" align="center">
+                        <div style="width:56px;height:56px;border-radius:50%;border:3px solid ${totalColor};text-align:center;line-height:50px;">
+                          <span style="color:${totalColor};font-size:20px;font-weight:700;">${scores.total}</span>
+                        </div>
+                      </td>
+                      <td style="padding:16px 20px 16px 0;">
+                        <p style="margin:0;color:#333;font-size:14px;font-weight:600;">Punteggio digitale complessivo: <span style="color:${totalColor};">${scores.total}/100</span></p>
+                        <p style="margin:4px 0 0;color:#777;font-size:12px;">${scores.total < 30 ? 'La vostra presenza digitale necessita di interventi significativi.' : scores.total < 50 ? 'Ci sono margini di miglioramento importanti.' : scores.total < 70 ? 'Buona base, ma si puo\' fare di piu\'.' : 'Buona presenza digitale complessiva.'}</p>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+
+              <!-- Dettaglio Scores -->
+              <tr>
+                <td style="padding:0 0 16px;">
+                  <table width="100%" cellpadding="0" cellspacing="0">
+                    ${buildScoreRow('Sito Web', scores.website)}
+                    ${buildScoreRow('Social Media', scores.social)}
+                    ${buildScoreRow('Pubblicita\'', scores.advertising)}
+                    ${buildScoreRow('SEO / Google', scores.seo)}
+                    ${buildScoreRow('Contenuti', scores.content)}
+                  </table>
+                </td>
+              </tr>
+
+              ${businessData ? `
+              <!-- Dati rilevati -->
+              <tr>
+                <td style="padding:0 0 12px;">
+                  <table width="100%" cellpadding="0" cellspacing="0" style="background:#FAFAFA;border:1px solid #EAEAEA;border-radius:8px;">
+                    <tr><td style="padding:12px 16px 8px;"><span style="color:#888;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;font-weight:600;">Dati rilevati</span></td></tr>
+                    <tr><td style="padding:0 16px 4px;">
+                      <span style="color:#555;font-size:12px;">Sito web: </span>
+                      <span style="color:#333;font-size:12px;font-weight:500;">${businessData.website ? escapeHtml(businessData.website) : 'Non presente'}</span>
+                    </td></tr>
+                    ${businessData.rating ? `<tr><td style="padding:0 16px 4px;"><span style="color:#555;font-size:12px;">Google: </span><span style="color:#333;font-size:12px;font-weight:500;">${businessData.rating}/5 (${businessData.reviews || 0} recensioni)</span></td></tr>` : ''}
+                    <tr><td style="padding:4px 16px 12px;">
+                      ${businessData.hasInstagram ? '<span style="color:#16A34A;font-size:11px;font-weight:500;margin-right:8px;">&#10003; Instagram</span>' : '<span style="color:#DC2626;font-size:11px;font-weight:500;margin-right:8px;">&#10007; Instagram</span>'}
+                      ${businessData.hasFacebook ? '<span style="color:#16A34A;font-size:11px;font-weight:500;margin-right:8px;">&#10003; Facebook</span>' : '<span style="color:#DC2626;font-size:11px;font-weight:500;margin-right:8px;">&#10007; Facebook</span>'}
+                      ${businessData.hasTiktok ? '<span style="color:#16A34A;font-size:11px;font-weight:500;">&#10003; TikTok</span>' : ''}
+                    </td></tr>
+                  </table>
+                </td>
+              </tr>
+              ` : ''}
+
+              ${issues.length > 0 ? `
+              <!-- Criticita' -->
+              <tr>
+                <td style="padding:4px 0 12px;">
+                  <p style="margin:0 0 6px;color:#333;font-size:13px;font-weight:600;">Criticita\' rilevate</p>
+                  ${issues.map(i => `<p style="margin:0 0 4px;color:#555;font-size:12px;line-height:1.5;">&#8226; ${i}</p>`).join('')}
+                </td>
+              </tr>
+              ` : ''}
+
+              ${opportunities.length > 0 ? `
+              <!-- Opportunita' -->
+              <tr>
+                <td style="padding:4px 0 12px;">
+                  <p style="margin:0 0 6px;color:#333;font-size:13px;font-weight:600;">Opportunita\' di crescita</p>
+                  ${opportunities.map(o => `<p style="margin:0 0 4px;color:#555;font-size:12px;line-height:1.5;">&#8226; ${o}</p>`).join('')}
+                </td>
+              </tr>
+              ` : ''}`;
   }
 
   const html = `
@@ -178,148 +207,110 @@ export async function sendOutreachEmail({ to, businessName, messageBody, subject
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
-<body style="margin:0;padding:0;background-color:#F3F4F6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#F3F4F6;padding:40px 20px;">
+<body style="margin:0;padding:0;background-color:#F5F5F5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#F5F5F5;padding:30px 20px;">
     <tr>
       <td align="center">
-        <table width="620" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
+        <table width="600" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:8px;overflow:hidden;border:1px solid #E5E5E5;">
 
-          <!-- Header con logo -->
+          <!-- Header minimale -->
           <tr>
-            <td style="background-color:#1A1A2E;padding:32px 40px;text-align:center;">
-              <img src="${logoUrl}" alt="PiraWeb" width="180" style="display:inline-block;max-width:180px;height:auto;" />
-            </td>
-          </tr>
-
-          <!-- Titolo Report -->
-          <tr>
-            <td style="padding:32px 40px 8px;">
-              <p style="margin:0;color:#6B7280;font-size:12px;text-transform:uppercase;letter-spacing:1px;font-weight:600;">Report Analisi Digitale</p>
-              <h2 style="margin:6px 0 0;color:#111827;font-size:22px;font-weight:700;">${safeName}</h2>
-              ${businessData?.city ? `<p style="margin:4px 0 0;color:#9CA3AF;font-size:13px;">${escapeHtml(businessData.city)}${businessData.sector ? ' &mdash; ' + escapeHtml(businessData.sector) : ''}</p>` : ''}
-            </td>
-          </tr>
-
-          <!-- Linea separatrice -->
-          <tr>
-            <td style="padding:16px 40px;">
-              <hr style="border:none;border-top:1px solid #E5E7EB;margin:0;" />
-            </td>
-          </tr>
-
-          <!-- Chi siamo - Intro PiraWeb -->
-          <tr>
-            <td style="padding:8px 40px 20px;">
-              <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#F0F0FF;border-left:4px solid #1A1A2E;border-radius:0 8px 8px 0;">
-                <tr>
-                  <td style="padding:16px 20px;">
-                    <p style="margin:0 0 6px;color:#1A1A2E;font-size:13px;font-weight:700;">Chi siamo</p>
-                    <p style="margin:0;color:#374151;font-size:13px;line-height:1.6;">
-                      <strong>PiraWeb</strong> &egrave; un&rsquo;agenzia digitale con sede a Casapesenna (CE) specializzata nello sviluppo web, marketing digitale, social media management, SEO e branding. Aiutiamo le imprese italiane a crescere online con strategie concrete e misurabili, trasformando la presenza digitale in un vero strumento di acquisizione clienti.
-                    </p>
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
-
-          <!-- Corpo messaggio (testo principale) -->
-          <tr>
-            <td style="padding:8px 40px 24px;">
-              ${bodyHtml}
-            </td>
-          </tr>
-
-          ${scoreSection}
-
-          <!-- Portfolio -->
-          <tr>
-            <td style="padding:8px 40px 24px;">
-              <h3 style="margin:0 0 12px;color:#111827;font-size:15px;font-weight:700;">Alcuni dei nostri lavori</h3>
+            <td style="padding:24px 32px;border-bottom:1px solid #EEEEEE;">
               <table width="100%" cellpadding="0" cellspacing="0">
                 <tr>
-                  <td style="width:33%;padding:0 6px 0 0;vertical-align:top;">
-                    <table width="100%" cellpadding="0" cellspacing="0" style="background:#F9FAFB;border:1px solid #E5E7EB;border-radius:8px;overflow:hidden;">
-                      <tr><td style="padding:14px 12px 6px;"><span style="color:#111827;font-size:12px;font-weight:700;">Marietta Capasso</span></td></tr>
-                      <tr><td style="padding:0 12px 4px;"><span style="color:#6B7280;font-size:11px;">Gioielleria</span></td></tr>
-                      <tr><td style="padding:0 12px 12px;"><span style="display:inline-block;background:#E0E7FF;color:#4338CA;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;">Logo &bull; Brand &bull; E-commerce</span></td></tr>
-                    </table>
+                  <td>
+                    <img src="https://gestionale.piraweb.it/logo.png" alt="PiraWeb" width="120" style="display:block;max-width:120px;height:auto;" />
                   </td>
-                  <td style="width:33%;padding:0 3px;vertical-align:top;">
-                    <table width="100%" cellpadding="0" cellspacing="0" style="background:#F9FAFB;border:1px solid #E5E7EB;border-radius:8px;overflow:hidden;">
-                      <tr><td style="padding:14px 12px 6px;"><span style="color:#111827;font-size:12px;font-weight:700;">DAGA</span></td></tr>
-                      <tr><td style="padding:0 12px 4px;"><span style="color:#6B7280;font-size:11px;">Fashion</span></td></tr>
-                      <tr><td style="padding:0 12px 12px;"><span style="display:inline-block;background:#E0E7FF;color:#4338CA;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;">Sito &bull; E-commerce &bull; Social</span></td></tr>
-                    </table>
-                  </td>
-                  <td style="width:33%;padding:0 0 0 6px;vertical-align:top;">
-                    <table width="100%" cellpadding="0" cellspacing="0" style="background:#F9FAFB;border:1px solid #E5E7EB;border-radius:8px;overflow:hidden;">
-                      <tr><td style="padding:14px 12px 6px;"><span style="color:#111827;font-size:12px;font-weight:700;">BLUEMOON</span></td></tr>
-                      <tr><td style="padding:0 12px 4px;"><span style="color:#6B7280;font-size:11px;">Pasticceria</span></td></tr>
-                      <tr><td style="padding:0 12px 12px;"><span style="display:inline-block;background:#E0E7FF;color:#4338CA;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;">Sito &bull; E-commerce &bull; Social</span></td></tr>
-                    </table>
+                  <td align="right" style="vertical-align:middle;">
+                    <span style="color:#999;font-size:11px;">Report gratuito</span>
                   </td>
                 </tr>
               </table>
-              <p style="margin:10px 0 0;text-align:center;">
-                <a href="https://www.piraweb.it/progetti" style="color:#4F46E5;font-size:12px;text-decoration:none;font-weight:600;">Vedi tutti i nostri progetti &rarr;</a>
-              </p>
             </td>
           </tr>
 
-          <!-- CTA -->
+          <!-- Corpo email -->
           <tr>
-            <td style="padding:0 40px 32px;" align="center">
-              <a href="https://www.piraweb.it" style="display:inline-block;background-color:#1A1A2E;color:#FFD700;text-decoration:none;padding:16px 40px;border-radius:8px;font-size:15px;font-weight:700;letter-spacing:0.3px;">
-                Fissa una consulenza gratuita
-              </a>
-            </td>
-          </tr>
+            <td style="padding:28px 32px;">
+              <table width="100%" cellpadding="0" cellspacing="0">
 
-          <!-- Divider -->
-          <tr>
-            <td style="padding:0 40px;">
-              <hr style="border:none;border-top:1px solid #E5E7EB;margin:0;" />
+              <!-- Messaggio personale -->
+              <tr>
+                <td style="padding:0 0 8px;">
+                  ${bodyHtml}
+                </td>
+              </tr>
+
+              ${analysisSection}
+
+              <!-- Separatore prima del portfolio -->
+              <tr><td style="padding:16px 0 0;"><hr style="border:none;border-top:1px solid #E8E8E8;margin:0;" /></td></tr>
+
+              <!-- Portfolio discreto -->
+              <tr>
+                <td style="padding:16px 0 0;">
+                  <p style="margin:0 0 8px;color:#888;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;font-weight:600;">Alcuni clienti che abbiamo supportato</p>
+                  <p style="margin:0;color:#555;font-size:12px;line-height:1.6;">
+                    <strong>Marietta Capasso</strong> (Gioielleria) &mdash; Logo, Brand Identity, E-commerce<br>
+                    <strong>DAGA</strong> (Fashion) &mdash; Sito Web, E-commerce, Social Media<br>
+                    <strong>BLUEMOON</strong> (Pasticceria) &mdash; Sito Web, E-commerce, Social Media
+                  </p>
+                  <p style="margin:8px 0 0;">
+                    <a href="https://www.piraweb.it/progetti" style="color:#555;font-size:12px;text-decoration:underline;">Vedi altri progetti</a>
+                  </p>
+                </td>
+              </tr>
+
+              <!-- Invito alla consulenza -->
+              <tr>
+                <td style="padding:20px 0 0;">
+                  <table width="100%" cellpadding="0" cellspacing="0" style="background:#F8F8F8;border:1px solid #EAEAEA;border-radius:6px;">
+                    <tr>
+                      <td style="padding:16px 20px;">
+                        <p style="margin:0;color:#333;font-size:13px;line-height:1.6;">
+                          Se volete approfondire i risultati di questa analisi, sono disponibile per una <strong>consulenza gratuita di 15 minuti</strong> in cui vi mostro nel dettaglio cosa migliorare e come. Nessun impegno, solo valore concreto per la vostra attivita\'.
+                        </p>
+                        <p style="margin:10px 0 0;">
+                          <a href="https://www.piraweb.it" style="color:#333;font-size:13px;font-weight:600;text-decoration:underline;">Fissa una consulenza gratuita &rarr;</a>
+                        </p>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+
+              </table>
             </td>
           </tr>
 
           <!-- Firma -->
           <tr>
-            <td style="padding:24px 40px;">
-              <table width="100%" cellpadding="0" cellspacing="0">
+            <td style="padding:0 32px 24px;">
+              <table width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid #EEEEEE;padding-top:20px;">
                 <tr>
-                  <td style="padding-bottom:16px;border-bottom:2px solid #1A1A2E;">
-                    <img src="${logoUrl}" alt="PiraWeb Creative Agency" width="160" style="display:block;max-width:160px;height:auto;" />
-                  </td>
-                </tr>
-                <tr>
-                  <td style="padding-top:16px;">
-                    <p style="margin:0;color:#111827;font-size:14px;font-weight:700;">Ing. Raffaele Antonio Piccolo <span style="color:#6B7280;font-weight:400;">|</span> CEO &amp; Project Manager</p>
-                    <p style="margin:6px 0 0;">
-                      <a href="mailto:info@piraweb.it" style="color:#2563EB;font-size:13px;text-decoration:none;">info@piraweb.it</a>
+                  <td>
+                    <p style="margin:0;color:#333;font-size:13px;font-weight:600;">Ing. Raffaele Antonio Piccolo</p>
+                    <p style="margin:2px 0 0;color:#888;font-size:12px;">CEO &amp; Project Manager &mdash; PiraWeb Creative Agency</p>
+                    <p style="margin:8px 0 0;color:#555;font-size:12px;">
+                      <a href="mailto:info@piraweb.it" style="color:#555;text-decoration:none;">info@piraweb.it</a> &nbsp;&bull;&nbsp;
+                      +39 331 853 5698 &nbsp;&bull;&nbsp;
+                      +39 081 1756 0017
                     </p>
-                    <p style="margin:4px 0 0;color:#374151;font-size:13px;">+39 331 853 5698</p>
-                    <p style="margin:2px 0 0;color:#374151;font-size:13px;">+39 081 1756 0017</p>
+                    <p style="margin:4px 0 0;">
+                      <a href="https://www.piraweb.it" style="color:#555;font-size:12px;text-decoration:none;">piraweb.it</a>
+                    </p>
                   </td>
                 </tr>
               </table>
             </td>
           </tr>
 
-          <!-- Footer -->
+          <!-- Footer minimo -->
           <tr>
-            <td style="padding:20px 40px;background-color:#F9FAFB;border-top:1px solid #E5E7EB;">
-              <p style="margin:0 0 4px;color:#374151;font-size:12px;font-weight:600;text-align:center;">
-                PiraWeb &mdash; Creative Agency
-              </p>
-              <p style="margin:0 0 2px;color:#9CA3AF;font-size:11px;text-align:center;">
-                Sviluppo Web &bull; Marketing Digitale &bull; Social Media Management &bull; SEO &bull; Branding
-              </p>
-              <p style="margin:0 0 2px;color:#9CA3AF;font-size:11px;text-align:center;">
-                Casapesenna (CE) &mdash; Operiamo in tutta Italia
-              </p>
-              <p style="margin:8px 0 0;color:#D1D5DB;font-size:10px;text-align:center;">
-                Se non desideri ricevere altre comunicazioni, rispondi con "cancellami".
+            <td style="padding:12px 32px;background:#FAFAFA;border-top:1px solid #EEEEEE;">
+              <p style="margin:0;color:#BBB;font-size:10px;text-align:center;">
+                Questa analisi &egrave; stata realizzata con strumenti automatizzati a scopo informativo.
+                Se non desideri ricevere comunicazioni, rispondi con &ldquo;cancellami&rdquo;.
               </p>
             </td>
           </tr>
@@ -337,6 +328,7 @@ export async function sendOutreachEmail({ to, businessName, messageBody, subject
     subject: emailSubject,
     html,
     text: body,
+    replyTo: 'info@piraweb.it',
   });
 }
 

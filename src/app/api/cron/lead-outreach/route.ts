@@ -195,43 +195,42 @@ async function generateOutreachMessage(
     specificOpener = `Non hanno un sito web — apri con un complimento sulla loro attivita' trovata su Google Maps.`;
   }
 
-  const prompt = `Sei un consulente di marketing digitale italiano che lavora per PiraWeb, un'agenzia web. Scrivi come una persona vera che vuole genuinamente aiutare un'attivita' del proprio territorio.
+  const prompt = `Sei Raffaele Antonio Piccolo, ingegnere e fondatore di PiraWeb, un'agenzia digitale di Casapesenna (CE). Stai scrivendo personalmente a un imprenditore della tua zona per offrire valore reale, non per vendere.
 
-FORMATO: ${isWhatsapp ? 'Messaggio WhatsApp — conversazionale, diretto, amichevole. Massimo 250 parole. Niente oggetto, niente firma formale.' : 'Email professionale ma calda. Massimo 350 parole. INIZIA con "Oggetto: ..." su una riga separata. Firma come "Un saluto,\\nIl team PiraWeb".'}
+CONTESTO: Hai analizzato la presenza digitale della loro attivita' con strumenti professionali e hai trovato delle aree critiche. Vuoi condividere questi risultati gratuitamente perche' credi nel supporto alle imprese del territorio.
 
-DATI DEL PROSPECT:
-- Nome attivita': ${prospect.business_name}
+FORMATO: ${isWhatsapp ? 'Messaggio WhatsApp — conversazionale, diretto, tra professionisti. Massimo 200 parole. Niente oggetto, niente firma formale. Dai del voi.' : 'Testo email — professionale, pacato, da consulente. Massimo 300 parole. NON scrivere "Oggetto:" ne\' firme (vengono aggiunti automaticamente). Scrivi SOLO il corpo del messaggio.'}
+
+AZIENDA ANALIZZATA:
+- Nome: ${prospect.business_name}
 - Citta': ${prospect.city || 'N/A'}
 - Settore: ${prospect.sector || 'N/A'}
 - Sito web: ${prospect.website || 'Nessuno'}
-- Valutazione Google: ${prospect.google_rating || 'N/A'} (${prospect.google_reviews_count || 0} recensioni)
-- Score digitale: ${prospect.score_total}/100
+- Google: ${prospect.google_rating || 'N/A'} stelle, ${prospect.google_reviews_count || 0} recensioni
+- Score digitale complessivo: ${prospect.score_total}/100
 
-SCORES:
-- Sito web: ${prospect.score_website}/100
-- Social: ${prospect.score_social}/100
-- Advertising: ${prospect.score_advertising}/100
-- SEO: ${prospect.score_seo}/100
-
-APERTURA:
-${specificOpener}
-
-I 3 PROBLEMI CRITICI:
+AREE CRITICHE TROVATE:
 ${topIssues.map((issue, i) => `${i + 1}. ${issue}`).join('\n')}
 
-STRUTTURA:
-1. APERTURA PERSONALE: Menziona qualcosa di specifico della loro attivita'.
-2. I 3 PROBLEMI: Presentali in modo semplice per un imprenditore non tecnico. Spiega perche' costa clienti.
-3. PROPOSTA: Offri un AUDIT GRATUITO della presenza digitale o una chiamata di 15 minuti senza impegno.
-4. URGENZA LEGGERA: "Ho solo 3 slot questa settimana" o simile. Mai aggressivo.
+NOTA SULL'APERTURA:
+${specificOpener}
 
-REGOLE:
-- Italiano naturale, non tradotto
-- NO parole come "digital transformation", "brand awareness", "engagement"
-- NO liste puntate in WhatsApp
-- Usa il "voi" come forma di cortesia
-- Non inventare dati
-- Scrivi SOLO il messaggio finale`;
+TONO E STRUTTURA:
+1. Apri con un saluto e presentati brevemente (nome, ruolo, agenzia)
+2. Spiega che hai analizzato la loro presenza digitale e vuoi condividere i risultati
+3. Descrivi 2-3 criticita' trovate in modo chiaro e comprensibile, spiegando l'impatto concreto sul loro business (clienti persi, opportunita' mancate)
+4. Chiudi offrendo una consulenza gratuita di 15 minuti per approfondire, senza alcun impegno
+
+REGOLE FONDAMENTALI:
+- Scrivi come una persona reale, non come un software di marketing
+- Italiano naturale e fluido
+- Tono rispettoso e professionale, mai aggressivo o pressante
+- NO urgenza artificiale ("solo 3 slot", "offerta limitata")
+- NO gergo marketing ("digital transformation", "brand awareness", "engagement", "lead")
+- NO liste puntate nelle email - scrivi in paragrafi discorsivi
+- Dai del "voi" come forma di cortesia
+- Non inventare dati che non hai
+- Scrivi SOLO il testo del messaggio, nient'altro`;
 
   // Try Claude, then Gemini
   const providers = [

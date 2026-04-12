@@ -4,11 +4,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { sendOutreachEmail } from '@/lib/email-outreach';
 
-/**
- * TEST: Invia un'email di outreach di esempio per verificare template e SMTP.
- * POST /api/test-email
- * Solo admin.
- */
 export async function POST(request: NextRequest) {
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -22,21 +17,19 @@ export async function POST(request: NextRequest) {
 
   if (!testEmail) return NextResponse.json({ error: 'Nessuna email' }, { status: 400 });
 
-  const sampleMessage = `Gentile titolare,
+  const sampleMessage = `Buongiorno,
 
-Mi chiamo Raffaele Antonio Piccolo e sono il fondatore di PiraWeb, un'agenzia digitale con sede a Casapesenna che supporta le imprese italiane nella crescita online.
+mi chiamo Raffaele Antonio Piccolo, sono ingegnere e fondatore di PiraWeb, un'agenzia digitale con sede a Casapesenna. Mi occupo di supportare le imprese del territorio nella crescita online.
 
-Abbiamo analizzato la presenza digitale della vostra attivita' e abbiamo individuato alcune aree dove potreste ottenere risultati importanti con interventi mirati.
+Ho avuto modo di analizzare la presenza digitale della vostra attivita' utilizzando i nostri strumenti di analisi professionale, e ho pensato di condividere con voi i risultati perche' credo possano esservi utili.
 
-Il vostro sito web attualmente non e' ottimizzato per i dispositivi mobili. Considerando che oltre il 75% degli utenti oggi naviga da smartphone, questo significa che la maggior parte dei potenziali clienti non riesce a visualizzare correttamente i vostri contenuti e abbandona il sito entro pochi secondi.
+Dall'analisi emerge che il vostro sito web presenta alcune carenze tecniche: non risulta ottimizzato per i dispositivi mobili, il che significa che oltre il 70% dei vostri potenziali clienti, che oggi naviga prevalentemente da smartphone, potrebbe abbandonare il sito dopo pochi secondi. Inoltre manca un certificato SSL, un elemento che Google considera essenziale per il posizionamento nei risultati di ricerca.
 
-La vostra presenza sui social media e' attualmente limitata. Non abbiamo rilevato un profilo Instagram attivo, che rappresenta oggi il canale principale attraverso cui le attivita' locali acquisiscono nuovi clienti nella fascia 18-45 anni.
+Un'altra area su cui potreste lavorare e' la presenza sui social media. Non abbiamo rilevato un profilo Instagram attivo per la vostra attivita'. In un settore come il vostro, Instagram rappresenta oggi uno dei canali piu' efficaci per farsi conoscere da nuovi clienti nella zona, soprattutto nella fascia 25-45 anni.
 
-Non risultano campagne pubblicitarie attive su Google o Meta. I vostri concorrenti nella zona stanno investendo in visibilita' online e intercettano i clienti che potrebbero raggiungere voi.
+Infine, non risultano campagne pubblicitarie attive su Google o sui social. Anche con un investimento contenuto, nell'ordine di 5-10 euro al giorno, e' possibile raggiungere centinaia di persone che cercano esattamente i servizi che offrite.
 
-Sulla base di questa analisi, vi offriamo un audit gratuito e approfondito della vostra presenza digitale, della durata di circa 15 minuti, in cui vi mostreremo nel dettaglio le opportunita' di crescita e le azioni concrete da intraprendere.
-
-Rimaniamo a disposizione per fissare un incontro senza alcun impegno.`;
+Se volete, sono disponibile per una consulenza gratuita di 15 minuti in cui vi mostro nel dettaglio i risultati e le possibili azioni da intraprendere. Nessun impegno, semplicemente un confronto tra professionisti.`;
 
   try {
     if (!process.env.RESEND_API_KEY) {
@@ -47,7 +40,7 @@ Rimaniamo a disposizione per fissare un incontro senza alcun impegno.`;
       to: testEmail,
       businessName: 'Ristorante Da Mario',
       messageBody: sampleMessage,
-      subject: 'Report Analisi Digitale - Ristorante Da Mario',
+      subject: 'Analisi digitale gratuita per Ristorante Da Mario',
       scores: {
         website: 35,
         social: 15,
