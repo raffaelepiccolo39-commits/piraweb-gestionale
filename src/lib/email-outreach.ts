@@ -246,17 +246,14 @@ export async function sendOutreachEmail({ to, businessName, messageBody, subject
               <!-- Separatore prima del portfolio -->
               <tr><td style="padding:16px 0 0;"><hr style="border:none;border-top:1px solid #E8E8E8;margin:0;" /></td></tr>
 
-              <!-- Portfolio discreto -->
+              <!-- Portfolio -->
               <tr>
                 <td style="padding:16px 0 0;">
-                  <p style="margin:0 0 8px;color:#888;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;font-weight:600;">Alcuni clienti che abbiamo supportato</p>
-                  <p style="margin:0;color:#555;font-size:12px;line-height:1.6;">
-                    <strong>Marietta Capasso</strong> (Gioielleria) &mdash; Logo, Brand Identity, E-commerce<br>
-                    <strong>DAGA</strong> (Fashion) &mdash; Sito Web, E-commerce, Social Media<br>
-                    <strong>BLUEMOON</strong> (Pasticceria) &mdash; Sito Web, E-commerce, Social Media
+                  <p style="margin:0 0 6px;color:#555;font-size:13px;line-height:1.6;">
+                    Lavoriamo con aziende di diversi settori, dalla ristorazione al fashion, dall&rsquo;artigianato ai servizi professionali. Potete vedere alcuni dei nostri progetti realizzati qui:
                   </p>
-                  <p style="margin:8px 0 0;">
-                    <a href="https://www.piraweb.it/progetti" style="color:#555;font-size:12px;text-decoration:underline;">Vedi altri progetti</a>
+                  <p style="margin:0;">
+                    <a href="https://www.piraweb.it/progetti" style="color:#333;font-size:13px;font-weight:600;text-decoration:underline;">Scopri i nostri progetti &rarr;</a>
                   </p>
                 </td>
               </tr>
