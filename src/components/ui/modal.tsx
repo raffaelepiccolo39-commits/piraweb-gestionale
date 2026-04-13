@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useId, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -76,11 +77,11 @@ export function Modal({ open, onClose, title, children, size = 'md' }: ModalProp
     xl: 'max-w-4xl',
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Backdrop with blur */}
+  const modalContent = (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+      {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
+        className="fixed inset-0 bg-black/70 backdrop-blur-sm"
         onClick={onClose}
         aria-hidden="true"
       />
@@ -93,8 +94,8 @@ export function Modal({ open, onClose, title, children, size = 'md' }: ModalProp
         aria-labelledby={title ? titleId : undefined}
         tabIndex={-1}
         className={cn(
-          'relative w-full glass rounded-2xl shadow-2xl shadow-black/40 max-h-[90vh] overflow-y-auto overscroll-contain',
-          'animate-in fade-in zoom-in-95 slide-in-from-bottom-4 duration-250',
+          'relative w-full rounded-2xl shadow-2xl shadow-black/40 max-h-[90vh] overflow-y-auto overscroll-contain',
+          'bg-[rgba(12,12,16,0.97)] border border-[rgba(148,163,184,0.1)]',
           sizes[size]
         )}
       >
@@ -116,4 +117,11 @@ export function Modal({ open, onClose, title, children, size = 'md' }: ModalProp
       </div>
     </div>
   );
+
+  // Render via Portal al body per uscire da qualsiasi stacking context
+  if (typeof document !== 'undefined') {
+    return createPortal(modalContent, document.body);
+  }
+
+  return modalContent;
 }

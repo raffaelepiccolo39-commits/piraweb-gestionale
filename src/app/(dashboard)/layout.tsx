@@ -55,10 +55,8 @@ export default function DashboardLayout({
           onMobileMenuToggle={() => setMobileMenuOpen(!mobileMenuOpen)}
           mobileMenuOpen={mobileMenuOpen}
         />
-        <main id="main-content" className="p-4 lg:p-6 min-w-0 overflow-x-hidden">
-          <div className="animate-slide-up">
-            {children}
-          </div>
+        <main id="main-content" className="p-4 lg:p-6 min-w-0">
+          {children}
         </main>
       </div>
     </div>
