@@ -73,6 +73,7 @@ function buildScoreRow(label: string, score: number): string {
  */
 export async function sendOutreachEmail({ to, businessName, messageBody, subject, scores, businessData }: OutreachEmailParams) {
   const safeName = escapeHtml(businessName);
+  const logoEmailUrl = 'https://gestionale.piraweb.it/logo-email.png';
 
   let emailSubject = subject || '';
   let body = messageBody;
@@ -219,7 +220,7 @@ export async function sendOutreachEmail({ to, businessName, messageBody, subject
               <table width="100%" cellpadding="0" cellspacing="0">
                 <tr>
                   <td>
-                    <img src="https://gestionale.piraweb.it/logo.png" alt="PiraWeb" width="120" style="display:block;max-width:120px;height:auto;" />
+                    <img src="${logoEmailUrl}" alt="PiraWeb" width="130" style="display:block;max-width:130px;height:auto;" />
                   </td>
                   <td align="right" style="vertical-align:middle;">
                     <span style="color:#999;font-size:11px;">Report gratuito</span>
@@ -261,15 +262,20 @@ export async function sendOutreachEmail({ to, businessName, messageBody, subject
               <!-- Invito alla consulenza -->
               <tr>
                 <td style="padding:20px 0 0;">
-                  <table width="100%" cellpadding="0" cellspacing="0" style="background:#F8F8F8;border:1px solid #EAEAEA;border-radius:6px;">
+                  <p style="margin:0 0 16px;color:#333;font-size:13px;line-height:1.6;">
+                    Se volete approfondire i risultati di questa analisi, sono disponibile per una <strong>consulenza gratuita di 15 minuti</strong> in cui vi mostro nel dettaglio cosa migliorare e come. Nessun impegno, solo valore concreto per la vostra attivita\'.
+                  </p>
+                </td>
+              </tr>
+              <!-- Bottone CTA -->
+              <tr>
+                <td style="padding:0 0 8px;" align="center">
+                  <table cellpadding="0" cellspacing="0">
                     <tr>
-                      <td style="padding:16px 20px;">
-                        <p style="margin:0;color:#333;font-size:13px;line-height:1.6;">
-                          Se volete approfondire i risultati di questa analisi, sono disponibile per una <strong>consulenza gratuita di 15 minuti</strong> in cui vi mostro nel dettaglio cosa migliorare e come. Nessun impegno, solo valore concreto per la vostra attivita\'.
-                        </p>
-                        <p style="margin:10px 0 0;">
-                          <a href="https://gestionale.piraweb.it/consulenza" style="color:#333;font-size:13px;font-weight:600;text-decoration:underline;">Fissa una consulenza gratuita &rarr;</a>
-                        </p>
+                      <td style="background-color:#1A1A2E;border-radius:8px;">
+                        <a href="https://gestionale.piraweb.it/consulenza" style="display:inline-block;padding:16px 40px;color:#FFD700;font-size:15px;font-weight:700;text-decoration:none;letter-spacing:0.3px;">
+                          Fissa una consulenza gratuita
+                        </a>
                       </td>
                     </tr>
                   </table>
@@ -285,9 +291,14 @@ export async function sendOutreachEmail({ to, businessName, messageBody, subject
             <td style="padding:0 32px 24px;">
               <table width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid #EEEEEE;padding-top:20px;">
                 <tr>
+                  <td style="padding-bottom:12px;">
+                    <img src="${logoEmailUrl}" alt="PiraWeb Creative Agency" width="140" style="display:block;max-width:140px;height:auto;" />
+                  </td>
+                </tr>
+                <tr>
                   <td>
                     <p style="margin:0;color:#333;font-size:13px;font-weight:600;">Ing. Raffaele Antonio Piccolo</p>
-                    <p style="margin:2px 0 0;color:#888;font-size:12px;">CEO &amp; Project Manager &mdash; PiraWeb Creative Agency</p>
+                    <p style="margin:2px 0 0;color:#888;font-size:12px;">CEO &amp; Project Manager</p>
                     <p style="margin:8px 0 0;color:#555;font-size:12px;">
                       <a href="mailto:info@piraweb.it" style="color:#555;text-decoration:none;">info@piraweb.it</a> &nbsp;&bull;&nbsp;
                       +39 331 853 5698 &nbsp;&bull;&nbsp;
