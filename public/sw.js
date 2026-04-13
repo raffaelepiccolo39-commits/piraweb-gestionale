@@ -1,4 +1,4 @@
-const CACHE_NAME = 'piraweb-v1';
+const CACHE_NAME = 'piraweb-v2';
 const STATIC_ASSETS = ['/', '/dashboard', '/login'];
 
 self.addEventListener('install', (event) => {
@@ -20,11 +20,14 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // API calls: network first
+  // Solo richieste GET possono essere cachate
+  if (event.request.method !== 'GET') return;
+
+  // Ignora richieste chrome-extension e non-http
+  if (!url.protocol.startsWith('http')) return;
+
+  // API calls: network only (no cache)
   if (url.pathname.startsWith('/api/')) {
-    event.respondWith(
-      fetch(event.request).catch(() => caches.match(event.request))
-    );
     return;
   }
 
@@ -33,10 +36,12 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       caches.match(event.request).then((cached) =>
         cached || fetch(event.request).then((response) => {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+          if (response.ok) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+          }
           return response;
-        })
+        }).catch(() => cached)
       )
     );
     return;
@@ -46,10 +51,12 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     caches.match(event.request).then((cached) => {
       const fetchPromise = fetch(event.request).then((response) => {
-        const clone = response.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+        if (response.ok) {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+        }
         return response;
-      });
+      }).catch(() => cached);
       return cached || fetchPromise;
     })
   );

@@ -130,9 +130,9 @@ export default function DashboardPage() {
         // 6: projects with tasks for progress
         supabase.from('projects').select('id, name, color, tasks(id, status)').eq('status', 'active').limit(5),
         // 7: activity feed
-        supabase.from('activity_logs').select(`
+        supabase.from('activity_log').select(`
           id, action, entity_type, entity_name, created_at,
-          user:profiles!activity_logs_user_id_fkey(full_name)
+          user:profiles!activity_log_user_id_fkey(full_name)
         `).order('created_at', { ascending: false }).limit(10),
         // 8: recent messages
         supabase.from('chat_messages').select(`
