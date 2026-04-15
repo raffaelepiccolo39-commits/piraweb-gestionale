@@ -134,6 +134,7 @@ export default function CFOPage() {
   const [payslips, setPayslips] = useState<(Payslip & { employee?: Profile })[]>([]);
   const [showPayslipForm, setShowPayslipForm] = useState(false);
   const [savingPayslip, setSavingPayslip] = useState(false);
+  const [payslipFile, setPayslipFile] = useState<File | null>(null);
   const [payslipForm, setPayslipForm] = useState({
     employee_id: '', month: new Date().toISOString().slice(0, 7),
     lordo_mensile: '', netto_mensile: '', ral: '',
@@ -331,6 +332,21 @@ export default function CFOPage() {
       return;
     }
     setSavingPayslip(true);
+
+    // Upload file if present
+    let attachmentUrl: string | null = null;
+    let attachmentName: string | null = null;
+    if (payslipFile) {
+      const ext = payslipFile.name.split('.').pop();
+      const path = `payslips/${payslipForm.employee_id}/${payslipForm.month}.${ext}`;
+      const { error: uploadError } = await supabase.storage.from('attachments').upload(path, payslipFile, { upsert: true });
+      if (!uploadError) {
+        const { data: urlData } = supabase.storage.from('attachments').getPublicUrl(path);
+        attachmentUrl = urlData.publicUrl;
+        attachmentName = payslipFile.name;
+      }
+    }
+
     const lordo = parseFloat(payslipForm.lordo_mensile) || 0;
     const netto = parseFloat(payslipForm.netto_mensile) || 0;
     const inpsAz = parseFloat(payslipForm.inps_azienda) || 0;
@@ -356,6 +372,7 @@ export default function CFOPage() {
       tfr_accantonamento: tfrAcc,
       inail: inail,
       costo_totale_azienda: costoTotale,
+      ...(attachmentUrl ? { attachment_url: attachmentUrl, attachment_name: attachmentName } : {}),
       notes: payslipForm.notes || null,
       created_by: profile.id,
     }, { onConflict: 'employee_id,month' });
@@ -367,6 +384,7 @@ export default function CFOPage() {
       toast.success('Busta paga salvata');
       setShowPayslipForm(false);
       resetPayslipForm();
+      setPayslipFile(null);
       fetchAll();
     }
   };
@@ -831,9 +849,22 @@ export default function CFOPage() {
                     <td className="py-2 text-right text-pw-text-dim">{formatCurrency(ps.tfr_accantonamento)}</td>
                     <td className="py-2 text-right font-semibold text-red-400">{formatCurrency(ps.costo_totale_azienda || 0)}</td>
                     <td className="py-2">
-                      <button onClick={() => handleDeletePayslip(ps.id)} className="text-pw-text-dim hover:text-red-400">
-                        <Trash2 size={12} />
-                      </button>
+                      <div className="flex items-center gap-1">
+                        {ps.attachment_url && (
+                          <a
+                            href={ps.attachment_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-1 rounded hover:bg-pw-surface-3 text-pw-accent"
+                            title="Scarica busta paga"
+                          >
+                            <FileText size={12} />
+                          </a>
+                        )}
+                        <button onClick={() => handleDeletePayslip(ps.id)} className="p-1 rounded hover:bg-pw-surface-3 text-pw-text-dim hover:text-red-400">
+                          <Trash2 size={12} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -976,6 +1007,22 @@ export default function CFOPage() {
             <Input id="ps-inps-az" label="INPS Azienda" type="number" value={payslipForm.inps_azienda} onChange={(e) => setPayslipForm({ ...payslipForm, inps_azienda: e.target.value })} placeholder="0" />
             <Input id="ps-tfr" label="TFR" type="number" value={payslipForm.tfr_accantonamento} onChange={(e) => setPayslipForm({ ...payslipForm, tfr_accantonamento: e.target.value })} placeholder="0" />
             <Input id="ps-inail" label="INAIL" type="number" value={payslipForm.inail} onChange={(e) => setPayslipForm({ ...payslipForm, inail: e.target.value })} placeholder="0" />
+          </div>
+
+          <div className="border-t border-pw-border pt-4">
+            <label className="text-xs font-semibold text-pw-text flex items-center gap-1.5 mb-2">
+              <Upload size={14} />
+              Carica PDF Busta Paga
+            </label>
+            <input
+              type="file"
+              accept=".pdf,.jpg,.jpeg,.png"
+              onChange={(e) => setPayslipFile(e.target.files?.[0] || null)}
+              className="w-full text-sm text-pw-text-muted file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-pw-accent/10 file:text-pw-accent hover:file:bg-pw-accent/20 file:cursor-pointer"
+            />
+            {payslipFile && (
+              <p className="text-xs text-pw-text-dim mt-1">{payslipFile.name} ({(payslipFile.size / 1024).toFixed(0)} KB)</p>
+            )}
           </div>
 
           {payslipForm.lordo_mensile && payslipForm.inps_azienda && (
