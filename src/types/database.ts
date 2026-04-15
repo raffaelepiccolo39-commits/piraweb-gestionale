@@ -743,6 +743,25 @@ export interface InvoiceItem {
   created_at: string;
 }
 
+// === OPERATING EXPENSES ===
+
+export interface OperatingExpense {
+  id: string;
+  name: string;
+  category: string;
+  amount: number;
+  is_recurring: boolean;
+  frequency: 'monthly' | 'quarterly' | 'yearly' | 'one_time';
+  start_date: string | null;
+  end_date: string | null;
+  vendor: string | null;
+  notes: string | null;
+  is_active: boolean;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
 // === TEAM TOOLS ===
 
 export interface TeamTool {

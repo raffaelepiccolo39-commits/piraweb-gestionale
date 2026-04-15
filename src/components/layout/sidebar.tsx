@@ -40,6 +40,7 @@ import {
   Search,
   ChevronDown,
   Wrench,
+  Calculator,
 } from 'lucide-react';
 
 interface NavItem {
@@ -70,6 +71,7 @@ const navItems: NavItem[] = [
   { label: 'Tools', href: '/tools', icon: Wrench, roles: 'all', section: 'team' },
   { label: 'Organigramma', href: '/organigramma', icon: Network, roles: 'all', section: 'team' },
   // Business (admin)
+  { label: 'CFO', href: '/cfo', icon: Calculator, roles: ['admin'], section: 'business' },
   { label: 'Direzione', href: '/direzione', icon: Crown, roles: ['admin'], section: 'business' },
   { label: 'Lead AI', href: '/lead-ai', icon: Sparkles, roles: ['admin'], section: 'business' },
   { label: 'Lead Finder', href: '/lead-finder', icon: Search, roles: ['admin'], section: 'business' },

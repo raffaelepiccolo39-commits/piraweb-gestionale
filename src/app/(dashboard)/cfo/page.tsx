@@ -1,0 +1,753 @@
+'use client';
+
+import { useEffect, useState, useCallback } from 'react';
+import { createClient } from '@/lib/supabase/client';
+import { useAuth } from '@/hooks/use-auth';
+import { useToast } from '@/components/ui/toast';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Select } from '@/components/ui/select';
+import { Modal } from '@/components/ui/modal';
+import { formatCurrency } from '@/lib/utils';
+import type { Profile, OperatingExpense } from '@/types/database';
+import {
+  TrendingUp,
+  TrendingDown,
+  Euro,
+  Users,
+  Building2,
+  Receipt,
+  Calculator,
+  PieChart,
+  Plus,
+  Pencil,
+  Trash2,
+  AlertTriangle,
+  CheckCircle,
+  ArrowUpRight,
+  ArrowDownRight,
+  Briefcase,
+  Wallet,
+} from 'lucide-react';
+
+// ─── Italian Tax Constants (2026) ───
+const INPS_EMPLOYER_RATE = 0.2981; // ~29.81% contributi INPS datore
+const INPS_EMPLOYEE_RATE = 0.0919; // ~9.19% contributi INPS dipendente
+const TFR_RATE = 0.0741; // 7.41% TFR accantonamento annuo
+const IRAP_RATE = 0.039; // 3.9% IRAP regionale
+const IRPEF_BRACKETS = [
+  { max: 28000, rate: 0.23 },
+  { max: 50000, rate: 0.35 },
+  { max: Infinity, rate: 0.43 },
+];
+
+function calculateIrpef(annualGross: number): number {
+  const taxableIncome = annualGross * (1 - INPS_EMPLOYEE_RATE);
+  let tax = 0;
+  let remaining = taxableIncome;
+  let prevMax = 0;
+  for (const bracket of IRPEF_BRACKETS) {
+    const taxable = Math.min(remaining, bracket.max - prevMax);
+    tax += taxable * bracket.rate;
+    remaining -= taxable;
+    prevMax = bracket.max;
+    if (remaining <= 0) break;
+  }
+  return tax;
+}
+
+function calculateEmployeeCosts(monthlySalary: number) {
+  const annualGross = monthlySalary * 13; // 13 mensilita
+  const monthlyGross = monthlySalary;
+
+  // Costi azienda (sopra lo stipendio lordo)
+  const inpsEmployer = annualGross * INPS_EMPLOYER_RATE;
+  const tfr = annualGross * TFR_RATE;
+  const totalAnnualCostCompany = annualGross + inpsEmployer + tfr;
+  const monthlyCostCompany = totalAnnualCostCompany / 12;
+
+  // Netto dipendente (sotto lo stipendio lordo)
+  const inpsEmployee = annualGross * INPS_EMPLOYEE_RATE;
+  const irpef = calculateIrpef(annualGross);
+  const annualNet = annualGross - inpsEmployee - irpef;
+  const monthlyNet = annualNet / 13; // su 13 mensilita
+
+  return {
+    monthlyGross,
+    annualGross,
+    inpsEmployer: inpsEmployer / 12,
+    inpsEmployee: inpsEmployee / 12,
+    tfr: tfr / 12,
+    irpef: irpef / 12,
+    monthlyNet,
+    monthlyCostCompany,
+    annualCostCompany: totalAnnualCostCompany,
+    annualNet,
+  };
+}
+
+const EXPENSE_CATEGORIES = [
+  { value: 'ufficio', label: 'Ufficio & Affitto' },
+  { value: 'software', label: 'Software & Licenze' },
+  { value: 'marketing', label: 'Marketing & Ads' },
+  { value: 'utenze', label: 'Utenze' },
+  { value: 'servizi', label: 'Servizi Professionali' },
+  { value: 'attrezzature', label: 'Attrezzature' },
+  { value: 'formazione', label: 'Formazione' },
+  { value: 'altro', label: 'Altro' },
+];
+
+interface ClientProfitability {
+  clientId: string;
+  clientName: string;
+  monthlyFee: number;
+  totalPaid: number;
+  totalExpected: number;
+  hoursLogged: number;
+  internalCost: number;
+  freelancerCost: number;
+  grossProfit: number;
+  marginPct: number;
+}
+
+export default function CFOPage() {
+  const { profile } = useAuth();
+  const supabase = createClient();
+  const toast = useToast();
+
+  const [loading, setLoading] = useState(true);
+  const [employees, setEmployees] = useState<(Profile & { costs: ReturnType<typeof calculateEmployeeCosts> })[]>([]);
+  const [expenses, setExpenses] = useState<OperatingExpense[]>([]);
+  const [clientProfitability, setClientProfitability] = useState<ClientProfitability[]>([]);
+  const [showExpenseForm, setShowExpenseForm] = useState(false);
+  const [editingExpense, setEditingExpense] = useState<OperatingExpense | null>(null);
+  const [savingExpense, setSavingExpense] = useState(false);
+  const [expenseForm, setExpenseForm] = useState({
+    name: '', category: 'altro', amount: '', is_recurring: true, frequency: 'monthly', vendor: '', notes: '',
+  });
+
+  // Summary data
+  const [summary, setSummary] = useState({
+    mrr: 0,
+    totalReceived: 0,
+    totalExpected: 0,
+    totalPending: 0,
+    activeClients: 0,
+    activeContracts: 0,
+  });
+
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+  const yearStart = new Date(now.getFullYear(), 0, 1).toISOString();
+
+  const fetchAll = useCallback(async () => {
+    // Parallel fetch all data
+    const [
+      profilesRes, contractsRes, paymentsRes, expensesRes,
+      timeRes, freelancerRes, clientsRes,
+    ] = await Promise.all([
+      supabase.from('profiles').select('*').eq('is_active', true).order('full_name'),
+      supabase.from('client_contracts').select('client_id, monthly_fee, status, duration_months, start_date').eq('status', 'active'),
+      supabase.from('client_payments').select('contract_id, amount, is_paid, due_date, client_id:client_contracts(client_id)').limit(5000),
+      supabase.from('operating_expenses').select('*').eq('is_active', true).order('category'),
+      supabase.from('time_entries').select('user_id, task_id, duration_minutes, started_at').gte('started_at', yearStart).not('duration_minutes', 'is', null).limit(10000),
+      supabase.from('task_freelancer_assignments').select('task_id, total_cost, status').limit(5000),
+      supabase.from('clients').select('id, name, company, ragione_sociale, is_active').eq('is_active', true),
+    ]);
+
+    const profiles = (profilesRes.data || []) as Profile[];
+    const contracts = contractsRes.data || [];
+    const payments = paymentsRes.data || [];
+    const expData = (expensesRes.data || []) as OperatingExpense[];
+    const timeEntries = timeRes.data || [];
+    const freelancerAssignments = freelancerRes.data || [];
+    const clients = clientsRes.data || [];
+
+    // ── Employees with tax calculations ──
+    const emps = profiles
+      .filter(p => p.salary && p.salary > 0)
+      .map(p => ({
+        ...p,
+        costs: calculateEmployeeCosts(p.salary!),
+      }));
+    setEmployees(emps);
+
+    // ── Expenses ──
+    setExpenses(expData);
+
+    // ── Revenue summary ──
+    const mrr = contracts.reduce((s, c) => s + (c.monthly_fee || 0), 0);
+    const totalExpected = payments.reduce((s, p) => s + (p.amount || 0), 0);
+    const totalReceived = payments.filter(p => p.is_paid).reduce((s, p) => s + (p.amount || 0), 0);
+    const totalPending = totalExpected - totalReceived;
+
+    setSummary({
+      mrr,
+      totalReceived,
+      totalExpected,
+      totalPending,
+      activeClients: clients.length,
+      activeContracts: contracts.length,
+    });
+
+    // ── Client profitability ──
+    // Build maps
+    const contractByClientId = new Map<string, number>();
+    contracts.forEach(c => {
+      contractByClientId.set(c.client_id, (contractByClientId.get(c.client_id) || 0) + (c.monthly_fee || 0));
+    });
+
+    // Tasks by project → client mapping would need projects table
+    // For now, calculate aggregate per-client from payments
+    const clientPaidMap = new Map<string, number>();
+    const clientExpectedMap = new Map<string, number>();
+    payments.forEach(p => {
+      const clientId = (p.client_id as { client_id: string } | null)?.client_id;
+      if (!clientId) return;
+      clientExpectedMap.set(clientId, (clientExpectedMap.get(clientId) || 0) + (p.amount || 0));
+      if (p.is_paid) clientPaidMap.set(clientId, (clientPaidMap.get(clientId) || 0) + (p.amount || 0));
+    });
+
+    // Average hourly cost across all employees
+    const avgHourlyCost = emps.length > 0
+      ? emps.reduce((s, e) => s + e.costs.monthlyCostCompany, 0) / emps.length / 160
+      : 25;
+
+    const clientProfit: ClientProfitability[] = clients.map(client => {
+      const monthlyFee = contractByClientId.get(client.id) || 0;
+      const totalPaid = clientPaidMap.get(client.id) || 0;
+      const totalExp = clientExpectedMap.get(client.id) || 0;
+      // Rough estimation of internal cost based on hours
+      const hoursLogged = 0; // Would need project→task→time_entry join
+      const internalCost = hoursLogged * avgHourlyCost;
+      const freelancerCost = 0;
+      const grossProfit = totalPaid - internalCost - freelancerCost;
+      const marginPct = totalPaid > 0 ? (grossProfit / totalPaid) * 100 : 0;
+
+      return {
+        clientId: client.id,
+        clientName: client.ragione_sociale || client.company || client.name,
+        monthlyFee,
+        totalPaid,
+        totalExpected: totalExp,
+        hoursLogged,
+        internalCost,
+        freelancerCost,
+        grossProfit,
+        marginPct,
+      };
+    }).filter(c => c.monthlyFee > 0 || c.totalPaid > 0)
+      .sort((a, b) => b.totalPaid - a.totalPaid);
+
+    setClientProfitability(clientProfit);
+    setLoading(false);
+  }, []);
+
+  useEffect(() => { fetchAll(); }, [fetchAll]);
+
+  // ── Expense handlers ──
+  const resetExpenseForm = () => {
+    setExpenseForm({ name: '', category: 'altro', amount: '', is_recurring: true, frequency: 'monthly', vendor: '', notes: '' });
+    setEditingExpense(null);
+  };
+
+  const openAddExpense = () => { resetExpenseForm(); setShowExpenseForm(true); };
+
+  const openEditExpense = (exp: OperatingExpense) => {
+    setEditingExpense(exp);
+    setExpenseForm({
+      name: exp.name, category: exp.category, amount: String(exp.amount),
+      is_recurring: exp.is_recurring, frequency: exp.frequency, vendor: exp.vendor || '', notes: exp.notes || '',
+    });
+    setShowExpenseForm(true);
+  };
+
+  const handleSaveExpense = async () => {
+    if (!expenseForm.name || !expenseForm.amount || !profile) return;
+    setSavingExpense(true);
+    const payload = {
+      name: expenseForm.name,
+      category: expenseForm.category,
+      amount: parseFloat(expenseForm.amount),
+      is_recurring: expenseForm.is_recurring,
+      frequency: expenseForm.frequency,
+      vendor: expenseForm.vendor || null,
+      notes: expenseForm.notes || null,
+    };
+    if (editingExpense) {
+      await supabase.from('operating_expenses').update(payload).eq('id', editingExpense.id);
+    } else {
+      await supabase.from('operating_expenses').insert({ ...payload, created_by: profile.id });
+    }
+    setSavingExpense(false);
+    setShowExpenseForm(false);
+    resetExpenseForm();
+    fetchAll();
+  };
+
+  const handleDeleteExpense = async (id: string) => {
+    if (!confirm('Eliminare questa spesa?')) return;
+    await supabase.from('operating_expenses').update({ is_active: false }).eq('id', id);
+    fetchAll();
+  };
+
+  // ── Calculations ──
+  const totalMonthlySalariesGross = employees.reduce((s, e) => s + e.costs.monthlyGross, 0);
+  const totalMonthlySalariesCostCompany = employees.reduce((s, e) => s + e.costs.monthlyCostCompany, 0);
+  const totalMonthlyINPS = employees.reduce((s, e) => s + e.costs.inpsEmployer, 0);
+  const totalMonthlyTFR = employees.reduce((s, e) => s + e.costs.tfr, 0);
+  const totalMonthlyNetEmployees = employees.reduce((s, e) => s + e.costs.monthlyNet, 0);
+
+  // Monthly operating expenses
+  const monthlyExpenses = expenses.reduce((total, exp) => {
+    if (exp.frequency === 'monthly') return total + exp.amount;
+    if (exp.frequency === 'quarterly') return total + exp.amount / 3;
+    if (exp.frequency === 'yearly') return total + exp.amount / 12;
+    return total;
+  }, 0);
+
+  const totalMonthlyCosts = totalMonthlySalariesCostCompany + monthlyExpenses;
+  const monthlyNetProfit = summary.mrr - totalMonthlyCosts;
+  const monthlyMarginPct = summary.mrr > 0 ? (monthlyNetProfit / summary.mrr) * 100 : 0;
+  const annualRevenue = summary.mrr * 12;
+  const annualCosts = totalMonthlyCosts * 12;
+  const annualNetProfit = annualRevenue - annualCosts;
+
+  // IRAP estimate
+  const irapEstimate = (annualRevenue - expenses.reduce((t, e) => {
+    if (e.frequency === 'yearly') return t + e.amount;
+    if (e.frequency === 'quarterly') return t + e.amount * 4;
+    if (e.frequency === 'monthly') return t + e.amount * 12;
+    return t;
+  }, 0)) * IRAP_RATE / 12;
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="w-8 h-8 border-4 border-pw-accent border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-8 max-w-7xl">
+      {/* Header */}
+      <div>
+        <h1 className="text-2xl font-bold text-pw-text font-[var(--font-syne)] flex items-center gap-2">
+          <Calculator size={24} className="text-pw-accent" />
+          CFO Dashboard
+        </h1>
+        <p className="text-sm text-pw-text-muted mt-1">
+          Controllo finanziario completo - Costi, ricavi, margini, tasse
+        </p>
+      </div>
+
+      {/* ═══ SEZIONE 1: KPI PRINCIPALI ═══ */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-[10px] uppercase tracking-widest text-pw-text-dim">MRR (Ricavo Mensile)</p>
+            <p className="text-2xl font-bold text-green-400 mt-1">{formatCurrency(summary.mrr)}</p>
+            <p className="text-xs text-pw-text-dim mt-1">{summary.activeContracts} contratti attivi</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-[10px] uppercase tracking-widest text-pw-text-dim">Costi Mensili Totali</p>
+            <p className="text-2xl font-bold text-red-400 mt-1">{formatCurrency(totalMonthlyCosts)}</p>
+            <p className="text-xs text-pw-text-dim mt-1">Personale + Operativi</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-[10px] uppercase tracking-widest text-pw-text-dim">Utile Netto Mensile</p>
+            <p className={`text-2xl font-bold mt-1 ${monthlyNetProfit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+              {formatCurrency(monthlyNetProfit)}
+            </p>
+            <p className="text-xs text-pw-text-dim mt-1">Margine: {monthlyMarginPct.toFixed(1)}%</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-[10px] uppercase tracking-widest text-pw-text-dim">Incassato vs Atteso</p>
+            <p className="text-2xl font-bold text-pw-accent mt-1">{formatCurrency(summary.totalReceived)}</p>
+            <p className="text-xs text-pw-text-dim mt-1">
+              da incassare: {formatCurrency(summary.totalPending)}
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* ═══ SEZIONE 2: CONTO ECONOMICO ═══ */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Receipt size={18} className="text-pw-accent" />
+            <h2 className="text-lg font-semibold text-pw-text">Conto Economico (Stima Mensile)</h2>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-1 text-sm">
+            {/* Ricavi */}
+            <div className="flex justify-between py-2 font-semibold text-green-400 border-b border-pw-border">
+              <span>RICAVI</span>
+              <span>{formatCurrency(summary.mrr)}</span>
+            </div>
+            <div className="flex justify-between py-1.5 text-pw-text-muted pl-4">
+              <span>Contratti attivi ({summary.activeContracts})</span>
+              <span>{formatCurrency(summary.mrr)}</span>
+            </div>
+
+            {/* Costo del personale */}
+            <div className="flex justify-between py-2 font-semibold text-red-400 border-b border-pw-border mt-3">
+              <span>COSTO DEL PERSONALE</span>
+              <span>-{formatCurrency(totalMonthlySalariesCostCompany)}</span>
+            </div>
+            <div className="flex justify-between py-1.5 text-pw-text-muted pl-4">
+              <span>Stipendi lordi ({employees.length} dipendenti)</span>
+              <span>-{formatCurrency(totalMonthlySalariesGross)}</span>
+            </div>
+            <div className="flex justify-between py-1.5 text-pw-text-muted pl-4">
+              <span>INPS carico azienda ({(INPS_EMPLOYER_RATE * 100).toFixed(1)}%)</span>
+              <span>-{formatCurrency(totalMonthlyINPS)}</span>
+            </div>
+            <div className="flex justify-between py-1.5 text-pw-text-muted pl-4">
+              <span>TFR accantonamento ({(TFR_RATE * 100).toFixed(2)}%)</span>
+              <span>-{formatCurrency(totalMonthlyTFR)}</span>
+            </div>
+
+            {/* Spese operative */}
+            <div className="flex justify-between py-2 font-semibold text-orange-400 border-b border-pw-border mt-3">
+              <span>SPESE OPERATIVE</span>
+              <span>-{formatCurrency(monthlyExpenses)}</span>
+            </div>
+            {EXPENSE_CATEGORIES.map(cat => {
+              const catExpenses = expenses.filter(e => e.category === cat.value);
+              if (catExpenses.length === 0) return null;
+              const catTotal = catExpenses.reduce((t, e) => {
+                if (e.frequency === 'monthly') return t + e.amount;
+                if (e.frequency === 'quarterly') return t + e.amount / 3;
+                if (e.frequency === 'yearly') return t + e.amount / 12;
+                return t;
+              }, 0);
+              return (
+                <div key={cat.value} className="flex justify-between py-1.5 text-pw-text-muted pl-4">
+                  <span>{cat.label}</span>
+                  <span>-{formatCurrency(catTotal)}</span>
+                </div>
+              );
+            })}
+            {expenses.length === 0 && (
+              <div className="flex justify-between py-1.5 text-pw-text-dim pl-4">
+                <span>Nessuna spesa operativa configurata</span>
+                <button onClick={openAddExpense} className="text-pw-accent hover:underline text-xs">+ Aggiungi</button>
+              </div>
+            )}
+
+            {/* Imposte stimate */}
+            <div className="flex justify-between py-2 font-semibold text-yellow-400 border-b border-pw-border mt-3">
+              <span>IMPOSTE (stima)</span>
+              <span>-{formatCurrency(irapEstimate)}</span>
+            </div>
+            <div className="flex justify-between py-1.5 text-pw-text-muted pl-4">
+              <span>IRAP ({(IRAP_RATE * 100).toFixed(1)}%)</span>
+              <span>-{formatCurrency(irapEstimate)}</span>
+            </div>
+
+            {/* Utile netto */}
+            <div className={`flex justify-between py-3 font-bold text-base border-t-2 border-pw-border mt-4 ${monthlyNetProfit - irapEstimate >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+              <span>UTILE NETTO STIMATO</span>
+              <span>{formatCurrency(monthlyNetProfit - irapEstimate)}</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ═══ SEZIONE 3: PROIEZIONE ANNUALE ═══ */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card>
+          <CardContent className="p-4 text-center">
+            <p className="text-[10px] uppercase tracking-widest text-pw-text-dim">Fatturato Annuo Stimato</p>
+            <p className="text-2xl font-bold text-green-400 mt-2">{formatCurrency(annualRevenue)}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 text-center">
+            <p className="text-[10px] uppercase tracking-widest text-pw-text-dim">Costi Annui Stimati</p>
+            <p className="text-2xl font-bold text-red-400 mt-2">{formatCurrency(annualCosts)}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 text-center">
+            <p className="text-[10px] uppercase tracking-widest text-pw-text-dim">Utile Annuo Stimato</p>
+            <p className={`text-2xl font-bold mt-2 ${annualNetProfit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+              {formatCurrency(annualNetProfit)}
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* ═══ SEZIONE 4: DETTAGLIO DIPENDENTI ═══ */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Users size={18} className="text-pw-accent" />
+            <h2 className="text-lg font-semibold text-pw-text">Costo Dipendenti (Dettaglio Fiscale)</h2>
+          </div>
+        </CardHeader>
+        <CardContent className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-pw-border text-[10px] uppercase tracking-widest text-pw-text-dim">
+                <th className="text-left py-3">Dipendente</th>
+                <th className="text-right py-3">Lordo/Mese</th>
+                <th className="text-right py-3">INPS Azienda</th>
+                <th className="text-right py-3">TFR</th>
+                <th className="text-right py-3 font-bold text-red-400">Costo Azienda</th>
+                <th className="text-right py-3">INPS Dip.</th>
+                <th className="text-right py-3">IRPEF</th>
+                <th className="text-right py-3 font-bold text-green-400">Netto Dip.</th>
+              </tr>
+            </thead>
+            <tbody>
+              {employees.map(emp => (
+                <tr key={emp.id} className="border-b border-pw-border/50 hover:bg-pw-surface-2/50">
+                  <td className="py-3">
+                    <p className="font-medium text-pw-text">{emp.full_name}</p>
+                    <p className="text-[10px] text-pw-text-dim">{emp.contract_type === 'indeterminato' ? 'Indeterminato' : emp.contract_type}</p>
+                  </td>
+                  <td className="text-right text-pw-text-muted">{formatCurrency(emp.costs.monthlyGross)}</td>
+                  <td className="text-right text-pw-text-dim">{formatCurrency(emp.costs.inpsEmployer)}</td>
+                  <td className="text-right text-pw-text-dim">{formatCurrency(emp.costs.tfr)}</td>
+                  <td className="text-right font-semibold text-red-400">{formatCurrency(emp.costs.monthlyCostCompany)}</td>
+                  <td className="text-right text-pw-text-dim">{formatCurrency(emp.costs.inpsEmployee)}</td>
+                  <td className="text-right text-pw-text-dim">{formatCurrency(emp.costs.irpef)}</td>
+                  <td className="text-right font-semibold text-green-400">{formatCurrency(emp.costs.monthlyNet)}</td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr className="border-t-2 border-pw-border font-bold">
+                <td className="py-3 text-pw-text">TOTALE</td>
+                <td className="text-right text-pw-text">{formatCurrency(totalMonthlySalariesGross)}</td>
+                <td className="text-right text-pw-text-dim">{formatCurrency(totalMonthlyINPS)}</td>
+                <td className="text-right text-pw-text-dim">{formatCurrency(totalMonthlyTFR)}</td>
+                <td className="text-right text-red-400">{formatCurrency(totalMonthlySalariesCostCompany)}</td>
+                <td className="text-right text-pw-text-dim">{formatCurrency(employees.reduce((s, e) => s + e.costs.inpsEmployee, 0))}</td>
+                <td className="text-right text-pw-text-dim">{formatCurrency(employees.reduce((s, e) => s + e.costs.irpef, 0))}</td>
+                <td className="text-right text-green-400">{formatCurrency(totalMonthlyNetEmployees)}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </CardContent>
+      </Card>
+
+      {/* ═══ SEZIONE 5: REDDITIVITA PER CLIENTE ═══ */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Building2 size={18} className="text-pw-accent" />
+            <h2 className="text-lg font-semibold text-pw-text">Redditivita per Cliente</h2>
+          </div>
+        </CardHeader>
+        <CardContent className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-pw-border text-[10px] uppercase tracking-widest text-pw-text-dim">
+                <th className="text-left py-3">Cliente</th>
+                <th className="text-right py-3">Fee Mensile</th>
+                <th className="text-right py-3">Totale Incassato</th>
+                <th className="text-right py-3">Da Incassare</th>
+                <th className="text-right py-3">Tasso Incasso</th>
+              </tr>
+            </thead>
+            <tbody>
+              {clientProfitability.map(client => {
+                const collectionRate = client.totalExpected > 0 ? (client.totalPaid / client.totalExpected) * 100 : 0;
+                return (
+                  <tr key={client.clientId} className="border-b border-pw-border/50 hover:bg-pw-surface-2/50">
+                    <td className="py-3 font-medium text-pw-text">{client.clientName}</td>
+                    <td className="text-right text-pw-text-muted">{formatCurrency(client.monthlyFee)}</td>
+                    <td className="text-right text-green-400 font-medium">{formatCurrency(client.totalPaid)}</td>
+                    <td className="text-right text-orange-400">{formatCurrency(client.totalExpected - client.totalPaid)}</td>
+                    <td className="text-right">
+                      <Badge className={collectionRate >= 80 ? 'bg-green-500/15 text-green-400' : collectionRate >= 50 ? 'bg-yellow-500/15 text-yellow-400' : 'bg-red-500/15 text-red-400'}>
+                        {collectionRate.toFixed(0)}%
+                      </Badge>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+            <tfoot>
+              <tr className="border-t-2 border-pw-border font-bold">
+                <td className="py-3 text-pw-text">TOTALE</td>
+                <td className="text-right text-pw-text">{formatCurrency(summary.mrr)}</td>
+                <td className="text-right text-green-400">{formatCurrency(summary.totalReceived)}</td>
+                <td className="text-right text-orange-400">{formatCurrency(summary.totalPending)}</td>
+                <td className="text-right">
+                  <Badge className="bg-pw-accent/15 text-pw-accent">
+                    {summary.totalExpected > 0 ? ((summary.totalReceived / summary.totalExpected) * 100).toFixed(0) : 0}%
+                  </Badge>
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        </CardContent>
+      </Card>
+
+      {/* ═══ SEZIONE 6: SPESE OPERATIVE ═══ */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Wallet size={18} className="text-pw-accent" />
+              <h2 className="text-lg font-semibold text-pw-text">Spese Operative</h2>
+              <Badge className="bg-pw-accent/15 text-pw-accent">{formatCurrency(monthlyExpenses)}/mese</Badge>
+            </div>
+            <Button onClick={openAddExpense} size="sm">
+              <Plus size={14} />
+              Aggiungi Spesa
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {expenses.length > 0 ? (
+            <div className="space-y-2">
+              {expenses.map(exp => (
+                <div key={exp.id} className="flex items-center justify-between p-3 rounded-xl bg-pw-surface-2 hover:bg-pw-surface-3 transition-colors group">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-medium text-pw-text">{exp.name}</p>
+                      <Badge className="text-[9px]">
+                        {EXPENSE_CATEGORIES.find(c => c.value === exp.category)?.label || exp.category}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center gap-3 mt-0.5">
+                      {exp.vendor && <span className="text-[10px] text-pw-text-dim">{exp.vendor}</span>}
+                      <span className="text-[10px] text-pw-text-dim">
+                        {exp.frequency === 'monthly' ? 'Mensile' : exp.frequency === 'quarterly' ? 'Trimestrale' : exp.frequency === 'yearly' ? 'Annuale' : 'Una tantum'}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm font-semibold text-pw-text">{formatCurrency(exp.amount)}</span>
+                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button onClick={() => openEditExpense(exp)} className="p-1 rounded hover:bg-pw-surface text-pw-text-dim hover:text-pw-accent">
+                        <Pencil size={12} />
+                      </button>
+                      <button onClick={() => handleDeleteExpense(exp.id)} className="p-1 rounded hover:bg-pw-surface text-pw-text-dim hover:text-red-400">
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <Wallet size={40} className="text-pw-text-dim mx-auto mb-2" />
+              <p className="text-sm text-pw-text-muted">Nessuna spesa operativa</p>
+              <p className="text-xs text-pw-text-dim mt-1">Aggiungi affitto, licenze software, utenze, ecc.</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* ═══ SEZIONE 7: RIEPILOGO QUICK ═══ */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="p-4 text-center">
+            <Briefcase size={20} className="text-pw-text-dim mx-auto mb-1" />
+            <p className="text-lg font-bold text-pw-text">{summary.activeClients}</p>
+            <p className="text-[10px] text-pw-text-dim">Clienti Attivi</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 text-center">
+            <Users size={20} className="text-pw-text-dim mx-auto mb-1" />
+            <p className="text-lg font-bold text-pw-text">{employees.length}</p>
+            <p className="text-[10px] text-pw-text-dim">Dipendenti</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 text-center">
+            <Euro size={20} className="text-pw-text-dim mx-auto mb-1" />
+            <p className="text-lg font-bold text-pw-text">{formatCurrency(totalMonthlySalariesCostCompany)}</p>
+            <p className="text-[10px] text-pw-text-dim">Costo Personale/Mese</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 text-center">
+            <PieChart size={20} className="text-pw-text-dim mx-auto mb-1" />
+            <p className={`text-lg font-bold ${monthlyMarginPct >= 20 ? 'text-green-400' : monthlyMarginPct >= 0 ? 'text-yellow-400' : 'text-red-400'}`}>
+              {monthlyMarginPct.toFixed(1)}%
+            </p>
+            <p className="text-[10px] text-pw-text-dim">Margine Operativo</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* ═══ MODAL SPESE ═══ */}
+      <Modal
+        open={showExpenseForm}
+        onClose={() => { setShowExpenseForm(false); resetExpenseForm(); }}
+        title={editingExpense ? 'Modifica Spesa' : 'Nuova Spesa Operativa'}
+      >
+        <div className="space-y-4">
+          <Input
+            id="expense-name"
+            label="Nome *"
+            value={expenseForm.name}
+            onChange={(e) => setExpenseForm({ ...expenseForm, name: e.target.value })}
+            placeholder="es. Canone Aruba, Licenza Adobe, Affitto ufficio"
+          />
+          <div className="grid grid-cols-2 gap-4">
+            <Select
+              id="expense-category"
+              label="Categoria"
+              value={expenseForm.category}
+              onChange={(e) => setExpenseForm({ ...expenseForm, category: e.target.value })}
+              options={EXPENSE_CATEGORIES}
+            />
+            <Input
+              id="expense-amount"
+              label="Importo (EUR) *"
+              type="number"
+              value={expenseForm.amount}
+              onChange={(e) => setExpenseForm({ ...expenseForm, amount: e.target.value })}
+              placeholder="es. 49.99"
+            />
+          </div>
+          <Select
+            id="expense-frequency"
+            label="Frequenza"
+            value={expenseForm.frequency}
+            onChange={(e) => setExpenseForm({ ...expenseForm, frequency: e.target.value })}
+            options={[
+              { value: 'monthly', label: 'Mensile' },
+              { value: 'quarterly', label: 'Trimestrale' },
+              { value: 'yearly', label: 'Annuale' },
+              { value: 'one_time', label: 'Una tantum' },
+            ]}
+          />
+          <Input
+            id="expense-vendor"
+            label="Fornitore"
+            value={expenseForm.vendor}
+            onChange={(e) => setExpenseForm({ ...expenseForm, vendor: e.target.value })}
+            placeholder="es. Adobe, Aruba, Telecom"
+          />
+          <div className="flex gap-3 pt-2">
+            <Button variant="outline" onClick={() => { setShowExpenseForm(false); resetExpenseForm(); }} className="flex-1">Annulla</Button>
+            <Button onClick={handleSaveExpense} loading={savingExpense} disabled={!expenseForm.name || !expenseForm.amount} className="flex-1">
+              {editingExpense ? 'Salva Modifiche' : 'Aggiungi Spesa'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+    </div>
+  );
+}
