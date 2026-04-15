@@ -274,7 +274,6 @@ export default function TasksPage() {
                 label: m.full_name,
               })),
             ]}
-            placeholder="Seleziona dipendente"
           />
         </div>
         <div className="w-44">
