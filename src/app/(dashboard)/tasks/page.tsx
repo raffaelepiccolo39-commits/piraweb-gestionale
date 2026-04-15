@@ -46,9 +46,11 @@ export default function TasksPage() {
   const router = useRouter();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
+  const [teamMembers, setTeamMembers] = useState<{ id: string; full_name: string; role: string; color: string | null }[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('');
   const [priorityFilter, setPriorityFilter] = useState('');
+  const [assigneeFilter, setAssigneeFilter] = useState<string>('me');
 
   // AI task creation
   const [showAiModal, setShowAiModal] = useState(false);
@@ -74,7 +76,12 @@ export default function TasksPage() {
           assignee:profiles!tasks_assigned_to_fkey(id, full_name, color)
         `);
 
-      // Tutti vedono tutti i task per avere panoramica completa del team
+      // Filtro dipendente: "me" = solo i miei, "all" = tutti, UUID = specifico
+      if (assigneeFilter === 'me') {
+        query = query.eq('assigned_to', profile.id);
+      } else if (assigneeFilter && assigneeFilter !== 'all') {
+        query = query.eq('assigned_to', assigneeFilter);
+      }
 
       query = query.order('updated_at', { ascending: false }).limit(200);
 
@@ -89,7 +96,7 @@ export default function TasksPage() {
     } finally {
       setLoading(false);
     }
-  }, [profile, isAdmin, statusFilter, priorityFilter]);
+  }, [profile, isAdmin, statusFilter, priorityFilter, assigneeFilter]);
 
   const fetchClients = useCallback(async () => {
     const { data } = await supabase
@@ -100,10 +107,20 @@ export default function TasksPage() {
     if (data) setClients(data as Client[]);
   }, []);
 
+  const fetchTeamMembers = useCallback(async () => {
+    const { data } = await supabase
+      .from('profiles')
+      .select('id, full_name, role, color')
+      .eq('is_active', true)
+      .order('full_name');
+    if (data) setTeamMembers(data);
+  }, []);
+
   useEffect(() => {
     fetchTasks();
     fetchClients();
-  }, [fetchTasks, fetchClients]);
+    fetchTeamMembers();
+  }, [fetchTasks, fetchClients, fetchTeamMembers]);
 
   const handleStatusChange = async (taskId: string, newStatus: string) => {
     try {
@@ -220,10 +237,15 @@ export default function TasksPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-pw-text font-[var(--font-syne)]">
-            {isAdmin ? 'Tutti i Task' : 'I miei Task'}
+            {assigneeFilter === 'me'
+              ? 'I miei Task'
+              : assigneeFilter === 'all'
+                ? 'Tutti i Task'
+                : `Task di ${teamMembers.find(m => m.id === assigneeFilter)?.full_name || 'Dipendente'}`
+            }
           </h1>
           <p className="text-sm text-pw-text-muted">
-            {tasks.length} task {isAdmin ? 'totali' : 'assegnati'}
+            {tasks.length} task {assigneeFilter === 'me' ? 'assegnati a te' : assigneeFilter === 'all' ? 'totali' : 'assegnati'}
           </p>
         </div>
         <Button onClick={() => { setParsedTasks(null); setTasksSaved(false); setAiInput(''); setAiClientId(''); setShowAiModal(true); }}>
@@ -234,6 +256,21 @@ export default function TasksPage() {
 
       {/* Filters */}
       <div className="flex flex-wrap gap-3">
+        <div className="w-52">
+          <Select
+            value={assigneeFilter}
+            onChange={(e) => setAssigneeFilter(e.target.value)}
+            options={[
+              { value: 'me', label: '👤 I miei Task' },
+              { value: 'all', label: '👥 Tutti i Task' },
+              ...teamMembers.map(m => ({
+                value: m.id,
+                label: m.full_name,
+              })),
+            ]}
+            placeholder="Seleziona dipendente"
+          />
+        </div>
         <div className="w-44">
           <Select
             value={statusFilter}
@@ -293,7 +330,7 @@ export default function TasksPage() {
                         <span className="text-xs text-pw-text-muted truncate">
                           {project?.name || 'Cliente'}
                         </span>
-                        {isAdmin && assignee && (
+                        {assignee && assigneeFilter !== 'me' && (
                           <span className="text-xs text-pw-text-dim">
                             · {assignee.full_name}
                           </span>
