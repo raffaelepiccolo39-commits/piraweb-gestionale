@@ -135,6 +135,27 @@ export default function TasksPage() {
   }, [fetchTasks, fetchClients, fetchTeamMembers]);
 
   const handleStatusChange = async (taskId: string, newStatus: string) => {
+    // When marking as done, ask for delivery link
+    if (newStatus === 'done') {
+      const task = tasks.find(t => t.id === taskId);
+      if (task && !task.delivery_url) {
+        const link = prompt('Inserisci il link al lavoro completato (Google Drive, Figma, ecc.):');
+        if (!link || !link.trim()) {
+          toast.error('Link obbligatorio per completare la task');
+          return;
+        }
+        try {
+          const { error } = await supabase.from('tasks').update({ status: 'done', delivery_url: link.trim() }).eq('id', taskId);
+          if (error) throw error;
+          toast.success('Task completata con link al lavoro');
+          fetchTasks();
+        } catch {
+          toast.error('Errore durante l\'aggiornamento');
+        }
+        return;
+      }
+    }
+
     try {
       const { error } = await supabase.from('tasks').update({ status: newStatus }).eq('id', taskId);
       if (error) throw error;

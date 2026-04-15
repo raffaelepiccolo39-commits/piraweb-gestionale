@@ -137,6 +137,7 @@ export interface Task {
   estimated_hours: number | null;
   logged_hours: number;
   ai_generated: boolean;
+  delivery_url: string | null;
   created_by: string;
   created_at: string;
   updated_at: string;

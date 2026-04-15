@@ -22,6 +22,8 @@ import {
 } from '@/lib/utils';
 import { STATUS_LABELS, PRIORITY_LABELS } from '@/lib/constants';
 import type { Task, TaskComment, TaskAttachment, ContentApproval, Profile } from '@/types/database';
+import { Modal } from '@/components/ui/modal';
+import { Input } from '@/components/ui/input';
 import {
   ArrowLeft,
   Calendar,
@@ -36,6 +38,8 @@ import {
   Clock,
   ExternalLink,
   FolderKanban,
+  Link2,
+  FolderOpen,
 } from 'lucide-react';
 
 export default function TaskDetailPage({
@@ -56,6 +60,9 @@ export default function TaskDetailPage({
   const [loading, setLoading] = useState(true);
   const [newComment, setNewComment] = useState('');
   const [commentLoading, setCommentLoading] = useState(false);
+  const [showDriveModal, setShowDriveModal] = useState(false);
+  const [driveUrl, setDriveUrl] = useState('');
+  const [pendingDoneStatus, setPendingDoneStatus] = useState(false);
 
   const isAdmin = profile?.role === 'admin';
 
@@ -147,9 +154,51 @@ export default function TaskDetailPage({
 
   const handleStatusChange = async (newStatus: string) => {
     if (!task) return;
+
+    // When marking as "done", require a delivery link (Google Drive, Figma, etc.)
+    if (newStatus === 'done' && !task.delivery_url) {
+      setDriveUrl('');
+      setPendingDoneStatus(true);
+      setShowDriveModal(true);
+      return;
+    }
+
     const { error } = await supabase.from('tasks').update({ status: newStatus }).eq('id', task.id);
     if (!error) {
       toast.success(`Stato aggiornato: ${STATUS_LABELS[newStatus]}`);
+      fetchTask();
+    }
+  };
+
+  const handleConfirmDone = async () => {
+    if (!task || !driveUrl.trim()) {
+      toast.error('Inserisci il link al lavoro completato');
+      return;
+    }
+
+    const { error } = await supabase.from('tasks').update({
+      status: 'done',
+      delivery_url: driveUrl.trim(),
+    }).eq('id', task.id);
+
+    if (!error) {
+      toast.success('Task completata con link al lavoro');
+      setShowDriveModal(false);
+      setPendingDoneStatus(false);
+      setDriveUrl('');
+      fetchTask();
+    }
+  };
+
+  const handleSaveDeliveryUrl = async () => {
+    if (!task || !driveUrl.trim()) return;
+    const { error } = await supabase.from('tasks').update({
+      delivery_url: driveUrl.trim(),
+    }).eq('id', task.id);
+    if (!error) {
+      toast.success('Link aggiornato');
+      setShowDriveModal(false);
+      setDriveUrl('');
       fetchTask();
     }
   };
@@ -492,6 +541,44 @@ export default function TaskDetailPage({
                 <p className="text-[10px] uppercase tracking-widest text-pw-text-dim mb-1">Ultimo aggiornamento</p>
                 <p className="text-xs text-pw-text-muted">{formatDateTime(task.updated_at)}</p>
               </div>
+
+              {/* Delivery URL / Drive link */}
+              <div>
+                <p className="text-[10px] uppercase tracking-widest text-pw-text-dim mb-1">Link Lavoro</p>
+                {task.delivery_url ? (
+                  <div className="space-y-1.5">
+                    <a
+                      href={task.delivery_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1.5 text-sm text-pw-accent hover:underline break-all"
+                    >
+                      <FolderOpen size={13} />
+                      {task.delivery_url.includes('drive.google') ? 'Google Drive' :
+                       task.delivery_url.includes('figma.com') ? 'Figma' :
+                       task.delivery_url.includes('canva.com') ? 'Canva' :
+                       'Apri link'}
+                      <ExternalLink size={10} className="shrink-0" />
+                    </a>
+                    {(isAdmin || task.assigned_to === profile?.id) && (
+                      <button
+                        onClick={() => { setDriveUrl(task.delivery_url || ''); setPendingDoneStatus(false); setShowDriveModal(true); }}
+                        className="text-[10px] text-pw-text-dim hover:text-pw-accent"
+                      >
+                        Modifica link
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => { setDriveUrl(''); setPendingDoneStatus(false); setShowDriveModal(true); }}
+                    className="flex items-center gap-1.5 text-sm text-pw-text-muted hover:text-pw-accent transition-colors"
+                  >
+                    <Link2 size={13} />
+                    Aggiungi link Drive / Figma
+                  </button>
+                )}
+              </div>
             </CardContent>
           </Card>
 
@@ -550,6 +637,49 @@ export default function TaskDetailPage({
           )}
         </div>
       </div>
+
+      {/* Drive/Link Modal */}
+      <Modal
+        open={showDriveModal}
+        onClose={() => { setShowDriveModal(false); setPendingDoneStatus(false); }}
+        title={pendingDoneStatus ? 'Completa Task - Inserisci link al lavoro' : 'Link al lavoro'}
+        size="sm"
+      >
+        <div className="space-y-4">
+          {pendingDoneStatus && (
+            <div className="p-3 rounded-xl bg-amber-500/10 text-amber-400 text-sm">
+              Per segnare la task come completata, inserisci il link dove si trova il lavoro finito (Google Drive, Figma, Canva, ecc.)
+            </div>
+          )}
+          <Input
+            id="drive-url"
+            label="Link al lavoro (Google Drive, Figma, Canva...)"
+            value={driveUrl}
+            onChange={(e) => setDriveUrl(e.target.value)}
+            placeholder="https://drive.google.com/..."
+          />
+          <div className="flex gap-2 pt-2">
+            <Button
+              variant="outline"
+              onClick={() => { setShowDriveModal(false); setPendingDoneStatus(false); }}
+              className="flex-1"
+            >
+              Annulla
+            </Button>
+            <Button
+              onClick={pendingDoneStatus ? handleConfirmDone : handleSaveDeliveryUrl}
+              disabled={!driveUrl.trim()}
+              className="flex-1"
+            >
+              {pendingDoneStatus ? (
+                <><CheckCircle size={14} /> Completa Task</>
+              ) : (
+                <><Link2 size={14} /> Salva Link</>
+              )}
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

@@ -25,6 +25,7 @@ import {
   X,
   Sparkles,
   Loader2,
+  ExternalLink,
 } from 'lucide-react';
 
 interface TaskDetailModalProps {
@@ -67,6 +68,7 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
   const [attachments, setAttachments] = useState<TaskAttachment[]>([]);
   const [uploadingFile, setUploadingFile] = useState(false);
   const [generatingAi, setGeneratingAi] = useState(false);
+  const [deliveryUrl, setDeliveryUrl] = useState('');
 
   useEffect(() => {
     if (task) {
@@ -77,6 +79,7 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
       setPriority(task.priority);
       setDeadline(task.deadline ? task.deadline.split('T')[0] : '');
       setEstimatedHours(task.estimated_hours ? String(task.estimated_hours) : '');
+      setDeliveryUrl(task.delivery_url || '');
       fetchComments(task.id);
       fetchAttachments(task.id);
     }
@@ -156,6 +159,11 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
 
   const handleSave = async () => {
     if (!task) return;
+    // Require delivery URL when marking as done
+    if (status === 'done' && !deliveryUrl.trim() && !task.delivery_url) {
+      alert('Per segnare come "Fatto" inserisci il link al lavoro (Google Drive, Figma, ecc.)');
+      return;
+    }
     setSaving(true);
     const { error } = await supabase.from('tasks').update({
       title,
@@ -165,6 +173,7 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
       priority,
       deadline: deadline || null,
       estimated_hours: estimatedHours ? Number(estimatedHours) : null,
+      delivery_url: deliveryUrl.trim() || null,
     }).eq('id', task.id);
     setSaving(false);
     if (error) { console.error('Error updating task:', error); return; }
@@ -268,6 +277,25 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
                   step="0.5"
                 />
               </div>
+            </div>
+
+            {/* Delivery URL / Drive link */}
+            <div className="mt-3">
+              <label className="text-[10px] uppercase tracking-widest text-pw-text-dim mb-1 block">
+                Link Lavoro (Google Drive, Figma, Canva...)
+              </label>
+              <input
+                type="url"
+                value={deliveryUrl}
+                onChange={(e) => setDeliveryUrl(e.target.value)}
+                placeholder="https://drive.google.com/..."
+                className="w-full px-3 py-2 rounded-lg border border-pw-border bg-pw-surface-2 text-pw-text text-xs focus:ring-2 focus:ring-pw-accent/30 focus:border-pw-accent/50 outline-none"
+              />
+              {deliveryUrl && (
+                <a href={deliveryUrl} target="_blank" rel="noopener noreferrer" className="text-[10px] text-pw-accent hover:underline mt-1 inline-flex items-center gap-1">
+                  Apri link <ExternalLink size={8} />
+                </a>
+              )}
             </div>
 
             {/* Client info */}
