@@ -116,11 +116,25 @@ export async function POST(request: NextRequest) {
       all_day: event.all_day,
     });
 
-    await client.createCalendarObject({
-      calendar: targetCalendar,
-      filename: `${uid}.ics`,
-      iCalString: icalData,
-    });
+    if (event.ical_uid) {
+      // Update existing: build the calendarObject with the correct URL
+      const objectUrl = targetCalendar.url.endsWith('/')
+        ? `${targetCalendar.url}${event.ical_uid}.ics`
+        : `${targetCalendar.url}/${event.ical_uid}.ics`;
+      await client.updateCalendarObject({
+        calendarObject: {
+          url: objectUrl,
+          data: icalData,
+          etag: '',
+        },
+      });
+    } else {
+      await client.createCalendarObject({
+        calendar: targetCalendar,
+        filename: `${uid}.ics`,
+        iCalString: icalData,
+      });
+    }
 
     // Update event with ical_uid
     if (!event.ical_uid) {

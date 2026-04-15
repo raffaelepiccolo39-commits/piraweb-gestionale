@@ -69,7 +69,6 @@ Se volete, sono disponibile per una consulenza gratuita di 15 minuti in cui vi m
   } catch (err) {
     return NextResponse.json({
       error: err instanceof Error ? err.message : 'Errore invio',
-      details: err instanceof Error ? err.stack : undefined,
     }, { status: 500 });
   }
 }

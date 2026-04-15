@@ -1,5 +1,6 @@
 export const dynamic = 'force-dynamic';
 
+import crypto from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 
@@ -12,10 +13,11 @@ import { createServiceRoleClient } from '@/lib/supabase/server';
  *
  * Body: { name, surname, email, phone?, service?, message, api_key }
  */
+const allowedOrigins = ['https://www.piraweb.it', 'https://piraweb.it', 'http://localhost:3000'];
+
 export async function POST(request: NextRequest) {
   // CORS per piraweb.it
   const origin = request.headers.get('origin') || '';
-  const allowedOrigins = ['https://www.piraweb.it', 'https://piraweb.it', 'http://localhost:3000'];
   const corsOrigin = allowedOrigins.includes(origin) ? origin : '';
 
   const headers = {
@@ -40,7 +42,7 @@ export async function POST(request: NextRequest) {
   const apiKey = typeof body.api_key === 'string' ? body.api_key : '';
   const expectedKey = process.env.CONTACT_FORM_API_KEY;
 
-  if (!expectedKey || apiKey !== expectedKey) {
+  if (!expectedKey || apiKey.length !== expectedKey.length || !crypto.timingSafeEqual(Buffer.from(apiKey), Buffer.from(expectedKey))) {
     return NextResponse.json({ error: 'API key non valida' }, { status: 401, headers });
   }
 
@@ -110,11 +112,14 @@ export async function POST(request: NextRequest) {
 }
 
 // Handle CORS preflight
-export async function OPTIONS() {
+export async function OPTIONS(request: NextRequest) {
+  const origin = request.headers.get('origin') || '';
+  const corsOrigin = allowedOrigins.includes(origin) ? origin : '';
+
   return new NextResponse(null, {
     status: 204,
     headers: {
-      'Access-Control-Allow-Origin': 'https://www.piraweb.it',
+      'Access-Control-Allow-Origin': corsOrigin,
       'Access-Control-Allow-Methods': 'POST, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type',
     },

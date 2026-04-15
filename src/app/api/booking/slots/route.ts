@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceRoleClient } from '@/lib/supabase/server';
+import { applyRateLimit } from '@/lib/rate-limit';
 
 /**
  * GET /api/booking/slots?date=2026-04-14
@@ -13,13 +14,35 @@ import { createServiceRoleClient } from '@/lib/supabase/server';
  * Gli slot occupati da eventi in calendario vengono esclusi.
  */
 export async function GET(request: NextRequest) {
+  // Rate limiting per IP - max 30 richieste slot per ora
+  const blocked = applyRateLimit(request, 'booking-slots', { maxRequests: 30, windowSeconds: 3600 });
+  if (blocked) return blocked;
+
   const dateParam = request.nextUrl.searchParams.get('date');
 
   if (!dateParam || !/^\d{4}-\d{2}-\d{2}$/.test(dateParam)) {
     return NextResponse.json({ error: 'Parametro date obbligatorio (formato: YYYY-MM-DD)' }, { status: 400 });
   }
 
-  const date = new Date(dateParam + 'T00:00:00+02:00'); // Fuso orario Italia
+  // Calculate current Italy UTC offset dynamically (handles CET/CEST switch)
+  const getItalyOffset = (): string => {
+    const now = new Date();
+    const formatter = new Intl.DateTimeFormat('en-US', { timeZone: 'Europe/Rome', timeZoneName: 'shortOffset' });
+    const parts = formatter.formatToParts(now);
+    const tzPart = parts.find(p => p.type === 'timeZoneName');
+    // tzPart.value is like "GMT+1" or "GMT+2"
+    if (tzPart) {
+      const match = tzPart.value.match(/GMT([+-]\d+)/);
+      if (match) {
+        const offset = parseInt(match[1], 10);
+        return `${offset >= 0 ? '+' : '-'}${String(Math.abs(offset)).padStart(2, '0')}:00`;
+      }
+    }
+    return '+01:00'; // fallback CET
+  };
+  const italyOffset = getItalyOffset();
+
+  const date = new Date(`${dateParam}T00:00:00${italyOffset}`);
   const dayOfWeek = date.getDay(); // 0=dom, 6=sab
 
   // Weekend chiuso
@@ -45,8 +68,8 @@ export async function GET(request: NextRequest) {
       const endHour = endMinutes >= 60 ? (hour + 1).toString().padStart(2, '0') : startHour;
       const endMin = (endMinutes % 60).toString().padStart(2, '0');
 
-      const startISO = `${dateParam}T${startHour}:${startMin}:00+02:00`;
-      const endISO = `${dateParam}T${endHour}:${endMin}:00+02:00`;
+      const startISO = `${dateParam}T${startHour}:${startMin}:00${italyOffset}`;
+      const endISO = `${dateParam}T${endHour}:${endMin}:00${italyOffset}`;
 
       allSlots.push({
         start: startISO,
@@ -59,8 +82,8 @@ export async function GET(request: NextRequest) {
 
   // Aggiungi slot 18:00-18:30
   allSlots.push({
-    start: `${dateParam}T18:00:00+02:00`,
-    end: `${dateParam}T18:30:00+02:00`,
+    start: `${dateParam}T18:00:00${italyOffset}`,
+    end: `${dateParam}T18:30:00${italyOffset}`,
     startTime: '18:00',
     endTime: '18:30',
   });
@@ -74,8 +97,8 @@ export async function GET(request: NextRequest) {
 
   // Prendi gli eventi dal calendario per questa data
   const supabase = await createServiceRoleClient();
-  const dayStart = `${dateParam}T00:00:00+02:00`;
-  const dayEnd = `${dateParam}T23:59:59+02:00`;
+  const dayStart = `${dateParam}T00:00:00${italyOffset}`;
+  const dayEnd = `${dateParam}T23:59:59${italyOffset}`;
 
   const { data: events } = await supabase
     .from('calendar_events')

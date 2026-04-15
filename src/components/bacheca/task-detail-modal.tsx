@@ -106,12 +106,17 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setUploadingFile(false); return; }
 
+    const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
     for (const file of Array.from(files)) {
+      if (file.size > MAX_FILE_SIZE) {
+        console.warn(`File "${file.name}" exceeds 10MB limit, skipping.`);
+        continue;
+      }
       const path = `${task.id}/${Date.now()}_${file.name}`;
       const { error: uploadError } = await supabase.storage.from('attachments').upload(path, file);
       if (!uploadError) {
         const { data: urlData } = supabase.storage.from('attachments').getPublicUrl(path);
-        await supabase.from('task_attachments').insert({
+        const { error: insertError } = await supabase.from('task_attachments').insert({
           task_id: task.id,
           file_name: file.name,
           file_url: urlData.publicUrl,
@@ -119,6 +124,7 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
           file_size: file.size,
           uploaded_by: user.id,
         });
+        if (insertError) console.error('Error saving attachment:', insertError);
       }
     }
     await fetchAttachments(task.id);
@@ -126,7 +132,8 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
   };
 
   const handleDeleteAttachment = async (att: TaskAttachment) => {
-    await supabase.from('task_attachments').delete().eq('id', att.id);
+    const { error } = await supabase.from('task_attachments').delete().eq('id', att.id);
+    if (error) { console.error('Error deleting attachment:', error); return; }
     if (task) await fetchAttachments(task.id);
   };
 
@@ -150,7 +157,7 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
   const handleSave = async () => {
     if (!task) return;
     setSaving(true);
-    await supabase.from('tasks').update({
+    const { error } = await supabase.from('tasks').update({
       title,
       description: description || null,
       assigned_to: assignedTo || null,
@@ -160,12 +167,14 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
       estimated_hours: estimatedHours ? Number(estimatedHours) : null,
     }).eq('id', task.id);
     setSaving(false);
+    if (error) { console.error('Error updating task:', error); return; }
     onUpdate();
   };
 
   const handleDelete = async () => {
     if (!task || !confirm('Eliminare questa task?')) return;
-    await supabase.from('tasks').delete().eq('id', task.id);
+    const { error } = await supabase.from('tasks').delete().eq('id', task.id);
+    if (error) { console.error('Error deleting task:', error); return; }
     onClose();
     onUpdate();
   };
@@ -175,11 +184,12 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
     setSendingComment(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
-      await supabase.from('task_comments').insert({
+      const { error } = await supabase.from('task_comments').insert({
         task_id: task.id,
         user_id: user.id,
         content: newComment.trim(),
       });
+      if (error) { console.error('Error adding comment:', error); setSendingComment(false); return; }
       setNewComment('');
       await fetchComments(task.id);
     }

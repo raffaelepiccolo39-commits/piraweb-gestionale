@@ -32,16 +32,24 @@ async function handleCron(request: NextRequest) {
 
   // Controlla orario: solo lun-ven 9:00-18:00 (fuso orario Italia)
   const now = new Date();
-  const italyTime = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Rome' }));
-  const dayOfWeek = italyTime.getDay(); // 0=dom, 6=sab
-  const hour = italyTime.getHours();
+  const italyFormatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Europe/Rome',
+    weekday: 'short',
+    hour: 'numeric',
+    hour12: false,
+  });
+  const parts = italyFormatter.formatToParts(now);
+  const dayStr = parts.find(p => p.type === 'weekday')?.value || '';
+  const hour = parseInt(parts.find(p => p.type === 'hour')?.value || '0', 10);
+  const weekendDays = ['Sat', 'Sun'];
+  const dayOfWeek = weekendDays.includes(dayStr) ? (dayStr === 'Sun' ? 0 : 6) : 1;
 
   if (dayOfWeek === 0 || dayOfWeek === 6 || hour < 9 || hour >= 18) {
     return NextResponse.json({
       success: true,
       agent: 'lead_sender',
       skipped: true,
-      reason: `Fuori orario lavorativo (${italyTime.toLocaleString('it-IT')})`,
+      reason: `Fuori orario lavorativo (${now.toLocaleString('it-IT', { timeZone: 'Europe/Rome' })})`,
     });
   }
 
@@ -76,6 +84,13 @@ async function handleCron(request: NextRequest) {
 
       return NextResponse.json({ success: true, agent: 'lead_sender', sent: 0 });
     }
+
+    // Claim leads: mark as 'sending' to prevent concurrent runs from sending duplicate emails
+    const leadIds = leads.map(l => l.id);
+    await supabase
+      .from('lead_prospects')
+      .update({ outreach_status: 'sending' })
+      .in('id', leadIds);
 
     let emailsSent = 0;
     let whatsappReady = 0;

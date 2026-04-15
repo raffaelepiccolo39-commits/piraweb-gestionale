@@ -49,11 +49,13 @@ export function NoteDevForm({ onSubmit, onCancel, existing }: NoteDevFormProps) 
   const handleScreenshot = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (previewUrl && previewUrl.startsWith('blob:')) URL.revokeObjectURL(previewUrl);
     setScreenshot(file);
     setPreviewUrl(URL.createObjectURL(file));
   };
 
   const removeScreenshot = () => {
+    if (previewUrl && previewUrl.startsWith('blob:')) URL.revokeObjectURL(previewUrl);
     setScreenshot(null);
     setPreviewUrl(null);
   };

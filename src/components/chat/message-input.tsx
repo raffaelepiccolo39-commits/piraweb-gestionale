@@ -26,10 +26,15 @@ export function MessageInput({ onSend, disabled, members = [] }: MessageInputPro
     const trimmed = content.trim();
     if (!trimmed || sending) return;
     setSending(true);
-    await onSend(trimmed);
-    setContent('');
-    setSending(false);
-    textareaRef.current?.focus();
+    try {
+      await onSend(trimmed);
+      setContent('');
+    } catch (err) {
+      console.error('Error sending message:', err);
+    } finally {
+      setSending(false);
+      textareaRef.current?.focus();
+    }
   };
 
   const insertMention = useCallback((member: Profile) => {

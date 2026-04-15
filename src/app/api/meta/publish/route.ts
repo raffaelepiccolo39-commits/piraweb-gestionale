@@ -27,9 +27,25 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'page_id, platform e message sono obbligatori' }, { status: 400 });
   }
 
-  // Get page data
-  const { data: page } = await supabase.from('meta_pages').select('*').eq('id', page_id).single();
+  // Get page data with connection for token expiry check
+  const { data: page } = await supabase
+    .from('meta_pages')
+    .select('*, connection:meta_connections!meta_pages_connection_id_fkey(token_expires_at)')
+    .eq('id', page_id)
+    .single();
   if (!page) return NextResponse.json({ error: 'Pagina Meta non trovata' }, { status: 404 });
+
+  // Check token expiration
+  const connection = page.connection as { token_expires_at: string } | null;
+  if (connection?.token_expires_at) {
+    const expiresAt = new Date(connection.token_expires_at);
+    if (expiresAt <= new Date()) {
+      return NextResponse.json({
+        error: 'Token Meta scaduto. Vai su Social Calendar e ricollega il tuo account Meta.',
+        expired: true,
+      }, { status: 401 });
+    }
+  }
 
   const pageToken = page.page_access_token;
   let metaPostId = '';

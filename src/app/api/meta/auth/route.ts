@@ -25,7 +25,13 @@ export async function GET() {
     'business_management',
   ].join(',');
 
-  const authUrl = `https://www.facebook.com/v21.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scopes}&response_type=code&state=${user.id}`;
+  // Create a signed state to prevent CSRF: userId + HMAC signature
+  const { createHmac } = await import('crypto');
+  const secret = process.env.META_APP_SECRET || appId;
+  const hmac = createHmac('sha256', secret).update(user.id).digest('hex').slice(0, 16);
+  const state = `${user.id}.${hmac}`;
+
+  const authUrl = `https://www.facebook.com/v21.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scopes}&response_type=code&state=${state}`;
 
   return NextResponse.redirect(authUrl);
 }

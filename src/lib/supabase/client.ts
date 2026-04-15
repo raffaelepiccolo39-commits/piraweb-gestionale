@@ -12,10 +12,3 @@ export function createClient() {
   client = createBrowserClient(url, key);
   return client;
 }
-
-// Stable reference for use in React components — prevents re-renders
-let stableClient: ReturnType<typeof createBrowserClient> | null = null;
-export function getSupabase() {
-  if (!stableClient) stableClient = createClient();
-  return stableClient;
-}

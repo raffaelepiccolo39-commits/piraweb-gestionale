@@ -25,7 +25,7 @@ export const ROLE_LABELS: Record<string, string> = {
   graphic_brand: 'Graphic Brand',
 };
 
-export const TASK_STATUSES = ['backlog', 'todo', 'in_progress', 'review', 'done'] as const;
+export const TASK_STATUSES = ['backlog', 'todo', 'in_progress', 'review', 'done', 'archived'] as const;
 export type TaskStatus = (typeof TASK_STATUSES)[number];
 
 export const TASK_PRIORITIES = ['low', 'medium', 'high', 'urgent'] as const;

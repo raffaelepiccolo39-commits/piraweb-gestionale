@@ -124,8 +124,8 @@ async function handleCron(request: NextRequest) {
           // Quick scan del sito
           const quickScore = await quickWebsiteScan(website);
 
-          // Cerca social dal sito
-          const social = await extractSocialFromWebsite(website);
+          // Cerca social dal sito (reuse HTML from scan to avoid double fetch)
+          const social = await extractSocialFromWebsite(website, quickScore?.html);
 
           // Score preliminare
           let scoreWebsite = quickScore?.score ?? 0;
@@ -235,6 +235,11 @@ async function quickWebsiteScan(website: string | null): Promise<{
 
   try {
     const url = website.startsWith('http') ? website : `https://${website}`;
+
+    // SSRF protection
+    const { isUrlSafeToFetch } = await import('@/lib/url-validator');
+    if (!isUrlSafeToFetch(url)) return null;
+
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 8000);
 
@@ -265,7 +270,7 @@ async function quickWebsiteScan(website: string | null): Promise<{
   }
 }
 
-async function extractSocialFromWebsite(website: string | null): Promise<{
+async function extractSocialFromWebsite(website: string | null, prefetchedHtml?: string): Promise<{
   instagram: string | null;
   facebook: string | null;
   tiktok: string | null;
@@ -273,18 +278,27 @@ async function extractSocialFromWebsite(website: string | null): Promise<{
   if (!website) return { instagram: null, facebook: null, tiktok: null };
 
   try {
-    const url = website.startsWith('http') ? website : `https://${website}`;
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 8000);
+    let html = prefetchedHtml;
 
-    const res = await fetch(url, {
-      signal: controller.signal,
-      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; PiraWebBot/1.0)' },
-      redirect: 'follow',
-    });
-    clearTimeout(timer);
+    if (!html) {
+      const url = website.startsWith('http') ? website : `https://${website}`;
 
-    const html = await res.text();
+      // SSRF protection
+      const { isUrlSafeToFetch } = await import('@/lib/url-validator');
+      if (!isUrlSafeToFetch(url)) return { instagram: null, facebook: null, tiktok: null };
+
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 8000);
+
+      const res = await fetch(url, {
+        signal: controller.signal,
+        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; PiraWebBot/1.0)' },
+        redirect: 'follow',
+      });
+      clearTimeout(timer);
+
+      html = await res.text();
+    }
 
     const igMatch = html.match(/instagram\.com\/([a-zA-Z0-9_.]+)/);
     const fbMatch = html.match(/facebook\.com\/([a-zA-Z0-9_.]+)/);

@@ -22,6 +22,13 @@ export async function PUT(
 
   const { title, description, start_time, end_time, location, all_day, color, assigned_to } = body;
 
+  // Check ownership / assignment
+  const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+  const { data: existing } = await supabase.from('calendar_events').select('created_by, assigned_to').eq('id', id).single();
+  if (existing && existing.created_by !== user.id && !(existing.assigned_to || []).includes(user.id) && profile?.role !== 'admin') {
+    return NextResponse.json({ error: 'Non autorizzato a modificare questo evento' }, { status: 403 });
+  }
+
   const { data, error } = await supabase
     .from('calendar_events')
     .update({
@@ -53,12 +60,17 @@ export async function DELETE(
 
   const { id } = await params;
 
-  // Get event to check for ical_uid before deleting
+  // Get event to check ownership and ical_uid before deleting
+  const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
   const { data: event } = await supabase
     .from('calendar_events')
-    .select('ical_uid')
+    .select('ical_uid, created_by, assigned_to')
     .eq('id', id)
     .single();
+
+  if (event && event.created_by !== user.id && !(event.assigned_to || []).includes(user.id) && profile?.role !== 'admin') {
+    return NextResponse.json({ error: 'Non autorizzato a eliminare questo evento' }, { status: 403 });
+  }
 
   // Delete from CalDAV if synced
   if (event?.ical_uid) {

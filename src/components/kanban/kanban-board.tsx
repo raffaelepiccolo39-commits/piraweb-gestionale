@@ -11,6 +11,7 @@ import { createClient } from '@/lib/supabase/client';
 import { cn, getPriorityColor, getInitials, formatDate } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import type { Task, TaskStatus } from '@/types/database';
+import { KANBAN_COLUMNS, PRIORITY_LABELS } from '@/lib/constants';
 import { Calendar, MessageSquare, Clock, Sparkles } from 'lucide-react';
 
 interface KanbanBoardProps {
@@ -18,21 +19,6 @@ interface KanbanBoardProps {
   onTaskClick: (task: Task) => void;
   onTasksUpdate: () => void;
 }
-
-const columns: { id: TaskStatus; label: string; color: string }[] = [
-  { id: 'backlog', label: 'Backlog', color: 'bg-gray-400' },
-  { id: 'todo', label: 'Da fare', color: 'bg-blue-500' },
-  { id: 'in_progress', label: 'In corso', color: 'bg-yellow-500' },
-  { id: 'review', label: 'Review', color: 'bg-purple-500' },
-  { id: 'done', label: 'Fatto', color: 'bg-green-500' },
-];
-
-const priorityLabels: Record<string, string> = {
-  low: 'Bassa',
-  medium: 'Media',
-  high: 'Alta',
-  urgent: 'Urgente',
-};
 
 export function KanbanBoard({ tasks, onTaskClick, onTasksUpdate }: KanbanBoardProps) {
   const supabase = createClient();
@@ -85,7 +71,7 @@ export function KanbanBoard({ tasks, onTaskClick, onTasksUpdate }: KanbanBoardPr
   return (
     <DragDropContext onDragEnd={handleDragEnd}>
       <div className="flex gap-4 overflow-x-auto pb-4 min-h-[500px]">
-        {columns.map((column) => {
+        {KANBAN_COLUMNS.map((column) => {
           const columnTasks = getColumnTasks(column.id);
           return (
             <div
@@ -138,7 +124,7 @@ export function KanbanBoard({ tasks, onTaskClick, onTasksUpdate }: KanbanBoardPr
 
                             <div className="flex flex-wrap gap-1.5 mb-2">
                               <Badge className={getPriorityColor(task.priority)}>
-                                {priorityLabels[task.priority]}
+                                {PRIORITY_LABELS[task.priority]}
                               </Badge>
                             </div>
 

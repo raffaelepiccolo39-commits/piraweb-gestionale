@@ -105,7 +105,8 @@ export function Header({ onMobileMenuToggle, mobileMenuOpen }: HeaderProps) {
     return () => {
       if (channel) supabase.removeChannel(channel);
     };
-  }, [profile, supabase]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile]);
 
   const markAsRead = async (id: string) => {
     await supabase.from('notifications').update({ is_read: true }).eq('id', id);

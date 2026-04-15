@@ -94,6 +94,28 @@ export async function POST() {
       }
     }
 
+    // Delete orphaned events (removed from iCloud but still in local DB)
+    const syncedUids = objects
+      .map((obj) => obj.data?.match(/UID:(.*)/)?.[1]?.trim())
+      .filter((uid): uid is string => !!uid);
+
+    if (syncedUids.length > 0) {
+      const { data: orphaned } = await supabase
+        .from('calendar_events')
+        .select('id, ical_uid')
+        .not('ical_uid', 'is', null);
+
+      if (orphaned) {
+        const orphanedIds = orphaned
+          .filter((e) => !syncedUids.includes(e.ical_uid))
+          .map((e) => e.id);
+
+        if (orphanedIds.length > 0) {
+          await supabase.from('calendar_events').delete().in('id', orphanedIds);
+        }
+      }
+    }
+
     // Update sync status
     await supabase.from('calendar_sync_config').update({
       last_synced_at: new Date().toISOString(),
@@ -121,10 +143,32 @@ export async function POST() {
   }
 }
 
+function getItalyOffsetForDate(dateStr: string): string {
+  // Determine Italy offset for a specific date (handles CET/CEST)
+  try {
+    const year = parseInt(dateStr.slice(0, 4));
+    const month = parseInt(dateStr.slice(4, 6)) - 1;
+    const day = parseInt(dateStr.slice(6, 8));
+    const date = new Date(Date.UTC(year, month, day, 12, 0, 0));
+    const formatter = new Intl.DateTimeFormat('en-US', { timeZone: 'Europe/Rome', timeZoneName: 'shortOffset' });
+    const parts = formatter.formatToParts(date);
+    const tzPart = parts.find(p => p.type === 'timeZoneName');
+    if (tzPart) {
+      const match = tzPart.value.match(/GMT([+-]\d+)/);
+      if (match) {
+        const offset = parseInt(match[1], 10);
+        return `${offset >= 0 ? '+' : '-'}${String(Math.abs(offset)).padStart(2, '0')}:00`;
+      }
+    }
+  } catch { /* fallback below */ }
+  return '+01:00';
+}
+
 function parseICalDate(str: string): string {
   // Handle YYYYMMDD (all-day)
   if (str.length === 8) {
-    return `${str.slice(0, 4)}-${str.slice(4, 6)}-${str.slice(6, 8)}T00:00:00+02:00`;
+    const offset = getItalyOffsetForDate(str);
+    return `${str.slice(0, 4)}-${str.slice(4, 6)}-${str.slice(6, 8)}T00:00:00${offset}`;
   }
 
   // If it ends with Z, it's already UTC - keep as-is
@@ -138,7 +182,8 @@ function parseICalDate(str: string): string {
   // No Z = local time (Europe/Rome for iCloud Italy)
   const match = str.match(/(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})/);
   if (match) {
-    return `${match[1]}-${match[2]}-${match[3]}T${match[4]}:${match[5]}:${match[6]}+02:00`;
+    const offset = getItalyOffsetForDate(`${match[1]}${match[2]}${match[3]}`);
+    return `${match[1]}-${match[2]}-${match[3]}T${match[4]}:${match[5]}:${match[6]}${offset}`;
   }
   return str;
 }

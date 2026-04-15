@@ -31,14 +31,7 @@ import {
   X,
   Loader2,
 } from 'lucide-react';
-
-const priorityLabels: Record<string, string> = {
-  low: 'Bassa', medium: 'Media', high: 'Alta', urgent: 'Urgente',
-};
-
-const statusLabels: Record<string, string> = {
-  backlog: 'Backlog', todo: 'Da fare', in_progress: 'In corso', review: 'Review', done: 'Fatto',
-};
+import { STATUS_LABELS, PRIORITY_LABELS } from '@/lib/constants';
 
 export default function BachecaPage() {
   const { profile } = useAuth();
@@ -68,7 +61,8 @@ export default function BachecaPage() {
           assignee:profiles!tasks_assigned_to_fkey(id, full_name, color)
         `)
         .not('status', 'eq', 'archived')
-        .order('position'),
+        .order('position')
+        .limit(2000),
       supabase
         .from('profiles')
         .select('*')

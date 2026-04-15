@@ -267,6 +267,10 @@ export async function POST(request: NextRequest) {
 }
 
 async function fetchWithTimeout(url: string, ms: number): Promise<Response | null> {
+  // SSRF protection: block internal/private URLs
+  const { isUrlSafeToFetch } = await import('@/lib/url-validator');
+  if (!isUrlSafeToFetch(url)) return null;
+
   try {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), ms);

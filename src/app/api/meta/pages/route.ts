@@ -11,16 +11,26 @@ export async function GET() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 });
 
-  const { data: pages } = await supabase
+  const { data: connection } = await supabase
+    .from('meta_connections')
+    .select('id, fb_user_name, token_expires_at')
+    .eq('user_id', user.id)
+    .maybeSingle();
+
+  const query = supabase
     .from('meta_pages')
     .select('*, client:clients(id, name, company)')
     .eq('is_active', true)
     .order('page_name');
 
-  const { data: connection } = await supabase
-    .from('meta_connections')
-    .select('fb_user_name, token_expires_at')
-    .maybeSingle();
+  if (connection) {
+    query.eq('connection_id', connection.id);
+  } else {
+    // No connection for this user — return empty
+    query.eq('connection_id', '00000000-0000-0000-0000-000000000000');
+  }
+
+  const { data: pages } = await query;
 
   return NextResponse.json({
     connected: !!connection,

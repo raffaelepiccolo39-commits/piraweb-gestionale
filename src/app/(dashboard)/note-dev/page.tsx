@@ -36,10 +36,7 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
-
-const priorityLabels: Record<string, string> = {
-  low: 'Bassa', medium: 'Media', high: 'Alta', urgent: 'Urgente',
-};
+import { PRIORITY_LABELS } from '@/lib/constants';
 
 export default function NoteDevPage() {
   const { profile } = useAuth();
@@ -367,7 +364,7 @@ export default function NoteDevPage() {
                         {getDevNoteCategoryLabel(note.category)}
                       </Badge>
                       <Badge className={getPriorityColor(note.priority)}>
-                        {priorityLabels[note.priority]}
+                        {PRIORITY_LABELS[note.priority]}
                       </Badge>
                       <Badge className={getDevNoteStatusColor(note.status)}>
                         {getDevNoteStatusLabel(note.status)}

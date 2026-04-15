@@ -155,26 +155,53 @@ export default function SettingsPage() {
   const handleUpdateProfile = async () => {
     if (!profile) return;
     setSaving(true);
-    await supabase
+    const { error } = await supabase
       .from('profiles')
       .update({ full_name: profileForm.full_name })
       .eq('id', profile.id);
+    if (error) {
+      toast.error('Errore nel salvataggio del profilo');
+    } else {
+      toast.success('Profilo aggiornato');
+    }
     setSaving(false);
   };
 
   const handleUpdateRole = async (userId: string, newRole: string) => {
-    await supabase
-      .from('profiles')
-      .update({ role: newRole })
-      .eq('id', userId);
+    try {
+      const res = await fetch('/api/admin/update-member', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'update_role', user_id: userId, role: newRole }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        toast.error(data.error || 'Errore aggiornamento ruolo');
+        return;
+      }
+    } catch {
+      toast.error('Errore di connessione');
+      return;
+    }
     fetchTeam();
   };
 
   const handleToggleActive = async (userId: string, isActive: boolean) => {
-    await supabase
-      .from('profiles')
-      .update({ is_active: !isActive })
-      .eq('id', userId);
+    try {
+      const res = await fetch('/api/admin/update-member', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'toggle_active', user_id: userId, is_active: isActive }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        toast.error(data.error || 'Errore aggiornamento stato');
+        return;
+      }
+    } catch {
+      toast.error('Errore di connessione');
+      return;
+    }
     fetchTeam();
   };
 
@@ -225,16 +252,27 @@ export default function SettingsPage() {
   const handleSaveEmployee = async () => {
     if (!editingMember) return;
     setEditLoading(true);
-    await supabase
-      .from('profiles')
-      .update({
-        salary: editForm.salary ? Number(editForm.salary) : null,
-        iban: editForm.iban || null,
-        color: editForm.color || null,
-        contract_type: editForm.contract_type || null,
-        contract_start_date: editForm.contract_start_date || null,
-      })
-      .eq('id', editingMember.id);
+    try {
+      const res = await fetch('/api/admin/update-member', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'update_employee',
+          user_id: editingMember.id,
+          salary: editForm.salary || null,
+          iban: editForm.iban || null,
+          color: editForm.color || null,
+          contract_type: editForm.contract_type || null,
+          contract_start_date: editForm.contract_start_date || null,
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        toast.error(data.error || 'Errore salvataggio dipendente');
+      }
+    } catch {
+      toast.error('Errore di connessione');
+    }
     setEditLoading(false);
     setEditingMember(null);
     fetchTeam();

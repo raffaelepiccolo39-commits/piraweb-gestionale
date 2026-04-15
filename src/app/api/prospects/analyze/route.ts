@@ -85,6 +85,12 @@ function clamp(val: number, min: number, max: number): number {
 }
 
 async function fetchWithTimeout(url: string, timeoutMs = 12000): Promise<{ response: Response; elapsed: number }> {
+  // SSRF protection: block internal/private URLs
+  const { isUrlSafeToFetch } = await import('@/lib/url-validator');
+  if (!isUrlSafeToFetch(url)) {
+    throw new Error('URL non consentito');
+  }
+
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   const start = Date.now();

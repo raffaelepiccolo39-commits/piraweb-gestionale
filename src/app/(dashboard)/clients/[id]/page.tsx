@@ -191,14 +191,16 @@ export default function ClientDetailPage({
 
   const handleSaveKnowledgeBase = async (data: Partial<ClientKnowledgeBase>) => {
     if (knowledgeBase) {
-      await supabase
+      const { error } = await supabase
         .from('client_knowledge_base')
         .update(data)
         .eq('id', knowledgeBase.id);
+      if (error) return;
     } else {
-      await supabase
+      const { error } = await supabase
         .from('client_knowledge_base')
         .insert({ ...data, client_id: id });
+      if (error) return;
     }
     // Refresh
     const { data: kbData } = await supabase
@@ -265,13 +267,6 @@ export default function ClientDetailPage({
   const handleRenewContract = async (data: ContractFormData) => {
     if (!profile || !contract) return;
 
-    // Close current contract
-    await supabase
-      .from('client_contracts')
-      .update({ status: 'completed' })
-      .eq('id', contract.id);
-
-    // Create new one
     let attachmentUrl: string | null = null;
     let attachmentName: string | null = null;
 
@@ -283,6 +278,8 @@ export default function ClientDetailPage({
       }
     }
 
+    // Create new contract FIRST, then close old one.
+    // This way, if insert fails, the old contract remains active.
     const { data: newContract, error } = await supabase
       .from('client_contracts')
       .insert({
@@ -304,6 +301,16 @@ export default function ClientDetailPage({
       return;
     }
 
+    // Only close old contract after new one is confirmed
+    const { error: closeError } = await supabase
+      .from('client_contracts')
+      .update({ status: 'completed' })
+      .eq('id', contract.id);
+
+    if (closeError) {
+      setContractError('Nuovo contratto creato ma errore nella chiusura del precedente');
+    }
+
     await supabase.rpc('generate_contract_payments', { p_contract_id: newContract.id });
 
     setShowRenewForm(false);
@@ -315,13 +322,15 @@ export default function ClientDetailPage({
 
     const newPaidStatus = !payment.is_paid;
 
-    await supabase
+    const { error: updateError } = await supabase
       .from('client_payments')
       .update({
         is_paid: newPaidStatus,
         paid_at: newPaidStatus ? new Date().toISOString() : null,
       })
       .eq('id', payment.id);
+
+    if (updateError) return; // Don't log if update failed
 
     await supabase.from('payment_logs').insert({
       payment_id: payment.id,

@@ -61,6 +61,13 @@ async function handleCron(request: NextRequest) {
       return NextResponse.json({ success: true, agent: 'lead_outreach', contacted: 0 });
     }
 
+    // Claim leads: mark as 'generating' to prevent concurrent runs from picking them up
+    const leadIds = leads.map(l => l.id);
+    await supabase
+      .from('lead_prospects')
+      .update({ outreach_status: 'generating' })
+      .in('id', leadIds);
+
     let contacted = 0;
     const results: Array<{ name: string; channel: string; score: number }> = [];
 

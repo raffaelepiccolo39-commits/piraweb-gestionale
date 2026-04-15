@@ -107,7 +107,8 @@ export default function ChatPage() {
           .from('chat_messages')
           .select('*')
           .in('channel_id', finalChannelIds)
-          .order('created_at', { ascending: false }),
+          .order('created_at', { ascending: false })
+          .limit(500),
       ]);
 
       const membersByChannel = new Map<string, ChatChannelMember[]>();

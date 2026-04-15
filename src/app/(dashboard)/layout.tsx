@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Sidebar } from '@/components/layout/sidebar';
 import { Header } from '@/components/layout/header';
 import { ToastProvider } from '@/components/ui/toast';
+import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { cn } from '@/lib/utils';
 
 export default function DashboardLayout({
@@ -56,7 +57,9 @@ export default function DashboardLayout({
           mobileMenuOpen={mobileMenuOpen}
         />
         <main id="main-content" className="p-4 lg:p-6 min-w-0">
-          {children}
+          <ErrorBoundary>
+            {children}
+          </ErrorBoundary>
         </main>
       </div>
     </div>

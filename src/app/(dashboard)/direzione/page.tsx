@@ -67,10 +67,10 @@ export default function DirectionPage() {
       contractsRes, paymentsRes, profilesRes, tasksRes, dealsRes, clientsRes, timeRes,
     ] = await Promise.all([
       supabase.from('client_contracts').select('monthly_fee, status').eq('status', 'active'),
-      supabase.from('client_payments').select('amount, is_paid, due_date'),
-      supabase.from('profiles').select('id, full_name, role, color, is_active'),
-      supabase.from('tasks').select('id, status, deadline, created_at, updated_at, assigned_to, estimated_hours, logged_hours'),
-      supabase.from('deals').select('id, stage, value, actual_close_date, created_at'),
+      supabase.from('client_payments').select('amount, is_paid, due_date').limit(5000),
+      supabase.from('profiles').select('id, full_name, role, color, is_active').limit(200),
+      supabase.from('tasks').select('id, status, deadline, created_at, updated_at, assigned_to, estimated_hours, logged_hours').limit(5000),
+      supabase.from('deals').select('id, stage, value, actual_close_date, created_at').limit(5000),
       supabase.from('clients').select('id, name, company, is_active').eq('is_active', true),
       supabase.from('time_entries').select('user_id, duration_minutes, started_at').gte('started_at', monthStart).lte('started_at', monthEnd).not('duration_minutes', 'is', null),
     ]);
@@ -128,14 +128,17 @@ export default function DirectionPage() {
     const wonThisMonth = deals.filter((d) => d.stage === 'closed_won' && d.actual_close_date && d.actual_close_date >= monthStart.split('T')[0]);
     const wonValueThisMonth = wonThisMonth.reduce((s, d) => s + (d.value || 0), 0);
 
-    // Client health
-    const clientHealth: DirectionData['clientHealth'] = [];
-    for (const client of clients.slice(0, 20)) {
-      const { data: health } = await supabase.rpc('calculate_client_health', { p_client_id: client.id });
-      if (health && health.length > 0) {
-        clientHealth.push({ client_name: client.company || client.name, client_id: client.id, health: health[0] as ClientHealth });
-      }
-    }
+    // Client health - parallel RPC calls instead of sequential loop
+    const healthResults = await Promise.all(
+      clients.slice(0, 20).map(async (client) => {
+        const { data: health } = await supabase.rpc('calculate_client_health', { p_client_id: client.id });
+        if (health && health.length > 0) {
+          return { client_name: client.company || client.name, client_id: client.id, health: health[0] as ClientHealth };
+        }
+        return null;
+      })
+    );
+    const clientHealth = healthResults.filter((r): r is NonNullable<typeof r> => r !== null);
     clientHealth.sort((a, b) => a.health.health_score - b.health.health_score);
     const atRiskCount = clientHealth.filter((c) => c.health.risk_level === 'at_risk' || c.health.risk_level === 'critical').length;
 

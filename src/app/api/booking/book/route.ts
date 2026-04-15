@@ -2,6 +2,9 @@ export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceRoleClient } from '@/lib/supabase/server';
+import { applyRateLimit } from '@/lib/rate-limit';
+
+const BOOKING_RATE_LIMIT = { maxRequests: 5, windowSeconds: 3600 };
 
 /**
  * POST /api/booking/book
@@ -11,6 +14,9 @@ import { createServiceRoleClient } from '@/lib/supabase/server';
  * Body: { name, email, phone?, company?, slot_start, slot_end, notes? }
  */
 export async function POST(request: NextRequest) {
+  // Rate limiting per IP - max 5 prenotazioni per ora
+  const blocked = applyRateLimit(request, 'booking', BOOKING_RATE_LIMIT, 'Troppe richieste di prenotazione. Riprova tra qualche minuto.');
+  if (blocked) return blocked;
   const contentType = request.headers.get('content-type');
   if (!contentType || !contentType.includes('application/json')) {
     return NextResponse.json({ error: 'Content-Type deve essere application/json' }, { status: 415 });
@@ -32,7 +38,7 @@ export async function POST(request: NextRequest) {
   const notes = typeof body.notes === 'string' ? body.notes.trim() : '';
 
   if (!name) return NextResponse.json({ error: 'Nome obbligatorio' }, { status: 400 });
-  if (!email || !email.includes('@')) return NextResponse.json({ error: 'Email non valida' }, { status: 400 });
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return NextResponse.json({ error: 'Email non valida' }, { status: 400 });
   if (!slotStart || !slotEnd) return NextResponse.json({ error: 'Slot orario obbligatorio' }, { status: 400 });
 
   // Verifica che lo slot sia nel futuro
@@ -49,53 +55,28 @@ export async function POST(request: NextRequest) {
 
   const supabase = await createServiceRoleClient();
 
-  // Verifica che lo slot sia ancora libero (double-check)
-  const { data: conflicts } = await supabase
-    .from('calendar_events')
-    .select('id')
-    .lt('start_time', slotEnd)
-    .gt('end_time', slotStart)
-    .limit(1);
-
-  if (conflicts && conflicts.length > 0) {
-    return NextResponse.json({ error: 'Questo slot non e\' piu\' disponibile. Scegline un altro.' }, { status: 409 });
-  }
-
-  // Verifica anche nei meetings
-  const { data: meetingConflicts } = await supabase
-    .from('meetings')
-    .select('id, scheduled_at, duration_minutes')
-    .gte('scheduled_at', new Date(new Date(slotStart).getTime() - 60 * 60000).toISOString())
-    .lte('scheduled_at', slotEnd)
-    .limit(10);
-
-  if (meetingConflicts) {
-    const hasConflict = meetingConflicts.some(m => {
-      const mStart = new Date(m.scheduled_at);
-      const mEnd = new Date(mStart.getTime() + (m.duration_minutes || 30) * 60000);
-      return new Date(slotStart) < mEnd && new Date(slotEnd) > mStart;
-    });
-    if (hasConflict) {
-      return NextResponse.json({ error: 'Questo slot non e\' piu\' disponibile. Scegline un altro.' }, { status: 409 });
-    }
-  }
-
   // Trova l'admin per assegnare l'evento
   const { data: admin } = await supabase
     .from('profiles')
     .select('id')
     .eq('role', 'admin')
+    .eq('is_active', true)
     .limit(1)
-    .single();
+    .maybeSingle();
 
-  const adminId = admin?.id || '00000000-0000-0000-0000-000000000000';
+  if (!admin) {
+    return NextResponse.json({ error: 'Nessun admin disponibile' }, { status: 500 });
+  }
+  const adminId = admin.id;
 
   // Formatta data/ora per il titolo
   const dateStr = slotDate.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Europe/Rome' });
   const timeStr = slotDate.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Rome' });
 
-  // Crea evento nel calendario
-  const { error: eventError } = await supabase.from('calendar_events').insert({
+  // Insert the event first, then verify no conflicts exist.
+  // This "insert-then-verify" pattern avoids the race condition where two
+  // concurrent requests both pass the conflict check before either inserts.
+  const { data: newEvent, error: eventError } = await supabase.from('calendar_events').insert({
     title: `Consulenza gratuita - ${company || name}`,
     description: `Prenotazione consulenza gratuita\n\nNome: ${name}\nEmail: ${email}${phone ? '\nTelefono: ' + phone : ''}${company ? '\nAzienda: ' + company : ''}${notes ? '\nNote: ' + notes : ''}`,
     start_time: slotStart,
@@ -105,10 +86,39 @@ export async function POST(request: NextRequest) {
     color: '#FFD700',
     assigned_to: [adminId],
     created_by: adminId,
+  }).select('id').single();
+
+  if (eventError || !newEvent) {
+    return NextResponse.json({ error: 'Errore nella creazione dell\'evento' }, { status: 500 });
+  }
+
+  // Now check for conflicts AFTER insert (excluding our own event)
+  const { data: conflicts } = await supabase
+    .from('calendar_events')
+    .select('id')
+    .lt('start_time', slotEnd)
+    .gt('end_time', slotStart)
+    .neq('id', newEvent.id)
+    .limit(1);
+
+  // Also check meetings
+  const { data: meetingConflicts } = await supabase
+    .from('meetings')
+    .select('id, scheduled_at, duration_minutes')
+    .gte('scheduled_at', new Date(new Date(slotStart).getTime() - 60 * 60000).toISOString())
+    .lte('scheduled_at', slotEnd)
+    .limit(10);
+
+  const hasMeetingConflict = meetingConflicts?.some(m => {
+    const mStart = new Date(m.scheduled_at);
+    const mEnd = new Date(mStart.getTime() + (m.duration_minutes || 30) * 60000);
+    return new Date(slotStart) < mEnd && new Date(slotEnd) > mStart;
   });
 
-  if (eventError) {
-    return NextResponse.json({ error: 'Errore nella creazione dell\'evento' }, { status: 500 });
+  if ((conflicts && conflicts.length > 0) || hasMeetingConflict) {
+    // Rollback: delete the event we just created
+    await supabase.from('calendar_events').delete().eq('id', newEvent.id);
+    return NextResponse.json({ error: 'Questo slot non e\' piu\' disponibile. Scegline un altro.' }, { status: 409 });
   }
 
   // Invia email di conferma al prospect

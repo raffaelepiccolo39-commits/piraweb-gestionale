@@ -39,6 +39,8 @@ async function handleCron(request: NextRequest) {
 
   try {
     // Prendi fino a 10 lead non ancora analizzati (analyzed_at IS NULL)
+    // Use a "claim" pattern: fetch then immediately mark as processing to prevent
+    // concurrent runs from picking up the same leads
     const { data: leads, error: fetchError } = await supabase
       .from('lead_prospects')
       .select('*')
@@ -58,6 +60,13 @@ async function handleCron(request: NextRequest) {
 
       return NextResponse.json({ success: true, agent: 'lead_analyzer', analyzed: 0 });
     }
+
+    // Claim leads immediately by setting a temporary analyzed_at to prevent concurrent runs
+    const leadIds = leads.map(l => l.id);
+    await supabase
+      .from('lead_prospects')
+      .update({ analyzed_at: new Date().toISOString() })
+      .in('id', leadIds);
 
     let analyzed = 0;
     const results: Array<{ name: string; score: number }> = [];
@@ -156,6 +165,11 @@ async function analyzeLeadDeep(lead: Record<string, unknown>): Promise<DeepAnaly
   if (website) {
     try {
       const url = website.startsWith('http') ? website : `https://${website}`;
+
+      // SSRF protection
+      const { isUrlSafeToFetch } = await import('@/lib/url-validator');
+      if (!isUrlSafeToFetch(url)) throw new Error('URL non consentito');
+
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), 10000);
       const start = Date.now();
@@ -391,7 +405,7 @@ async function analyzeLeadDeep(lead: Record<string, unknown>): Promise<DeepAnaly
     if (lower.includes('/blog') || lower.includes('/news') || lower.includes('/articol')) scoreContent += 15;
 
     scoreContent = Math.min(100, scoreContent);
-    notes.content = { wordCount, hasBlob: scoreContent > 50 };
+    notes.content = { wordCount, hasBlog: scoreContent > 50 };
   } else {
     notes.content = { wordCount: 0, nessunSito: true };
   }

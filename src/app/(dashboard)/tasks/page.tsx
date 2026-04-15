@@ -15,22 +15,7 @@ import { formatDate, getPriorityColor, getStatusColor, getRoleLabel } from '@/li
 import type { Task, Project, Client } from '@/types/database';
 import { useToast } from '@/components/ui/toast';
 import { ListTodo, Calendar, Clock, ArrowRight, Sparkles, Brain, Check, Send, AlertTriangle, Archive } from 'lucide-react';
-
-const statusLabels: Record<string, string> = {
-  backlog: 'Backlog',
-  todo: 'Da fare',
-  in_progress: 'In corso',
-  review: 'Review',
-  done: 'Fatto',
-  archived: 'Archiviato',
-};
-
-const priorityLabels: Record<string, string> = {
-  low: 'Bassa',
-  medium: 'Media',
-  high: 'Alta',
-  urgent: 'Urgente',
-};
+import { STATUS_LABELS, PRIORITY_LABELS } from '@/lib/constants';
 
 interface ParsedTask {
   title: string;
@@ -353,10 +338,10 @@ export default function TasksPage() {
                       )}
                       <div className="flex flex-wrap items-center gap-2">
                         <Badge className={getStatusColor(task.status)}>
-                          {statusLabels[task.status]}
+                          {STATUS_LABELS[task.status]}
                         </Badge>
                         <Badge className={getPriorityColor(task.priority)}>
-                          {priorityLabels[task.priority]}
+                          {PRIORITY_LABELS[task.priority]}
                         </Badge>
                         {task.deadline && (
                           <span className="flex items-center gap-1 text-xs text-pw-text-muted">
@@ -379,7 +364,7 @@ export default function TasksPage() {
                         onChange={(e) => handleStatusChange(task.id, e.target.value)}
                         className="text-xs px-2 py-1 rounded-lg border border-pw-border bg-pw-surface-2 text-pw-text-muted"
                       >
-                        {Object.entries(statusLabels).map(([value, label]) => (
+                        {Object.entries(STATUS_LABELS).map(([value, label]) => (
                           <option key={value} value={value}>
                             {label}
                           </option>
@@ -493,7 +478,7 @@ export default function TasksPage() {
                           </Badge>
                         </div>
                         <div className="flex items-center gap-3 mt-2 text-xs text-pw-text-muted">
-                          <span>Priorità: {priorityLabels[task.priority] || task.priority}</span>
+                          <span>Priorità: {PRIORITY_LABELS[task.priority] || task.priority}</span>
                           {task.estimated_hours && <span>~{task.estimated_hours}h</span>}
                         </div>
                       </div>

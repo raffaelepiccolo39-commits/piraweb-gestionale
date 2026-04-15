@@ -282,6 +282,16 @@ export default function ClientsPage() {
   };
 
   const createProjectsForServices = async (clientId: string, clientName: string, services: string[]) => {
+    // Pre-fetch all active profiles once to avoid N+1 queries per task
+    const { data: activeProfiles } = await supabase
+      .from('profiles')
+      .select('id, role')
+      .eq('is_active', true);
+    const profilesByRole = new Map<string, string>();
+    (activeProfiles || []).forEach((p) => {
+      if (!profilesByRole.has(p.role)) profilesByRole.set(p.role, p.id);
+    });
+
     for (const service of services) {
       const config = SERVICE_PROJECT_CONFIG[service];
       if (!config) continue;
@@ -303,38 +313,32 @@ export default function ClientsPage() {
         user_id: profile!.id,
       });
 
-      // Create tasks
-      for (let i = 0; i < config.tasks.length; i++) {
-        const task = config.tasks[i];
-        // Find user with matching role
-        let assignedTo: string | null = null;
-        const { data: roleUser } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('role', task.role)
-          .eq('is_active', true)
-          .limit(1)
-          .maybeSingle();
-        if (roleUser) {
-          assignedTo = roleUser.id;
-          // Add as project member
-          await supabase.from('project_members').insert({
-            project_id: project.id,
-            user_id: roleUser.id,
-          }).select().maybeSingle(); // ignore conflict
-        }
-
-        await supabase.from('tasks').insert({
+      // Collect unique members and batch-insert tasks
+      const memberIds = new Set<string>();
+      const taskInserts = config.tasks.map((task, i) => {
+        const assignedTo = profilesByRole.get(task.role) || null;
+        if (assignedTo) memberIds.add(assignedTo);
+        return {
           title: task.title,
           project_id: project.id,
           assigned_to: assignedTo,
           priority: task.priority,
           estimated_hours: task.estimated_hours,
           position: i,
-          status: 'backlog',
+          status: 'backlog' as const,
           created_by: profile!.id,
-        });
-      }
+        };
+      });
+
+      // Batch insert: members and tasks in parallel
+      await Promise.all([
+        memberIds.size > 0
+          ? supabase.from('project_members').insert(
+              Array.from(memberIds).map((uid) => ({ project_id: project.id, user_id: uid }))
+            )
+          : Promise.resolve(),
+        supabase.from('tasks').insert(taskInserts),
+      ]);
     }
   };
 

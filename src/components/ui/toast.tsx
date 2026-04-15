@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
+import { createContext, useContext, useState, useCallback, useMemo, type ReactNode } from 'react';
 import { CheckCircle2, AlertTriangle, Info, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -43,11 +43,11 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
-  const toast = {
+  const toast = useMemo(() => ({
     success: (message: string) => addToast(message, 'success'),
     error: (message: string) => addToast(message, 'error'),
     info: (message: string) => addToast(message, 'info'),
-  };
+  }), [addToast]);
 
   const icons = {
     success: CheckCircle2,

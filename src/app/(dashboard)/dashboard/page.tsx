@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { formatDate, getStatusColor, getPriorityColor, getRoleLabel, getRoleColor, getInitials } from '@/lib/utils';
 import { AlertTriangle, Calendar, ChevronRight } from 'lucide-react';
+import { STATUS_LABELS, PRIORITY_LABELS } from '@/lib/constants';
 import type { AttendanceRecord } from '@/types/database';
 
 // Dashboard components
@@ -40,13 +41,6 @@ interface TeamMemberStats {
   completed: number;
   in_progress: number;
 }
-
-const statusLabels: Record<string, string> = {
-  backlog: 'Backlog', todo: 'Da fare', in_progress: 'In corso', review: 'In revisione', done: 'Fatto',
-};
-const priorityLabels: Record<string, string> = {
-  low: 'Bassa', medium: 'Media', high: 'Alta', urgent: 'Urgente',
-};
 
 export default function DashboardPage() {
   const { profile, isLoading: authLoading, retryLoadProfile } = useAuth();
@@ -259,21 +253,31 @@ export default function DashboardPage() {
 
       if (action === 'clock_in') {
         if (attendance?.status === 'lunch_break') {
-          await supabase.from('attendance_records').update({ status: 'working', lunch_end: nowTime }).eq('id', attendance.id);
+          const { error } = await supabase.from('attendance_records').update({ status: 'working', lunch_end: nowTime }).eq('id', attendance.id);
+          if (error) throw error;
         } else {
-          await supabase.from('attendance_records').insert({ user_id: profile.id, date: todayStr, clock_in: nowTime, status: 'working' });
+          const { error } = await supabase.from('attendance_records').insert({ user_id: profile.id, date: todayStr, clock_in: nowTime, status: 'working' });
+          if (error) throw error;
         }
         toast.success(attendance?.status === 'lunch_break' ? 'Bentornato!' : 'Entrata registrata');
       } else if (action === 'lunch_break') {
         if (attendance) {
-          await supabase.from('attendance_records').update({ status: 'lunch_break', lunch_start: nowTime }).eq('id', attendance.id);
+          const { error } = await supabase.from('attendance_records').update({ status: 'lunch_break', lunch_start: nowTime }).eq('id', attendance.id);
+          if (error) throw error;
           toast.success('Buon pranzo!');
         }
       } else if (action === 'clock_out') {
         if (attendance) {
           const clockIn = new Date(attendance.clock_in!);
-          const totalHours = (Date.now() - clockIn.getTime()) / 3600000;
-          await supabase.from('attendance_records').update({ status: 'completed', clock_out: nowTime, total_hours: Math.round(totalHours * 100) / 100 }).eq('id', attendance.id);
+          let lunchDurationMs = 0;
+          if (attendance.lunch_start && attendance.lunch_end) {
+            lunchDurationMs = new Date(attendance.lunch_end).getTime() - new Date(attendance.lunch_start).getTime();
+          } else if (attendance.lunch_start && !attendance.lunch_end) {
+            lunchDurationMs = Date.now() - new Date(attendance.lunch_start).getTime();
+          }
+          const totalHours = (Date.now() - clockIn.getTime() - lunchDurationMs) / 3600000;
+          const { error } = await supabase.from('attendance_records').update({ status: 'completed', clock_out: nowTime, total_hours: Math.round(totalHours * 100) / 100 }).eq('id', attendance.id);
+          if (error) throw error;
           toast.success('Uscita registrata. Buona serata!');
         }
       }
@@ -396,8 +400,8 @@ export default function DashboardPage() {
                         </p>
                       </div>
                       <div className="flex items-center gap-2 shrink-0 flex-wrap">
-                        <Badge className={getStatusColor(task.status)}>{statusLabels[task.status]}</Badge>
-                        <Badge className={getPriorityColor(task.priority)}>{priorityLabels[task.priority]}</Badge>
+                        <Badge className={getStatusColor(task.status)}>{STATUS_LABELS[task.status]}</Badge>
+                        <Badge className={getPriorityColor(task.priority)}>{PRIORITY_LABELS[task.priority]}</Badge>
                         {task.deadline && (
                           <span className="text-xs text-pw-text-dim flex items-center gap-1">
                             <Calendar size={11} />

@@ -9,7 +9,6 @@ export function useAuth() {
   const { profile, isLoading, setProfile, setLoading } = useAuthStore();
   const supabase = createClient();
   const fetchingRef = useRef(false);
-  const initializedRef = useRef(false);
 
   const loadProfile = useCallback(async () => {
     if (fetchingRef.current) return;
@@ -54,10 +53,6 @@ export function useAuth() {
   }, [supabase, setProfile, setLoading]);
 
   useEffect(() => {
-    // Run once on mount — load profile if not already loaded
-    if (initializedRef.current) return;
-    initializedRef.current = true;
-
     if (!profile) {
       loadProfile();
     }

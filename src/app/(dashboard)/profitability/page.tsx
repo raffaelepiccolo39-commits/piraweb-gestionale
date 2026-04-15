@@ -111,9 +111,46 @@ export default function ProfitabilityPage() {
 
     const totalMRR = Array.from(clientRevenueMap.values()).reduce((s, v) => s + v, 0);
 
-    // 4. For each project, get time entries this month
+    // 4. Batch-fetch all data for projects to avoid N+1 queries
     const now = new Date();
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+
+    const projectIds = (projects || []).map((p) => p.id);
+
+    // Fetch ALL tasks, time entries, and freelancer assignments in 3 batch queries
+    const [allTasksRes, allEntriesRes, allAssignmentsRes] = await Promise.all([
+      supabase.from('tasks').select('id, project_id, assigned_to').in('project_id', projectIds.length > 0 ? projectIds : ['']).limit(5000),
+      supabase.from('time_entries').select('task_id, user_id, duration_minutes').gte('started_at', monthStart).not('duration_minutes', 'is', null).limit(10000),
+      supabase.from('task_freelancer_assignments').select('task_id, total_cost').limit(5000),
+    ]);
+
+    const allTasks = allTasksRes.data || [];
+    const allEntries = allEntriesRes.data || [];
+    const allAssignments = allAssignmentsRes.data || [];
+
+    // Group tasks by project_id
+    const tasksByProject = new Map<string, typeof allTasks>();
+    for (const t of allTasks) {
+      const list = tasksByProject.get(t.project_id) || [];
+      list.push(t);
+      tasksByProject.set(t.project_id, list);
+    }
+
+    // Group entries by task_id
+    const entriesByTask = new Map<string, typeof allEntries>();
+    for (const e of allEntries) {
+      const list = entriesByTask.get(e.task_id) || [];
+      list.push(e);
+      entriesByTask.set(e.task_id, list);
+    }
+
+    // Group assignments by task_id
+    const assignmentsByTask = new Map<string, typeof allAssignments>();
+    for (const a of allAssignments) {
+      const list = assignmentsByTask.get(a.task_id) || [];
+      list.push(a);
+      assignmentsByTask.set(a.task_id, list);
+    }
 
     const projectResults: ProjectProfitability[] = [];
     let totalFreelancerCostAll = 0;
@@ -122,37 +159,24 @@ export default function ProfitabilityPage() {
       const client = project.client as Client | undefined;
       const monthlyRevenue = project.client_id ? (clientRevenueMap.get(project.client_id) || 0) : 0;
 
-      // Get tasks for this project
-      const { data: tasks } = await supabase
-        .from('tasks')
-        .select('id, assigned_to')
-        .eq('project_id', project.id);
-      const taskIds = (tasks || []).map((t) => t.id);
+      const projectTasks = tasksByProject.get(project.id) || [];
+      const taskIds = projectTasks.map((t) => t.id);
 
-      // Get time entries for tasks this month
+      // Get time entries for tasks this month (from pre-fetched data)
       const employeeHoursMap = new Map<string, number>();
-      if (taskIds.length > 0) {
-        const { data: entries } = await supabase
-          .from('time_entries')
-          .select('user_id, duration_minutes')
-          .in('task_id', taskIds)
-          .gte('started_at', monthStart)
-          .not('duration_minutes', 'is', null);
-
-        (entries || []).forEach((e) => {
+      for (const taskId of taskIds) {
+        for (const e of (entriesByTask.get(taskId) || [])) {
           const hours = (e.duration_minutes || 0) / 60;
           employeeHoursMap.set(e.user_id, (employeeHoursMap.get(e.user_id) || 0) + hours);
-        });
+        }
       }
 
-      // Get freelancer costs
+      // Get freelancer costs (from pre-fetched data)
       let freelancerCost = 0;
-      if (taskIds.length > 0) {
-        const { data: assignments } = await supabase
-          .from('task_freelancer_assignments')
-          .select('total_cost')
-          .in('task_id', taskIds);
-        freelancerCost = (assignments || []).reduce((s, a) => s + ((a.total_cost as number) || 0), 0);
+      for (const taskId of taskIds) {
+        for (const a of (assignmentsByTask.get(taskId) || [])) {
+          freelancerCost += (a.total_cost as number) || 0;
+        }
       }
       totalFreelancerCostAll += freelancerCost;
 

@@ -8,15 +8,34 @@ import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supab
  */
 export async function GET(request: NextRequest) {
   const code = request.nextUrl.searchParams.get('code');
-  const userId = request.nextUrl.searchParams.get('state');
+  const stateParam = request.nextUrl.searchParams.get('state');
   const error = request.nextUrl.searchParams.get('error');
 
-  if (error || !code || !userId) {
+  if (error || !code || !stateParam) {
     return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/social-calendar?meta_error=auth_denied`);
   }
 
   const appId = process.env.META_APP_ID;
   const appSecret = process.env.META_APP_SECRET;
+
+  // Verify HMAC-signed state to prevent CSRF
+  const [userId, stateHmac] = stateParam.split('.');
+  if (!userId || !stateHmac || !appSecret) {
+    return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/social-calendar?meta_error=invalid_state`);
+  }
+
+  const { createHmac } = await import('crypto');
+  const expectedHmac = createHmac('sha256', appSecret).update(userId).digest('hex').slice(0, 16);
+  if (stateHmac !== expectedHmac) {
+    return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/social-calendar?meta_error=invalid_state`);
+  }
+
+  // Also verify the current user session matches the state userId
+  const authSupabase = await createServerSupabaseClient();
+  const { data: { user: sessionUser } } = await authSupabase.auth.getUser();
+  if (!sessionUser || sessionUser.id !== userId) {
+    return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/social-calendar?meta_error=session_mismatch`);
+  }
   const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL}/api/meta/callback`;
 
   if (!appId || !appSecret) {

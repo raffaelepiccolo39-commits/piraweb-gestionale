@@ -61,6 +61,7 @@ export function EventForm({ event, defaultDate, onSubmit, onCancel }: EventFormP
   useEffect(() => {
     supabase.from('profiles').select('id, full_name').eq('is_active', true).order('full_name')
       .then(({ data }) => { if (data) setMembers(data as Profile[]); });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- supabase is a stable singleton from createClient()
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {

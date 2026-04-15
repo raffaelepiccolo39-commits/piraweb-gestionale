@@ -97,12 +97,18 @@ export function ClientForm({ client, monthlyFee, onSubmit, onCancel }: ClientFor
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      if (file.size > 1024 * 1024) {
+        alert('Il file supera la dimensione massima di 1MB.');
+        return;
+      }
+      if (logoPreview && logoPreview.startsWith('blob:')) URL.revokeObjectURL(logoPreview);
       setLogoFile(file);
       setLogoPreview(URL.createObjectURL(file));
     }
   };
 
   const removeLogo = () => {
+    if (logoPreview && logoPreview.startsWith('blob:')) URL.revokeObjectURL(logoPreview);
     setLogoFile(null);
     setLogoPreview(null);
   };

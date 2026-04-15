@@ -91,14 +91,14 @@ export default function AutomationsPage() {
   };
 
   const handleToggle = async (a: Automation) => {
-    await supabase.from('automations').update({ is_active: !a.is_active }).eq('id', a.id);
-    fetchAutomations();
+    const { error } = await supabase.from('automations').update({ is_active: !a.is_active }).eq('id', a.id);
+    if (!error) fetchAutomations();
   };
 
   const handleDelete = async (id: string) => {
     if (!confirm('Eliminare questa automazione?')) return;
-    await supabase.from('automations').delete().eq('id', id);
-    fetchAutomations();
+    const { error } = await supabase.from('automations').delete().eq('id', id);
+    if (!error) fetchAutomations();
   };
 
   if (loading) {
