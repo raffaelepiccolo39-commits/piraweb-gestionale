@@ -14,7 +14,7 @@ import { Modal } from '@/components/ui/modal';
 import { formatDate, getPriorityColor, getStatusColor, getRoleLabel } from '@/lib/utils';
 import type { Task, Project, Client } from '@/types/database';
 import { useToast } from '@/components/ui/toast';
-import { ListTodo, Calendar, Clock, ArrowRight, Sparkles, Brain, Check, Send, AlertTriangle } from 'lucide-react';
+import { ListTodo, Calendar, Clock, ArrowRight, Sparkles, Brain, Check, Send, AlertTriangle, Archive } from 'lucide-react';
 
 const statusLabels: Record<string, string> = {
   backlog: 'Backlog',
@@ -386,6 +386,15 @@ export default function TasksPage() {
                           </option>
                         ))}
                       </select>
+                      {task.status !== 'archived' && (
+                        <button
+                          onClick={() => handleStatusChange(task.id, 'archived')}
+                          className="p-1.5 rounded-lg text-pw-text-dim hover:bg-pw-surface-2 hover:text-pw-accent"
+                          title="Archivia task"
+                        >
+                          <Archive size={16} />
+                        </button>
+                      )}
                       {project && (
                         <button
                           onClick={() => router.push(`/projects/${project.id}`)}
