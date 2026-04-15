@@ -318,14 +318,13 @@ export default function CFOPage() {
     setParsedPayslips(null);
 
     try {
-      // Convert file to base64
-      const buffer = await payslipFile.arrayBuffer();
-      const base64 = btoa(String.fromCharCode(...new Uint8Array(buffer)));
+      // Upload via FormData to avoid JSON body size limits
+      const formData = new FormData();
+      formData.append('file', payslipFile);
 
       const res = await fetch('/api/cfo/parse-payslip', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ file: base64, mimeType: payslipFile.type || 'application/pdf' }),
+        body: formData,
       });
       const data = await res.json();
 

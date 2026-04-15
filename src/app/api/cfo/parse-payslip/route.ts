@@ -1,12 +1,12 @@
 export const dynamic = 'force-dynamic';
-export const maxDuration = 60;
+export const maxDuration = 120;
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 
 /**
  * POST /api/cfo/parse-payslip
- * Receives a PDF file (base64), sends it to Gemini AI to extract payslip data.
+ * Receives a PDF file via FormData, sends it to Gemini AI to extract payslip data.
  * Returns structured payslip data for each employee found in the document.
  */
 export async function POST(request: NextRequest) {
@@ -25,15 +25,28 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'GOOGLE_AI_API_KEY non configurata' }, { status: 500 });
   }
 
-  let body: Record<string, unknown>;
-  try { body = await request.json(); } catch { return NextResponse.json({ error: 'JSON non valido' }, { status: 400 }); }
+  // Parse FormData
+  let formData: FormData;
+  try {
+    formData = await request.formData();
+  } catch {
+    return NextResponse.json({ error: 'FormData non valido' }, { status: 400 });
+  }
 
-  const fileBase64 = typeof body.file === 'string' ? body.file : '';
-  const mimeType = typeof body.mimeType === 'string' ? body.mimeType : 'application/pdf';
-
-  if (!fileBase64) {
+  const file = formData.get('file') as File | null;
+  if (!file) {
     return NextResponse.json({ error: 'File mancante' }, { status: 400 });
   }
+
+  // Check file size (max 10MB)
+  if (file.size > 10 * 1024 * 1024) {
+    return NextResponse.json({ error: 'File troppo grande (max 10MB)' }, { status: 400 });
+  }
+
+  // Convert to base64
+  const arrayBuffer = await file.arrayBuffer();
+  const base64 = Buffer.from(arrayBuffer).toString('base64');
+  const mimeType = file.type || 'application/pdf';
 
   // Fetch employee list for matching names
   const { data: employees } = await supabase
@@ -72,7 +85,6 @@ IMPORTANTE:
 - Tutti gli importi devono essere NUMERI (non stringhe), senza simbolo EUR
 - Se un dato non e' presente nel documento, metti 0 (non null)
 - Se il documento contiene piu' buste paga (piu' dipendenti), restituisci un array con tutti
-- Cerca di calcolare il costo_totale_azienda = lordo_mensile + inps_azienda + tfr_accantonamento + inail
 - Il mese di riferimento potrebbe essere indicato come "competenza", "periodo", "mese" nel documento
 
 Rispondi SOLO con un JSON valido, un array di oggetti. Nessun testo prima o dopo.
@@ -90,7 +102,7 @@ Esempio: [{"employee_name": "Mario Rossi", "employee_id": "uuid-xxx", "month": "
               {
                 inlineData: {
                   mimeType,
-                  data: fileBase64,
+                  data: base64,
                 },
               },
               { text: prompt },
