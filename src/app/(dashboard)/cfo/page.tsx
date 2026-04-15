@@ -327,13 +327,19 @@ export default function CFOPage() {
         setParsingPayslip(false);
         return;
       }
-      const { data: urlData } = supabase.storage.from('attachments').getPublicUrl(tempPath);
+      // Get a signed URL (valid for 5 minutes) since bucket is private
+      const { data: signedData, error: signError } = await supabase.storage.from('attachments').createSignedUrl(tempPath, 300);
+      if (signError || !signedData?.signedUrl) {
+        toast.error('Errore generazione URL file');
+        setParsingPayslip(false);
+        return;
+      }
 
-      // Step 2: Send URL to API for AI analysis
+      // Step 2: Send signed URL to API for AI analysis
       const res = await fetch('/api/cfo/parse-payslip', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fileUrl: urlData.publicUrl, mimeType: payslipFile.type || 'application/pdf' }),
+        body: JSON.stringify({ fileUrl: signedData.signedUrl, mimeType: payslipFile.type || 'application/pdf' }),
       });
       const data = await res.json();
 
