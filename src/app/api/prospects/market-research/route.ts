@@ -203,7 +203,7 @@ Usa SOLO i dati reali forniti. Sii specifico e concreto. Max 600 parole.`;
 
   if (!aiInsights && process.env.GOOGLE_AI_API_KEY) {
     try {
-      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${process.env.GOOGLE_AI_API_KEY}`, {
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GOOGLE_AI_API_KEY}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ contents: [{ parts: [{ text: aiPrompt }] }], generationConfig: { maxOutputTokens: 2000 } }),

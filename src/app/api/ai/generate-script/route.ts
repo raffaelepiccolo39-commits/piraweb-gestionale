@@ -30,7 +30,7 @@ async function callClaude(prompt: string, systemPrompt: string): Promise<{ text:
 
 async function callGemini(prompt: string, systemPrompt: string): Promise<{ text: string; model: string; tokens: number }> {
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${process.env.GOOGLE_AI_API_KEY}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GOOGLE_AI_API_KEY}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -46,7 +46,7 @@ async function callGemini(prompt: string, systemPrompt: string): Promise<{ text:
   const data = await response.json();
   const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
   const tokens = (data.usageMetadata?.promptTokenCount || 0) + (data.usageMetadata?.candidatesTokenCount || 0);
-  return { text, model: 'gemini-2.0-flash', tokens };
+  return { text, model: 'gemini-2.5-flash', tokens };
 }
 
 async function callOpenAI(prompt: string, systemPrompt: string): Promise<{ text: string; model: string; tokens: number }> {
