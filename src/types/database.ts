@@ -696,6 +696,7 @@ export interface AutomationLog {
 
 // === INVOICING ===
 export type InvoiceStatus = 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled';
+export type SdiStatus = 'pending' | 'sent_to_sdi' | 'delivered' | 'rejected' | 'not_delivered' | 'error' | null;
 
 export interface Invoice {
   id: string;
@@ -715,6 +716,12 @@ export interface Invoice {
   paid_at: string | null;
   payment_method: string | null;
   notes: string | null;
+  // SDI / Aruba fields
+  sdi_status: SdiStatus;
+  sdi_identifier: string | null;
+  sdi_message: string | null;
+  sdi_sent_at: string | null;
+  sdi_filename: string | null;
   created_by: string;
   created_at: string;
   updated_at: string;

@@ -12,7 +12,7 @@ import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { formatCurrency, formatDate } from '@/lib/utils';
-import type { Invoice, InvoiceItem, Client, InvoiceStatus } from '@/types/database';
+import type { Invoice, InvoiceItem, Client, InvoiceStatus, SdiStatus } from '@/types/database';
 import {
   Receipt,
   Plus,
@@ -24,6 +24,10 @@ import {
   FileText,
   Trash2,
   Printer,
+  Upload,
+  RefreshCw,
+  AlertTriangle,
+  Zap,
 } from 'lucide-react';
 
 const STATUS_CONFIG: Record<InvoiceStatus, { label: string; color: string; icon: typeof Clock }> = {
@@ -32,6 +36,15 @@ const STATUS_CONFIG: Record<InvoiceStatus, { label: string; color: string; icon:
   paid: { label: 'Pagata', color: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300', icon: CheckCircle },
   overdue: { label: 'Scaduta', color: 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300', icon: Clock },
   cancelled: { label: 'Annullata', color: 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-500', icon: XCircle },
+};
+
+const SDI_STATUS_CONFIG: Record<string, { label: string; color: string }> = {
+  pending: { label: 'In attesa', color: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' },
+  sent_to_sdi: { label: 'Inviata a SDI', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' },
+  delivered: { label: 'Consegnata', color: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' },
+  rejected: { label: 'Scartata', color: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' },
+  not_delivered: { label: 'Non recapitata', color: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' },
+  error: { label: 'Errore', color: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' },
 };
 
 export default function InvoicesPage() {
@@ -53,6 +66,7 @@ export default function InvoicesPage() {
     period_start: '', period_end: '', notes: '',
   });
   const [itemForm, setItemForm] = useState({ description: '', quantity: '1', unit_price: '' });
+  const [sdiLoading, setSdiLoading] = useState(false);
 
   const fetchInvoices = useCallback(async () => {
     const { data } = await supabase
@@ -135,6 +149,56 @@ export default function InvoicesPage() {
     if (selectedInvoice?.id === invoiceId) setSelectedInvoice((i) => i ? { ...i, status } : null);
   };
 
+  const handleSendToSdi = async (invoiceId: string) => {
+    setSdiLoading(true);
+    try {
+      const res = await fetch('/api/invoices/send-sdi', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ invoice_id: invoiceId }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast.success(data.message || 'Fattura inviata a SDI');
+        fetchInvoices();
+        if (selectedInvoice?.id === invoiceId) {
+          setSelectedInvoice((inv) => inv ? { ...inv, sdi_status: 'sent_to_sdi', sdi_filename: data.filename, status: inv.status === 'draft' ? 'sent' as InvoiceStatus : inv.status } : null);
+        }
+      } else {
+        toast.error(data.error || 'Errore invio SDI');
+      }
+    } catch {
+      toast.error('Errore di connessione');
+    } finally {
+      setSdiLoading(false);
+    }
+  };
+
+  const handleCheckSdiStatus = async (invoiceId: string) => {
+    setSdiLoading(true);
+    try {
+      const res = await fetch('/api/invoices/sdi-status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ invoice_id: invoiceId }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast.success(`Stato SDI: ${data.label}`);
+        fetchInvoices();
+        if (selectedInvoice?.id === invoiceId) {
+          setSelectedInvoice((inv) => inv ? { ...inv, sdi_status: data.status, sdi_identifier: data.sdi_identifier, sdi_message: data.label } : null);
+        }
+      } else {
+        toast.error(data.error || 'Errore controllo stato');
+      }
+    } catch {
+      toast.error('Errore di connessione');
+    } finally {
+      setSdiLoading(false);
+    }
+  };
+
   // Stats
   const totalDraft = invoices.filter((i) => i.status === 'draft').reduce((s, i) => s + i.total, 0);
   const totalSent = invoices.filter((i) => i.status === 'sent').reduce((s, i) => s + i.total, 0);
@@ -194,7 +258,14 @@ export default function InvoicesPage() {
               >
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-xs font-mono text-pw-accent">{inv.invoice_number}</span>
-                  <Badge className={cfg.color}>{cfg.label}</Badge>
+                  <div className="flex items-center gap-1">
+                    {inv.sdi_status && SDI_STATUS_CONFIG[inv.sdi_status] && (
+                      <Badge className={SDI_STATUS_CONFIG[inv.sdi_status].color + ' text-[9px] px-1.5 py-0'}>
+                        SDI
+                      </Badge>
+                    )}
+                    <Badge className={cfg.color}>{cfg.label}</Badge>
+                  </div>
                 </div>
                 <p className="text-sm font-medium text-pw-text">{client?.company || client?.name || '—'}</p>
                 <div className="flex items-center justify-between mt-1">
@@ -303,6 +374,61 @@ export default function InvoicesPage() {
                   {selectedInvoice.status === 'draft' && (
                     <Button size="sm" variant="ghost" onClick={() => handleStatusChange(selectedInvoice.id, 'cancelled')}><XCircle size={12} />Annulla</Button>
                   )}
+                </div>
+
+                {/* SDI / Fatturazione Elettronica */}
+                <div className="border-t border-pw-border pt-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-xs font-semibold text-pw-text flex items-center gap-1.5">
+                      <Zap size={14} className="text-pw-accent" />
+                      Fatturazione Elettronica (SDI)
+                    </p>
+                    {selectedInvoice.sdi_status && SDI_STATUS_CONFIG[selectedInvoice.sdi_status] && (
+                      <Badge className={SDI_STATUS_CONFIG[selectedInvoice.sdi_status].color}>
+                        {SDI_STATUS_CONFIG[selectedInvoice.sdi_status].label}
+                      </Badge>
+                    )}
+                  </div>
+
+                  {selectedInvoice.sdi_message && (
+                    <p className="text-xs text-pw-text-muted mb-2">{selectedInvoice.sdi_message}</p>
+                  )}
+                  {selectedInvoice.sdi_identifier && (
+                    <p className="text-xs text-pw-text-dim mb-2">ID SDI: <span className="font-mono">{selectedInvoice.sdi_identifier}</span></p>
+                  )}
+                  {selectedInvoice.sdi_filename && (
+                    <p className="text-xs text-pw-text-dim mb-2">File: <span className="font-mono">{selectedInvoice.sdi_filename}</span></p>
+                  )}
+
+                  <div className="flex gap-2">
+                    {(!selectedInvoice.sdi_status || selectedInvoice.sdi_status === 'error' || selectedInvoice.sdi_status === 'rejected') && items.length > 0 && (
+                      <Button
+                        size="sm"
+                        onClick={() => handleSendToSdi(selectedInvoice.id)}
+                        loading={sdiLoading}
+                      >
+                        <Upload size={12} />
+                        Invia a SDI
+                      </Button>
+                    )}
+                    {selectedInvoice.sdi_filename && selectedInvoice.sdi_status !== 'delivered' && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleCheckSdiStatus(selectedInvoice.id)}
+                        loading={sdiLoading}
+                      >
+                        <RefreshCw size={12} />
+                        Aggiorna Stato
+                      </Button>
+                    )}
+                    {!selectedInvoice.sdi_status && items.length === 0 && (
+                      <p className="text-xs text-pw-text-dim flex items-center gap-1">
+                        <AlertTriangle size={12} />
+                        Aggiungi almeno una voce per inviare a SDI
+                      </p>
+                    )}
+                  </div>
                 </div>
 
                 {selectedInvoice.notes && (
