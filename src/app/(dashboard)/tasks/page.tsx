@@ -14,7 +14,7 @@ import { Modal } from '@/components/ui/modal';
 import { formatDate, getPriorityColor, getStatusColor, getRoleLabel } from '@/lib/utils';
 import type { Task, Project, Client } from '@/types/database';
 import { useToast } from '@/components/ui/toast';
-import { ListTodo, Calendar, Clock, ArrowRight, Sparkles, Brain, Check, Send, AlertTriangle, Archive } from 'lucide-react';
+import { ListTodo, Calendar, Clock, ArrowRight, Sparkles, Brain, Check, Send, AlertTriangle, Archive, ExternalLink } from 'lucide-react';
 import { STATUS_LABELS, PRIORITY_LABELS } from '@/lib/constants';
 
 interface ParsedTask {
@@ -409,6 +409,21 @@ export default function TasksPage() {
                             <Clock size={12} />
                             {task.estimated_hours}h
                           </span>
+                        )}
+                        {task.delivery_url && (
+                          <a
+                            href={task.delivery_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="flex items-center gap-1 text-xs text-pw-accent hover:underline"
+                          >
+                            <ExternalLink size={12} />
+                            {task.delivery_url.includes('drive.google') ? 'Google Drive' :
+                             task.delivery_url.includes('figma.com') ? 'Figma' :
+                             task.delivery_url.includes('canva.com') ? 'Canva' :
+                             'Link lavoro'}
+                          </a>
                         )}
                       </div>
                     </div>
