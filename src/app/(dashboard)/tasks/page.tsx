@@ -282,10 +282,8 @@ export default function TasksPage() {
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
             options={[
-              { value: 'backlog', label: 'Backlog' },
               { value: 'todo', label: 'Da fare' },
               { value: 'in_progress', label: 'In corso' },
-              { value: 'review', label: 'Review' },
               { value: 'done', label: 'Fatto' },
               { value: 'archived', label: 'Archiviato' },
             ]}
