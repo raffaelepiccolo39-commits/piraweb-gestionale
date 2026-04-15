@@ -37,6 +37,7 @@ export default function TasksPage() {
   const [statusFilter, setStatusFilter] = useState('');
   const [priorityFilter, setPriorityFilter] = useState('');
   const [assigneeFilter, setAssigneeFilter] = useState<string>('me');
+  const [deadlineFilter, setDeadlineFilter] = useState('');
 
   // AI task creation
   const [showAiModal, setShowAiModal] = useState(false);
@@ -79,6 +80,26 @@ export default function TasksPage() {
       }
       if (priorityFilter) query = query.eq('priority', priorityFilter);
 
+      // Deadline filter
+      if (deadlineFilter) {
+        const now = new Date();
+        const today = now.toISOString().split('T')[0];
+
+        if (deadlineFilter === 'overdue') {
+          query = query.not('deadline', 'is', null).lt('deadline', today);
+        } else if (deadlineFilter === 'today') {
+          query = query.eq('deadline', today);
+        } else if (deadlineFilter === 'week') {
+          const weekEnd = new Date(now);
+          weekEnd.setDate(weekEnd.getDate() + 7);
+          query = query.not('deadline', 'is', null).lte('deadline', weekEnd.toISOString().split('T')[0]).gte('deadline', today);
+        } else if (deadlineFilter === 'month') {
+          const monthEnd = new Date(now);
+          monthEnd.setDate(monthEnd.getDate() + 30);
+          query = query.not('deadline', 'is', null).lte('deadline', monthEnd.toISOString().split('T')[0]).gte('deadline', today);
+        }
+      }
+
       const { data, error } = await query;
       if (error) throw error;
       setTasks((data as Task[]) || []);
@@ -87,7 +108,7 @@ export default function TasksPage() {
     } finally {
       setLoading(false);
     }
-  }, [profile, isAdmin, statusFilter, priorityFilter, assigneeFilter]);
+  }, [profile, isAdmin, statusFilter, priorityFilter, assigneeFilter, deadlineFilter]);
 
   const fetchClients = useCallback(async () => {
     const { data } = await supabase
@@ -285,6 +306,19 @@ export default function TasksPage() {
               { value: 'urgent', label: 'Urgente' },
             ]}
             placeholder="Tutte le priorità"
+          />
+        </div>
+        <div className="w-48">
+          <Select
+            value={deadlineFilter}
+            onChange={(e) => setDeadlineFilter(e.target.value)}
+            options={[
+              { value: 'overdue', label: 'Scadute' },
+              { value: 'today', label: 'Scadenza oggi' },
+              { value: 'week', label: 'Prossimi 7 giorni' },
+              { value: 'month', label: 'Prossimi 30 giorni' },
+            ]}
+            placeholder="Tutte le scadenze"
           />
         </div>
       </div>
