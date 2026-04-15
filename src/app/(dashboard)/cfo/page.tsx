@@ -12,6 +12,7 @@ import { Select } from '@/components/ui/select';
 import { Modal } from '@/components/ui/modal';
 import { formatCurrency } from '@/lib/utils';
 import type { Profile, OperatingExpense, Payslip, Invoice, Client } from '@/types/database';
+import { parsePayslipAction } from './actions';
 import {
   TrendingUp,
   TrendingDown,
@@ -318,32 +319,13 @@ export default function CFOPage() {
     setParsedPayslips(null);
 
     try {
-      // Convert to base64 on client, split into chunks to avoid memory issues
-      const base64 = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => {
-          const result = reader.result as string;
-          resolve(result.split(',')[1]);
-        };
-        reader.onerror = () => reject(new Error('Errore lettura file'));
-        reader.readAsDataURL(payslipFile);
-      });
+      // Use Server Action (supports larger files than API routes on Vercel)
+      const formData = new FormData();
+      formData.append('file', payslipFile);
 
-      // Check size - Gemini accepts max ~20MB inline
-      if (base64.length > 15 * 1024 * 1024) {
-        toast.error('File troppo grande (max 10MB)');
-        setParsingPayslip(false);
-        return;
-      }
+      const data = await parsePayslipAction(formData);
 
-      const res = await fetch('/api/cfo/parse-payslip', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ file: base64, mimeType: payslipFile.type || 'application/pdf' }),
-      });
-      const data = await res.json();
-
-      if (res.ok && data.payslips) {
+      if (data.success && data.payslips) {
         setParsedPayslips(data.payslips);
         toast.success(`${data.count} buste paga trovate nel documento`);
       } else {
