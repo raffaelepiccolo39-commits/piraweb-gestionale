@@ -42,10 +42,13 @@ export async function sendInvoiceReminder({
     <img src="https://gestionale.piraweb.it/logo-email.png" alt="PiraWeb" width="120" style="display:block;" />
   </td></tr>
   <tr><td style="padding:28px 32px;">
-    <h2 style="margin:0 0 16px;color:#333;font-size:20px;">Promemoria pagamento fattura</h2>
+    <h2 style="margin:0 0 16px;color:#333;font-size:20px;">Sollecito di pagamento</h2>
     <p style="margin:0 0 16px;color:#555;font-size:14px;line-height:1.6;">
-      Gentile ${safeClientName},<br><br>
-      ci permettiamo di ricordarLe che la fattura n. <strong>${safeInvoiceNumber}</strong> risulta ancora non saldata.
+      Spett.le ${safeClientName},<br><br>
+      con la presente ci permettiamo di segnalarLe che, da un controllo della nostra contabilit&agrave;, la fattura n. <strong>${safeInvoiceNumber}</strong> sotto indicata risulta ad oggi ancora insoluta.
+    </p>
+    <p style="margin:0 0 16px;color:#555;font-size:14px;line-height:1.6;">
+      Siamo certi che si tratti di una semplice dimenticanza e confidiamo in un Suo cortese riscontro.
     </p>
 
     <table width="100%" style="background:#FFF8F0;border:1px solid #FFE0B2;border-radius:6px;margin:16px 0;">
@@ -80,10 +83,13 @@ export async function sendInvoiceReminder({
     </table>
 
     <p style="margin:16px 0 0;color:#555;font-size:14px;line-height:1.6;">
-      La preghiamo di procedere al pagamento al pi&ugrave; presto o, qualora il pagamento sia gi&agrave; stato effettuato, di inviarci la conferma di avvenuto bonifico.
+      La invitiamo cortesemente a provvedere al saldo dell&rsquo;importo dovuto entro e non oltre i prossimi 5 giorni lavorativi, tramite bonifico bancario alle coordinate sopra indicate.
     </p>
     <p style="margin:12px 0 0;color:#555;font-size:14px;line-height:1.6;">
-      Per qualsiasi chiarimento non esiti a contattarci.
+      Qualora il pagamento fosse gi&agrave; stato effettuato, La preghiamo di considerare la presente come non ricevuta e di inviarci cortesemente copia della contabile.
+    </p>
+    <p style="margin:12px 0 0;color:#555;font-size:14px;line-height:1.6;">
+      Restiamo a disposizione per qualsiasi chiarimento.
     </p>
 
     <p style="margin:20px 0 0;color:#333;font-size:13px;">
@@ -100,11 +106,13 @@ export async function sendInvoiceReminder({
 </td></tr></table>
 </body></html>`;
 
-  const text = `Promemoria pagamento fattura
+  const text = `Sollecito di pagamento
 
-Gentile ${clientName},
+Spett.le ${clientName},
 
-ci permettiamo di ricordarLe che la fattura n. ${invoiceNumber} risulta ancora non saldata.
+con la presente ci permettiamo di segnalarLe che, da un controllo della nostra contabilita', la fattura n. ${invoiceNumber} sotto indicata risulta ad oggi ancora insoluta.
+
+Siamo certi che si tratti di una semplice dimenticanza e confidiamo in un Suo cortese riscontro.
 
 Fattura: ${invoiceNumber}
 Importo: ${formattedTotal}
@@ -115,7 +123,11 @@ Coordinate bancarie per il pagamento:
 IBAN: IT49K0200874791000107356887
 Intestato a: PIRA WEB S.R.L.
 
-La preghiamo di procedere al pagamento al piu' presto o, qualora il pagamento sia gia' stato effettuato, di inviarci la conferma di avvenuto bonifico.
+La invitiamo cortesemente a provvedere al saldo dell'importo dovuto entro e non oltre i prossimi 5 giorni lavorativi, tramite bonifico bancario alle coordinate sopra indicate.
+
+Qualora il pagamento fosse gia' stato effettuato, La preghiamo di considerare la presente come non ricevuta e di inviarci cortesemente copia della contabile.
+
+Restiamo a disposizione per qualsiasi chiarimento.
 
 Cordiali saluti,
 Ing. Raffaele Antonio Piccolo
@@ -125,7 +137,7 @@ PiraWeb - amministrazione@piraweb.it - +39 331 853 5698`;
     from: process.env.SMTP_FROM || 'PiraWeb <amministrazione@piraweb.it>',
     to,
     replyTo: 'amministrazione@piraweb.it',
-    subject: `Promemoria pagamento fattura ${invoiceNumber} - PiraWeb`,
+    subject: `Sollecito di pagamento - Fattura ${invoiceNumber} - PiraWeb`,
     html,
     text,
   });
