@@ -269,7 +269,7 @@ export default function TasksPage() {
             options={[
               { value: 'me', label: '👤 I miei Task' },
               { value: 'all', label: '👥 Tutti i Task' },
-              ...teamMembers.map(m => ({
+              ...teamMembers.filter(m => m.id !== profile?.id).map(m => ({
                 value: m.id,
                 label: m.full_name,
               })),
