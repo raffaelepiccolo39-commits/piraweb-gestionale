@@ -138,7 +138,7 @@ export async function POST(request: NextRequest) {
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#F5F5F5;padding:30px 20px;"><tr><td align="center">
 <table width="600" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:8px;border:1px solid #E5E5E5;">
   <tr><td style="padding:24px 32px;border-bottom:1px solid #EEE;">
-    <img src="https://gestionale.piraweb.it/logo.png" alt="PiraWeb" width="120" style="display:block;" />
+    <img src="https://gestionale.piraweb.it/logo-email.png" alt="PiraWeb" width="120" style="display:block;" />
   </td></tr>
   <tr><td style="padding:28px 32px;">
     <h2 style="margin:0 0 16px;color:#333;font-size:20px;">Consulenza confermata</h2>

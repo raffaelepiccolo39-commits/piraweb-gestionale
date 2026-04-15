@@ -39,7 +39,7 @@ export async function sendInvoiceReminder({
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#F5F5F5;padding:30px 20px;"><tr><td align="center">
 <table width="600" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:8px;border:1px solid #E5E5E5;">
   <tr><td style="padding:24px 32px;border-bottom:1px solid #EEE;">
-    <img src="https://gestionale.piraweb.it/logo.png" alt="PiraWeb" width="120" style="display:block;" />
+    <img src="https://gestionale.piraweb.it/logo-email.png" alt="PiraWeb" width="120" style="display:block;" />
   </td></tr>
   <tr><td style="padding:28px 32px;">
     <h2 style="margin:0 0 16px;color:#333;font-size:20px;">Promemoria pagamento fattura</h2>
@@ -68,6 +68,14 @@ export async function sendInvoiceReminder({
             <td style="color:#D32F2F;font-size:14px;font-weight:600;text-align:right;">${daysOverdue} giorni</td>
           </tr>
         </table>
+      </td></tr>
+    </table>
+
+    <table width="100%" style="background:#F0F7FF;border:1px solid #BBDEFB;border-radius:6px;margin:16px 0;">
+      <tr><td style="padding:14px 20px;">
+        <p style="margin:0 0 4px;color:#1565C0;font-size:12px;font-weight:600;">Coordinate bancarie per il pagamento</p>
+        <p style="margin:0;color:#333;font-size:14px;font-family:monospace;">IBAN: IT49K0200874791000107356887</p>
+        <p style="margin:4px 0 0;color:#888;font-size:12px;">Intestato a: PIRA WEB S.R.L.</p>
       </td></tr>
     </table>
 
@@ -102,6 +110,10 @@ Fattura: ${invoiceNumber}
 Importo: ${formattedTotal}
 Scadenza: ${formattedDueDate}
 Giorni di ritardo: ${daysOverdue}
+
+Coordinate bancarie per il pagamento:
+IBAN: IT49K0200874791000107356887
+Intestato a: PIRA WEB S.R.L.
 
 La preghiamo di procedere al pagamento al piu' presto o, qualora il pagamento sia gia' stato effettuato, di inviarci la conferma di avvenuto bonifico.
 
