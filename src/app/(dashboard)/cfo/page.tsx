@@ -382,11 +382,28 @@ export default function CFOPage() {
   }
 
   // ── Calculations ──
-  const totalMonthlySalariesGross = employees.reduce((s, e) => s + e.costs.monthlyGross, 0);
-  const totalMonthlySalariesCostCompany = employees.reduce((s, e) => s + e.costs.monthlyCostCompany, 0);
-  const totalMonthlyINPS = employees.reduce((s, e) => s + e.costs.inpsEmployer, 0);
-  const totalMonthlyTFR = employees.reduce((s, e) => s + e.costs.tfr, 0);
-  const totalMonthlyNetEmployees = employees.reduce((s, e) => s + e.costs.monthlyNet, 0);
+  // Use REAL payslip data (latest month) when available, otherwise fall back to estimates
+  const latestPayslipMonth = payslips.length > 0 ? payslips[0].month : null;
+  const latestPayslips = latestPayslipMonth
+    ? payslips.filter(p => p.month === latestPayslipMonth)
+    : [];
+  const hasRealData = latestPayslips.length > 0;
+
+  const totalMonthlySalariesGross = hasRealData
+    ? latestPayslips.reduce((s, p) => s + p.lordo_mensile, 0)
+    : employees.reduce((s, e) => s + e.costs.monthlyGross, 0);
+  const totalMonthlySalariesCostCompany = hasRealData
+    ? latestPayslips.reduce((s, p) => s + (p.costo_totale_azienda || p.lordo_mensile), 0)
+    : employees.reduce((s, e) => s + e.costs.monthlyCostCompany, 0);
+  const totalMonthlyINPS = hasRealData
+    ? latestPayslips.reduce((s, p) => s + p.inps_azienda, 0)
+    : employees.reduce((s, e) => s + e.costs.inpsEmployer, 0);
+  const totalMonthlyTFR = hasRealData
+    ? latestPayslips.reduce((s, p) => s + p.tfr_accantonamento, 0)
+    : employees.reduce((s, e) => s + e.costs.tfr, 0);
+  const totalMonthlyNetEmployees = hasRealData
+    ? latestPayslips.reduce((s, p) => s + p.netto_mensile, 0)
+    : employees.reduce((s, e) => s + e.costs.monthlyNet, 0);
 
   // Monthly operating expenses
   const monthlyExpenses = expenses.reduce((total, exp) => {
@@ -583,6 +600,7 @@ export default function CFOPage() {
           <div className="flex items-center gap-2">
             <Users size={18} className="text-pw-accent" />
             <h2 className="text-lg font-semibold text-pw-text">Costo Dipendenti (Dettaglio Fiscale)</h2>
+            {hasRealData && <Badge className="bg-green-500/15 text-green-400 ml-2">Dati reali da buste paga</Badge>}
           </div>
         </CardHeader>
         <CardContent className="overflow-x-auto">
@@ -600,21 +618,35 @@ export default function CFOPage() {
               </tr>
             </thead>
             <tbody>
-              {employees.map(emp => (
-                <tr key={emp.id} className="border-b border-pw-border/50 hover:bg-pw-surface-2/50">
-                  <td className="py-3">
-                    <p className="font-medium text-pw-text">{emp.full_name}</p>
-                    <p className="text-[10px] text-pw-text-dim">{emp.contract_type === 'indeterminato' ? 'Indeterminato' : emp.contract_type}</p>
-                  </td>
-                  <td className="text-right text-pw-text-muted">{formatCurrency(emp.costs.monthlyGross)}</td>
-                  <td className="text-right text-pw-text-dim">{formatCurrency(emp.costs.inpsEmployer)}</td>
-                  <td className="text-right text-pw-text-dim">{formatCurrency(emp.costs.tfr)}</td>
-                  <td className="text-right font-semibold text-red-400">{formatCurrency(emp.costs.monthlyCostCompany)}</td>
-                  <td className="text-right text-pw-text-dim">{formatCurrency(emp.costs.inpsEmployee)}</td>
-                  <td className="text-right text-pw-text-dim">{formatCurrency(emp.costs.irpef)}</td>
-                  <td className="text-right font-semibold text-green-400">{formatCurrency(emp.costs.monthlyNet)}</td>
-                </tr>
-              ))}
+              {employees.map(emp => {
+                // Use real payslip data if available
+                const realData = latestPayslips.find(p => p.employee_id === emp.id);
+                const lordo = realData ? realData.lordo_mensile : emp.costs.monthlyGross;
+                const inpsAz = realData ? realData.inps_azienda : emp.costs.inpsEmployer;
+                const tfr = realData ? realData.tfr_accantonamento : emp.costs.tfr;
+                const costoAz = realData ? (realData.costo_totale_azienda || lordo + inpsAz + tfr) : emp.costs.monthlyCostCompany;
+                const inpsDip = realData ? realData.inps_dipendente : emp.costs.inpsEmployee;
+                const irpef = realData ? realData.irpef : emp.costs.irpef;
+                const netto = realData ? realData.netto_mensile : emp.costs.monthlyNet;
+                return (
+                  <tr key={emp.id} className="border-b border-pw-border/50 hover:bg-pw-surface-2/50">
+                    <td className="py-3">
+                      <p className="font-medium text-pw-text">{emp.full_name}</p>
+                      <p className="text-[10px] text-pw-text-dim">
+                        {emp.contract_type === 'indeterminato' ? 'Indeterminato' : emp.contract_type}
+                        {realData ? ' · dati reali' : ' · stima'}
+                      </p>
+                    </td>
+                    <td className="text-right text-pw-text-muted">{formatCurrency(lordo)}</td>
+                    <td className="text-right text-pw-text-dim">{formatCurrency(inpsAz)}</td>
+                    <td className="text-right text-pw-text-dim">{formatCurrency(tfr)}</td>
+                    <td className="text-right font-semibold text-red-400">{formatCurrency(costoAz)}</td>
+                    <td className="text-right text-pw-text-dim">{formatCurrency(inpsDip)}</td>
+                    <td className="text-right text-pw-text-dim">{formatCurrency(irpef)}</td>
+                    <td className="text-right font-semibold text-green-400">{formatCurrency(netto)}</td>
+                  </tr>
+                );
+              })}
             </tbody>
             <tfoot>
               <tr className="border-t-2 border-pw-border font-bold">
@@ -623,8 +655,8 @@ export default function CFOPage() {
                 <td className="text-right text-pw-text-dim">{formatCurrency(totalMonthlyINPS)}</td>
                 <td className="text-right text-pw-text-dim">{formatCurrency(totalMonthlyTFR)}</td>
                 <td className="text-right text-red-400">{formatCurrency(totalMonthlySalariesCostCompany)}</td>
-                <td className="text-right text-pw-text-dim">{formatCurrency(employees.reduce((s, e) => s + e.costs.inpsEmployee, 0))}</td>
-                <td className="text-right text-pw-text-dim">{formatCurrency(employees.reduce((s, e) => s + e.costs.irpef, 0))}</td>
+                <td className="text-right text-pw-text-dim">{formatCurrency(hasRealData ? latestPayslips.reduce((s, p) => s + p.inps_dipendente, 0) : employees.reduce((s, e) => s + e.costs.inpsEmployee, 0))}</td>
+                <td className="text-right text-pw-text-dim">{formatCurrency(hasRealData ? latestPayslips.reduce((s, p) => s + p.irpef, 0) : employees.reduce((s, e) => s + e.costs.irpef, 0))}</td>
                 <td className="text-right text-green-400">{formatCurrency(totalMonthlyNetEmployees)}</td>
               </tr>
             </tfoot>
