@@ -743,6 +743,36 @@ export interface InvoiceItem {
   created_at: string;
 }
 
+// === PAYSLIPS ===
+
+export interface Payslip {
+  id: string;
+  employee_id: string;
+  month: string;
+  ral: number | null;
+  lordo_mensile: number;
+  netto_mensile: number;
+  inps_dipendente: number;
+  irpef: number;
+  addizionale_regionale: number;
+  addizionale_comunale: number;
+  bonus_100: number;
+  straordinari: number;
+  premi: number;
+  trattenute_varie: number;
+  inps_azienda: number;
+  tfr_accantonamento: number;
+  inail: number;
+  costo_totale_azienda: number | null;
+  attachment_url: string | null;
+  attachment_name: string | null;
+  notes: string | null;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+  employee?: Profile;
+}
+
 // === OPERATING EXPENSES ===
 
 export interface OperatingExpense {

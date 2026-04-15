@@ -11,11 +11,13 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Modal } from '@/components/ui/modal';
 import { formatCurrency } from '@/lib/utils';
-import type { Profile, OperatingExpense } from '@/types/database';
+import type { Profile, OperatingExpense, Payslip, Invoice, Client } from '@/types/database';
 import {
   TrendingUp,
   TrendingDown,
   Euro,
+  Upload,
+  FileText,
   Users,
   Building2,
   Receipt,
@@ -128,6 +130,21 @@ export default function CFOPage() {
     name: '', category: 'altro', amount: '', is_recurring: true, frequency: 'monthly', vendor: '', notes: '',
   });
 
+  // Payslips
+  const [payslips, setPayslips] = useState<(Payslip & { employee?: Profile })[]>([]);
+  const [showPayslipForm, setShowPayslipForm] = useState(false);
+  const [savingPayslip, setSavingPayslip] = useState(false);
+  const [payslipForm, setPayslipForm] = useState({
+    employee_id: '', month: new Date().toISOString().slice(0, 7),
+    lordo_mensile: '', netto_mensile: '', ral: '',
+    inps_dipendente: '', irpef: '', addizionale_regionale: '', addizionale_comunale: '',
+    bonus_100: '', straordinari: '', premi: '', trattenute_varie: '',
+    inps_azienda: '', tfr_accantonamento: '', inail: '', notes: '',
+  });
+
+  // Invoices analysis
+  const [invoices, setInvoices] = useState<(Invoice & { client?: Client })[]>([]);
+
   // Summary data
   const [summary, setSummary] = useState({
     mrr: 0,
@@ -146,7 +163,7 @@ export default function CFOPage() {
     // Parallel fetch all data
     const [
       profilesRes, contractsRes, paymentsRes, expensesRes,
-      timeRes, freelancerRes, clientsRes,
+      timeRes, freelancerRes, clientsRes, payslipsRes, invoicesRes,
     ] = await Promise.all([
       supabase.from('profiles').select('*').eq('is_active', true).order('full_name'),
       supabase.from('client_contracts').select('client_id, monthly_fee, status, duration_months, start_date').eq('status', 'active'),
@@ -155,6 +172,8 @@ export default function CFOPage() {
       supabase.from('time_entries').select('user_id, task_id, duration_minutes, started_at').gte('started_at', yearStart).not('duration_minutes', 'is', null).limit(10000),
       supabase.from('task_freelancer_assignments').select('task_id, total_cost, status').limit(5000),
       supabase.from('clients').select('id, name, company, ragione_sociale, is_active').eq('is_active', true),
+      supabase.from('payslips').select('*, employee:profiles(id, full_name, role)').order('month', { ascending: false }).limit(200),
+      supabase.from('invoices').select('*, client:clients(id, name, company, ragione_sociale)').order('issue_date', { ascending: false }).limit(100),
     ]);
 
     const profiles = (profilesRes.data || []) as Profile[];
@@ -163,6 +182,8 @@ export default function CFOPage() {
     const expData = (expensesRes.data || []) as OperatingExpense[];
     const timeEntries = timeRes.data || [];
     const freelancerAssignments = freelancerRes.data || [];
+    setPayslips((payslipsRes.data || []) as (Payslip & { employee?: Profile })[]);
+    setInvoices((invoicesRes.data || []) as (Invoice & { client?: Client })[]);
     const clients = clientsRes.data || [];
 
     // ── Employees with tax calculations ──
@@ -292,6 +313,81 @@ export default function CFOPage() {
     await supabase.from('operating_expenses').update({ is_active: false }).eq('id', id);
     fetchAll();
   };
+
+  // ── Payslip handlers ──
+  const resetPayslipForm = () => {
+    setPayslipForm({
+      employee_id: '', month: new Date().toISOString().slice(0, 7),
+      lordo_mensile: '', netto_mensile: '', ral: '',
+      inps_dipendente: '', irpef: '', addizionale_regionale: '', addizionale_comunale: '',
+      bonus_100: '', straordinari: '', premi: '', trattenute_varie: '',
+      inps_azienda: '', tfr_accantonamento: '', inail: '', notes: '',
+    });
+  };
+
+  const handleSavePayslip = async () => {
+    if (!payslipForm.employee_id || !payslipForm.lordo_mensile || !payslipForm.netto_mensile || !profile) {
+      toast.error('Dipendente, lordo e netto sono obbligatori');
+      return;
+    }
+    setSavingPayslip(true);
+    const lordo = parseFloat(payslipForm.lordo_mensile) || 0;
+    const netto = parseFloat(payslipForm.netto_mensile) || 0;
+    const inpsAz = parseFloat(payslipForm.inps_azienda) || 0;
+    const tfrAcc = parseFloat(payslipForm.tfr_accantonamento) || 0;
+    const inail = parseFloat(payslipForm.inail) || 0;
+    const costoTotale = lordo + inpsAz + tfrAcc + inail;
+
+    const { error } = await supabase.from('payslips').upsert({
+      employee_id: payslipForm.employee_id,
+      month: payslipForm.month + '-01',
+      ral: payslipForm.ral ? parseFloat(payslipForm.ral) : null,
+      lordo_mensile: lordo,
+      netto_mensile: netto,
+      inps_dipendente: parseFloat(payslipForm.inps_dipendente) || 0,
+      irpef: parseFloat(payslipForm.irpef) || 0,
+      addizionale_regionale: parseFloat(payslipForm.addizionale_regionale) || 0,
+      addizionale_comunale: parseFloat(payslipForm.addizionale_comunale) || 0,
+      bonus_100: parseFloat(payslipForm.bonus_100) || 0,
+      straordinari: parseFloat(payslipForm.straordinari) || 0,
+      premi: parseFloat(payslipForm.premi) || 0,
+      trattenute_varie: parseFloat(payslipForm.trattenute_varie) || 0,
+      inps_azienda: inpsAz,
+      tfr_accantonamento: tfrAcc,
+      inail: inail,
+      costo_totale_azienda: costoTotale,
+      notes: payslipForm.notes || null,
+      created_by: profile.id,
+    }, { onConflict: 'employee_id,month' });
+
+    setSavingPayslip(false);
+    if (error) {
+      toast.error('Errore nel salvataggio: ' + error.message);
+    } else {
+      toast.success('Busta paga salvata');
+      setShowPayslipForm(false);
+      resetPayslipForm();
+      fetchAll();
+    }
+  };
+
+  const handleDeletePayslip = async (id: string) => {
+    if (!confirm('Eliminare questa busta paga?')) return;
+    await supabase.from('payslips').delete().eq('id', id);
+    fetchAll();
+  };
+
+  // ── Invoice net calculation ──
+  // For SRL: revenue - IVA (already excluded in imponibile) - IRES (24%) - IRAP (3.9%)
+  const IRES_RATE = 0.24;
+  function calculateInvoiceNet(invoice: Invoice) {
+    const imponibile = invoice.subtotal;
+    const iva = invoice.vat_amount;
+    const ires = imponibile * IRES_RATE;
+    const irap = imponibile * IRAP_RATE;
+    const nettoAzienda = imponibile - ires - irap;
+    return { imponibile, iva, ires, irap, nettoAzienda, totaleIncIva: invoice.total };
+  }
 
   // ── Calculations ──
   const totalMonthlySalariesGross = employees.reduce((s, e) => s + e.costs.monthlyGross, 0);
@@ -689,6 +785,221 @@ export default function CFOPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* ═══ SEZIONE 8: BUSTE PAGA REALI ═══ */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <FileText size={18} className="text-pw-accent" />
+              <h2 className="text-lg font-semibold text-pw-text">Buste Paga</h2>
+              <Badge className="bg-pw-accent/15 text-pw-accent">{payslips.length} registrate</Badge>
+            </div>
+            <Button onClick={() => { resetPayslipForm(); setShowPayslipForm(true); }} size="sm">
+              <Plus size={14} />
+              Inserisci Busta Paga
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="overflow-x-auto">
+          {payslips.length > 0 ? (
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-pw-border text-[10px] uppercase tracking-widest text-pw-text-dim">
+                  <th className="text-left py-3">Dipendente</th>
+                  <th className="text-left py-3">Mese</th>
+                  <th className="text-right py-3">Lordo</th>
+                  <th className="text-right py-3">INPS Dip.</th>
+                  <th className="text-right py-3">IRPEF</th>
+                  <th className="text-right py-3 text-green-400">Netto Busta</th>
+                  <th className="text-right py-3">INPS Az.</th>
+                  <th className="text-right py-3">TFR</th>
+                  <th className="text-right py-3 text-red-400">Costo Azienda</th>
+                  <th className="w-8"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {payslips.map(ps => (
+                  <tr key={ps.id} className="border-b border-pw-border/50 hover:bg-pw-surface-2/50">
+                    <td className="py-2 font-medium text-pw-text">{(ps.employee as Profile | undefined)?.full_name || '—'}</td>
+                    <td className="py-2 text-pw-text-muted">{new Date(ps.month).toLocaleDateString('it-IT', { month: 'long', year: 'numeric' })}</td>
+                    <td className="py-2 text-right text-pw-text-muted">{formatCurrency(ps.lordo_mensile)}</td>
+                    <td className="py-2 text-right text-pw-text-dim">{formatCurrency(ps.inps_dipendente)}</td>
+                    <td className="py-2 text-right text-pw-text-dim">{formatCurrency(ps.irpef)}</td>
+                    <td className="py-2 text-right font-semibold text-green-400">{formatCurrency(ps.netto_mensile)}</td>
+                    <td className="py-2 text-right text-pw-text-dim">{formatCurrency(ps.inps_azienda)}</td>
+                    <td className="py-2 text-right text-pw-text-dim">{formatCurrency(ps.tfr_accantonamento)}</td>
+                    <td className="py-2 text-right font-semibold text-red-400">{formatCurrency(ps.costo_totale_azienda || 0)}</td>
+                    <td className="py-2">
+                      <button onClick={() => handleDeletePayslip(ps.id)} className="text-pw-text-dim hover:text-red-400">
+                        <Trash2 size={12} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <div className="text-center py-8">
+              <FileText size={40} className="text-pw-text-dim mx-auto mb-2" />
+              <p className="text-sm text-pw-text-muted">Nessuna busta paga inserita</p>
+              <p className="text-xs text-pw-text-dim mt-1">Inserisci i dati delle buste paga per avere il costo reale dei dipendenti</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* ═══ SEZIONE 9: ANALISI NETTO FATTURE ═══ */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Receipt size={18} className="text-pw-accent" />
+            <h2 className="text-lg font-semibold text-pw-text">Analisi Netto Fatture Emesse</h2>
+          </div>
+          <p className="text-xs text-pw-text-dim mt-1">Per ogni fattura: imponibile - IRES (24%) - IRAP (3.9%) = netto azienda</p>
+        </CardHeader>
+        <CardContent className="overflow-x-auto">
+          {invoices.length > 0 ? (
+            <>
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-pw-border text-[10px] uppercase tracking-widest text-pw-text-dim">
+                    <th className="text-left py-3">Fattura</th>
+                    <th className="text-left py-3">Cliente</th>
+                    <th className="text-left py-3">Stato</th>
+                    <th className="text-right py-3">Imponibile</th>
+                    <th className="text-right py-3">IVA ({invoices[0]?.vat_rate || 22}%)</th>
+                    <th className="text-right py-3">Totale</th>
+                    <th className="text-right py-3 text-orange-400">IRES (24%)</th>
+                    <th className="text-right py-3 text-orange-400">IRAP (3.9%)</th>
+                    <th className="text-right py-3 text-green-400 font-bold">Netto Azienda</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {invoices.map(inv => {
+                    const net = calculateInvoiceNet(inv);
+                    const client = inv.client as Client | undefined;
+                    return (
+                      <tr key={inv.id} className="border-b border-pw-border/50 hover:bg-pw-surface-2/50">
+                        <td className="py-2 font-mono text-xs text-pw-accent">{inv.invoice_number}</td>
+                        <td className="py-2 text-pw-text">{client?.ragione_sociale || client?.company || client?.name || '—'}</td>
+                        <td className="py-2">
+                          <Badge className={inv.status === 'paid' ? 'bg-green-500/15 text-green-400' : inv.status === 'overdue' ? 'bg-red-500/15 text-red-400' : 'bg-blue-500/15 text-blue-400'}>
+                            {inv.status === 'paid' ? 'Pagata' : inv.status === 'sent' ? 'Inviata' : inv.status === 'overdue' ? 'Scaduta' : inv.status === 'draft' ? 'Bozza' : inv.status}
+                          </Badge>
+                        </td>
+                        <td className="py-2 text-right text-pw-text-muted">{formatCurrency(net.imponibile)}</td>
+                        <td className="py-2 text-right text-pw-text-dim">{formatCurrency(net.iva)}</td>
+                        <td className="py-2 text-right text-pw-text">{formatCurrency(net.totaleIncIva)}</td>
+                        <td className="py-2 text-right text-orange-400">-{formatCurrency(net.ires)}</td>
+                        <td className="py-2 text-right text-orange-400">-{formatCurrency(net.irap)}</td>
+                        <td className="py-2 text-right font-bold text-green-400">{formatCurrency(net.nettoAzienda)}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+                <tfoot>
+                  <tr className="border-t-2 border-pw-border font-bold">
+                    <td colSpan={3} className="py-3 text-pw-text">TOTALE</td>
+                    <td className="text-right text-pw-text">{formatCurrency(invoices.reduce((s, i) => s + i.subtotal, 0))}</td>
+                    <td className="text-right text-pw-text-dim">{formatCurrency(invoices.reduce((s, i) => s + i.vat_amount, 0))}</td>
+                    <td className="text-right text-pw-text">{formatCurrency(invoices.reduce((s, i) => s + i.total, 0))}</td>
+                    <td className="text-right text-orange-400">-{formatCurrency(invoices.reduce((s, i) => s + calculateInvoiceNet(i).ires, 0))}</td>
+                    <td className="text-right text-orange-400">-{formatCurrency(invoices.reduce((s, i) => s + calculateInvoiceNet(i).irap, 0))}</td>
+                    <td className="text-right text-green-400">{formatCurrency(invoices.reduce((s, i) => s + calculateInvoiceNet(i).nettoAzienda, 0))}</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </>
+          ) : (
+            <div className="text-center py-8">
+              <Receipt size={40} className="text-pw-text-dim mx-auto mb-2" />
+              <p className="text-sm text-pw-text-muted">Nessuna fattura emessa</p>
+              <p className="text-xs text-pw-text-dim mt-1">Le fatture create nella sezione Fatturazione appariranno qui con l&apos;analisi del netto</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* ═══ MODAL BUSTA PAGA ═══ */}
+      <Modal
+        open={showPayslipForm}
+        onClose={() => { setShowPayslipForm(false); resetPayslipForm(); }}
+        title="Inserisci Busta Paga"
+        size="lg"
+      >
+        <div className="space-y-4">
+          <div className="p-3 rounded-xl bg-pw-accent/10 text-pw-accent text-sm">
+            Inserisci i dati dalla busta paga del dipendente. I campi Lordo e Netto sono obbligatori, gli altri aiutano il dettaglio fiscale.
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <Select
+              id="ps-employee"
+              label="Dipendente *"
+              value={payslipForm.employee_id}
+              onChange={(e) => setPayslipForm({ ...payslipForm, employee_id: e.target.value })}
+              options={employees.map(e => ({ value: e.id, label: e.full_name }))}
+              placeholder="Seleziona..."
+            />
+            <Input
+              id="ps-month"
+              label="Mese *"
+              type="month"
+              value={payslipForm.month}
+              onChange={(e) => setPayslipForm({ ...payslipForm, month: e.target.value })}
+            />
+          </div>
+          <div className="grid grid-cols-3 gap-4">
+            <Input id="ps-ral" label="RAL" type="number" value={payslipForm.ral} onChange={(e) => setPayslipForm({ ...payslipForm, ral: e.target.value })} placeholder="es. 24000" />
+            <Input id="ps-lordo" label="Lordo Mensile *" type="number" value={payslipForm.lordo_mensile} onChange={(e) => setPayslipForm({ ...payslipForm, lordo_mensile: e.target.value })} placeholder="es. 1800" />
+            <Input id="ps-netto" label="Netto in Busta *" type="number" value={payslipForm.netto_mensile} onChange={(e) => setPayslipForm({ ...payslipForm, netto_mensile: e.target.value })} placeholder="es. 1350" />
+          </div>
+
+          <p className="text-xs font-semibold text-pw-text mt-2">Trattenute dipendente</p>
+          <div className="grid grid-cols-4 gap-3">
+            <Input id="ps-inps-dip" label="INPS Dip." type="number" value={payslipForm.inps_dipendente} onChange={(e) => setPayslipForm({ ...payslipForm, inps_dipendente: e.target.value })} placeholder="0" />
+            <Input id="ps-irpef" label="IRPEF" type="number" value={payslipForm.irpef} onChange={(e) => setPayslipForm({ ...payslipForm, irpef: e.target.value })} placeholder="0" />
+            <Input id="ps-reg" label="Add. Regionale" type="number" value={payslipForm.addizionale_regionale} onChange={(e) => setPayslipForm({ ...payslipForm, addizionale_regionale: e.target.value })} placeholder="0" />
+            <Input id="ps-com" label="Add. Comunale" type="number" value={payslipForm.addizionale_comunale} onChange={(e) => setPayslipForm({ ...payslipForm, addizionale_comunale: e.target.value })} placeholder="0" />
+          </div>
+
+          <p className="text-xs font-semibold text-pw-text mt-2">Voci aggiuntive</p>
+          <div className="grid grid-cols-4 gap-3">
+            <Input id="ps-bonus" label="Bonus 100" type="number" value={payslipForm.bonus_100} onChange={(e) => setPayslipForm({ ...payslipForm, bonus_100: e.target.value })} placeholder="0" />
+            <Input id="ps-straord" label="Straordinari" type="number" value={payslipForm.straordinari} onChange={(e) => setPayslipForm({ ...payslipForm, straordinari: e.target.value })} placeholder="0" />
+            <Input id="ps-premi" label="Premi" type="number" value={payslipForm.premi} onChange={(e) => setPayslipForm({ ...payslipForm, premi: e.target.value })} placeholder="0" />
+            <Input id="ps-tratt" label="Altre Tratt." type="number" value={payslipForm.trattenute_varie} onChange={(e) => setPayslipForm({ ...payslipForm, trattenute_varie: e.target.value })} placeholder="0" />
+          </div>
+
+          <p className="text-xs font-semibold text-red-400 mt-2">Costo azienda (sopra il lordo)</p>
+          <div className="grid grid-cols-3 gap-4">
+            <Input id="ps-inps-az" label="INPS Azienda" type="number" value={payslipForm.inps_azienda} onChange={(e) => setPayslipForm({ ...payslipForm, inps_azienda: e.target.value })} placeholder="0" />
+            <Input id="ps-tfr" label="TFR" type="number" value={payslipForm.tfr_accantonamento} onChange={(e) => setPayslipForm({ ...payslipForm, tfr_accantonamento: e.target.value })} placeholder="0" />
+            <Input id="ps-inail" label="INAIL" type="number" value={payslipForm.inail} onChange={(e) => setPayslipForm({ ...payslipForm, inail: e.target.value })} placeholder="0" />
+          </div>
+
+          {payslipForm.lordo_mensile && payslipForm.inps_azienda && (
+            <div className="p-3 rounded-xl bg-red-500/10 text-sm">
+              <span className="text-red-400 font-semibold">Costo totale azienda: </span>
+              <span className="text-red-400 font-bold">
+                {formatCurrency(
+                  (parseFloat(payslipForm.lordo_mensile) || 0) +
+                  (parseFloat(payslipForm.inps_azienda) || 0) +
+                  (parseFloat(payslipForm.tfr_accantonamento) || 0) +
+                  (parseFloat(payslipForm.inail) || 0)
+                )}
+              </span>
+            </div>
+          )}
+
+          <div className="flex gap-3 pt-2">
+            <Button variant="outline" onClick={() => { setShowPayslipForm(false); resetPayslipForm(); }} className="flex-1">Annulla</Button>
+            <Button onClick={handleSavePayslip} loading={savingPayslip} disabled={!payslipForm.employee_id || !payslipForm.lordo_mensile || !payslipForm.netto_mensile} className="flex-1">
+              Salva Busta Paga
+            </Button>
+          </div>
+        </div>
+      </Modal>
 
       {/* ═══ MODAL SPESE ═══ */}
       <Modal
