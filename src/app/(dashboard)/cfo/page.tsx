@@ -32,6 +32,7 @@ import {
   ArrowDownRight,
   Briefcase,
   Wallet,
+  Sparkles,
 } from 'lucide-react';
 
 // ─── Italian Tax Constants (2026) ───
@@ -132,16 +133,11 @@ export default function CFOPage() {
 
   // Payslips
   const [payslips, setPayslips] = useState<(Payslip & { employee?: Profile })[]>([]);
-  const [showPayslipForm, setShowPayslipForm] = useState(false);
-  const [savingPayslip, setSavingPayslip] = useState(false);
+  const [showPayslipUpload, setShowPayslipUpload] = useState(false);
   const [payslipFile, setPayslipFile] = useState<File | null>(null);
-  const [payslipForm, setPayslipForm] = useState({
-    employee_id: '', month: new Date().toISOString().slice(0, 7),
-    lordo_mensile: '', netto_mensile: '', ral: '',
-    inps_dipendente: '', irpef: '', addizionale_regionale: '', addizionale_comunale: '',
-    bonus_100: '', straordinari: '', premi: '', trattenute_varie: '',
-    inps_azienda: '', tfr_accantonamento: '', inail: '', notes: '',
-  });
+  const [parsingPayslip, setParsingPayslip] = useState(false);
+  const [parsedPayslips, setParsedPayslips] = useState<Record<string, unknown>[] | null>(null);
+  const [savingPayslips, setSavingPayslips] = useState(false);
 
   // Invoices analysis
   const [invoices, setInvoices] = useState<(Invoice & { client?: Client })[]>([]);
@@ -316,77 +312,100 @@ export default function CFOPage() {
   };
 
   // ── Payslip handlers ──
-  const resetPayslipForm = () => {
-    setPayslipForm({
-      employee_id: '', month: new Date().toISOString().slice(0, 7),
-      lordo_mensile: '', netto_mensile: '', ral: '',
-      inps_dipendente: '', irpef: '', addizionale_regionale: '', addizionale_comunale: '',
-      bonus_100: '', straordinari: '', premi: '', trattenute_varie: '',
-      inps_azienda: '', tfr_accantonamento: '', inail: '', notes: '',
-    });
+  const handleParsePayslip = async () => {
+    if (!payslipFile) { toast.error('Seleziona un file'); return; }
+    setParsingPayslip(true);
+    setParsedPayslips(null);
+
+    try {
+      // Convert file to base64
+      const buffer = await payslipFile.arrayBuffer();
+      const base64 = btoa(String.fromCharCode(...new Uint8Array(buffer)));
+
+      const res = await fetch('/api/cfo/parse-payslip', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ file: base64, mimeType: payslipFile.type || 'application/pdf' }),
+      });
+      const data = await res.json();
+
+      if (res.ok && data.payslips) {
+        setParsedPayslips(data.payslips);
+        toast.success(`${data.count} buste paga trovate nel documento`);
+      } else {
+        toast.error(data.error || 'Errore nell\'analisi del documento');
+      }
+    } catch {
+      toast.error('Errore di connessione');
+    } finally {
+      setParsingPayslip(false);
+    }
   };
 
-  const handleSavePayslip = async () => {
-    if (!payslipForm.employee_id || !payslipForm.lordo_mensile || !payslipForm.netto_mensile || !profile) {
-      toast.error('Dipendente, lordo e netto sono obbligatori');
-      return;
-    }
-    setSavingPayslip(true);
+  const handleSaveAllPayslips = async () => {
+    if (!parsedPayslips || !profile || !payslipFile) return;
+    setSavingPayslips(true);
 
-    // Upload file if present
+    // Upload original PDF
     let attachmentUrl: string | null = null;
     let attachmentName: string | null = null;
-    if (payslipFile) {
-      const ext = payslipFile.name.split('.').pop();
-      const path = `payslips/${payslipForm.employee_id}/${payslipForm.month}.${ext}`;
-      const { error: uploadError } = await supabase.storage.from('attachments').upload(path, payslipFile, { upsert: true });
-      if (!uploadError) {
-        const { data: urlData } = supabase.storage.from('attachments').getPublicUrl(path);
-        attachmentUrl = urlData.publicUrl;
-        attachmentName = payslipFile.name;
-      }
+    const ext = payslipFile.name.split('.').pop();
+    const month = (parsedPayslips[0] as Record<string, string>)?.month || new Date().toISOString().slice(0, 7);
+    const path = `payslips/${month}/${Date.now()}.${ext}`;
+    const { error: uploadError } = await supabase.storage.from('attachments').upload(path, payslipFile, { upsert: true });
+    if (!uploadError) {
+      const { data: urlData } = supabase.storage.from('attachments').getPublicUrl(path);
+      attachmentUrl = urlData.publicUrl;
+      attachmentName = payslipFile.name;
     }
 
-    const lordo = parseFloat(payslipForm.lordo_mensile) || 0;
-    const netto = parseFloat(payslipForm.netto_mensile) || 0;
-    const inpsAz = parseFloat(payslipForm.inps_azienda) || 0;
-    const tfrAcc = parseFloat(payslipForm.tfr_accantonamento) || 0;
-    const inail = parseFloat(payslipForm.inail) || 0;
-    const costoTotale = lordo + inpsAz + tfrAcc + inail;
+    let saved = 0;
+    let errors = 0;
 
-    const { error } = await supabase.from('payslips').upsert({
-      employee_id: payslipForm.employee_id,
-      month: payslipForm.month + '-01',
-      ral: payslipForm.ral ? parseFloat(payslipForm.ral) : null,
-      lordo_mensile: lordo,
-      netto_mensile: netto,
-      inps_dipendente: parseFloat(payslipForm.inps_dipendente) || 0,
-      irpef: parseFloat(payslipForm.irpef) || 0,
-      addizionale_regionale: parseFloat(payslipForm.addizionale_regionale) || 0,
-      addizionale_comunale: parseFloat(payslipForm.addizionale_comunale) || 0,
-      bonus_100: parseFloat(payslipForm.bonus_100) || 0,
-      straordinari: parseFloat(payslipForm.straordinari) || 0,
-      premi: parseFloat(payslipForm.premi) || 0,
-      trattenute_varie: parseFloat(payslipForm.trattenute_varie) || 0,
-      inps_azienda: inpsAz,
-      tfr_accantonamento: tfrAcc,
-      inail: inail,
-      costo_totale_azienda: costoTotale,
-      ...(attachmentUrl ? { attachment_url: attachmentUrl, attachment_name: attachmentName } : {}),
-      notes: payslipForm.notes || null,
-      created_by: profile.id,
-    }, { onConflict: 'employee_id,month' });
+    for (const ps of parsedPayslips) {
+      const p = ps as Record<string, unknown>;
+      if (!p.employee_id || !p.lordo_mensile || !p.netto_mensile) { errors++; continue; }
 
-    setSavingPayslip(false);
-    if (error) {
-      toast.error('Errore nel salvataggio: ' + error.message);
-    } else {
-      toast.success('Busta paga salvata');
-      setShowPayslipForm(false);
-      resetPayslipForm();
-      setPayslipFile(null);
-      fetchAll();
+      const lordo = Number(p.lordo_mensile) || 0;
+      const inpsAz = Number(p.inps_azienda) || 0;
+      const tfrAcc = Number(p.tfr_accantonamento) || 0;
+      const inail = Number(p.inail) || 0;
+
+      const { error } = await supabase.from('payslips').upsert({
+        employee_id: p.employee_id as string,
+        month: `${p.month}-01`,
+        ral: p.ral ? Number(p.ral) : null,
+        lordo_mensile: lordo,
+        netto_mensile: Number(p.netto_mensile) || 0,
+        inps_dipendente: Number(p.inps_dipendente) || 0,
+        irpef: Number(p.irpef) || 0,
+        addizionale_regionale: Number(p.addizionale_regionale) || 0,
+        addizionale_comunale: Number(p.addizionale_comunale) || 0,
+        bonus_100: Number(p.bonus_100) || 0,
+        straordinari: Number(p.straordinari) || 0,
+        premi: Number(p.premi) || 0,
+        trattenute_varie: Number(p.trattenute_varie) || 0,
+        inps_azienda: inpsAz,
+        tfr_accantonamento: tfrAcc,
+        inail: inail,
+        costo_totale_azienda: lordo + inpsAz + tfrAcc + inail,
+        attachment_url: attachmentUrl,
+        attachment_name: attachmentName,
+        created_by: profile.id,
+      }, { onConflict: 'employee_id,month' });
+
+      if (error) errors++;
+      else saved++;
     }
+
+    setSavingPayslips(false);
+    if (saved > 0) toast.success(`${saved} buste paga salvate`);
+    if (errors > 0) toast.error(`${errors} buste paga non salvate (dipendente non trovato)`);
+
+    setShowPayslipUpload(false);
+    setPayslipFile(null);
+    setParsedPayslips(null);
+    fetchAll();
   };
 
   const handleDeletePayslip = async (id: string) => {
@@ -813,9 +832,9 @@ export default function CFOPage() {
               <h2 className="text-lg font-semibold text-pw-text">Buste Paga</h2>
               <Badge className="bg-pw-accent/15 text-pw-accent">{payslips.length} registrate</Badge>
             </div>
-            <Button onClick={() => { resetPayslipForm(); setShowPayslipForm(true); }} size="sm">
-              <Plus size={14} />
-              Inserisci Busta Paga
+            <Button onClick={() => { setPayslipFile(null); setParsedPayslips(null); setShowPayslipUpload(true); }} size="sm">
+              <Upload size={14} />
+              Carica Buste Paga (PDF)
             </Button>
           </div>
         </CardHeader>
@@ -952,99 +971,106 @@ export default function CFOPage() {
         </CardContent>
       </Card>
 
-      {/* ═══ MODAL BUSTA PAGA ═══ */}
+      {/* ═══ MODAL CARICA BUSTE PAGA ═══ */}
       <Modal
-        open={showPayslipForm}
-        onClose={() => { setShowPayslipForm(false); resetPayslipForm(); }}
-        title="Inserisci Busta Paga"
+        open={showPayslipUpload}
+        onClose={() => { setShowPayslipUpload(false); setPayslipFile(null); setParsedPayslips(null); }}
+        title="Carica Buste Paga"
         size="lg"
       >
         <div className="space-y-4">
-          <div className="p-3 rounded-xl bg-pw-accent/10 text-pw-accent text-sm">
-            Inserisci i dati dalla busta paga del dipendente. I campi Lordo e Netto sono obbligatori, gli altri aiutano il dettaglio fiscale.
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <Select
-              id="ps-employee"
-              label="Dipendente *"
-              value={payslipForm.employee_id}
-              onChange={(e) => setPayslipForm({ ...payslipForm, employee_id: e.target.value })}
-              options={employees.map(e => ({ value: e.id, label: e.full_name }))}
-              placeholder="Seleziona..."
-            />
-            <Input
-              id="ps-month"
-              label="Mese *"
-              type="month"
-              value={payslipForm.month}
-              onChange={(e) => setPayslipForm({ ...payslipForm, month: e.target.value })}
-            />
-          </div>
-          <div className="grid grid-cols-3 gap-4">
-            <Input id="ps-ral" label="RAL" type="number" value={payslipForm.ral} onChange={(e) => setPayslipForm({ ...payslipForm, ral: e.target.value })} placeholder="es. 24000" />
-            <Input id="ps-lordo" label="Lordo Mensile *" type="number" value={payslipForm.lordo_mensile} onChange={(e) => setPayslipForm({ ...payslipForm, lordo_mensile: e.target.value })} placeholder="es. 1800" />
-            <Input id="ps-netto" label="Netto in Busta *" type="number" value={payslipForm.netto_mensile} onChange={(e) => setPayslipForm({ ...payslipForm, netto_mensile: e.target.value })} placeholder="es. 1350" />
-          </div>
+          {!parsedPayslips ? (
+            <>
+              <div className="p-3 rounded-xl bg-pw-accent/10 text-pw-accent text-sm">
+                Carica il PDF con le buste paga dei dipendenti. L&apos;AI analizzer&agrave; il documento e estrarra&apos; automaticamente tutti i dati (lordo, netto, INPS, IRPEF, TFR, ecc.)
+              </div>
 
-          <p className="text-xs font-semibold text-pw-text mt-2">Trattenute dipendente</p>
-          <div className="grid grid-cols-4 gap-3">
-            <Input id="ps-inps-dip" label="INPS Dip." type="number" value={payslipForm.inps_dipendente} onChange={(e) => setPayslipForm({ ...payslipForm, inps_dipendente: e.target.value })} placeholder="0" />
-            <Input id="ps-irpef" label="IRPEF" type="number" value={payslipForm.irpef} onChange={(e) => setPayslipForm({ ...payslipForm, irpef: e.target.value })} placeholder="0" />
-            <Input id="ps-reg" label="Add. Regionale" type="number" value={payslipForm.addizionale_regionale} onChange={(e) => setPayslipForm({ ...payslipForm, addizionale_regionale: e.target.value })} placeholder="0" />
-            <Input id="ps-com" label="Add. Comunale" type="number" value={payslipForm.addizionale_comunale} onChange={(e) => setPayslipForm({ ...payslipForm, addizionale_comunale: e.target.value })} placeholder="0" />
-          </div>
-
-          <p className="text-xs font-semibold text-pw-text mt-2">Voci aggiuntive</p>
-          <div className="grid grid-cols-4 gap-3">
-            <Input id="ps-bonus" label="Bonus 100" type="number" value={payslipForm.bonus_100} onChange={(e) => setPayslipForm({ ...payslipForm, bonus_100: e.target.value })} placeholder="0" />
-            <Input id="ps-straord" label="Straordinari" type="number" value={payslipForm.straordinari} onChange={(e) => setPayslipForm({ ...payslipForm, straordinari: e.target.value })} placeholder="0" />
-            <Input id="ps-premi" label="Premi" type="number" value={payslipForm.premi} onChange={(e) => setPayslipForm({ ...payslipForm, premi: e.target.value })} placeholder="0" />
-            <Input id="ps-tratt" label="Altre Tratt." type="number" value={payslipForm.trattenute_varie} onChange={(e) => setPayslipForm({ ...payslipForm, trattenute_varie: e.target.value })} placeholder="0" />
-          </div>
-
-          <p className="text-xs font-semibold text-red-400 mt-2">Costo azienda (sopra il lordo)</p>
-          <div className="grid grid-cols-3 gap-4">
-            <Input id="ps-inps-az" label="INPS Azienda" type="number" value={payslipForm.inps_azienda} onChange={(e) => setPayslipForm({ ...payslipForm, inps_azienda: e.target.value })} placeholder="0" />
-            <Input id="ps-tfr" label="TFR" type="number" value={payslipForm.tfr_accantonamento} onChange={(e) => setPayslipForm({ ...payslipForm, tfr_accantonamento: e.target.value })} placeholder="0" />
-            <Input id="ps-inail" label="INAIL" type="number" value={payslipForm.inail} onChange={(e) => setPayslipForm({ ...payslipForm, inail: e.target.value })} placeholder="0" />
-          </div>
-
-          <div className="border-t border-pw-border pt-4">
-            <label className="text-xs font-semibold text-pw-text flex items-center gap-1.5 mb-2">
-              <Upload size={14} />
-              Carica PDF Busta Paga
-            </label>
-            <input
-              type="file"
-              accept=".pdf,.jpg,.jpeg,.png"
-              onChange={(e) => setPayslipFile(e.target.files?.[0] || null)}
-              className="w-full text-sm text-pw-text-muted file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-pw-accent/10 file:text-pw-accent hover:file:bg-pw-accent/20 file:cursor-pointer"
-            />
-            {payslipFile && (
-              <p className="text-xs text-pw-text-dim mt-1">{payslipFile.name} ({(payslipFile.size / 1024).toFixed(0)} KB)</p>
-            )}
-          </div>
-
-          {payslipForm.lordo_mensile && payslipForm.inps_azienda && (
-            <div className="p-3 rounded-xl bg-red-500/10 text-sm">
-              <span className="text-red-400 font-semibold">Costo totale azienda: </span>
-              <span className="text-red-400 font-bold">
-                {formatCurrency(
-                  (parseFloat(payslipForm.lordo_mensile) || 0) +
-                  (parseFloat(payslipForm.inps_azienda) || 0) +
-                  (parseFloat(payslipForm.tfr_accantonamento) || 0) +
-                  (parseFloat(payslipForm.inail) || 0)
+              <div className="border-2 border-dashed border-pw-border rounded-xl p-8 text-center hover:border-pw-accent/50 transition-colors">
+                <Upload size={40} className="text-pw-text-dim mx-auto mb-3" />
+                <input
+                  type="file"
+                  accept=".pdf"
+                  onChange={(e) => setPayslipFile(e.target.files?.[0] || null)}
+                  className="w-full text-sm text-pw-text-muted file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-pw-accent/10 file:text-pw-accent hover:file:bg-pw-accent/20 file:cursor-pointer"
+                />
+                {payslipFile && (
+                  <p className="text-sm text-pw-text mt-3">
+                    {payslipFile.name} <span className="text-pw-text-dim">({(payslipFile.size / 1024 / 1024).toFixed(1)} MB)</span>
+                  </p>
                 )}
-              </span>
-            </div>
-          )}
+              </div>
 
-          <div className="flex gap-3 pt-2">
-            <Button variant="outline" onClick={() => { setShowPayslipForm(false); resetPayslipForm(); }} className="flex-1">Annulla</Button>
-            <Button onClick={handleSavePayslip} loading={savingPayslip} disabled={!payslipForm.employee_id || !payslipForm.lordo_mensile || !payslipForm.netto_mensile} className="flex-1">
-              Salva Busta Paga
-            </Button>
-          </div>
+              <Button
+                onClick={handleParsePayslip}
+                loading={parsingPayslip}
+                disabled={!payslipFile}
+                className="w-full"
+              >
+                <Sparkles size={16} />
+                {parsingPayslip ? 'Analisi AI in corso...' : 'Analizza con AI'}
+              </Button>
+            </>
+          ) : (
+            <>
+              <div className="p-3 rounded-xl bg-green-500/10 text-green-400 text-sm font-medium">
+                {parsedPayslips.length} buste paga trovate nel documento
+              </div>
+
+              <div className="space-y-3 max-h-96 overflow-y-auto">
+                {parsedPayslips.map((ps, i) => {
+                  const p = ps as Record<string, unknown>;
+                  const matched = !!p.employee_id;
+                  return (
+                    <div key={i} className={`p-4 rounded-xl border ${matched ? 'border-green-500/30 bg-green-500/5' : 'border-red-500/30 bg-red-500/5'}`}>
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          {matched ? <CheckCircle size={14} className="text-green-400" /> : <AlertTriangle size={14} className="text-red-400" />}
+                          <span className="font-semibold text-pw-text">{String(p.employee_name || 'Sconosciuto')}</span>
+                        </div>
+                        <span className="text-xs text-pw-text-dim">{String(p.month || '')}</span>
+                      </div>
+                      <div className="grid grid-cols-4 gap-3 text-xs">
+                        <div>
+                          <span className="text-pw-text-dim">Lordo</span>
+                          <p className="font-medium text-pw-text">{formatCurrency(Number(p.lordo_mensile) || 0)}</p>
+                        </div>
+                        <div>
+                          <span className="text-pw-text-dim">Netto</span>
+                          <p className="font-medium text-green-400">{formatCurrency(Number(p.netto_mensile) || 0)}</p>
+                        </div>
+                        <div>
+                          <span className="text-pw-text-dim">INPS Az.</span>
+                          <p className="font-medium text-pw-text-muted">{formatCurrency(Number(p.inps_azienda) || 0)}</p>
+                        </div>
+                        <div>
+                          <span className="text-pw-text-dim">Costo Azienda</span>
+                          <p className="font-medium text-red-400">{formatCurrency((Number(p.lordo_mensile) || 0) + (Number(p.inps_azienda) || 0) + (Number(p.tfr_accantonamento) || 0) + (Number(p.inail) || 0))}</p>
+                        </div>
+                      </div>
+                      {!matched && (
+                        <p className="text-[10px] text-red-400 mt-2">Dipendente non trovato nel sistema - non verra salvato</p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <Button variant="outline" onClick={() => setParsedPayslips(null)} className="flex-1">
+                  Ricarica PDF
+                </Button>
+                <Button
+                  onClick={handleSaveAllPayslips}
+                  loading={savingPayslips}
+                  disabled={!parsedPayslips.some(p => !!(p as Record<string, unknown>).employee_id)}
+                  className="flex-1"
+                >
+                  <CheckCircle size={14} />
+                  Salva {parsedPayslips.filter(p => !!(p as Record<string, unknown>).employee_id).length} Buste Paga
+                </Button>
+              </div>
+            </>
+          )}
         </div>
       </Modal>
 
