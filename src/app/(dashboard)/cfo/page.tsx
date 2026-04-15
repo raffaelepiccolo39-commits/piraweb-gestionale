@@ -170,7 +170,7 @@ export default function CFOPage() {
       supabase.from('time_entries').select('user_id, task_id, duration_minutes, started_at').gte('started_at', yearStart).not('duration_minutes', 'is', null).limit(10000),
       supabase.from('task_freelancer_assignments').select('task_id, total_cost, status').limit(5000),
       supabase.from('clients').select('id, name, company, ragione_sociale, is_active').eq('is_active', true),
-      supabase.from('payslips').select('*, employee:profiles(id, full_name, role)').order('month', { ascending: false }).limit(200),
+      supabase.from('payslips').select('*').order('month', { ascending: false }).limit(200),
       supabase.from('invoices').select('*, client:clients(id, name, company, ragione_sociale)').order('issue_date', { ascending: false }).limit(100),
     ]);
 
@@ -845,7 +845,7 @@ export default function CFOPage() {
               <tbody>
                 {payslips.map(ps => (
                   <tr key={ps.id} className="border-b border-pw-border/50 hover:bg-pw-surface-2/50">
-                    <td className="py-2 font-medium text-pw-text">{(ps.employee as Profile | undefined)?.full_name || '—'}</td>
+                    <td className="py-2 font-medium text-pw-text">{employees.find(e => e.id === ps.employee_id)?.full_name || '—'}</td>
                     <td className="py-2 text-pw-text-muted">{new Date(ps.month).toLocaleDateString('it-IT', { month: 'long', year: 'numeric' })}</td>
                     <td className="py-2 text-right text-pw-text-muted">{formatCurrency(ps.lordo_mensile)}</td>
                     <td className="py-2 text-right text-pw-text-dim">{formatCurrency(ps.inps_dipendente)}</td>
