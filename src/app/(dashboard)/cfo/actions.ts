@@ -6,7 +6,7 @@ import { createServerSupabaseClient } from '@/lib/supabase/server';
  * Server Action to parse payslip PDF via Gemini AI.
  * Server Actions support larger file uploads than API routes on Vercel.
  */
-export async function parsePayslipAction(formData: FormData): Promise<{
+export async function parsePayslipAction(base64: string, mimeType: string): Promise<{
   success: boolean;
   payslips?: Record<string, unknown>[];
   count?: number;
@@ -22,13 +22,7 @@ export async function parsePayslipAction(formData: FormData): Promise<{
   const apiKey = process.env.GOOGLE_AI_API_KEY;
   if (!apiKey) return { success: false, error: 'GOOGLE_AI_API_KEY non configurata' };
 
-  const file = formData.get('file') as File | null;
-  if (!file) return { success: false, error: 'File mancante' };
-  if (file.size > 10 * 1024 * 1024) return { success: false, error: 'File troppo grande (max 10MB)' };
-
-  const buffer = Buffer.from(await file.arrayBuffer());
-  const base64 = buffer.toString('base64');
-  const mimeType = file.type || 'application/pdf';
+  if (!base64) return { success: false, error: 'File mancante' };
 
   // Fetch employees for name matching
   const { data: employees } = await supabase

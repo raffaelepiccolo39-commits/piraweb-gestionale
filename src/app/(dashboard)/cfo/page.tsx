@@ -319,11 +319,15 @@ export default function CFOPage() {
     setParsedPayslips(null);
 
     try {
-      // Use Server Action (supports larger files than API routes on Vercel)
-      const formData = new FormData();
-      formData.append('file', payslipFile);
+      // Convert file to base64 client-side, then pass to Server Action
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve((reader.result as string).split(',')[1]);
+        reader.onerror = () => reject(new Error('Errore lettura file'));
+        reader.readAsDataURL(payslipFile);
+      });
 
-      const data = await parsePayslipAction(formData);
+      const data = await parsePayslipAction(base64, payslipFile.type || 'application/pdf');
 
       if (data.success && data.payslips) {
         setParsedPayslips(data.payslips);
