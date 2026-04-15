@@ -6,15 +6,15 @@ import { createServerSupabaseClient } from '@/lib/supabase/server';
 
 /**
  * POST /api/cfo/parse-payslip
- * Receives a PDF file via FormData, sends it to Gemini AI to extract payslip data.
- * Returns structured payslip data for each employee found in the document.
+ * Receives a file URL (already uploaded to Supabase Storage),
+ * downloads it, sends to Gemini AI to extract payslip data.
+ * Body: { fileUrl: string, mimeType: string }
  */
 export async function POST(request: NextRequest) {
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 });
 
-  // Verify admin
   const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
   if (!profile || profile.role !== 'admin') {
     return NextResponse.json({ error: 'Solo admin' }, { status: 403 });
@@ -25,28 +25,26 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'GOOGLE_AI_API_KEY non configurata' }, { status: 500 });
   }
 
-  // Parse FormData
-  let formData: FormData;
+  let body: Record<string, unknown>;
+  try { body = await request.json(); } catch { return NextResponse.json({ error: 'JSON non valido' }, { status: 400 }); }
+
+  const fileUrl = typeof body.fileUrl === 'string' ? body.fileUrl : '';
+  const mimeType = typeof body.mimeType === 'string' ? body.mimeType : 'application/pdf';
+
+  if (!fileUrl) {
+    return NextResponse.json({ error: 'fileUrl mancante' }, { status: 400 });
+  }
+
+  // Download the file from Supabase Storage
+  let base64: string;
   try {
-    formData = await request.formData();
-  } catch {
-    return NextResponse.json({ error: 'FormData non valido' }, { status: 400 });
+    const fileRes = await fetch(fileUrl);
+    if (!fileRes.ok) throw new Error(`Download failed: ${fileRes.status}`);
+    const buffer = Buffer.from(await fileRes.arrayBuffer());
+    base64 = buffer.toString('base64');
+  } catch (err) {
+    return NextResponse.json({ error: `Errore download file: ${err instanceof Error ? err.message : 'sconosciuto'}` }, { status: 500 });
   }
-
-  const file = formData.get('file') as File | null;
-  if (!file) {
-    return NextResponse.json({ error: 'File mancante' }, { status: 400 });
-  }
-
-  // Check file size (max 10MB)
-  if (file.size > 10 * 1024 * 1024) {
-    return NextResponse.json({ error: 'File troppo grande (max 10MB)' }, { status: 400 });
-  }
-
-  // Convert to base64
-  const arrayBuffer = await file.arrayBuffer();
-  const base64 = Buffer.from(arrayBuffer).toString('base64');
-  const mimeType = file.type || 'application/pdf';
 
   // Fetch employee list for matching names
   const { data: employees } = await supabase
@@ -66,7 +64,7 @@ Per ogni busta paga trovata nel documento, restituisci un oggetto JSON con quest
 - employee_name: nome del dipendente come appare nel documento
 - employee_id: l'id UUID del dipendente dalla lista sopra (fai matching per nome/cognome). Se non trovi corrispondenza metti null
 - month: mese di riferimento in formato "YYYY-MM" (es. "2026-04")
-- ral: Retribuzione Annua Lorda (se presente)
+- ral: Retribuzione Annua Lorda (se presente, altrimenti 0)
 - lordo_mensile: stipendio lordo del mese
 - netto_mensile: netto in busta
 - inps_dipendente: contributi INPS a carico del dipendente
@@ -87,8 +85,7 @@ IMPORTANTE:
 - Se il documento contiene piu' buste paga (piu' dipendenti), restituisci un array con tutti
 - Il mese di riferimento potrebbe essere indicato come "competenza", "periodo", "mese" nel documento
 
-Rispondi SOLO con un JSON valido, un array di oggetti. Nessun testo prima o dopo.
-Esempio: [{"employee_name": "Mario Rossi", "employee_id": "uuid-xxx", "month": "2026-04", ...}]`;
+Rispondi SOLO con un JSON valido, un array di oggetti. Nessun testo prima o dopo.`;
 
   try {
     const res = await fetch(
@@ -118,13 +115,12 @@ Esempio: [{"employee_name": "Mario Rossi", "employee_id": "uuid-xxx", "month": "
 
     if (!res.ok) {
       const errText = await res.text();
-      throw new Error(`Gemini API error: ${res.status} - ${errText.slice(0, 200)}`);
+      throw new Error(`Gemini API error: ${res.status} - ${errText.slice(0, 300)}`);
     }
 
     const data = await res.json();
     const textContent = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
 
-    // Extract JSON from response (may be wrapped in markdown code block)
     const jsonMatch = textContent.match(/\[[\s\S]*\]/);
     if (!jsonMatch) {
       return NextResponse.json({

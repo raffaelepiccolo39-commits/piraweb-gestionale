@@ -318,13 +318,22 @@ export default function CFOPage() {
     setParsedPayslips(null);
 
     try {
-      // Upload via FormData to avoid JSON body size limits
-      const formData = new FormData();
-      formData.append('file', payslipFile);
+      // Step 1: Upload PDF to Supabase Storage first
+      const ext = payslipFile.name.split('.').pop() || 'pdf';
+      const tempPath = `payslips/temp/${Date.now()}.${ext}`;
+      const { error: uploadErr } = await supabase.storage.from('attachments').upload(tempPath, payslipFile, { upsert: true });
+      if (uploadErr) {
+        toast.error('Errore upload file: ' + uploadErr.message);
+        setParsingPayslip(false);
+        return;
+      }
+      const { data: urlData } = supabase.storage.from('attachments').getPublicUrl(tempPath);
 
+      // Step 2: Send URL to API for AI analysis
       const res = await fetch('/api/cfo/parse-payslip', {
         method: 'POST',
-        body: formData,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fileUrl: urlData.publicUrl, mimeType: payslipFile.type || 'application/pdf' }),
       });
       const data = await res.json();
 
