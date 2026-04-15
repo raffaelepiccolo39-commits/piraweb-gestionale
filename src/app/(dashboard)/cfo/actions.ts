@@ -94,3 +94,60 @@ Tutti importi come NUMERI. Rispondi SOLO con un JSON array valido, nessun testo.
     return { success: false, error: err instanceof Error ? err.message : 'Errore sconosciuto' };
   }
 }
+
+/**
+ * Server Action to save parsed payslips to database.
+ * Uses server-side Supabase client which has proper auth for RLS.
+ */
+export async function savePayslipsAction(payslips: Record<string, unknown>[]): Promise<{
+  success: boolean;
+  saved?: number;
+  errors?: number;
+  error?: string;
+}> {
+  const supabase = await createServerSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: 'Non autorizzato' };
+
+  const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+  if (!profile || profile.role !== 'admin') return { success: false, error: 'Solo admin' };
+
+  let saved = 0;
+  let errors = 0;
+
+  for (const ps of payslips) {
+    const p = ps as Record<string, unknown>;
+    if (!p.employee_id || !p.lordo_mensile || !p.netto_mensile) { errors++; continue; }
+
+    const lordo = Number(p.lordo_mensile) || 0;
+    const inpsAz = Number(p.inps_azienda) || 0;
+    const tfrAcc = Number(p.tfr_accantonamento) || 0;
+    const inail = Number(p.inail) || 0;
+
+    const { error } = await supabase.from('payslips').upsert({
+      employee_id: p.employee_id as string,
+      month: `${p.month}-01`,
+      ral: p.ral ? Number(p.ral) : null,
+      lordo_mensile: lordo,
+      netto_mensile: Number(p.netto_mensile) || 0,
+      inps_dipendente: Number(p.inps_dipendente) || 0,
+      irpef: Number(p.irpef) || 0,
+      addizionale_regionale: Number(p.addizionale_regionale) || 0,
+      addizionale_comunale: Number(p.addizionale_comunale) || 0,
+      bonus_100: Number(p.bonus_100) || 0,
+      straordinari: Number(p.straordinari) || 0,
+      premi: Number(p.premi) || 0,
+      trattenute_varie: Number(p.trattenute_varie) || 0,
+      inps_azienda: inpsAz,
+      tfr_accantonamento: tfrAcc,
+      inail: inail,
+      costo_totale_azienda: lordo + inpsAz + tfrAcc + inail,
+      created_by: user.id,
+    }, { onConflict: 'employee_id,month' });
+
+    if (error) errors++;
+    else saved++;
+  }
+
+  return { success: true, saved, errors };
+}

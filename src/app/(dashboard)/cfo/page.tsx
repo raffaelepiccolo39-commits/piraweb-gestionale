@@ -12,7 +12,7 @@ import { Select } from '@/components/ui/select';
 import { Modal } from '@/components/ui/modal';
 import { formatCurrency } from '@/lib/utils';
 import type { Profile, OperatingExpense, Payslip, Invoice, Client } from '@/types/database';
-import { parsePayslipAction } from './actions';
+import { parsePayslipAction, savePayslipsAction } from './actions';
 import {
   TrendingUp,
   TrendingDown,
@@ -343,65 +343,20 @@ export default function CFOPage() {
   };
 
   const handleSaveAllPayslips = async () => {
-    if (!parsedPayslips || !profile || !payslipFile) return;
+    if (!parsedPayslips || !profile) return;
     setSavingPayslips(true);
 
-    // Upload original PDF
-    let attachmentUrl: string | null = null;
-    let attachmentName: string | null = null;
-    const ext = payslipFile.name.split('.').pop();
-    const month = (parsedPayslips[0] as Record<string, string>)?.month || new Date().toISOString().slice(0, 7);
-    const path = `payslips/${month}/${Date.now()}.${ext}`;
-    const { error: uploadError } = await supabase.storage.from('attachments').upload(path, payslipFile, { upsert: true });
-    if (!uploadError) {
-      const { data: urlData } = supabase.storage.from('attachments').getPublicUrl(path);
-      attachmentUrl = urlData.publicUrl;
-      attachmentName = payslipFile.name;
-    }
+    try {
+      const result = await savePayslipsAction(parsedPayslips);
 
-    let saved = 0;
-    let errors = 0;
-
-    for (const ps of parsedPayslips) {
-      const p = ps as Record<string, unknown>;
-      if (!p.employee_id || !p.lordo_mensile || !p.netto_mensile) { errors++; continue; }
-
-      const lordo = Number(p.lordo_mensile) || 0;
-      const inpsAz = Number(p.inps_azienda) || 0;
-      const tfrAcc = Number(p.tfr_accantonamento) || 0;
-      const inail = Number(p.inail) || 0;
-
-      const { error } = await supabase.from('payslips').upsert({
-        employee_id: p.employee_id as string,
-        month: `${p.month}-01`,
-        ral: p.ral ? Number(p.ral) : null,
-        lordo_mensile: lordo,
-        netto_mensile: Number(p.netto_mensile) || 0,
-        inps_dipendente: Number(p.inps_dipendente) || 0,
-        irpef: Number(p.irpef) || 0,
-        addizionale_regionale: Number(p.addizionale_regionale) || 0,
-        addizionale_comunale: Number(p.addizionale_comunale) || 0,
-        bonus_100: Number(p.bonus_100) || 0,
-        straordinari: Number(p.straordinari) || 0,
-        premi: Number(p.premi) || 0,
-        trattenute_varie: Number(p.trattenute_varie) || 0,
-        inps_azienda: inpsAz,
-        tfr_accantonamento: tfrAcc,
-        inail: inail,
-        costo_totale_azienda: lordo + inpsAz + tfrAcc + inail,
-        attachment_url: attachmentUrl,
-        attachment_name: attachmentName,
-        created_by: profile.id,
-      }, { onConflict: 'employee_id,month' });
-
-      if (error) errors++;
-      else saved++;
+      if (result.saved && result.saved > 0) toast.success(`${result.saved} buste paga salvate`);
+      if (result.errors && result.errors > 0) toast.error(`${result.errors} buste paga non salvate (dipendente non trovato)`);
+      if (result.error) toast.error(result.error);
+    } catch {
+      toast.error('Errore nel salvataggio');
     }
 
     setSavingPayslips(false);
-    if (saved > 0) toast.success(`${saved} buste paga salvate`);
-    if (errors > 0) toast.error(`${errors} buste paga non salvate (dipendente non trovato)`);
-
     setShowPayslipUpload(false);
     setPayslipFile(null);
     setParsedPayslips(null);
