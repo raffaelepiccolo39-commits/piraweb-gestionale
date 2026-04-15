@@ -47,6 +47,14 @@ async function handleCron(request: NextRequest) {
     results.deadline_alerts_error = err instanceof Error ? err.message : 'unknown';
   }
 
+  // 3. Auto-archive done tasks older than 7 days
+  try {
+    const { data: archivedCount } = await supabase.rpc('archive_done_tasks');
+    results.tasks_archived = archivedCount ?? 0;
+  } catch (err) {
+    results.tasks_archived_error = err instanceof Error ? err.message : 'unknown';
+  }
+
   return NextResponse.json({
     success: true,
     timestamp: new Date().toISOString(),

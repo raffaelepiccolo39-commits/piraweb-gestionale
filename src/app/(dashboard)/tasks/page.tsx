@@ -22,6 +22,7 @@ const statusLabels: Record<string, string> = {
   in_progress: 'In corso',
   review: 'Review',
   done: 'Fatto',
+  archived: 'Archiviato',
 };
 
 const priorityLabels: Record<string, string> = {
@@ -85,7 +86,12 @@ export default function TasksPage() {
 
       query = query.order('updated_at', { ascending: false }).limit(200);
 
-      if (statusFilter) query = query.eq('status', statusFilter);
+      // Escludi archiviati di default, mostrali solo se filtro esplicito
+      if (statusFilter) {
+        query = query.eq('status', statusFilter);
+      } else {
+        query = query.neq('status', 'archived');
+      }
       if (priorityFilter) query = query.eq('priority', priorityFilter);
 
       const { data, error } = await query;
@@ -281,6 +287,7 @@ export default function TasksPage() {
               { value: 'in_progress', label: 'In corso' },
               { value: 'review', label: 'Review' },
               { value: 'done', label: 'Fatto' },
+              { value: 'archived', label: 'Archiviato' },
             ]}
             placeholder="Tutti gli stati"
           />

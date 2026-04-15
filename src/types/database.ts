@@ -1,6 +1,6 @@
 export type UserRole = 'admin' | 'social_media_manager' | 'content_creator' | 'graphic_social' | 'graphic_brand';
 export type ProjectStatus = 'draft' | 'active' | 'paused' | 'completed' | 'archived';
-export type TaskStatus = 'backlog' | 'todo' | 'in_progress' | 'review' | 'done';
+export type TaskStatus = 'backlog' | 'todo' | 'in_progress' | 'review' | 'done' | 'archived';
 export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent';
 export type NotificationType = 'task_assigned' | 'task_updated' | 'task_completed' | 'project_created' | 'post_created' | 'comment_added' | 'mention' | 'deadline_approaching' | 'ai_script_ready';
 export type AiProvider = 'claude' | 'openai' | 'gemini';

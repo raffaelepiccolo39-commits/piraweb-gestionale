@@ -75,6 +75,7 @@ export function getStatusColor(status: string): string {
     in_progress: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300',
     review: 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300',
     done: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300',
+    archived: 'bg-gray-100 text-gray-500 dark:bg-gray-900 dark:text-gray-500',
   };
   return colors[status] || '';
 }
