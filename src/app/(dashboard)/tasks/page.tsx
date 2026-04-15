@@ -267,8 +267,8 @@ export default function TasksPage() {
             value={assigneeFilter}
             onChange={(e) => setAssigneeFilter(e.target.value)}
             options={[
-              { value: 'me', label: '👤 I miei Task' },
-              { value: 'all', label: '👥 Tutti i Task' },
+              { value: 'me', label: 'I miei Task' },
+              { value: 'all', label: 'Tutti i Task' },
               ...teamMembers.filter(m => m.id !== profile?.id).map(m => ({
                 value: m.id,
                 label: m.full_name,
