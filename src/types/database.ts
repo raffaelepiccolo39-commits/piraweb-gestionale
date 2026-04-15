@@ -722,6 +722,9 @@ export interface Invoice {
   sdi_message: string | null;
   sdi_sent_at: string | null;
   sdi_filename: string | null;
+  // Reminder fields
+  reminder_sent_at: string | null;
+  reminder_count: number;
   created_by: string;
   created_at: string;
   updated_at: string;
