@@ -318,28 +318,28 @@ export default function CFOPage() {
     setParsedPayslips(null);
 
     try {
-      // Step 1: Upload PDF to Supabase Storage first
-      const ext = payslipFile.name.split('.').pop() || 'pdf';
-      const tempPath = `payslips/temp/${Date.now()}.${ext}`;
-      const { error: uploadErr } = await supabase.storage.from('attachments').upload(tempPath, payslipFile, { upsert: true });
-      if (uploadErr) {
-        toast.error('Errore upload file: ' + uploadErr.message);
-        setParsingPayslip(false);
-        return;
-      }
-      // Get a signed URL (valid for 5 minutes) since bucket is private
-      const { data: signedData, error: signError } = await supabase.storage.from('attachments').createSignedUrl(tempPath, 300);
-      if (signError || !signedData?.signedUrl) {
-        toast.error('Errore generazione URL file');
+      // Convert to base64 on client, split into chunks to avoid memory issues
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const result = reader.result as string;
+          resolve(result.split(',')[1]);
+        };
+        reader.onerror = () => reject(new Error('Errore lettura file'));
+        reader.readAsDataURL(payslipFile);
+      });
+
+      // Check size - Gemini accepts max ~20MB inline
+      if (base64.length > 15 * 1024 * 1024) {
+        toast.error('File troppo grande (max 10MB)');
         setParsingPayslip(false);
         return;
       }
 
-      // Step 2: Send signed URL to API for AI analysis
       const res = await fetch('/api/cfo/parse-payslip', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fileUrl: signedData.signedUrl, mimeType: payslipFile.type || 'application/pdf' }),
+        body: JSON.stringify({ file: base64, mimeType: payslipFile.type || 'application/pdf' }),
       });
       const data = await res.json();
 

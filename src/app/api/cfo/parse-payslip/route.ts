@@ -1,14 +1,16 @@
 export const dynamic = 'force-dynamic';
 export const maxDuration = 120;
 
+// Increase body size limit for PDF uploads (default 4.5MB is too small)
+export const bodyParser = false;
+
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 
 /**
  * POST /api/cfo/parse-payslip
- * Receives a file URL (already uploaded to Supabase Storage),
- * downloads it, sends to Gemini AI to extract payslip data.
- * Body: { fileUrl: string, mimeType: string }
+ * Receives a base64-encoded PDF, sends to Gemini AI to extract payslip data.
+ * Body: { file: string (base64), mimeType: string }
  */
 export async function POST(request: NextRequest) {
   const supabase = await createServerSupabaseClient();
@@ -26,24 +28,17 @@ export async function POST(request: NextRequest) {
   }
 
   let body: Record<string, unknown>;
-  try { body = await request.json(); } catch { return NextResponse.json({ error: 'JSON non valido' }, { status: 400 }); }
-
-  const fileUrl = typeof body.fileUrl === 'string' ? body.fileUrl : '';
-  const mimeType = typeof body.mimeType === 'string' ? body.mimeType : 'application/pdf';
-
-  if (!fileUrl) {
-    return NextResponse.json({ error: 'fileUrl mancante' }, { status: 400 });
+  try {
+    body = await request.json();
+  } catch (err) {
+    return NextResponse.json({ error: 'Errore parsing body: ' + (err instanceof Error ? err.message : 'sconosciuto') }, { status: 400 });
   }
 
-  // Download the file from Supabase Storage
-  let base64: string;
-  try {
-    const fileRes = await fetch(fileUrl);
-    if (!fileRes.ok) throw new Error(`Download failed: ${fileRes.status}`);
-    const buffer = Buffer.from(await fileRes.arrayBuffer());
-    base64 = buffer.toString('base64');
-  } catch (err) {
-    return NextResponse.json({ error: `Errore download file: ${err instanceof Error ? err.message : 'sconosciuto'}` }, { status: 500 });
+  const fileBase64 = typeof body.file === 'string' ? body.file : '';
+  const mimeType = typeof body.mimeType === 'string' ? body.mimeType : 'application/pdf';
+
+  if (!fileBase64) {
+    return NextResponse.json({ error: 'File mancante' }, { status: 400 });
   }
 
   // Fetch employee list for matching names
@@ -96,12 +91,7 @@ Rispondi SOLO con un JSON valido, un array di oggetti. Nessun testo prima o dopo
         body: JSON.stringify({
           contents: [{
             parts: [
-              {
-                inlineData: {
-                  mimeType,
-                  data: base64,
-                },
-              },
+              { inlineData: { mimeType, data: fileBase64 } },
               { text: prompt },
             ],
           }],
