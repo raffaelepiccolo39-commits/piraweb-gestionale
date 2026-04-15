@@ -743,6 +743,27 @@ export interface InvoiceItem {
   created_at: string;
 }
 
+// === TEAM TOOLS ===
+
+export interface TeamTool {
+  id: string;
+  name: string;
+  url: string;
+  icon_url: string | null;
+  icon_emoji: string | null;
+  category: string;
+  description: string | null;
+  username: string | null;
+  password: string | null;
+  notes: string | null;
+  roles: string[] | null;
+  sort_order: number;
+  is_active: boolean;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
 // === CRM / DEALS ===
 export type DealStage = 'lead' | 'qualified' | 'proposal' | 'negotiation' | 'closed_won' | 'closed_lost';
 export type DealSource = 'website' | 'referral' | 'social_media' | 'cold_outreach' | 'event' | 'ads' | 'other';

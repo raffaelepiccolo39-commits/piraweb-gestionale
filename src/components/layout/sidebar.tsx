@@ -39,6 +39,7 @@ import {
   LogOut,
   Search,
   ChevronDown,
+  Wrench,
 } from 'lucide-react';
 
 interface NavItem {
@@ -66,6 +67,7 @@ const navItems: NavItem[] = [
   { label: 'Presenze', href: '/presenze', icon: Clock, roles: 'all', section: 'team' },
   { label: 'Calendario', href: '/calendario', icon: CalendarDays, roles: 'all', section: 'team' },
   { label: 'Bacheca', href: '/bacheca', icon: MessageSquare, roles: 'all', section: 'team' },
+  { label: 'Tools', href: '/tools', icon: Wrench, roles: 'all', section: 'team' },
   { label: 'Organigramma', href: '/organigramma', icon: Network, roles: 'all', section: 'team' },
   // Business (admin)
   { label: 'Direzione', href: '/direzione', icon: Crown, roles: ['admin'], section: 'business' },
