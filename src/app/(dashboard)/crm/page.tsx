@@ -36,7 +36,7 @@ import {
 } from 'lucide-react';
 
 const STAGES: { id: DealStage; label: string; color: string; bgColor: string }[] = [
-  { id: 'lead', label: 'Lead', color: 'text-gray-500', bgColor: 'bg-gray-500' },
+  { id: 'lead', label: 'Lead', color: 'text-pw-text-dim', bgColor: 'bg-gray-500' },
   { id: 'qualified', label: 'Qualificato', color: 'text-blue-500', bgColor: 'bg-blue-500' },
   { id: 'proposal', label: 'Proposta', color: 'text-purple-500', bgColor: 'bg-purple-500' },
   { id: 'negotiation', label: 'Negoziazione', color: 'text-orange-500', bgColor: 'bg-orange-500' },
@@ -214,11 +214,11 @@ export default function CRMPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-slide-up">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-pw-text flex items-center gap-2">
+          <h1 className="text-2xl font-bold text-pw-text font-[var(--font-syne)] flex items-center gap-2">
             <Target size={24} className="text-pw-accent" />
             CRM Pipeline
           </h1>
@@ -237,7 +237,7 @@ export default function CRMPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 stagger-children">
         <Card><CardContent className="p-3 text-center">
           <p className="text-xl font-bold text-pw-text">{activeDeals.length}</p>
           <p className="text-[10px] text-pw-text-muted">Deal attivi</p>
@@ -286,7 +286,7 @@ export default function CRMPage() {
                       <div
                         key={deal.id}
                         onClick={() => setSelectedDeal(deal)}
-                        className="p-3 rounded-xl bg-pw-surface-2 border border-pw-border hover:border-pw-accent/30 hover:shadow-md transition-all cursor-pointer"
+                        className="p-3 rounded-xl bg-pw-surface-2 border border-pw-border hover:border-pw-accent/30 hover:shadow-md transition-all duration-200 ease-out cursor-pointer"
                       >
                         <div className="flex items-start justify-between mb-1.5">
                           <h4 className="text-sm font-medium text-pw-text line-clamp-1">{deal.title}</h4>
@@ -346,7 +346,7 @@ export default function CRMPage() {
                 {deals.map((deal) => {
                   const stage = STAGES.find((s) => s.id === deal.stage)!;
                   return (
-                    <tr key={deal.id} onClick={() => setSelectedDeal(deal)} className="border-b border-pw-border/50 hover:bg-pw-surface-2/30 cursor-pointer">
+                    <tr key={deal.id} onClick={() => setSelectedDeal(deal)} className="border-b border-pw-border/50 hover:bg-pw-surface-2/40 transition-colors duration-150 cursor-pointer">
                       <td className="px-4 py-3">
                         <p className="font-medium text-pw-text">{deal.title}</p>
                         {deal.contact_name && <p className="text-[10px] text-pw-text-dim">{deal.contact_name}</p>}
@@ -389,7 +389,7 @@ export default function CRMPage() {
 
             {/* Value & stage */}
             <div className="flex items-center gap-4">
-              <p className="text-2xl font-bold text-pw-accent">{formatCurrency(selectedDeal.value)}</p>
+              <p className="text-2xl font-bold text-pw-accent font-[var(--font-bebas)]">{formatCurrency(selectedDeal.value)}</p>
               <Badge className={STAGES.find((s) => s.id === selectedDeal.stage)?.color || ''}>
                 {STAGES.find((s) => s.id === selectedDeal.stage)?.label}
               </Badge>
@@ -404,7 +404,7 @@ export default function CRMPage() {
                     key={stage.id}
                     onClick={() => handleStageChange(selectedDeal.id, stage.id)}
                     disabled={selectedDeal.stage === stage.id}
-                    className={`px-2.5 py-1.5 rounded-lg text-[10px] font-medium transition-all border ${
+                    className={`px-2.5 py-1.5 rounded-lg text-[10px] font-medium transition-all duration-200 ease-out border ${
                       selectedDeal.stage === stage.id
                         ? `${stage.bgColor} text-white border-transparent`
                         : 'border-pw-border text-pw-text-muted hover:border-pw-accent/50 bg-pw-surface-2'

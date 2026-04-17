@@ -357,7 +357,7 @@ export default function ClientDetailPage({
   if (!client) {
     return (
       <div className="text-center py-12">
-        <p className="text-gray-500">Cliente non trovato</p>
+        <p className="text-pw-text-dim">Cliente non trovato</p>
         <Button variant="outline" onClick={() => router.push('/clients')} className="mt-4">
           <ArrowLeft size={16} />
           Torna ai Clienti
@@ -369,7 +369,7 @@ export default function ClientDetailPage({
   const expiry = contract ? getContractExpiryInfo(contract) : null;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-slide-up">
       <Breadcrumb items={[{ label: 'Clienti', href: '/clients' }, { label: client.name }]} />
 
       {/* Header */}
@@ -621,7 +621,7 @@ export default function ClientDetailPage({
                         href={contract.attachment_url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-indigo-500/10 text-pw-accent text-sm hover:bg-indigo-100 dark:hover:bg-indigo-900/40 transition-colors"
+                        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-indigo-500/10 text-pw-accent text-sm hover:bg-indigo-100 dark:hover:bg-indigo-900/40 transition-colors duration-200 ease-out"
                       >
                         <Paperclip size={14} />
                         {contract.attachment_name}
@@ -629,7 +629,7 @@ export default function ClientDetailPage({
                       </a>
                     )}
                     {!contract.attachment_url && (
-                      <span className="text-xs text-gray-400 italic">Nessun contratto allegato</span>
+                      <span className="text-xs text-pw-text-dim italic">Nessun contratto allegato</span>
                     )}
                     {contract.notes && (
                       <p className="text-sm text-pw-text-muted">{contract.notes}</p>

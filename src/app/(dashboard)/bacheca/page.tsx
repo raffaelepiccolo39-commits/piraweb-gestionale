@@ -267,7 +267,7 @@ export default function BachecaPage() {
     const cardContent = (
       <div
         onClick={() => setSelectedTask(task)}
-        className={`p-3 rounded-xl border transition-all mb-2 cursor-pointer ${
+        className={`p-3 rounded-xl border transition-all duration-200 ease-out mb-2 cursor-pointer ${
           isDone
             ? 'border-green-500/20 bg-green-500/5 opacity-60'
             : 'border-pw-border bg-pw-surface-2 hover:border-pw-border-hover'
@@ -293,7 +293,7 @@ export default function BachecaPage() {
               }
               fetchData();
             }}
-            className={`mt-0.5 shrink-0 w-4 h-4 rounded border transition-colors ${
+            className={`mt-0.5 shrink-0 w-4 h-4 rounded border transition-colors duration-200 ease-out ${
               isDone
                 ? 'border-green-500 bg-green-500 flex items-center justify-center'
                 : 'border-pw-border hover:border-green-500'
@@ -353,7 +353,7 @@ export default function BachecaPage() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 animate-slide-up">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-pw-text font-[var(--font-syne)]">
@@ -393,7 +393,7 @@ export default function BachecaPage() {
                   </div>
                   <button
                     onClick={() => openAddTask(member.id)}
-                    className="p-1 rounded-lg text-pw-text-dim hover:text-pw-accent hover:bg-pw-surface-2 transition-colors"
+                    className="p-1 rounded-lg text-pw-text-dim hover:text-pw-accent hover:bg-pw-surface-2 transition-colors duration-200 ease-out"
                   >
                     <Plus size={16} />
                   </button>
@@ -405,7 +405,7 @@ export default function BachecaPage() {
                     <div
                       ref={provided.innerRef}
                       {...provided.droppableProps}
-                      className={`min-h-[200px] p-2 rounded-xl border transition-colors ${
+                      className={`min-h-[200px] p-2 rounded-xl border transition-colors duration-200 ease-out ${
                         snapshot.isDraggingOver
                           ? 'border-pw-accent/30 bg-pw-accent/5'
                           : 'border-pw-border bg-pw-surface/50'
@@ -418,7 +418,7 @@ export default function BachecaPage() {
                       {columnTasks.length === 0 && getColumnDoneTasks(member.id).length === 0 && (
                         <button
                           onClick={() => openAddTask(member.id)}
-                          className="w-full py-3 text-xs text-pw-text-dim hover:text-pw-accent transition-colors flex items-center justify-center gap-1"
+                          className="w-full py-3 text-xs text-pw-text-dim hover:text-pw-accent transition-colors duration-200 ease-out flex items-center justify-center gap-1"
                         >
                           <Plus size={14} />
                           Aggiungi una scheda
@@ -453,7 +453,7 @@ export default function BachecaPage() {
               </div>
               <button
                 onClick={() => openAddTask(null)}
-                className="p-1 rounded-lg text-pw-text-dim hover:text-red-400 hover:bg-pw-surface-2 transition-colors"
+                className="p-1 rounded-lg text-pw-text-dim hover:text-red-400 hover:bg-pw-surface-2 transition-colors duration-200 ease-out"
               >
                 <Plus size={16} />
               </button>
@@ -464,7 +464,7 @@ export default function BachecaPage() {
                 <div
                   ref={provided.innerRef}
                   {...provided.droppableProps}
-                  className={`min-h-[200px] p-2 rounded-xl border transition-colors ${
+                  className={`min-h-[200px] p-2 rounded-xl border transition-colors duration-200 ease-out ${
                     snapshot.isDraggingOver
                       ? 'border-red-500/30 bg-red-500/5'
                       : 'border-pw-border bg-pw-surface/50'
@@ -477,7 +477,7 @@ export default function BachecaPage() {
                   {getUrgentTasks().length === 0 && getUrgentDoneTasks().length === 0 && (
                     <button
                       onClick={() => openAddTask(null)}
-                      className="w-full py-3 text-xs text-pw-text-dim hover:text-red-400 transition-colors flex items-center justify-center gap-1"
+                      className="w-full py-3 text-xs text-pw-text-dim hover:text-red-400 transition-colors duration-200 ease-out flex items-center justify-center gap-1"
                     >
                       <Plus size={14} />
                       Aggiungi una scheda
@@ -538,7 +538,7 @@ export default function BachecaPage() {
                 type="button"
                 onClick={handleAiDescription}
                 disabled={generatingAi || !newTask.title.trim()}
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium bg-pw-accent/15 text-pw-accent hover:bg-pw-accent/25 disabled:opacity-40 transition-colors"
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium bg-pw-accent/15 text-pw-accent hover:bg-pw-accent/25 disabled:opacity-40 transition-colors duration-200 ease-out"
               >
                 {generatingAi ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
                 {generatingAi ? 'Generando...' : 'Scrivi con AI'}
@@ -560,7 +560,7 @@ export default function BachecaPage() {
             </label>
             <label
               htmlFor="task-files"
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-dashed border-pw-border hover:border-pw-accent/50 cursor-pointer transition-colors text-sm text-pw-text-muted"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-dashed border-pw-border hover:border-pw-accent/50 cursor-pointer transition-colors duration-200 ease-out text-sm text-pw-text-muted"
             >
               <Paperclip size={16} />
               Carica documenti...
@@ -584,7 +584,7 @@ export default function BachecaPage() {
                     <button
                       type="button"
                       onClick={() => setAttachFiles((prev) => prev.filter((_, idx) => idx !== i))}
-                      className="shrink-0 ml-2 text-pw-text-dim hover:text-red-400 transition-colors"
+                      className="shrink-0 ml-2 text-pw-text-dim hover:text-red-400 transition-colors duration-200 ease-out"
                     >
                       <X size={14} />
                     </button>

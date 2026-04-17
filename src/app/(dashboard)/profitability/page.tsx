@@ -274,10 +274,10 @@ export default function ProfitabilityPage() {
   const profitableProjects = data.projects.filter((p) => p.status === 'profitable');
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-slide-up">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-pw-text flex items-center gap-2">
+        <h1 className="text-2xl font-bold text-pw-text font-[var(--font-syne)] flex items-center gap-2">
           <Euro size={24} className="text-pw-accent" />
           Profittabilita' Progetti
         </h1>
@@ -398,7 +398,7 @@ export default function ProfitabilityPage() {
                 {/* Summary row - clickable */}
                 <button
                   onClick={() => setExpandedProject(isExpanded ? null : project.projectId)}
-                  className="w-full text-left p-4 flex items-center gap-4 hover:bg-white/[0.02] transition-colors"
+                  className="w-full text-left p-4 flex items-center gap-4 hover:bg-white/[0.02] transition-colors duration-200 ease-out"
                 >
                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${statusBg} border`}>
                     <StatusIcon size={18} className={statusColor} />
@@ -453,7 +453,7 @@ export default function ProfitabilityPage() {
                       </div>
                       <div className="h-3 bg-pw-surface-2 rounded-full overflow-hidden">
                         <div
-                          className={`h-full rounded-full transition-all ${
+                          className={`h-full rounded-full transition-all duration-200 ease-out ${
                             project.totalHoursLogged >= project.maxTotalHoursAffordable ? 'bg-red-500' :
                             project.totalHoursLogged >= project.maxTotalHoursAffordable * 0.8 ? 'bg-yellow-500' :
                             'bg-green-500'
@@ -491,7 +491,7 @@ export default function ProfitabilityPage() {
                             {project.employeeBreakdown.map((eb) => {
                               const remaining = eb.maxAffordableHours - eb.hoursLogged;
                               return (
-                                <tr key={eb.employee.profile.id} className="border-b border-pw-border/20">
+                                <tr key={eb.employee.profile.id} className="border-b border-pw-border/20 hover:bg-pw-surface-2/40 transition-colors duration-150">
                                   <td className="py-2.5">
                                     <div className="flex items-center gap-2">
                                       <div

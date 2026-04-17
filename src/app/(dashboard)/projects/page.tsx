@@ -137,7 +137,7 @@ export default function ProjectsPage() {
         <AlertTriangle size={48} className="text-red-400" />
         <h2 className="text-xl font-semibold text-pw-text">Errore nel caricamento</h2>
         <p className="text-pw-text-muted max-w-md text-sm">Non è stato possibile caricare i dati. Riprova.</p>
-        <button onClick={() => { setLoading(true); setError(false); fetchProjects(); }} className="px-4 py-2 rounded-xl bg-pw-accent text-[#0A263A] text-sm font-medium hover:bg-pw-accent-hover transition-colors">Riprova</button>
+        <button onClick={() => { setLoading(true); setError(false); fetchProjects(); }} className="px-4 py-2 rounded-xl bg-pw-accent text-[#0A263A] text-sm font-medium hover:bg-pw-accent-hover transition-colors duration-200 ease-out">Riprova</button>
       </div>
     );
   }
@@ -148,7 +148,7 @@ export default function ProjectsPage() {
     : projects;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-slide-up">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-pw-text font-[var(--font-syne)]">
@@ -172,7 +172,7 @@ export default function ProjectsPage() {
         <div className="flex flex-wrap gap-2">
           <button
             onClick={() => setFilterMember('')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors duration-200 ease-out ${
               !filterMember
                 ? 'bg-pw-accent text-[#0A263A]'
                 : 'bg-pw-surface-2 text-pw-text-muted hover:bg-pw-surface-3'
@@ -184,7 +184,7 @@ export default function ProjectsPage() {
             <button
               key={m.id}
               onClick={() => setFilterMember(filterMember === m.id ? '' : m.id)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors duration-200 ease-out ${
                 filterMember === m.id
                   ? 'bg-pw-accent text-[#0A263A]'
                   : 'bg-pw-surface-2 text-pw-text-muted hover:bg-pw-surface-3'
@@ -211,7 +211,7 @@ export default function ProjectsPage() {
           }
         />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 stagger-children">
           {filteredProjects.map((project) => (
             <Card
               key={project.id}
@@ -226,7 +226,7 @@ export default function ProjectsPage() {
                       style={{ backgroundColor: project.color }}
                     />
                     <div>
-                      <h3 className="font-semibold text-pw-text group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                      <h3 className="font-semibold text-pw-text group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-200 ease-out">
                         {project.name}
                       </h3>
                       {project.client && (
@@ -264,7 +264,7 @@ export default function ProjectsPage() {
                   </div>
                   <ArrowRight
                     size={16}
-                    className="text-gray-400 group-hover:text-indigo-500 transition-colors"
+                    className="text-pw-text-dim group-hover:text-indigo-500 transition-colors duration-200 ease-out"
                   />
                 </div>
               </CardContent>

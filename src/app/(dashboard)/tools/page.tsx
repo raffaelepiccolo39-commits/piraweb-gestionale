@@ -45,7 +45,7 @@ const CATEGORY_COLORS: Record<string, string> = {
   sviluppo: 'bg-purple-500/15 text-purple-400',
   produttivita: 'bg-indigo-500/15 text-indigo-400',
   fatturazione: 'bg-emerald-500/15 text-emerald-400',
-  altro: 'bg-gray-500/15 text-gray-400',
+  altro: 'bg-pw-surface-2 text-pw-text-dim',
 };
 
 export default function ToolsPage() {
@@ -204,7 +204,7 @@ export default function ToolsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-slide-up">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-pw-text font-[var(--font-syne)] flex items-center gap-2">
@@ -253,9 +253,9 @@ export default function ToolsPage() {
                 <span className="text-xs text-pw-text-dim">{group.tools.length} tool</span>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 stagger-children">
                 {group.tools.map(tool => (
-                  <Card key={tool.id} className="group hover:shadow-lg transition-all hover:border-pw-accent/30">
+                  <Card key={tool.id} className="group hover:shadow-lg transition-all duration-200 ease-out hover:border-pw-accent/30">
                     <CardContent className="p-5">
                       {/* Header con icona e nome */}
                       <div className="flex items-start justify-between mb-3">
@@ -280,7 +280,7 @@ export default function ToolsPage() {
                             )}
                           </div>
                           <div className="min-w-0">
-                            <h3 className="font-semibold text-pw-text group-hover:text-pw-accent transition-colors truncate">
+                            <h3 className="font-semibold text-pw-text group-hover:text-pw-accent transition-colors duration-200 ease-out truncate">
                               {tool.name}
                             </h3>
                             {tool.description && (

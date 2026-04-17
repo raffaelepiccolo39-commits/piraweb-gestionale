@@ -156,11 +156,11 @@ export default function FreelancersPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-slide-up">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-pw-text flex items-center gap-2">
+          <h1 className="text-2xl font-bold text-pw-text font-[var(--font-syne)] flex items-center gap-2">
             <Briefcase size={24} className="text-pw-accent" />
             Freelancer
           </h1>
@@ -175,28 +175,28 @@ export default function FreelancersPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 stagger-children">
         <Card>
           <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-pw-text">{activeFreelancers.length}</p>
+            <p className="text-2xl font-bold text-pw-text font-[var(--font-bebas)]">{activeFreelancers.length}</p>
             <p className="text-xs text-pw-text-muted">Freelancer attivi</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-pw-text">{activeAssignments.length}</p>
+            <p className="text-2xl font-bold text-pw-text font-[var(--font-bebas)]">{activeAssignments.length}</p>
             <p className="text-xs text-pw-text-muted">Task assegnate</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-pw-text">{formatCurrency(totalCost)}</p>
+            <p className="text-2xl font-bold text-pw-text font-[var(--font-bebas)]">{formatCurrency(totalCost)}</p>
             <p className="text-xs text-pw-text-muted">Costo totale</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-pw-text">
+            <p className="text-2xl font-bold text-pw-text font-[var(--font-bebas)]">
               {new Set(freelancers.map((f) => f.specialty)).size}
             </p>
             <p className="text-xs text-pw-text-muted">Specialita'</p>
@@ -205,7 +205,7 @@ export default function FreelancersPage() {
       </div>
 
       {/* Freelancer grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 stagger-children">
         {freelancers.map((f) => {
           const fAssignments = assignments.filter((a) => a.freelancer_id === f.id);
           const fCost = fAssignments.reduce((sum, a) => sum + (a.total_cost || 0), 0);

@@ -428,13 +428,13 @@ export default function ClientsPage() {
         <AlertTriangle size={48} className="text-red-400" />
         <h2 className="text-xl font-semibold text-pw-text">Errore nel caricamento</h2>
         <p className="text-pw-text-muted max-w-md text-sm">Non è stato possibile caricare i dati. Riprova.</p>
-        <button onClick={() => { setLoading(true); setError(false); fetchClients(); }} className="px-4 py-2 rounded-xl bg-pw-accent text-[#0A263A] text-sm font-medium hover:bg-pw-accent-hover transition-colors">Riprova</button>
+        <button onClick={() => { setLoading(true); setError(false); fetchClients(); }} className="px-4 py-2 rounded-xl bg-pw-accent text-[#0A263A] text-sm font-medium hover:bg-pw-accent-hover transition-colors duration-200 ease-out">Riprova</button>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-slide-up">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -456,7 +456,7 @@ export default function ClientsPage() {
       {/* Search + Sort */}
       <div className="flex items-center gap-3">
         <div className="relative max-w-md flex-1">
-          <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-pw-text-dim" />
           <input
             type="text"
             placeholder="Cerca clienti..."
@@ -467,7 +467,7 @@ export default function ClientsPage() {
         </div>
         {sectors.length > 0 && (
           <div className="relative">
-            <Filter size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+            <Filter size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-pw-text-dim pointer-events-none" />
             <select
               value={sectorFilter}
               onChange={(e) => setSectorFilter(e.target.value)}
@@ -508,7 +508,7 @@ export default function ClientsPage() {
         />
       ) : isAdmin ? (
         /* ===== VISTA ADMIN: card completa ===== */
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 stagger-children">
           {filteredClients.map((client) => (
             <Card key={client.id} className="hover:shadow-md transition-shadow">
               <CardContent className="p-5">
@@ -653,7 +653,7 @@ export default function ClientsPage() {
         </div>
       ) : (
         /* ===== VISTA DIPENDENTE: solo azienda e referente ===== */
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 stagger-children">
           {filteredClients.map((client) => (
             <Card key={client.id} className="hover:shadow-md transition-shadow">
               <CardContent className="p-5">

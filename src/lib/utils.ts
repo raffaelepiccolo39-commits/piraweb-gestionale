@@ -55,7 +55,7 @@ export function getRoleColor(role: string): string {
     graphic_social: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200',
     graphic_brand: 'bg-pink-100 text-pink-800 dark:bg-pink-900 dark:text-pink-200',
   };
-  return colors[role] || 'bg-gray-100 text-gray-800';
+  return colors[role] || 'bg-pw-surface-2 text-pw-text';
 }
 
 export function getPriorityColor(priority: string): string {
@@ -115,9 +115,9 @@ export function getAttendanceStatusColor(status: string): string {
     working: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
     lunch_break: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
     completed: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
-    absent: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-400',
+    absent: 'bg-gray-100 text-gray-800 dark:bg-pw-surface-2 dark:text-pw-text-dim',
   };
-  return colors[status] || 'bg-gray-100 text-gray-800';
+  return colors[status] || 'bg-pw-surface-2 text-pw-text';
 }
 
 export function getDevNoteCategoryColor(category: string): string {
@@ -126,7 +126,7 @@ export function getDevNoteCategoryColor(category: string): string {
     feature_request: 'bg-blue-500/15 text-blue-400',
     improvement: 'bg-emerald-500/15 text-emerald-400',
   };
-  return colors[category] || 'bg-gray-500/15 text-gray-400';
+  return colors[category] || 'bg-pw-surface-2 text-pw-text-dim';
 }
 
 export function getDevNoteCategoryLabel(category: string): string {
@@ -143,9 +143,9 @@ export function getDevNoteStatusColor(status: string): string {
     open: 'bg-yellow-500/15 text-yellow-400',
     in_progress: 'bg-blue-500/15 text-blue-400',
     resolved: 'bg-green-500/15 text-green-400',
-    closed: 'bg-gray-500/15 text-gray-400',
+    closed: 'bg-pw-surface-2 text-pw-text-dim',
   };
-  return colors[status] || 'bg-gray-500/15 text-gray-400';
+  return colors[status] || 'bg-pw-surface-2 text-pw-text-dim';
 }
 
 export function getDevNoteStatusLabel(status: string): string {

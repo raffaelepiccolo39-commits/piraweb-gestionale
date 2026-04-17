@@ -260,13 +260,13 @@ export default function TasksPage() {
         <AlertTriangle size={48} className="text-red-400" />
         <h2 className="text-xl font-semibold text-pw-text">Errore nel caricamento</h2>
         <p className="text-pw-text-muted max-w-md text-sm">Non è stato possibile caricare i dati. Riprova.</p>
-        <button onClick={() => { setLoading(true); setError(false); fetchTasks(); }} className="px-4 py-2 rounded-xl bg-pw-accent text-[#0A263A] text-sm font-medium hover:bg-pw-accent-hover transition-colors">Riprova</button>
+        <button onClick={() => { setLoading(true); setError(false); fetchTasks(); }} className="px-4 py-2 rounded-xl bg-pw-accent text-[#0A263A] text-sm font-medium hover:bg-pw-accent-hover transition-colors duration-200 ease-out">Riprova</button>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-slide-up">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-pw-text font-[var(--font-syne)]">
@@ -384,7 +384,7 @@ export default function TasksPage() {
                         )}
                       </div>
                       <h3 className="font-medium text-pw-text mb-2">
-                        <a href={`/tasks/${task.id}`} className="hover:text-pw-accent transition-colors">
+                        <a href={`/tasks/${task.id}`} className="hover:text-pw-accent transition-colors duration-200 ease-out">
                           {task.title}
                         </a>
                       </h3>
@@ -499,7 +499,7 @@ export default function TasksPage() {
                   onChange={(e) => setAiInput(e.target.value)}
                   placeholder="es. Dobbiamo creare 3 post Instagram per il lancio del nuovo prodotto, scrivere un articolo blog sulla sostenibilità e preparare la newsletter mensile per i clienti VIP..."
                   rows={5}
-                  className="w-full px-4 py-2.5 rounded-xl border border-pw-border bg-pw-surface-2 text-pw-text placeholder:text-pw-text-dim focus:ring-2 focus:ring-pw-accent/30 focus:border-pw-accent/50 outline-none transition-all text-sm resize-none"
+                  className="w-full px-4 py-2.5 rounded-xl border border-pw-border bg-pw-surface-2 text-pw-text placeholder:text-pw-text-dim focus:ring-2 focus:ring-pw-accent/30 focus:border-pw-accent/50 outline-none transition-all duration-200 ease-out text-sm resize-none"
                 />
               </div>
 

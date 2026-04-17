@@ -49,7 +49,7 @@ function ScoreDot({ score, label }: { score: number; label: string }) {
 }
 
 const OUTREACH_LABELS: Record<OutreachStatus, { label: string; color: string }> = {
-  new: { label: 'Nuovo', color: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300' },
+  new: { label: 'Nuovo', color: 'bg-gray-100 text-gray-700 dark:bg-pw-surface-2 dark:text-pw-text-muted' },
   to_contact: { label: 'Da contattare', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' },
   contacted: { label: 'Contattato', color: 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300' },
   interested: { label: 'Interessato', color: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' },
@@ -292,10 +292,10 @@ export default function LeadFinderPage() {
   const lowScoreProspects = useMemo(() => prospects.filter((p) => p.score_total > 0 && p.score_total < 50), [prospects]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-slide-up">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-pw-text flex items-center gap-2">
+        <h1 className="text-2xl font-bold text-pw-text font-[var(--font-syne)] flex items-center gap-2">
           <Target size={24} className="text-pw-accent" />
           Lead Finder
         </h1>
@@ -306,10 +306,10 @@ export default function LeadFinderPage() {
 
       {/* Tabs */}
       <div className="flex gap-2">
-        <button onClick={() => setTab('search')} className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${tab === 'search' ? 'bg-pw-accent text-[#0A263A]' : 'bg-pw-surface-2 text-pw-text-muted hover:text-pw-text'}`}>
+        <button onClick={() => setTab('search')} className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ease-out ${tab === 'search' ? 'bg-pw-accent text-[#0A263A]' : 'bg-pw-surface-2 text-pw-text-muted hover:text-pw-text'}`}>
           <Search size={14} className="inline mr-1.5" />Cerca
         </button>
-        <button onClick={() => setTab('saved')} className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${tab === 'saved' ? 'bg-pw-accent text-[#0A263A]' : 'bg-pw-surface-2 text-pw-text-muted hover:text-pw-text'}`}>
+        <button onClick={() => setTab('saved')} className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ease-out ${tab === 'saved' ? 'bg-pw-accent text-[#0A263A]' : 'bg-pw-surface-2 text-pw-text-muted hover:text-pw-text'}`}>
           <Eye size={14} className="inline mr-1.5" />Salvati ({prospects.length})
         </button>
       </div>
@@ -323,19 +323,19 @@ export default function LeadFinderPage() {
               <div className="flex gap-2">
                 <button
                   onClick={() => setSearchMode('sector')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${searchMode === 'sector' ? 'bg-pw-accent text-[#0A263A]' : 'bg-pw-surface-2 text-pw-text-muted hover:text-pw-text'}`}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ease-out ${searchMode === 'sector' ? 'bg-pw-accent text-[#0A263A]' : 'bg-pw-surface-2 text-pw-text-muted hover:text-pw-text'}`}
                 >
                   Per settore + citta'
                 </button>
                 <button
                   onClick={() => setSearchMode('name')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${searchMode === 'name' ? 'bg-pw-accent text-[#0A263A]' : 'bg-pw-surface-2 text-pw-text-muted hover:text-pw-text'}`}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ease-out ${searchMode === 'name' ? 'bg-pw-accent text-[#0A263A]' : 'bg-pw-surface-2 text-pw-text-muted hover:text-pw-text'}`}
                 >
                   Per nome attivita'
                 </button>
                 <button
                   onClick={() => setSearchMode('manual')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${searchMode === 'manual' ? 'bg-pw-accent text-[#0A263A]' : 'bg-pw-surface-2 text-pw-text-muted hover:text-pw-text'}`}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ease-out ${searchMode === 'manual' ? 'bg-pw-accent text-[#0A263A]' : 'bg-pw-surface-2 text-pw-text-muted hover:text-pw-text'}`}
                 >
                   Analisi manuale
                 </button>
@@ -457,7 +457,7 @@ export default function LeadFinderPage() {
                       {/* Compact header row - always visible */}
                       <button
                         onClick={() => setExpandedId(isOpen ? null : `search-${i}`)}
-                        className="w-full text-left p-4 flex items-center gap-3 hover:bg-white/[0.02] transition-colors"
+                        className="w-full text-left p-4 flex items-center gap-3 hover:bg-white/[0.02] transition-colors duration-200 ease-out"
                       >
                         <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 border-2 ${verdictBg}`}>
                           <span className={`text-xs font-bold ${verdictColor}`}>{scoreTotal}</span>
@@ -619,7 +619,7 @@ export default function LeadFinderPage() {
                     {/* Summary row */}
                     <button
                       onClick={() => setExpandedId(isExpanded ? null : prospect.id)}
-                      className="w-full text-left p-4 flex items-center gap-4 hover:bg-white/[0.02] transition-colors"
+                      className="w-full text-left p-4 flex items-center gap-4 hover:bg-white/[0.02] transition-colors duration-200 ease-out"
                     >
                       {/* Score circle */}
                       <div className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 border-2 ${
@@ -1076,7 +1076,7 @@ export default function LeadFinderPage() {
                               <button
                                 key={status}
                                 onClick={() => handleStatusChange(prospect.id, status)}
-                                className={`px-2.5 py-1 rounded-lg text-[10px] font-medium transition-all ${
+                                className={`px-2.5 py-1 rounded-lg text-[10px] font-medium transition-all duration-200 ease-out ${
                                   prospect.outreach_status === status
                                     ? 'bg-pw-accent text-[#0A263A]'
                                     : 'bg-pw-surface-2 text-pw-text-muted hover:text-pw-text'

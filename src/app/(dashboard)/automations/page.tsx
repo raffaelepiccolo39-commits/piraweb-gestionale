@@ -106,10 +106,10 @@ export default function AutomationsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-slide-up">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-pw-text flex items-center gap-2">
+          <h1 className="text-2xl font-bold text-pw-text font-[var(--font-syne)] flex items-center gap-2">
             <Zap size={24} className="text-pw-accent" />
             Automazioni
           </h1>
@@ -118,7 +118,7 @@ export default function AutomationsPage() {
         <Button onClick={() => setShowForm(true)}><Plus size={16} />Nuova Automazione</Button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 stagger-children">
         {automations.map((a) => (
           <Card key={a.id} className={!a.is_active ? 'opacity-50' : ''}>
             <CardContent className="p-4">

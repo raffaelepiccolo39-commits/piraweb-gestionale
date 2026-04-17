@@ -45,26 +45,26 @@ export function AttendanceCalendar({ data, month, year }: AttendanceCalendarProp
     <Card>
       <CardHeader>
         <div className="flex items-center gap-2">
-          <Clock size={20} className="text-gray-400" />
+          <Clock size={20} className="text-pw-text-dim" />
           <h2 className="text-lg font-semibold text-pw-text">
             Registro Presenze
           </h2>
         </div>
         <div className="flex gap-3 mt-2">
-          <div className="flex items-center gap-1.5 text-xs text-gray-500">
+          <div className="flex items-center gap-1.5 text-xs text-pw-text-dim">
             <div className="w-3 h-3 rounded bg-green-500" /> Presente
           </div>
-          <div className="flex items-center gap-1.5 text-xs text-gray-500">
+          <div className="flex items-center gap-1.5 text-xs text-pw-text-dim">
             <div className="w-3 h-3 rounded bg-red-400" /> Assente
           </div>
-          <div className="flex items-center gap-1.5 text-xs text-gray-500">
+          <div className="flex items-center gap-1.5 text-xs text-pw-text-dim">
             <div className="w-3 h-3 rounded bg-pw-surface-3" /> Weekend
           </div>
         </div>
       </CardHeader>
       <CardContent className="p-0 overflow-x-auto">
         {userMap.size === 0 ? (
-          <div className="p-6 text-center text-sm text-gray-400">Nessun dato disponibile</div>
+          <div className="p-6 text-center text-sm text-pw-text-dim">Nessun dato disponibile</div>
         ) : (
           <table className="w-full text-xs">
             <thead>
@@ -100,7 +100,7 @@ export function AttendanceCalendar({ data, month, year }: AttendanceCalendarProp
                 let daysPresent = 0;
 
                 return (
-                  <tr key={userId} className="hover:bg-pw-surface-2">
+                  <tr key={userId} className="hover:bg-pw-surface-2/40 transition-colors duration-150">
                     <td className="px-3 py-2 sticky left-0 bg-pw-surface z-10">
                       <div className="flex items-center gap-1.5">
                         <div className="w-6 h-6 rounded-full bg-pw-accent flex items-center justify-center shrink-0">
@@ -147,7 +147,7 @@ export function AttendanceCalendar({ data, month, year }: AttendanceCalendarProp
                     <td className="text-center px-3 py-2">
                       <div>
                         <p className="font-bold text-pw-accent">{daysPresent}gg</p>
-                        <p className="text-[10px] text-gray-400">{formatHours(totalHours)}</p>
+                        <p className="text-[10px] text-pw-text-dim">{formatHours(totalHours)}</p>
                       </div>
                     </td>
                   </tr>

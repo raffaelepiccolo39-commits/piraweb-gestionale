@@ -30,7 +30,7 @@ export function TeamStatus({ teamData, loading }: TeamStatusProps) {
       <CardHeader>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Users size={20} className="text-gray-400" />
+            <Users size={20} className="text-pw-text-dim" />
             <h2 className="text-lg font-semibold text-pw-text">
               Stato Team Oggi
             </h2>

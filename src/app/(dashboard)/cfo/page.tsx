@@ -437,7 +437,7 @@ export default function CFOPage() {
   }
 
   return (
-    <div className="space-y-8 max-w-7xl">
+    <div className="space-y-8 max-w-7xl animate-slide-up">
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-pw-text font-[var(--font-syne)] flex items-center gap-2">
@@ -450,25 +450,25 @@ export default function CFOPage() {
       </div>
 
       {/* ═══ SEZIONE 1: KPI PRINCIPALI ═══ */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 stagger-children">
         <Card>
           <CardContent className="p-4">
             <p className="text-[10px] uppercase tracking-widest text-pw-text-dim">MRR (Ricavo Mensile)</p>
-            <p className="text-2xl font-bold text-green-400 mt-1">{formatCurrency(summary.mrr)}</p>
+            <p className="text-2xl font-bold text-green-400 font-[var(--font-bebas)] mt-1">{formatCurrency(summary.mrr)}</p>
             <p className="text-xs text-pw-text-dim mt-1">{summary.activeContracts} contratti attivi</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
             <p className="text-[10px] uppercase tracking-widest text-pw-text-dim">Costi Mensili Totali</p>
-            <p className="text-2xl font-bold text-red-400 mt-1">{formatCurrency(totalMonthlyCosts)}</p>
+            <p className="text-2xl font-bold text-red-400 font-[var(--font-bebas)] mt-1">{formatCurrency(totalMonthlyCosts)}</p>
             <p className="text-xs text-pw-text-dim mt-1">Personale + Operativi</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
             <p className="text-[10px] uppercase tracking-widest text-pw-text-dim">Utile Netto Mensile</p>
-            <p className={`text-2xl font-bold mt-1 ${monthlyNetProfit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+            <p className={`text-2xl font-bold font-[var(--font-bebas)] mt-1 ${monthlyNetProfit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
               {formatCurrency(monthlyNetProfit)}
             </p>
             <p className="text-xs text-pw-text-dim mt-1">Margine: {monthlyMarginPct.toFixed(1)}%</p>
@@ -477,7 +477,7 @@ export default function CFOPage() {
         <Card>
           <CardContent className="p-4">
             <p className="text-[10px] uppercase tracking-widest text-pw-text-dim">Incassato vs Atteso</p>
-            <p className="text-2xl font-bold text-pw-accent mt-1">{formatCurrency(summary.totalReceived)}</p>
+            <p className="text-2xl font-bold text-pw-accent font-[var(--font-bebas)] mt-1">{formatCurrency(summary.totalReceived)}</p>
             <p className="text-xs text-pw-text-dim mt-1">
               da incassare: {formatCurrency(summary.totalPending)}
             </p>
@@ -575,19 +575,19 @@ export default function CFOPage() {
         <Card>
           <CardContent className="p-4 text-center">
             <p className="text-[10px] uppercase tracking-widest text-pw-text-dim">Fatturato Annuo Stimato</p>
-            <p className="text-2xl font-bold text-green-400 mt-2">{formatCurrency(annualRevenue)}</p>
+            <p className="text-2xl font-bold text-green-400 font-[var(--font-bebas)] mt-2">{formatCurrency(annualRevenue)}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4 text-center">
             <p className="text-[10px] uppercase tracking-widest text-pw-text-dim">Costi Annui Stimati</p>
-            <p className="text-2xl font-bold text-red-400 mt-2">{formatCurrency(annualCosts)}</p>
+            <p className="text-2xl font-bold text-red-400 font-[var(--font-bebas)] mt-2">{formatCurrency(annualCosts)}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4 text-center">
             <p className="text-[10px] uppercase tracking-widest text-pw-text-dim">Utile Annuo Stimato</p>
-            <p className={`text-2xl font-bold mt-2 ${annualNetProfit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+            <p className={`text-2xl font-bold font-[var(--font-bebas)] mt-2 ${annualNetProfit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
               {formatCurrency(annualNetProfit)}
             </p>
           </CardContent>
@@ -737,7 +737,7 @@ export default function CFOPage() {
           {expenses.length > 0 ? (
             <div className="space-y-2">
               {expenses.map(exp => (
-                <div key={exp.id} className="flex items-center justify-between p-3 rounded-xl bg-pw-surface-2 hover:bg-pw-surface-3 transition-colors group">
+                <div key={exp.id} className="flex items-center justify-between p-3 rounded-xl bg-pw-surface-2 hover:bg-pw-surface-3 transition-colors duration-200 ease-out group">
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
                       <p className="text-sm font-medium text-pw-text">{exp.name}</p>
@@ -972,7 +972,7 @@ export default function CFOPage() {
                 Carica il PDF con le buste paga dei dipendenti. L&apos;AI analizzer&agrave; il documento e estrarra&apos; automaticamente tutti i dati (lordo, netto, INPS, IRPEF, TFR, ecc.)
               </div>
 
-              <div className="border-2 border-dashed border-pw-border rounded-xl p-8 text-center hover:border-pw-accent/50 transition-colors">
+              <div className="border-2 border-dashed border-pw-border rounded-xl p-8 text-center hover:border-pw-accent/50 transition-colors duration-200 ease-out">
                 <Upload size={40} className="text-pw-text-dim mx-auto mb-3" />
                 <input
                   type="file"

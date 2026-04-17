@@ -40,7 +40,7 @@ export function ReportTable({ mode, weeklyData, monthlyData }: ReportTableProps)
         </CardHeader>
         <CardContent className="p-0 overflow-x-auto">
           {userMap.size === 0 ? (
-            <div className="p-6 text-center text-sm text-gray-400">Nessun dato disponibile</div>
+            <div className="p-6 text-center text-sm text-pw-text-dim">Nessun dato disponibile</div>
           ) : (
             <table className="w-full text-sm">
               <thead>
@@ -56,7 +56,7 @@ export function ReportTable({ mode, weeklyData, monthlyData }: ReportTableProps)
                 {Array.from(userMap.entries()).map(([userId, user]) => {
                   let weekTotal = 0;
                   return (
-                    <tr key={userId} className="hover:bg-pw-surface-2">
+                    <tr key={userId} className="hover:bg-pw-surface-2/40 transition-colors duration-150">
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
                           <div className="w-7 h-7 rounded-full bg-pw-accent flex items-center justify-center shrink-0">
@@ -78,7 +78,7 @@ export function ReportTable({ mode, weeklyData, monthlyData }: ReportTableProps)
                                 <p className={`font-semibold ${getHoursColor(hours)}`}>
                                   {hours > 0 ? formatHours(hours) : '--'}
                                 </p>
-                                <p className="text-[10px] text-gray-400 mt-0.5">
+                                <p className="text-[10px] text-pw-text-dim mt-0.5">
                                   {formatTime(day.clock_in)} - {formatTime(day.clock_out)}
                                 </p>
                               </div>
@@ -112,7 +112,7 @@ export function ReportTable({ mode, weeklyData, monthlyData }: ReportTableProps)
       </CardHeader>
       <CardContent className="p-0 overflow-x-auto">
         {!monthlyData || monthlyData.length === 0 ? (
-          <div className="p-6 text-center text-sm text-gray-400">Nessun dato disponibile</div>
+          <div className="p-6 text-center text-sm text-pw-text-dim">Nessun dato disponibile</div>
         ) : (
           <table className="w-full text-sm">
             <thead>
@@ -133,7 +133,7 @@ export function ReportTable({ mode, weeklyData, monthlyData }: ReportTableProps)
                 const earlyCount = Number(row.early_departures) || 0;
 
                 return (
-                  <tr key={row.user_id} className="hover:bg-pw-surface-2">
+                  <tr key={row.user_id} className="hover:bg-pw-surface-2/40 transition-colors duration-150">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         <div className="w-7 h-7 rounded-full bg-pw-accent flex items-center justify-center shrink-0">

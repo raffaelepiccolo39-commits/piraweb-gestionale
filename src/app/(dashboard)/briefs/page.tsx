@@ -36,7 +36,7 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 const STATUS_COLORS: Record<string, string> = {
-  draft: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
+  draft: 'bg-gray-100 text-gray-700 dark:bg-pw-surface-2 dark:text-pw-text-muted',
   approved: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300',
   in_progress: 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300',
   completed: 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300',
@@ -148,11 +148,11 @@ export default function BriefsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-slide-up">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-pw-text flex items-center gap-2">
+          <h1 className="text-2xl font-bold text-pw-text font-[var(--font-syne)] flex items-center gap-2">
             <FileEdit size={24} className="text-pw-accent" />
             Brief Creativi
           </h1>
@@ -174,7 +174,7 @@ export default function BriefsPage() {
               <button
                 key={brief.id}
                 onClick={() => setSelectedBrief(brief)}
-                className={`w-full text-left p-4 rounded-xl transition-colors border ${
+                className={`w-full text-left p-4 rounded-xl transition-colors duration-200 ease-out border ${
                   selectedBrief?.id === brief.id
                     ? 'bg-pw-accent/10 border-pw-accent/30'
                     : 'bg-pw-surface-2 border-transparent hover:bg-pw-surface-3'

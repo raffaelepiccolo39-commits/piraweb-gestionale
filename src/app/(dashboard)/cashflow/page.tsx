@@ -175,7 +175,7 @@ export default function CashflowPage() {
   const netMarginPct = Number(pnl?.net_margin_pct || 0);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-slide-up">
       {/* Header */}
       <div className="space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -192,7 +192,7 @@ export default function CashflowPage() {
               <button
                 key={p}
                 onClick={() => setPeriod(p)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 ease-out ${
                   period === p
                     ? 'bg-pw-surface text-pw-text shadow-sm'
                     : 'text-pw-text-muted hover:text-pw-text'
@@ -303,7 +303,7 @@ export default function CashflowPage() {
                   <p className="text-sm opacity-80 capitalize">Entrate — {periodLabel}</p>
                   <ArrowUpRight size={20} className="opacity-60" />
                 </div>
-                <p className="text-3xl font-bold">{formatCurrency(pnl.total_received)}</p>
+                <p className="text-3xl font-bold font-[var(--font-bebas)]">{formatCurrency(pnl.total_received)}</p>
                 <p className="text-sm opacity-70 mt-1">
                   Attese: {formatCurrency(pnl.total_revenue)} &middot; Da incassare: {formatCurrency(pnl.total_pending_revenue)}
                 </p>
@@ -315,7 +315,7 @@ export default function CashflowPage() {
                   <p className="text-sm opacity-80 capitalize">Uscite Stipendi — {periodLabel}</p>
                   <ArrowDownRight size={20} className="opacity-60" />
                 </div>
-                <p className="text-3xl font-bold">{formatCurrency(pnl.total_salary_cost_period)}</p>
+                <p className="text-3xl font-bold font-[var(--font-bebas)]">{formatCurrency(pnl.total_salary_cost_period)}</p>
                 <p className="text-sm opacity-70 mt-1">
                   {formatCurrency(pnl.monthly_salary_cost)}/mese &middot; {pnl.num_months} mesi
                 </p>
@@ -331,7 +331,7 @@ export default function CashflowPage() {
                   <p className="text-sm opacity-80 capitalize">Margine Netto — {periodLabel}</p>
                   {netMargin >= 0 ? <TrendingUp size={20} className="opacity-60" /> : <TrendingDown size={20} className="opacity-60" />}
                 </div>
-                <p className="text-3xl font-bold truncate">{formatCurrency(netMargin)}</p>
+                <p className="text-3xl font-bold font-[var(--font-bebas)] truncate">{formatCurrency(netMargin)}</p>
                 <p className="text-sm opacity-70 mt-1 truncate">
                   {netMarginPct > 0 ? '+' : ''}{netMarginPct}% netto &middot; {grossMarginPct > 0 ? '+' : ''}{grossMarginPct}% lordo
                 </p>
@@ -369,7 +369,7 @@ export default function CashflowPage() {
           )}
 
           {/* Summary cards */}
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 stagger-children">
             <Card>
               <CardContent className="p-4">
                 <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-3 text-green-600 bg-green-500/15">
@@ -460,7 +460,7 @@ export default function CashflowPage() {
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
-                <div className="flex items-center justify-center h-48 text-sm text-gray-400">
+                <div className="flex items-center justify-center h-48 text-sm text-pw-text-dim">
                   Nessun dato disponibile per questo periodo
                 </div>
               )}
@@ -549,7 +549,7 @@ export default function CashflowPage() {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <UserMinus size={20} className="text-gray-400" />
+                    <UserMinus size={20} className="text-pw-text-dim" />
                     <h2 className="text-lg font-semibold text-pw-text">
                       Costi Dipendenti
                     </h2>
@@ -580,7 +580,7 @@ export default function CashflowPage() {
                     ))}
                   </div>
                 ) : (
-                  <div className="p-6 text-center text-sm text-gray-400">
+                  <div className="p-6 text-center text-sm text-pw-text-dim">
                     Nessun dipendente con paga registrata
                   </div>
                 )}
@@ -591,7 +591,7 @@ export default function CashflowPage() {
             <Card>
               <CardHeader>
                 <div className="flex items-center gap-2">
-                  <Building2 size={20} className="text-gray-400" />
+                  <Building2 size={20} className="text-pw-text-dim" />
                   <h2 className="text-lg font-semibold text-pw-text">
                     Entrate per Cliente
                   </h2>
@@ -599,7 +599,7 @@ export default function CashflowPage() {
               </CardHeader>
               <CardContent className="p-0">
                 {clients.length === 0 ? (
-                  <div className="p-6 text-center text-sm text-gray-400">
+                  <div className="p-6 text-center text-sm text-pw-text-dim">
                     Nessun contratto attivo nel periodo
                   </div>
                 ) : (
@@ -612,7 +612,7 @@ export default function CashflowPage() {
                       return (
                         <div
                           key={client.client_id}
-                          className="px-6 py-3 flex items-center gap-3 hover:bg-pw-surface-2 cursor-pointer transition-colors"
+                          className="px-6 py-3 flex items-center gap-3 hover:bg-pw-surface-2 cursor-pointer transition-colors duration-200 ease-out"
                           onClick={() => router.push(`/clients/${client.client_id}`)}
                         >
                           <div className="flex-1 min-w-0">

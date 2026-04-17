@@ -2,7 +2,7 @@
 
 export default function OrganigrammaPage() {
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-slide-up">
       <div>
         <h1 className="text-2xl font-bold text-pw-text font-[var(--font-syne)]">Organigramma</h1>
         <p className="text-sm text-pw-text-muted">Struttura organizzativa PiraWeb Creative Agency</p>
@@ -151,7 +151,7 @@ export default function OrganigrammaPage() {
             <span className="text-sm text-pw-text-muted">Area Design</span>
           </div>
           <div className="flex items-center gap-3">
-            <div className="shrink-0 w-10 h-6 rounded border-2 border-dashed border-gray-500 bg-gray-800/50" />
+            <div className="shrink-0 w-10 h-6 rounded border-2 border-dashed border-pw-text-dim bg-pw-surface-2/50" />
             <span className="text-sm text-pw-text-muted">Posizione aperta</span>
           </div>
         </div>

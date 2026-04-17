@@ -180,12 +180,12 @@ export function ContractForm({ onSubmit, onCancel }: ContractFormProps) {
                 <span className="text-sm text-pw-text-muted flex-1 truncate">
                   {attachment.name}
                 </span>
-                <span className="text-xs text-gray-400 shrink-0">
+                <span className="text-xs text-pw-text-dim shrink-0">
                   {(attachment.size / 1024).toFixed(0)} KB
                 </span>
                 <button
                   onClick={() => setAttachment(null)}
-                  className="p-1 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400"
+                  className="p-1 rounded-lg hover:bg-gray-200 dark:hover:bg-pw-surface-3 text-pw-text-dim"
                 >
                   <X size={16} />
                 </button>

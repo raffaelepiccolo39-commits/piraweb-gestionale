@@ -151,11 +151,11 @@ export default function TimesheetPage() {
   const weekLabel = `${week.dates[0].toLocaleDateString('it-IT', { day: '2-digit', month: 'short' })} - ${week.dates[6].toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' })}`;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-slide-up">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-pw-text flex items-center gap-2">
+          <h1 className="text-2xl font-bold text-pw-text font-[var(--font-syne)] flex items-center gap-2">
             <Clock size={24} className="text-pw-accent" />
             Timesheet
           </h1>
@@ -195,28 +195,28 @@ export default function TimesheetPage() {
 
       {/* Summary cards */}
       {isAdmin && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 stagger-children">
           <Card>
             <CardContent className="p-4 text-center">
-              <p className="text-2xl font-bold text-pw-text">{teamTotalHours.toFixed(1)}h</p>
+              <p className="text-2xl font-bold text-pw-text font-[var(--font-bebas)]">{teamTotalHours.toFixed(1)}h</p>
               <p className="text-xs text-pw-text-muted">Ore totali team</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4 text-center">
-              <p className="text-2xl font-bold text-pw-text">{avgHoursPerMember.toFixed(1)}h</p>
+              <p className="text-2xl font-bold text-pw-text font-[var(--font-bebas)]">{avgHoursPerMember.toFixed(1)}h</p>
               <p className="text-xs text-pw-text-muted">Media per membro</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4 text-center">
-              <p className="text-2xl font-bold text-pw-text">{members.filter((m) => m.totalHours > 0).length}</p>
+              <p className="text-2xl font-bold text-pw-text font-[var(--font-bebas)]">{members.filter((m) => m.totalHours > 0).length}</p>
               <p className="text-xs text-pw-text-muted">Membri attivi</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4 text-center">
-              <p className="text-2xl font-bold text-pw-text">
+              <p className="text-2xl font-bold text-pw-text font-[var(--font-bebas)]">
                 {members.reduce((sum, m) => sum + m.taskCount, 0)}
               </p>
               <p className="text-xs text-pw-text-muted">Task lavorate</p>

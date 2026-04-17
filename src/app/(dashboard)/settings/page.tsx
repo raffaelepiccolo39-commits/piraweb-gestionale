@@ -403,7 +403,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="space-y-6 max-w-4xl">
+    <div className="space-y-6 max-w-4xl animate-slide-up">
       <div>
         <h1 className="text-2xl font-bold text-pw-text font-[var(--font-syne)]">
           Impostazioni
@@ -414,7 +414,7 @@ export default function SettingsPage() {
       <Card>
         <CardHeader>
           <div className="flex items-center gap-2">
-            <Settings size={20} className="text-gray-400" />
+            <Settings size={20} className="text-pw-text-dim" />
             <h2 className="text-lg font-semibold text-pw-text">
               Il tuo Profilo
             </h2>
@@ -451,7 +451,7 @@ export default function SettingsPage() {
       <Card>
         <CardHeader>
           <div className="flex items-center gap-2">
-            <Lock size={20} className="text-gray-400" />
+            <Lock size={20} className="text-pw-text-dim" />
             <h2 className="text-lg font-semibold text-pw-text">Cambia Password</h2>
           </div>
         </CardHeader>
@@ -467,7 +467,7 @@ export default function SettingsPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label htmlFor="new-password" className="block text-sm font-medium text-pw-text-muted mb-1">
-                Nuova Password <span className="text-xs text-gray-400">(min. 8 caratteri)</span>
+                Nuova Password <span className="text-xs text-pw-text-dim">(min. 8 caratteri)</span>
               </label>
               <div className="relative">
                 <input
@@ -481,7 +481,7 @@ export default function SettingsPage() {
                 <button
                   type="button"
                   onClick={() => setShowNewPassword(!showNewPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-pw-text-dim hover:text-pw-text-muted"
                 >
                   {showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
@@ -512,7 +512,7 @@ export default function SettingsPage() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Shield size={20} className="text-gray-400" />
+              <Shield size={20} className="text-pw-text-dim" />
               <h2 className="text-lg font-semibold text-pw-text">Autenticazione a Due Fattori (2FA)</h2>
             </div>
             {!twoFALoading && (
@@ -587,7 +587,7 @@ export default function SettingsPage() {
               </code>
               <button
                 onClick={copySecret}
-                className="p-2 rounded-lg bg-pw-surface-2 hover:bg-pw-surface-3 text-pw-text-muted hover:text-pw-text transition-colors shrink-0"
+                className="p-2 rounded-lg bg-pw-surface-2 hover:bg-pw-surface-3 text-pw-text-muted hover:text-pw-text transition-colors duration-200 ease-out shrink-0"
                 title="Copia"
               >
                 {secretCopied ? <Check size={16} className="text-green-400" /> : <Copy size={16} />}
@@ -690,7 +690,7 @@ export default function SettingsPage() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Users size={20} className="text-gray-400" />
+                <Users size={20} className="text-pw-text-dim" />
                 <h2 className="text-lg font-semibold text-pw-text">
                   Gestione Team
                 </h2>
@@ -706,7 +706,7 @@ export default function SettingsPage() {
               {teamMembers.map((member) => (
                 <div
                   key={member.id}
-                  className="px-6 py-4 flex items-center gap-4 cursor-pointer hover:bg-pw-surface-2/50 transition-colors"
+                  className="px-6 py-4 flex items-center gap-4 cursor-pointer hover:bg-pw-surface-2/50 transition-colors duration-200 ease-out"
                   onClick={() => member.id !== profile.id ? setViewingMember(member) : undefined}
                 >
                   <div className="w-10 h-10 rounded-full bg-pw-accent flex items-center justify-center shrink-0">
@@ -726,7 +726,7 @@ export default function SettingsPage() {
                     <button
                       onClick={(e) => { e.stopPropagation(); handleToggleActive(member.id, member.is_active); }}
                       disabled={member.id === profile.id}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors duration-200 ease-out ${
                         member.is_active
                           ? 'bg-green-500/15 text-green-400'
                           : 'bg-pw-surface-3 text-pw-text-dim'
@@ -776,7 +776,7 @@ export default function SettingsPage() {
           />
           <div>
             <label htmlFor="create-password" className="block text-sm font-medium text-pw-text-muted mb-1">
-              Password * <span className="text-xs text-gray-400">(min. 8 caratteri)</span>
+              Password * <span className="text-xs text-pw-text-dim">(min. 8 caratteri)</span>
             </label>
             <div className="relative">
               <input
@@ -790,7 +790,7 @@ export default function SettingsPage() {
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-pw-text-dim hover:text-pw-text-muted"
               >
                 {showPassword ? <EyeOff size={16} aria-hidden="true" /> : <Eye size={16} aria-hidden="true" />}
               </button>
@@ -1027,7 +1027,7 @@ export default function SettingsPage() {
                     key={c}
                     type="button"
                     onClick={() => setEditForm({ ...editForm, color: c })}
-                    className={`w-7 h-7 rounded-full transition-all ${editForm.color === c ? 'ring-2 ring-white scale-110' : 'opacity-60 hover:opacity-100'}`}
+                    className={`w-7 h-7 rounded-full transition-all duration-200 ease-out ${editForm.color === c ? 'ring-2 ring-white scale-110' : 'opacity-60 hover:opacity-100'}`}
                     style={{ backgroundColor: c }}
                   />
                 ))}

@@ -84,7 +84,7 @@ export function KanbanBoard({ tasks, onTaskClick, onTasksUpdate }: KanbanBoardPr
                 <h3 className="text-sm font-semibold text-pw-text-muted">
                   {column.label}
                 </h3>
-                <span className="ml-auto text-xs text-gray-400 bg-pw-surface-3 px-2 py-0.5 rounded-full">
+                <span className="ml-auto text-xs text-pw-text-dim bg-pw-surface-3 px-2 py-0.5 rounded-full">
                   {columnTasks.length}
                 </span>
               </div>

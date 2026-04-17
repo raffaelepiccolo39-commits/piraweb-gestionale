@@ -97,9 +97,9 @@ export default function CapacityPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-slide-up">
       <div>
-        <h1 className="text-2xl font-bold text-pw-text flex items-center gap-2">
+        <h1 className="text-2xl font-bold text-pw-text font-[var(--font-syne)] flex items-center gap-2">
           <BarChart3 size={24} className="text-pw-accent" />
           Capacity Planner
         </h1>
@@ -107,7 +107,7 @@ export default function CapacityPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 stagger-children">
         <Card><CardContent className="p-3 text-center">
           <p className={`text-xl font-bold ${teamUtilization > 85 ? 'text-red-400' : teamUtilization > 60 ? 'text-green-400' : 'text-yellow-400'}`}>{teamUtilization}%</p>
           <p className="text-[10px] text-pw-text-muted">Utilizzo medio</p>
@@ -175,7 +175,7 @@ export default function CapacityPage() {
                     </div>
                     {/* Utilization bar */}
                     <div className="h-2.5 bg-pw-surface-2 rounded-full overflow-hidden mb-1.5">
-                      <div className={`h-full rounded-full transition-all ${barColor}`} style={{ width: `${Math.min(m.utilizationPct, 100)}%` }} />
+                      <div className={`h-full rounded-full transition-all duration-200 ease-out ${barColor}`} style={{ width: `${Math.min(m.utilizationPct, 100)}%` }} />
                     </div>
                     <div className="flex items-center gap-4 text-[10px] text-pw-text-dim">
                       <span><strong className="text-pw-text">{m.utilizationPct}%</strong> utilizzo</span>

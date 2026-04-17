@@ -189,7 +189,7 @@ export default function AiPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-slide-up">
       <div>
         <h1 className="text-2xl font-bold text-pw-text font-[var(--font-syne)]">
           AI Assistant
@@ -209,7 +209,7 @@ export default function AiPage() {
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 ease-out ${
               activeTab === tab.id
                 ? 'bg-pw-surface text-pw-text shadow-sm'
                 : 'text-pw-text-muted hover:text-pw-text'
@@ -299,7 +299,7 @@ export default function AiPage() {
               {loading ? (
                 <div className="flex flex-col items-center justify-center py-12">
                   <Brain size={40} className="text-indigo-500 animate-pulse mb-3" />
-                  <p className="text-sm text-gray-500">Generazione in corso...</p>
+                  <p className="text-sm text-pw-text-dim">Generazione in corso...</p>
                 </div>
               ) : generatedResult ? (
                 <div>
@@ -309,12 +309,12 @@ export default function AiPage() {
                     </div>
                     <button
                       onClick={() => copyToClipboard(generatedResult, 'result')}
-                      className="absolute top-2 right-2 p-2 rounded-lg bg-pw-surface-3 shadow-sm hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+                      className="absolute top-2 right-2 p-2 rounded-lg bg-pw-surface-3 shadow-sm hover:bg-gray-100 dark:hover:bg-pw-surface-2 transition-colors duration-200 ease-out"
                     >
                       {copied === 'result' ? (
                         <Check size={16} className="text-green-500" />
                       ) : (
-                        <Copy size={16} className="text-gray-400" />
+                        <Copy size={16} className="text-pw-text-dim" />
                       )}
                     </button>
                   </div>
@@ -410,7 +410,7 @@ export default function AiPage() {
                           {getRoleLabel(task.assigned_to_role)}
                         </Badge>
                       </div>
-                      <div className="flex items-center gap-3 mt-2 text-xs text-gray-500">
+                      <div className="flex items-center gap-3 mt-2 text-xs text-pw-text-dim">
                         <span>Priorità: {task.priority}</span>
                         {task.estimated_hours && <span>~{task.estimated_hours}h</span>}
                       </div>
@@ -455,7 +455,7 @@ export default function AiPage() {
                         <p className="text-sm text-pw-text-muted line-clamp-2">
                           {script.prompt}
                         </p>
-                        <p className="text-xs text-gray-400 mt-1">
+                        <p className="text-xs text-pw-text-dim mt-1">
                           {formatDateTime(script.created_at)}
                           {script.tokens_used && ` · ${script.tokens_used} tokens`}
                         </p>
@@ -470,7 +470,7 @@ export default function AiPage() {
                             className={
                               script.is_favorite
                                 ? 'text-yellow-500 fill-yellow-500'
-                                : 'text-gray-400'
+                                : 'text-pw-text-dim'
                             }
                           />
                         </button>
@@ -482,7 +482,7 @@ export default function AiPage() {
                             {copied === script.id ? (
                               <Check size={16} className="text-green-500" />
                             ) : (
-                              <Copy size={16} className="text-gray-400" />
+                              <Copy size={16} className="text-pw-text-dim" />
                             )}
                           </button>
                         )}

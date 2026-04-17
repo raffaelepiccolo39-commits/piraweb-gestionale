@@ -189,7 +189,7 @@ export default function ClientReportPage({ params }: { params: Promise<{ id: str
   const { client } = report;
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
+    <div className="max-w-6xl mx-auto space-y-6 animate-slide-up">
       <Breadcrumb items={[{ label: 'Clienti', href: '/clients' }, { label: 'Report' }]} />
 
       {/* Header */}
@@ -207,13 +207,13 @@ export default function ClientReportPage({ params }: { params: Promise<{ id: str
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 stagger-children">
         <Card>
           <CardContent className="p-4 text-center">
             <div className="w-10 h-10 rounded-xl bg-blue-500/15 text-blue-500 flex items-center justify-center mx-auto mb-2">
               <FileText size={20} />
             </div>
-            <p className="text-2xl font-bold text-pw-text">{report.totalTasks}</p>
+            <p className="text-2xl font-bold text-pw-text font-[var(--font-bebas)]">{report.totalTasks}</p>
             <p className="text-xs text-pw-text-muted">Task totali</p>
           </CardContent>
         </Card>
@@ -222,7 +222,7 @@ export default function ClientReportPage({ params }: { params: Promise<{ id: str
             <div className="w-10 h-10 rounded-xl bg-green-500/15 text-green-500 flex items-center justify-center mx-auto mb-2">
               <CheckCircle2 size={20} />
             </div>
-            <p className="text-2xl font-bold text-pw-text">{report.completionRate}%</p>
+            <p className="text-2xl font-bold text-pw-text font-[var(--font-bebas)]">{report.completionRate}%</p>
             <p className="text-xs text-pw-text-muted">Tasso completamento</p>
           </CardContent>
         </Card>
@@ -231,7 +231,7 @@ export default function ClientReportPage({ params }: { params: Promise<{ id: str
             <div className="w-10 h-10 rounded-xl bg-purple-500/15 text-purple-500 flex items-center justify-center mx-auto mb-2">
               <Clock size={20} />
             </div>
-            <p className="text-2xl font-bold text-pw-text">{report.totalLoggedHours.toFixed(1)}h</p>
+            <p className="text-2xl font-bold text-pw-text font-[var(--font-bebas)]">{report.totalLoggedHours.toFixed(1)}h</p>
             <p className="text-xs text-pw-text-muted">Ore loggiate</p>
           </CardContent>
         </Card>
@@ -244,7 +244,7 @@ export default function ClientReportPage({ params }: { params: Promise<{ id: str
             }`}>
               <TrendingUp size={20} />
             </div>
-            <p className="text-2xl font-bold text-pw-text">{report.profitMargin}%</p>
+            <p className="text-2xl font-bold text-pw-text font-[var(--font-bebas)]">{report.profitMargin}%</p>
             <p className="text-xs text-pw-text-muted">Margine stimato</p>
           </CardContent>
         </Card>
@@ -375,7 +375,7 @@ export default function ClientReportPage({ params }: { params: Promise<{ id: str
                 <Link
                   key={task.id}
                   href={`/tasks/${task.id}`}
-                  className="flex items-center gap-3 py-3 hover:bg-pw-surface-2/50 -mx-6 px-6 transition-colors"
+                  className="flex items-center gap-3 py-3 hover:bg-pw-surface-2/50 -mx-6 px-6 transition-colors duration-200 ease-out"
                 >
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-pw-text truncate">{task.title}</p>
@@ -387,7 +387,7 @@ export default function ClientReportPage({ params }: { params: Promise<{ id: str
                   <Badge className={`text-[10px] ${
                     task.status === 'done' ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' :
                     task.status === 'in_progress' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300' :
-                    'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
+                    'bg-gray-100 text-gray-700 dark:bg-pw-surface-2 dark:text-pw-text-muted'
                   }`}>
                     {STATUS_LABELS[task.status] || task.status}
                   </Badge>

@@ -140,10 +140,10 @@ export default function TemplatesPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-slide-up">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-pw-text flex items-center gap-2">
+          <h1 className="text-2xl font-bold text-pw-text font-[var(--font-syne)] flex items-center gap-2">
             <LayoutTemplate size={24} className="text-pw-accent" />
             Project Templates
           </h1>
@@ -164,7 +164,7 @@ export default function TemplatesPage() {
             <button
               key={tpl.id}
               onClick={() => setSelectedTemplate(tpl)}
-              className={`w-full text-left p-4 rounded-xl transition-colors border ${
+              className={`w-full text-left p-4 rounded-xl transition-colors duration-200 ease-out border ${
                 selectedTemplate?.id === tpl.id
                   ? 'bg-pw-accent/10 border-pw-accent/30'
                   : 'bg-pw-surface-2 border-transparent hover:bg-pw-surface-3'

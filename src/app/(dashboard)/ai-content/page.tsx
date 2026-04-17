@@ -262,19 +262,19 @@ export default function AiContentPage() {
   const CopyButton = ({ text, id }: { text: string; id: string }) => (
     <button
       onClick={() => copyToClipboard(text, id)}
-      className="p-1.5 rounded-lg hover:bg-pw-surface-3 transition-colors shrink-0"
+      className="p-1.5 rounded-lg hover:bg-pw-surface-3 transition-colors duration-200 ease-out shrink-0"
       title="Copia"
     >
       {copied === id ? (
         <Check size={14} className="text-green-500" />
       ) : (
-        <Copy size={14} className="text-gray-400" />
+        <Copy size={14} className="text-pw-text-dim" />
       )}
     </button>
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-slide-up">
       <div>
         <h1 className="text-2xl font-bold text-pw-text font-[var(--font-syne)]">
           AI Content Generator
@@ -294,7 +294,7 @@ export default function AiContentPage() {
             <div className="flex gap-1 bg-pw-surface-3 p-1 rounded-xl">
               <button
                 onClick={() => setInputMode('brief')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors duration-200 ease-out ${
                   inputMode === 'brief'
                     ? 'bg-pw-surface text-pw-text shadow-sm'
                     : 'text-pw-text-muted hover:text-pw-text'
@@ -305,7 +305,7 @@ export default function AiContentPage() {
               </button>
               <button
                 onClick={() => setInputMode('manual')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors duration-200 ease-out ${
                   inputMode === 'manual'
                     ? 'bg-pw-surface text-pw-text shadow-sm'
                     : 'text-pw-text-muted hover:text-pw-text'
@@ -454,7 +454,7 @@ export default function AiContentPage() {
                 <Card key={i}>
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between mb-3">
-                      <Badge className={STYLE_COLORS[post.style] || 'bg-gray-500/15 text-gray-400'}>
+                      <Badge className={STYLE_COLORS[post.style] || 'bg-pw-surface-2 text-pw-text-dim'}>
                         {STYLE_LABELS[post.style] || post.style}
                       </Badge>
                       <CopyButton text={post.caption} id={`ig-${i}`} />

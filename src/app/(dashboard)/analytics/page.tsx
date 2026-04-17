@@ -177,7 +177,7 @@ export default function AnalyticsPage() {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-slide-up">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -195,7 +195,7 @@ export default function AnalyticsPage() {
             <button
               key={p}
               onClick={() => setPeriod(p)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 ease-out ${
                 period === p
                   ? 'bg-pw-surface text-pw-text shadow-sm'
                   : 'text-pw-text-muted hover:text-pw-text'
@@ -214,17 +214,17 @@ export default function AnalyticsPage() {
       ) : (
         <>
           {/* Summary cards */}
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 stagger-children">
             {statCards.map((stat) => (
               <Card key={stat.label}>
                 <CardContent className="p-4">
                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 ${stat.color}`}>
                     <stat.icon size={20} />
                   </div>
-                  <p className="text-2xl font-bold text-pw-text">
+                  <p className="text-2xl font-bold text-pw-text font-[var(--font-bebas)]">
                     {stat.value}
                     {stat.suffix && (
-                      <span className="text-sm font-normal text-gray-400">{stat.suffix}</span>
+                      <span className="text-sm font-normal text-pw-text-dim">{stat.suffix}</span>
                     )}
                   </p>
                   <p className="text-xs text-pw-text-muted mt-0.5">
@@ -263,7 +263,7 @@ export default function AnalyticsPage() {
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
-                <div className="flex items-center justify-center h-48 text-sm text-gray-400">
+                <div className="flex items-center justify-center h-48 text-sm text-pw-text-dim">
                   Nessun dato disponibile per questo periodo
                 </div>
               )}
@@ -274,7 +274,7 @@ export default function AnalyticsPage() {
           <Card>
             <CardHeader>
               <div className="flex items-center gap-2">
-                <Users size={20} className="text-gray-400" />
+                <Users size={20} className="text-pw-text-dim" />
                 <h2 className="text-lg font-semibold text-pw-text">
                   Dettaglio Team
                 </h2>
@@ -282,7 +282,7 @@ export default function AnalyticsPage() {
             </CardHeader>
             <CardContent className="p-0">
               {teamEfficiency.length === 0 ? (
-                <div className="p-6 text-center text-sm text-gray-400">
+                <div className="p-6 text-center text-sm text-pw-text-dim">
                   Nessun dato disponibile
                 </div>
               ) : (
@@ -336,7 +336,7 @@ export default function AnalyticsPage() {
                             }`}>
                               {member.completion_rate}%
                             </p>
-                            <p className="text-[10px] text-gray-400">Completamento</p>
+                            <p className="text-[10px] text-pw-text-dim">Completamento</p>
                           </div>
                           <div className="text-center">
                             <p className={`text-lg font-bold ${
@@ -345,7 +345,7 @@ export default function AnalyticsPage() {
                             }`}>
                               {member.on_time_rate}%
                             </p>
-                            <p className="text-[10px] text-gray-400">Puntualità</p>
+                            <p className="text-[10px] text-pw-text-dim">Puntualità</p>
                           </div>
                         </div>
                       </div>
@@ -354,7 +354,7 @@ export default function AnalyticsPage() {
                       {member.tasks_assigned > 0 && (
                         <div className="ml-14 mt-2 h-1.5 bg-pw-surface-3 rounded-full overflow-hidden">
                           <div
-                            className={`h-full rounded-full transition-all ${
+                            className={`h-full rounded-full transition-all duration-200 ease-out ${
                               member.completion_rate >= 70 ? 'bg-green-500' :
                               member.completion_rate >= 40 ? 'bg-yellow-500' : 'bg-red-500'
                             }`}

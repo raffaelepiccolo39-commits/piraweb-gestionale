@@ -318,7 +318,7 @@ export default function DashboardPage() {
         <AlertTriangle size={48} className="text-red-400" />
         <h2 className="text-xl font-semibold text-pw-text">Errore nel caricamento</h2>
         <p className="text-pw-text-muted max-w-md text-sm">Non è stato possibile caricare i dati. Riprova.</p>
-        <button onClick={() => { setLoading(true); fetchDashboardData(); }} className="px-4 py-2 rounded-xl bg-pw-accent text-[#0A263A] text-sm font-medium hover:bg-pw-accent-hover transition-colors">Riprova</button>
+        <button onClick={() => { setLoading(true); fetchDashboardData(); }} className="px-4 py-2 rounded-xl bg-pw-accent text-[#0A263A] text-sm font-medium hover:bg-pw-accent-hover transition-colors duration-200 ease-out">Riprova</button>
       </div>
     );
   }
@@ -329,13 +329,13 @@ export default function DashboardPage() {
         <AlertTriangle size={48} className="text-yellow-500" />
         <h2 className="text-xl font-semibold text-pw-text">Profilo non trovato</h2>
         <p className="text-pw-text-muted max-w-md text-sm">Il tuo profilo non è stato ancora configurato.</p>
-        <button onClick={retryLoadProfile} className="px-4 py-2 rounded-xl bg-pw-accent text-[#0A263A] text-sm font-medium hover:bg-pw-accent-hover transition-colors">Riprova</button>
+        <button onClick={retryLoadProfile} className="px-4 py-2 rounded-xl bg-pw-accent text-[#0A263A] text-sm font-medium hover:bg-pw-accent-hover transition-colors duration-200 ease-out">Riprova</button>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-slide-up">
       {/* Row 1: Greeting + Attendance */}
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <Greeting
@@ -385,7 +385,7 @@ export default function DashboardPage() {
                     <Link
                       key={task.id}
                       href="/tasks"
-                      className="px-6 py-3 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 hover:bg-pw-surface-2 transition-colors group cursor-pointer"
+                      className="px-6 py-3 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 hover:bg-pw-surface-2 transition-colors duration-200 ease-out group cursor-pointer"
                     >
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
@@ -457,7 +457,7 @@ export default function DashboardPage() {
                     </div>
                     {member.total > 0 && (
                       <div className="ml-11 mt-1.5 h-1.5 bg-pw-surface-3 rounded-full overflow-hidden">
-                        <div className="h-full bg-green-500 rounded-full transition-all" style={{ width: `${(member.completed / member.total) * 100}%` }} />
+                        <div className="h-full bg-green-500 rounded-full transition-all duration-200 ease-out" style={{ width: `${(member.completed / member.total) * 100}%` }} />
                       </div>
                     )}
                   </div>

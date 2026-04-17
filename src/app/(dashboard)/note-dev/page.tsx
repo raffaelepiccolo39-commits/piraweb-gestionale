@@ -269,13 +269,13 @@ export default function NoteDevPage() {
         <AlertTriangle size={48} className="text-red-400" />
         <h2 className="text-xl font-semibold text-pw-text">Errore nel caricamento</h2>
         <p className="text-pw-text-muted max-w-md text-sm">Non è stato possibile caricare i dati. Riprova.</p>
-        <button onClick={() => { setLoading(true); setError(false); fetchNotes(); }} className="px-4 py-2 rounded-xl bg-pw-accent text-[#0A263A] text-sm font-medium hover:bg-pw-accent-hover transition-colors">Riprova</button>
+        <button onClick={() => { setLoading(true); setError(false); fetchNotes(); }} className="px-4 py-2 rounded-xl bg-pw-accent text-[#0A263A] text-sm font-medium hover:bg-pw-accent-hover transition-colors duration-200 ease-out">Riprova</button>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-slide-up">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -381,7 +381,7 @@ export default function NoteDevPage() {
                   {note.screenshot_url && (
                     <button
                       onClick={() => setShowScreenshot(note.screenshot_url)}
-                      className="mb-3 flex items-center gap-1.5 text-xs text-pw-accent hover:text-pw-accent-hover transition-colors"
+                      className="mb-3 flex items-center gap-1.5 text-xs text-pw-accent hover:text-pw-accent-hover transition-colors duration-200 ease-out"
                     >
                       <ImageIcon size={14} />
                       Visualizza screenshot
@@ -442,7 +442,7 @@ export default function NoteDevPage() {
                       {canEdit && (
                         <button
                           onClick={() => setEditingNote(note)}
-                          className="p-1.5 rounded-lg text-pw-text-muted hover:text-pw-text hover:bg-pw-surface-2 transition-colors"
+                          className="p-1.5 rounded-lg text-pw-text-muted hover:text-pw-text hover:bg-pw-surface-2 transition-colors duration-200 ease-out"
                           aria-label="Modifica nota"
                         >
                           <Pencil size={14} />
@@ -451,7 +451,7 @@ export default function NoteDevPage() {
                       {canDelete && (
                         <button
                           onClick={() => setDeletingNoteId(note.id)}
-                          className="p-1.5 rounded-lg text-pw-text-muted hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                          className="p-1.5 rounded-lg text-pw-text-muted hover:text-red-400 hover:bg-red-500/10 transition-colors duration-200 ease-out"
                           aria-label="Elimina nota"
                         >
                           <Trash2 size={14} />

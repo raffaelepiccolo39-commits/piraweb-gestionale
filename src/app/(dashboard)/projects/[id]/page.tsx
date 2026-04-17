@@ -173,7 +173,7 @@ export default function ProjectDetailPage({
   if (!project) {
     return (
       <div className="text-center py-12">
-        <p className="text-gray-500">Progetto non trovato</p>
+        <p className="text-pw-text-dim">Progetto non trovato</p>
         <Button variant="outline" className="mt-4" onClick={() => router.push('/projects')}>
           Torna ai progetti
         </Button>
@@ -182,7 +182,7 @@ export default function ProjectDetailPage({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-slide-up">
       <Breadcrumb items={[{ label: 'Progetti', href: '/projects' }, { label: project.name }]} />
 
       {/* Header */}
@@ -190,9 +190,9 @@ export default function ProjectDetailPage({
         <div className="flex items-center gap-4">
           <button
             onClick={() => router.push('/projects')}
-            className="p-2 rounded-lg hover:bg-pw-surface-2 transition-colors"
+            className="p-2 rounded-lg hover:bg-pw-surface-2 transition-colors duration-200 ease-out"
           >
-            <ArrowLeft size={20} className="text-gray-500" />
+            <ArrowLeft size={20} className="text-pw-text-dim" />
           </button>
           <div className="flex items-center gap-3">
             <div
@@ -242,14 +242,14 @@ export default function ProjectDetailPage({
       {/* Team members */}
       {project.members && project.members.length > 0 && (
         <div className="flex items-center gap-2">
-          <Users size={16} className="text-gray-400" />
+          <Users size={16} className="text-pw-text-dim" />
           <div className="flex -space-x-2">
             {project.members.map((member) => {
               const memberProfile = member.profile as { full_name: string; role: string } | undefined;
               return (
                 <div
                   key={member.id}
-                  className="w-8 h-8 rounded-full flex items-center justify-center border-2 border-white dark:border-gray-900"
+                  className="w-8 h-8 rounded-full flex items-center justify-center border-2 border-white dark:border-pw-surface"
                   style={{ backgroundColor: (member.profile as { color?: string })?.color || '#ff4d1c' }}
                   title={memberProfile?.full_name || 'Membro'}
                 >
@@ -277,7 +277,7 @@ export default function ProjectDetailPage({
           <div className="flex flex-wrap gap-2">
             <button
               onClick={() => setFilterMember('')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors duration-200 ease-out ${
                 !filterMember ? 'bg-pw-accent text-[#0A263A]' : 'bg-pw-surface-2 text-pw-text-muted hover:bg-pw-surface-3'
               }`}
             >
@@ -287,7 +287,7 @@ export default function ProjectDetailPage({
               <button
                 key={id}
                 onClick={() => setFilterMember(filterMember === id ? '' : id)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors duration-200 ease-out ${
                   filterMember === id ? 'bg-pw-accent text-[#0A263A]' : 'bg-pw-surface-2 text-pw-text-muted hover:bg-pw-surface-3'
                 }`}
               >

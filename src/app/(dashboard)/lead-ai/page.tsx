@@ -157,10 +157,10 @@ export default function LeadAIPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-slide-up">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-pw-text flex items-center gap-2">
+        <h1 className="text-2xl font-bold text-pw-text font-[var(--font-syne)] flex items-center gap-2">
           <Sparkles size={24} className="text-pw-accent" />
           Lead AI
         </h1>
@@ -231,35 +231,35 @@ export default function LeadAIPage() {
             <Card>
               <CardContent className="p-3 text-center">
                 <Users size={18} className="text-pw-accent mx-auto mb-1" />
-                <p className="text-2xl font-bold text-pw-text">{result.total}</p>
+                <p className="text-2xl font-bold text-pw-text font-[var(--font-bebas)]">{result.total}</p>
                 <p className="text-[10px] text-pw-text-muted">Attivita' trovate</p>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="p-3 text-center">
                 <Target size={18} className="text-red-400 mx-auto mb-1" />
-                <p className="text-2xl font-bold text-red-400">{result.highPriority}</p>
+                <p className="text-2xl font-bold text-red-400 font-[var(--font-bebas)]">{result.highPriority}</p>
                 <p className="text-[10px] text-pw-text-muted">Alta priorita'</p>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="p-3 text-center">
                 <AlertTriangle size={18} className="text-yellow-400 mx-auto mb-1" />
-                <p className="text-2xl font-bold text-yellow-400">{result.mediumPriority}</p>
+                <p className="text-2xl font-bold text-yellow-400 font-[var(--font-bebas)]">{result.mediumPriority}</p>
                 <p className="text-[10px] text-pw-text-muted">Media priorita'</p>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="p-3 text-center">
                 <Globe size={18} className="text-blue-400 mx-auto mb-1" />
-                <p className="text-2xl font-bold text-pw-text">{result.stats.noWebsite}</p>
+                <p className="text-2xl font-bold text-pw-text font-[var(--font-bebas)]">{result.stats.noWebsite}</p>
                 <p className="text-[10px] text-pw-text-muted">Senza sito</p>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="p-3 text-center">
                 <TrendingUp size={18} className="text-green-400 mx-auto mb-1" />
-                <p className="text-2xl font-bold text-green-400">{result.stats.noAds}</p>
+                <p className="text-2xl font-bold text-green-400 font-[var(--font-bebas)]">{result.stats.noAds}</p>
                 <p className="text-[10px] text-pw-text-muted">Senza ADV</p>
               </CardContent>
             </Card>
@@ -305,7 +305,7 @@ export default function LeadAIPage() {
                         <CardContent className="p-0">
                           <button
                             onClick={() => setExpandedLead(isOpen ? null : `${priority}-${i}`)}
-                            className="w-full text-left p-3 flex items-center gap-3 hover:bg-white/[0.02] transition-colors"
+                            className="w-full text-left p-3 flex items-center gap-3 hover:bg-white/[0.02] transition-colors duration-200 ease-out"
                           >
                             <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 border ${config.bg}`}>
                               <span className={`text-[10px] font-bold ${config.color}`}>{lead.score}</span>

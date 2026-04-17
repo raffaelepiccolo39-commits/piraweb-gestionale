@@ -321,7 +321,7 @@ export default function ChatPage() {
         <AlertTriangle size={48} className="text-red-400" />
         <h2 className="text-xl font-semibold text-pw-text">Errore nel caricamento</h2>
         <p className="text-pw-text-muted max-w-md text-sm">Non è stato possibile caricare i dati. Riprova.</p>
-        <button onClick={() => { setLoading(true); setError(false); fetchChannels(); }} className="px-4 py-2 rounded-xl bg-pw-accent text-[#0A263A] text-sm font-medium hover:bg-pw-accent-hover transition-colors">Riprova</button>
+        <button onClick={() => { setLoading(true); setError(false); fetchChannels(); }} className="px-4 py-2 rounded-xl bg-pw-accent text-[#0A263A] text-sm font-medium hover:bg-pw-accent-hover transition-colors duration-200 ease-out">Riprova</button>
       </div>
     );
   }
@@ -334,7 +334,7 @@ export default function ChatPage() {
     : 'Chat';
 
   return (
-    <div className="h-[calc(100vh-theme(spacing.14)-theme(spacing.8))] flex rounded-2xl border border-pw-border overflow-hidden bg-pw-surface">
+    <div className="h-[calc(100vh-theme(spacing.14)-theme(spacing.8))] flex rounded-2xl border border-pw-border overflow-hidden bg-pw-surface animate-slide-up">
       {/* Channel list — desktop always, mobile toggle */}
       <div className={`w-72 border-r border-pw-border bg-black shrink-0 ${
         showChannels ? 'block' : 'hidden lg:block'
@@ -416,7 +416,7 @@ export default function ChatPage() {
             ) : (
               <button
                 onClick={() => setShowSearch(true)}
-                className="p-2 rounded-lg text-pw-text-dim hover:text-pw-text hover:bg-pw-surface-2 transition-colors"
+                className="p-2 rounded-lg text-pw-text-dim hover:text-pw-text hover:bg-pw-surface-2 transition-colors duration-200 ease-out"
                 title="Cerca nei messaggi"
               >
                 <Search size={16} />
@@ -477,7 +477,7 @@ export default function ChatPage() {
                       key={member.id}
                       type="button"
                       onClick={() => toggleGroupMember(member.id)}
-                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all ${
+                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-200 ease-out ${
                         isSelected
                           ? 'bg-pw-accent/10 text-pw-accent'
                           : 'text-pw-text-muted hover:text-pw-text hover:bg-pw-surface-2'

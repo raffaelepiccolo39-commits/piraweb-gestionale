@@ -111,7 +111,7 @@ export function ClockButtons({ record, onAction, loading }: ClockButtonsProps) {
               <div className="flex items-center gap-4">
                 <div className="text-center">
                   <Clock size={14} className="text-green-500 mx-auto mb-0.5" />
-                  <p className="text-xs text-gray-400">Entrata</p>
+                  <p className="text-xs text-pw-text-dim">Entrata</p>
                   <p className="font-semibold text-pw-text">{formatTime(record.clock_in)}</p>
                 </div>
                 {record.lunch_start && (
@@ -119,7 +119,7 @@ export function ClockButtons({ record, onAction, loading }: ClockButtonsProps) {
                     <div className="w-8 h-px bg-pw-surface-3" />
                     <div className="text-center">
                       <Coffee size={14} className="text-amber-500 mx-auto mb-0.5" />
-                      <p className="text-xs text-gray-400">Pausa</p>
+                      <p className="text-xs text-pw-text-dim">Pausa</p>
                       <p className="font-semibold text-pw-text">{formatTime(record.lunch_start)}</p>
                     </div>
                   </>
@@ -129,7 +129,7 @@ export function ClockButtons({ record, onAction, loading }: ClockButtonsProps) {
                     <div className="w-8 h-px bg-pw-surface-3" />
                     <div className="text-center">
                       <UtensilsCrossed size={14} className="text-blue-500 mx-auto mb-0.5" />
-                      <p className="text-xs text-gray-400">Rientro</p>
+                      <p className="text-xs text-pw-text-dim">Rientro</p>
                       <p className="font-semibold text-pw-text">{formatTime(record.lunch_end)}</p>
                     </div>
                   </>
@@ -139,7 +139,7 @@ export function ClockButtons({ record, onAction, loading }: ClockButtonsProps) {
                     <div className="w-8 h-px bg-pw-surface-3" />
                     <div className="text-center">
                       <LogOut size={14} className="text-red-500 mx-auto mb-0.5" />
-                      <p className="text-xs text-gray-400">Uscita</p>
+                      <p className="text-xs text-pw-text-dim">Uscita</p>
                       <p className="font-semibold text-pw-text">{formatTime(record.clock_out)}</p>
                     </div>
                   </>
@@ -147,7 +147,7 @@ export function ClockButtons({ record, onAction, loading }: ClockButtonsProps) {
               </div>
               {record.total_hours > 0 && (
                 <div className="text-right">
-                  <p className="text-xs text-gray-400">Totale</p>
+                  <p className="text-xs text-pw-text-dim">Totale</p>
                   <p className="text-lg font-bold text-pw-accent">
                     {Math.floor(Number(record.total_hours))}h {Math.round((Number(record.total_hours) % 1) * 60).toString().padStart(2, '0')}m
                   </p>

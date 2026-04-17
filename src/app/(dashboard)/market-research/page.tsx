@@ -114,10 +114,10 @@ export default function MarketResearchPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-slide-up">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-pw-text flex items-center gap-2">
+        <h1 className="text-2xl font-bold text-pw-text font-[var(--font-syne)] flex items-center gap-2">
           <BarChart3 size={24} className="text-pw-accent" />
           Indagine di Mercato
         </h1>
@@ -163,35 +163,35 @@ export default function MarketResearchPage() {
             <Card>
               <CardContent className="p-4 text-center">
                 <Users size={18} className="text-pw-accent mx-auto mb-1" />
-                <p className="text-2xl font-bold text-pw-text">{data.stats.total}</p>
+                <p className="text-2xl font-bold text-pw-text font-[var(--font-bebas)]">{data.stats.total}</p>
                 <p className="text-[10px] text-pw-text-muted">Attivita' trovate</p>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="p-4 text-center">
                 <Globe size={18} className="text-blue-400 mx-auto mb-1" />
-                <p className="text-2xl font-bold text-pw-text">{data.stats.withWebsitePct}%</p>
+                <p className="text-2xl font-bold text-pw-text font-[var(--font-bebas)]">{data.stats.withWebsitePct}%</p>
                 <p className="text-[10px] text-pw-text-muted">Ha un sito web</p>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="p-4 text-center">
                 <Target size={18} className="text-purple-400 mx-auto mb-1" />
-                <p className="text-2xl font-bold text-pw-text">{data.stats.withSocialPct}%</p>
+                <p className="text-2xl font-bold text-pw-text font-[var(--font-bebas)]">{data.stats.withSocialPct}%</p>
                 <p className="text-[10px] text-pw-text-muted">Ha social media</p>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="p-4 text-center">
                 <TrendingUp size={18} className="text-orange-400 mx-auto mb-1" />
-                <p className="text-2xl font-bold text-pw-text">{data.stats.withAdsPct}%</p>
+                <p className="text-2xl font-bold text-pw-text font-[var(--font-bebas)]">{data.stats.withAdsPct}%</p>
                 <p className="text-[10px] text-pw-text-muted">Fa advertising</p>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="p-4 text-center">
                 <Star size={18} className="text-yellow-400 mx-auto mb-1" />
-                <p className="text-2xl font-bold text-pw-text">{data.stats.avgRating || '—'}</p>
+                <p className="text-2xl font-bold text-pw-text font-[var(--font-bebas)]">{data.stats.avgRating || '—'}</p>
                 <p className="text-[10px] text-pw-text-muted">Rating medio</p>
               </CardContent>
             </Card>

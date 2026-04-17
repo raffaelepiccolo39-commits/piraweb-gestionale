@@ -175,11 +175,11 @@ export default function MeetingsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-slide-up">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-pw-text flex items-center gap-2">
+          <h1 className="text-2xl font-bold text-pw-text font-[var(--font-syne)] flex items-center gap-2">
             <Video size={24} className="text-pw-accent" />
             Meeting
           </h1>
@@ -205,7 +205,7 @@ export default function MeetingsPage() {
                 <button
                   key={meeting.id}
                   onClick={() => setSelectedMeeting(meeting)}
-                  className={`w-full text-left p-3 rounded-xl mb-2 transition-colors ${
+                  className={`w-full text-left p-3 rounded-xl mb-2 transition-colors duration-200 ease-out ${
                     selectedMeeting?.id === meeting.id
                       ? 'bg-pw-accent/10 border border-pw-accent/30'
                       : 'bg-pw-surface-2 hover:bg-pw-surface-3 border border-transparent'
@@ -236,7 +236,7 @@ export default function MeetingsPage() {
               <button
                 key={meeting.id}
                 onClick={() => setSelectedMeeting(meeting)}
-                className={`w-full text-left p-3 rounded-xl mb-2 transition-colors opacity-70 ${
+                className={`w-full text-left p-3 rounded-xl mb-2 transition-colors duration-200 ease-out opacity-70 ${
                   selectedMeeting?.id === meeting.id
                     ? 'bg-pw-accent/10 border border-pw-accent/30 opacity-100'
                     : 'bg-pw-surface-2 hover:bg-pw-surface-3 border border-transparent'
@@ -444,7 +444,7 @@ export default function MeetingsPage() {
                         : [...f.attendees, m.id],
                     }));
                   }}
-                  className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all border ${
+                  className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ease-out border ${
                     form.attendees.includes(m.id)
                       ? 'border-pw-accent bg-pw-accent/10 text-pw-accent'
                       : 'border-pw-border bg-pw-surface-2 text-pw-text-muted hover:border-pw-accent/50'

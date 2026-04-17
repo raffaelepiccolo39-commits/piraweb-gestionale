@@ -216,7 +216,7 @@ export default function TaskDetailPage({
   const assignee = task.assignee as Profile | undefined;
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
+    <div className="max-w-5xl mx-auto space-y-6 animate-slide-up">
       {/* Breadcrumb */}
       <Breadcrumb
         items={[
@@ -262,7 +262,7 @@ export default function TaskDetailPage({
                         key={s}
                         onClick={() => handleStatusChange(s)}
                         disabled={task.status === s}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ease-out ${
                           task.status === s
                             ? 'bg-pw-accent text-white'
                             : 'bg-pw-surface-2 text-pw-text-muted hover:bg-pw-surface-3 hover:text-pw-text'
@@ -337,7 +337,7 @@ export default function TaskDetailPage({
                         {(comment.user_id === profile?.id || isAdmin) && (
                           <button
                             onClick={() => handleDeleteComment(comment.id)}
-                            className="text-pw-text-dim hover:text-red-400 transition-colors shrink-0"
+                            className="text-pw-text-dim hover:text-red-400 transition-colors duration-200 ease-out shrink-0"
                           >
                             <Trash2 size={12} />
                           </button>
@@ -572,7 +572,7 @@ export default function TaskDetailPage({
                 ) : (
                   <button
                     onClick={() => { setDriveUrl(''); setPendingDoneStatus(false); setShowDriveModal(true); }}
-                    className="flex items-center gap-1.5 text-sm text-pw-text-muted hover:text-pw-accent transition-colors"
+                    className="flex items-center gap-1.5 text-sm text-pw-text-muted hover:text-pw-accent transition-colors duration-200 ease-out"
                   >
                     <Link2 size={13} />
                     Aggiungi link Drive / Figma
@@ -599,7 +599,7 @@ export default function TaskDetailPage({
                       href={att.file_url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center gap-2 p-2 rounded-lg bg-pw-surface-2 hover:bg-pw-surface-3 transition-colors text-xs"
+                      className="flex items-center gap-2 p-2 rounded-lg bg-pw-surface-2 hover:bg-pw-surface-3 transition-colors duration-200 ease-out text-xs"
                     >
                       <Paperclip size={12} className="text-pw-text-dim shrink-0" />
                       <span className="text-pw-text truncate">{att.file_name}</span>

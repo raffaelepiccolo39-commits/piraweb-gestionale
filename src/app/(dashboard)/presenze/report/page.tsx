@@ -118,7 +118,7 @@ export default function ReportPresenzePage() {
   const avgHours = totalDays > 0 ? totalHours / totalDays : 0;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-slide-up">
       {/* Header */}
       <div className="flex items-center gap-4">
         <Button variant="ghost" onClick={() => router.push('/presenze')}>
@@ -139,7 +139,7 @@ export default function ReportPresenzePage() {
         <div className="flex gap-1 bg-pw-surface-3 p-1 rounded-xl overflow-x-auto no-scrollbar">
           <button
             onClick={() => setMode('weekly')}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 ease-out ${
               mode === 'weekly'
                 ? 'bg-pw-surface text-pw-text shadow-sm'
                 : 'text-pw-text-muted hover:text-pw-text'
@@ -149,7 +149,7 @@ export default function ReportPresenzePage() {
           </button>
           <button
             onClick={() => setMode('monthly')}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 ease-out ${
               mode === 'monthly'
                 ? 'bg-pw-surface text-pw-text shadow-sm'
                 : 'text-pw-text-muted hover:text-pw-text'
@@ -216,7 +216,7 @@ export default function ReportPresenzePage() {
 
       {/* Summary cards (monthly) */}
       {mode === 'monthly' && !loading && monthlyData.length > 0 && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 stagger-children">
           <Card>
             <CardContent className="p-4">
               <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-3 text-indigo-600 bg-indigo-500/15">

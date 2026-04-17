@@ -31,11 +31,11 @@ import {
 } from 'lucide-react';
 
 const STATUS_CONFIG: Record<InvoiceStatus, { label: string; color: string; icon: typeof Clock }> = {
-  draft: { label: 'Bozza', color: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300', icon: FileText },
+  draft: { label: 'Bozza', color: 'bg-gray-100 text-gray-700 dark:bg-pw-surface-2 dark:text-pw-text-muted', icon: FileText },
   sent: { label: 'Inviata', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300', icon: Send },
   paid: { label: 'Pagata', color: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300', icon: CheckCircle },
   overdue: { label: 'Scaduta', color: 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300', icon: Clock },
-  cancelled: { label: 'Annullata', color: 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-500', icon: XCircle },
+  cancelled: { label: 'Annullata', color: 'bg-gray-100 text-pw-text-dim dark:bg-pw-surface-2 dark:text-pw-text-dim', icon: XCircle },
 };
 
 const SDI_STATUS_CONFIG: Record<string, { label: string; color: string }> = {
@@ -210,10 +210,10 @@ export default function InvoicesPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-slide-up">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-pw-text flex items-center gap-2">
+          <h1 className="text-2xl font-bold text-pw-text font-[var(--font-syne)] flex items-center gap-2">
             <Receipt size={24} className="text-pw-accent" />
             Fatturazione
           </h1>
@@ -223,9 +223,9 @@ export default function InvoicesPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 stagger-children">
         <Card><CardContent className="p-3 text-center">
-          <p className="text-lg font-bold text-gray-400">{formatCurrency(totalDraft)}</p>
+          <p className="text-lg font-bold text-pw-text-dim">{formatCurrency(totalDraft)}</p>
           <p className="text-[10px] text-pw-text-muted">Bozze</p>
         </CardContent></Card>
         <Card><CardContent className="p-3 text-center">
@@ -252,7 +252,7 @@ export default function InvoicesPage() {
               <button
                 key={inv.id}
                 onClick={() => setSelectedInvoice(inv)}
-                className={`w-full text-left p-4 rounded-xl transition-colors border ${
+                className={`w-full text-left p-4 rounded-xl transition-colors duration-200 ease-out border ${
                   selectedInvoice?.id === inv.id ? 'bg-pw-accent/10 border-pw-accent/30' : 'bg-pw-surface-2 border-transparent hover:bg-pw-surface-3'
                 }`}
               >
@@ -338,7 +338,7 @@ export default function InvoicesPage() {
                     </thead>
                     <tbody>
                       {items.map((item) => (
-                        <tr key={item.id} className="border-b border-pw-border/50">
+                        <tr key={item.id} className="border-b border-pw-border/50 hover:bg-pw-surface-2/40 transition-colors duration-150">
                           <td className="py-2 text-pw-text">{item.description}</td>
                           <td className="py-2 text-right text-pw-text-muted">{item.quantity}</td>
                           <td className="py-2 text-right text-pw-text-muted">{formatCurrency(item.unit_price)}</td>

@@ -48,11 +48,11 @@ const PLATFORM_COLORS: Record<string, string> = {
   youtube: 'text-red-500',
   twitter: 'text-sky-400',
   pinterest: 'text-red-600',
-  other: 'text-gray-400',
+  other: 'text-pw-text-dim',
 };
 
 const STATUS_COLORS: Record<SocialPostStatus, string> = {
-  idea: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
+  idea: 'bg-gray-100 text-gray-700 dark:bg-pw-surface-2 dark:text-pw-text-muted',
   draft: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300',
   ready: 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300',
   scheduled: 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300',
@@ -226,11 +226,11 @@ export default function SocialCalendarPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-slide-up">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-pw-text flex items-center gap-2">
+          <h1 className="text-2xl font-bold text-pw-text font-[var(--font-syne)] flex items-center gap-2">
             <Calendar size={24} className="text-pw-accent" />
             Piano Editoriale
           </h1>
@@ -285,11 +285,11 @@ export default function SocialCalendarPage() {
 
       {/* Calendar navigation */}
       <div className="flex items-center justify-between">
-        <button onClick={prevMonth} className="p-2 rounded-lg hover:bg-pw-surface-2 text-pw-text-muted hover:text-pw-text transition-colors">
+        <button onClick={prevMonth} className="p-2 rounded-lg hover:bg-pw-surface-2 text-pw-text-muted hover:text-pw-text transition-colors duration-200 ease-out">
           <ChevronLeft size={20} />
         </button>
         <h2 className="text-lg font-semibold text-pw-text capitalize">{monthName}</h2>
-        <button onClick={nextMonth} className="p-2 rounded-lg hover:bg-pw-surface-2 text-pw-text-muted hover:text-pw-text transition-colors">
+        <button onClick={nextMonth} className="p-2 rounded-lg hover:bg-pw-surface-2 text-pw-text-muted hover:text-pw-text transition-colors duration-200 ease-out">
           <ChevronRight size={20} />
         </button>
       </div>
@@ -321,7 +321,7 @@ export default function SocialCalendarPage() {
             return (
               <div
                 key={day}
-                className={`min-h-[120px] border-b border-r border-pw-border p-1.5 cursor-pointer hover:bg-pw-surface-2/50 transition-colors ${
+                className={`min-h-[120px] border-b border-r border-pw-border p-1.5 cursor-pointer hover:bg-pw-surface-2/50 transition-colors duration-200 ease-out ${
                   isToday(day) ? 'bg-pw-accent/5' : ''
                 }`}
                 onClick={() => {
@@ -366,7 +366,7 @@ export default function SocialCalendarPage() {
       </div>
 
       {/* Posts summary below calendar */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 stagger-children">
         {posts.filter((p) => p.status !== 'published').slice(0, 6).map((post) => {
           const client = post.client as Client | undefined;
           return (
@@ -445,7 +445,7 @@ export default function SocialCalendarPage() {
                         : [...f.platforms, p.value],
                     }));
                   }}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all border ${
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ease-out border ${
                     form.platforms.includes(p.value)
                       ? 'border-pw-accent bg-pw-accent/10 text-pw-accent'
                       : 'border-pw-border bg-pw-surface-2 text-pw-text-muted hover:border-pw-accent/50'
@@ -522,14 +522,14 @@ export default function SocialCalendarPage() {
                 <button
                   type="button"
                   onClick={() => setPublishPlatform('facebook')}
-                  className={`px-4 py-2 rounded-xl text-xs font-medium border transition-all ${publishPlatform === 'facebook' ? 'border-blue-500 bg-blue-500/10 text-blue-400' : 'border-pw-border text-pw-text-muted'}`}
+                  className={`px-4 py-2 rounded-xl text-xs font-medium border transition-all duration-200 ease-out ${publishPlatform === 'facebook' ? 'border-blue-500 bg-blue-500/10 text-blue-400' : 'border-pw-border text-pw-text-muted'}`}
                 >
                   Facebook
                 </button>
                 <button
                   type="button"
                   onClick={() => setPublishPlatform('instagram')}
-                  className={`px-4 py-2 rounded-xl text-xs font-medium border transition-all ${publishPlatform === 'instagram' ? 'border-pink-500 bg-pink-500/10 text-pink-400' : 'border-pw-border text-pw-text-muted'}`}
+                  className={`px-4 py-2 rounded-xl text-xs font-medium border transition-all duration-200 ease-out ${publishPlatform === 'instagram' ? 'border-pink-500 bg-pink-500/10 text-pink-400' : 'border-pw-border text-pw-text-muted'}`}
                 >
                   Instagram
                 </button>

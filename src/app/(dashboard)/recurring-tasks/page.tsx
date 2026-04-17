@@ -118,10 +118,10 @@ export default function RecurringTasksPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-slide-up">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-pw-text flex items-center gap-2">
+          <h1 className="text-2xl font-bold text-pw-text font-[var(--font-syne)] flex items-center gap-2">
             <RefreshCw size={24} className="text-pw-accent" />
             Task Ricorrenti
           </h1>
@@ -135,7 +135,7 @@ export default function RecurringTasksPage() {
         )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 stagger-children">
         {tasks.map((task) => {
           const project = task.project as Project | undefined;
           const assignee = task.assignee as Profile | undefined;
@@ -169,7 +169,7 @@ export default function RecurringTasksPage() {
                   {task.is_active ? (
                     <Badge className="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">Attiva</Badge>
                   ) : (
-                    <Badge className="bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300">In pausa</Badge>
+                    <Badge className="bg-gray-100 text-gray-700 dark:bg-pw-surface-2 dark:text-pw-text-muted">In pausa</Badge>
                   )}
                 </div>
                 <div className="flex items-center gap-4 mt-3 text-[10px] text-pw-text-dim">
