@@ -431,7 +431,7 @@ export default function DashboardPage() {
 
       {/* Row 6: Admin section */}
       {isAdmin && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 stagger-children">
           {/* Team Workload */}
           <Card>
             <CardHeader>
@@ -457,7 +457,7 @@ export default function DashboardPage() {
                     </div>
                     {member.total > 0 && (
                       <div className="ml-11 mt-1.5 h-1.5 bg-pw-surface-3 rounded-full overflow-hidden">
-                        <div className="h-full bg-green-500 rounded-full transition-all duration-200 ease-out" style={{ width: `${(member.completed / member.total) * 100}%` }} />
+                        <div className="h-full bg-green-500 rounded-full transition-all duration-200 ease-out progress-animated" style={{ width: `${(member.completed / member.total) * 100}%` }} />
                       </div>
                     )}
                   </div>

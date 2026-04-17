@@ -317,7 +317,7 @@ export default function CRMPage() {
                         </div>
                         {/* Probability bar */}
                         <div className="mt-2 h-1 bg-pw-surface rounded-full overflow-hidden">
-                          <div className={`h-full rounded-full ${stage.bgColor}`} style={{ width: `${deal.probability}%` }} />
+                          <div className={`h-full rounded-full progress-animated ${stage.bgColor}`} style={{ width: `${deal.probability}%` }} />
                         </div>
                       </div>
                     );
@@ -346,7 +346,7 @@ export default function CRMPage() {
                 {deals.map((deal) => {
                   const stage = STAGES.find((s) => s.id === deal.stage)!;
                   return (
-                    <tr key={deal.id} onClick={() => setSelectedDeal(deal)} className="border-b border-pw-border/50 hover:bg-pw-surface-2/40 transition-colors duration-150 cursor-pointer">
+                    <tr key={deal.id} onClick={() => setSelectedDeal(deal)} className="border-b border-pw-border/50 row-hover cursor-pointer">
                       <td className="px-4 py-3">
                         <p className="font-medium text-pw-text">{deal.title}</p>
                         {deal.contact_name && <p className="text-[10px] text-pw-text-dim">{deal.contact_name}</p>}

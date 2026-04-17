@@ -73,7 +73,7 @@ export function CalendarMonthView({ currentMonth, events, selectedDate, onSelect
                 {dayEvents.slice(0, 3).map((event) => (
                   <div
                     key={event.id}
-                    className="text-[10px] leading-tight px-1 py-0.5 rounded truncate"
+                    className="text-[10px] leading-tight px-1 py-0.5 rounded truncate hover-glow"
                     style={{ backgroundColor: `${event.color || '#FFD108'}20`, color: event.color || '#FFD108' }}
                   >
                     {event.title}

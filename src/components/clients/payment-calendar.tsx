@@ -73,7 +73,7 @@ export function PaymentCalendar({ payments, onTogglePaid, clientPhone, clientNam
             <button
               key={payment.id}
               onClick={() => setConfirmPayment(payment)}
-              className={`p-4 rounded-xl border-2 text-left transition-all hover:shadow-md ${
+              className={`p-4 rounded-xl border-2 text-left transition-all hover:shadow-md hover-glow ${
                 payment.is_paid
                   ? 'border-green-500/30 bg-green-500/10'
                   : alert === 'danger'

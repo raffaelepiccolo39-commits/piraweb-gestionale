@@ -22,7 +22,7 @@ export function FinancialSummary({ summary }: FinancialSummaryProps) {
             <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-3 text-indigo-600 bg-indigo-500/15">
               <Euro size={20} />
             </div>
-            <p className="text-xl font-bold text-pw-text">
+            <p className="text-xl font-bold text-pw-text animate-count">
               {formatCurrency(summary.total_value)}
             </p>
             <p className="text-xs text-pw-text-muted mt-0.5">Valore Contratto</p>
@@ -34,7 +34,7 @@ export function FinancialSummary({ summary }: FinancialSummaryProps) {
             <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-3 text-green-600 bg-green-500/15">
               <CheckCircle2 size={20} />
             </div>
-            <p className="text-xl font-bold text-green-400">
+            <p className="text-xl font-bold text-green-400 animate-count">
               {formatCurrency(summary.total_paid)}
             </p>
             <p className="text-xs text-pw-text-muted mt-0.5">Totale Incassato</p>
@@ -46,7 +46,7 @@ export function FinancialSummary({ summary }: FinancialSummaryProps) {
             <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-3 text-amber-600 bg-amber-500/15">
               <AlertTriangle size={20} />
             </div>
-            <p className="text-xl font-bold text-amber-400">
+            <p className="text-xl font-bold text-amber-400 animate-count">
               {formatCurrency(summary.remaining)}
             </p>
             <p className="text-xs text-pw-text-muted mt-0.5">Rimanente</p>
@@ -80,7 +80,7 @@ export function FinancialSummary({ summary }: FinancialSummaryProps) {
         </div>
         <div className="h-3 bg-pw-surface-3 rounded-full overflow-hidden">
           <div
-            className={`h-full rounded-full transition-all duration-500 ${
+            className={`h-full rounded-full transition-all duration-500 progress-animated ${
               progressPercent >= 75 ? 'bg-green-500' :
               progressPercent >= 50 ? 'bg-blue-500' :
               progressPercent >= 25 ? 'bg-amber-500' : 'bg-red-500'

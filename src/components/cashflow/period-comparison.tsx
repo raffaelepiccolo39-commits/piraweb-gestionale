@@ -73,7 +73,7 @@ export function PeriodComparison({
             return (
               <div key={m.label} className="p-3 rounded-xl bg-pw-surface-2">
                 <p className="text-[10px] text-pw-text-dim uppercase tracking-wider">{m.label}</p>
-                <p className="text-lg font-bold text-pw-text mt-1">{m.format(m.current)}</p>
+                <p className="text-lg font-bold text-pw-text mt-1 animate-count">{m.format(m.current)}</p>
                 <div className="flex items-center gap-1 mt-1">
                   <Icon size={14} className={colorClass} />
                   <span className={`text-xs font-medium ${colorClass}`}>

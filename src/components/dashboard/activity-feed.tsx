@@ -43,7 +43,7 @@ export const ActivityFeed = memo(function ActivityFeed({ activities }: ActivityF
         </div>
       </CardHeader>
       <CardContent className="p-0">
-        <div className="divide-y divide-pw-border">
+        <div className="divide-y divide-pw-border animate-slide-up">
           {activities.map((item) => (
             <div key={item.id} className="px-6 py-3 flex items-center gap-3">
               <div className="w-7 h-7 rounded-full bg-pw-surface-3 flex items-center justify-center shrink-0">

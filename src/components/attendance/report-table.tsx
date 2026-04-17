@@ -56,7 +56,7 @@ export function ReportTable({ mode, weeklyData, monthlyData }: ReportTableProps)
                 {Array.from(userMap.entries()).map(([userId, user]) => {
                   let weekTotal = 0;
                   return (
-                    <tr key={userId} className="hover:bg-pw-surface-2/40 transition-colors duration-150">
+                    <tr key={userId} className="row-hover">
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
                           <div className="w-7 h-7 rounded-full bg-pw-accent flex items-center justify-center shrink-0">
@@ -133,7 +133,7 @@ export function ReportTable({ mode, weeklyData, monthlyData }: ReportTableProps)
                 const earlyCount = Number(row.early_departures) || 0;
 
                 return (
-                  <tr key={row.user_id} className="hover:bg-pw-surface-2/40 transition-colors duration-150">
+                  <tr key={row.user_id} className="row-hover">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         <div className="w-7 h-7 rounded-full bg-pw-accent flex items-center justify-center shrink-0">
@@ -159,7 +159,7 @@ export function ReportTable({ mode, weeklyData, monthlyData }: ReportTableProps)
                       </span>
                       <div className="mt-1 mx-auto w-16 h-1.5 bg-pw-surface-3 rounded-full overflow-hidden">
                         <div
-                          className={`h-full rounded-full ${
+                          className={`h-full rounded-full progress-animated ${
                             avgHours >= 8 ? 'bg-green-500' : avgHours >= 6 ? 'bg-yellow-500' : 'bg-red-500'
                           }`}
                           style={{ width: `${Math.min((avgHours / 8) * 100, 100)}%` }}

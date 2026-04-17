@@ -175,7 +175,7 @@ export default function CapacityPage() {
                     </div>
                     {/* Utilization bar */}
                     <div className="h-2.5 bg-pw-surface-2 rounded-full overflow-hidden mb-1.5">
-                      <div className={`h-full rounded-full transition-all duration-200 ease-out ${barColor}`} style={{ width: `${Math.min(m.utilizationPct, 100)}%` }} />
+                      <div className={`h-full rounded-full transition-all duration-200 ease-out progress-animated ${barColor}`} style={{ width: `${Math.min(m.utilizationPct, 100)}%` }} />
                     </div>
                     <div className="flex items-center gap-4 text-[10px] text-pw-text-dim">
                       <span><strong className="text-pw-text">{m.utilizationPct}%</strong> utilizzo</span>

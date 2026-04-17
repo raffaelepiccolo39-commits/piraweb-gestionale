@@ -338,7 +338,7 @@ export default function InvoicesPage() {
                     </thead>
                     <tbody>
                       {items.map((item) => (
-                        <tr key={item.id} className="border-b border-pw-border/50 hover:bg-pw-surface-2/40 transition-colors duration-150">
+                        <tr key={item.id} className="border-b border-pw-border/50 row-hover">
                           <td className="py-2 text-pw-text">{item.description}</td>
                           <td className="py-2 text-right text-pw-text-muted">{item.quantity}</td>
                           <td className="py-2 text-right text-pw-text-muted">{formatCurrency(item.unit_price)}</td>

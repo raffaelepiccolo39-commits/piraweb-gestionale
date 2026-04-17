@@ -78,7 +78,7 @@ export function HealthIndicators({ operatingMarginPct, collectionRate, topClient
                 {ind.status}
               </span>
             </div>
-            <p className={`text-2xl font-bold ${ind.color.split(' ')[0]}`}>{ind.value}</p>
+            <p className={`text-2xl font-bold animate-count ${ind.color.split(' ')[0]}`}>{ind.value}</p>
             <p className="text-xs text-pw-text-muted mt-0.5">
               {ind.label}
               {ind.description && <span className="text-pw-text-dim"> · {ind.description}</span>}

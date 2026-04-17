@@ -178,25 +178,25 @@ export default function FreelancersPage() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 stagger-children">
         <Card>
           <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-pw-text font-[var(--font-bebas)]">{activeFreelancers.length}</p>
+            <p className="text-2xl font-bold text-pw-text font-[var(--font-bebas)] animate-count">{activeFreelancers.length}</p>
             <p className="text-xs text-pw-text-muted">Freelancer attivi</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-pw-text font-[var(--font-bebas)]">{activeAssignments.length}</p>
+            <p className="text-2xl font-bold text-pw-text font-[var(--font-bebas)] animate-count">{activeAssignments.length}</p>
             <p className="text-xs text-pw-text-muted">Task assegnate</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-pw-text font-[var(--font-bebas)]">{formatCurrency(totalCost)}</p>
+            <p className="text-2xl font-bold text-pw-text font-[var(--font-bebas)] animate-count">{formatCurrency(totalCost)}</p>
             <p className="text-xs text-pw-text-muted">Costo totale</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-pw-text font-[var(--font-bebas)]">
+            <p className="text-2xl font-bold text-pw-text font-[var(--font-bebas)] animate-count">
               {new Set(freelancers.map((f) => f.specialty)).size}
             </p>
             <p className="text-xs text-pw-text-muted">Specialita'</p>

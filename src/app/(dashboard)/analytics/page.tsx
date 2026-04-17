@@ -221,7 +221,7 @@ export default function AnalyticsPage() {
                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 ${stat.color}`}>
                     <stat.icon size={20} />
                   </div>
-                  <p className="text-2xl font-bold text-pw-text font-[var(--font-bebas)]">
+                  <p className="text-2xl font-bold text-pw-text font-[var(--font-bebas)] animate-count">
                     {stat.value}
                     {stat.suffix && (
                       <span className="text-sm font-normal text-pw-text-dim">{stat.suffix}</span>
@@ -354,7 +354,7 @@ export default function AnalyticsPage() {
                       {member.tasks_assigned > 0 && (
                         <div className="ml-14 mt-2 h-1.5 bg-pw-surface-3 rounded-full overflow-hidden">
                           <div
-                            className={`h-full rounded-full transition-all duration-200 ease-out ${
+                            className={`h-full rounded-full transition-all duration-200 ease-out progress-animated ${
                               member.completion_rate >= 70 ? 'bg-green-500' :
                               member.completion_rate >= 40 ? 'bg-yellow-500' : 'bg-red-500'
                             }`}

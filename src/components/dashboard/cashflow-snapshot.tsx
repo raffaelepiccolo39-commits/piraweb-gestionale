@@ -25,16 +25,16 @@ export const CashflowSnapshot = memo(function CashflowSnapshot({ expected, recei
         <div className="grid grid-cols-2 gap-3">
           <div>
             <p className="text-[10px] text-pw-text-dim uppercase tracking-wider">Incassato</p>
-            <p className="text-lg font-bold text-green-400">{formatCurrency(received)}</p>
+            <p className="text-lg font-bold text-green-400 animate-count">{formatCurrency(received)}</p>
           </div>
           <div>
             <p className="text-[10px] text-pw-text-dim uppercase tracking-wider">Da incassare</p>
-            <p className="text-lg font-bold text-yellow-400">{formatCurrency(pending)}</p>
+            <p className="text-lg font-bold text-yellow-400 animate-count">{formatCurrency(pending)}</p>
           </div>
         </div>
         <div className="mt-3 h-2 bg-pw-surface-3 rounded-full overflow-hidden">
           <div
-            className="h-full bg-green-500 rounded-full transition-all duration-500"
+            className="h-full bg-green-500 rounded-full transition-all duration-500 progress-animated"
             style={{ width: `${pct}%` }}
           />
         </div>

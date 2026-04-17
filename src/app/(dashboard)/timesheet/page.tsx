@@ -198,25 +198,25 @@ export default function TimesheetPage() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 stagger-children">
           <Card>
             <CardContent className="p-4 text-center">
-              <p className="text-2xl font-bold text-pw-text font-[var(--font-bebas)]">{teamTotalHours.toFixed(1)}h</p>
+              <p className="text-2xl font-bold text-pw-text font-[var(--font-bebas)] animate-count">{teamTotalHours.toFixed(1)}h</p>
               <p className="text-xs text-pw-text-muted">Ore totali team</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4 text-center">
-              <p className="text-2xl font-bold text-pw-text font-[var(--font-bebas)]">{avgHoursPerMember.toFixed(1)}h</p>
+              <p className="text-2xl font-bold text-pw-text font-[var(--font-bebas)] animate-count">{avgHoursPerMember.toFixed(1)}h</p>
               <p className="text-xs text-pw-text-muted">Media per membro</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4 text-center">
-              <p className="text-2xl font-bold text-pw-text font-[var(--font-bebas)]">{members.filter((m) => m.totalHours > 0).length}</p>
+              <p className="text-2xl font-bold text-pw-text font-[var(--font-bebas)] animate-count">{members.filter((m) => m.totalHours > 0).length}</p>
               <p className="text-xs text-pw-text-muted">Membri attivi</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4 text-center">
-              <p className="text-2xl font-bold text-pw-text font-[var(--font-bebas)]">
+              <p className="text-2xl font-bold text-pw-text font-[var(--font-bebas)] animate-count">
                 {members.reduce((sum, m) => sum + m.taskCount, 0)}
               </p>
               <p className="text-xs text-pw-text-muted">Task lavorate</p>
@@ -260,7 +260,7 @@ export default function TimesheetPage() {
                 </thead>
                 <tbody>
                   {filteredMembers.map((member) => (
-                    <tr key={member.profile.id} className="border-b border-pw-border/50 hover:bg-pw-surface-2/30">
+                    <tr key={member.profile.id} className="border-b border-pw-border/50 row-hover">
                       <td className="px-4 py-3 sticky left-0 bg-pw-surface z-10">
                         <div className="flex items-center gap-2">
                           <div

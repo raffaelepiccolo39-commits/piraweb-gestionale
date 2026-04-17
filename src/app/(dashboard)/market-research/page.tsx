@@ -300,7 +300,7 @@ export default function MarketResearchPage() {
                   </thead>
                   <tbody>
                     {data.businesses.map((biz, i) => (
-                      <tr key={i} className="border-b border-pw-border/30 hover:bg-pw-surface-2/30">
+                      <tr key={i} className="border-b border-pw-border/30 row-hover">
                         <td className="px-4 py-2">
                           <p className="font-medium text-pw-text">{biz.name}</p>
                           <div className="flex gap-2 mt-0.5">

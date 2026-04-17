@@ -193,21 +193,21 @@ export default function DirectionPage() {
         <Card className="border-l-4 border-l-green-500">
           <CardContent className="p-4">
             <p className="text-[10px] text-pw-text-dim uppercase tracking-widest">MRR</p>
-            <p className="text-2xl font-bold text-pw-text font-[var(--font-bebas)] mt-1">{formatCurrency(data.mrr)}</p>
+            <p className="text-2xl font-bold text-pw-text font-[var(--font-bebas)] mt-1 animate-count">{formatCurrency(data.mrr)}</p>
             <p className="text-[10px] text-pw-text-dim mt-1">{data.totalClients} clienti attivi</p>
           </CardContent>
         </Card>
         <Card className="border-l-4 border-l-blue-500">
           <CardContent className="p-4">
             <p className="text-[10px] text-pw-text-dim uppercase tracking-widest">Pipeline</p>
-            <p className="text-2xl font-bold text-pw-text font-[var(--font-bebas)] mt-1">{formatCurrency(data.pipelineValue)}</p>
+            <p className="text-2xl font-bold text-pw-text font-[var(--font-bebas)] mt-1 animate-count">{formatCurrency(data.pipelineValue)}</p>
             <p className="text-[10px] text-pw-text-dim mt-1">{data.activeDeals} deal attivi</p>
           </CardContent>
         </Card>
         <Card className="border-l-4 border-l-purple-500">
           <CardContent className="p-4">
             <p className="text-[10px] text-pw-text-dim uppercase tracking-widest">Utilizzo team</p>
-            <p className={`text-2xl font-bold font-[var(--font-bebas)] mt-1 ${data.avgUtilization >= 70 ? 'text-green-400' : data.avgUtilization >= 50 ? 'text-yellow-400' : 'text-red-400'}`}>
+            <p className={`text-2xl font-bold font-[var(--font-bebas)] mt-1 animate-count ${data.avgUtilization >= 70 ? 'text-green-400' : data.avgUtilization >= 50 ? 'text-yellow-400' : 'text-red-400'}`}>
               {data.avgUtilization}%
             </p>
             <p className="text-[10px] text-pw-text-dim mt-1">{data.totalHoursThisMonth.toFixed(0)}h questo mese</p>
@@ -216,7 +216,7 @@ export default function DirectionPage() {
         <Card className={`border-l-4 ${data.atRiskCount > 0 ? 'border-l-red-500' : 'border-l-green-500'}`}>
           <CardContent className="p-4">
             <p className="text-[10px] text-pw-text-dim uppercase tracking-widest">Clienti a rischio</p>
-            <p className={`text-2xl font-bold font-[var(--font-bebas)] mt-1 ${data.atRiskCount > 0 ? 'text-red-400' : 'text-green-400'}`}>
+            <p className={`text-2xl font-bold font-[var(--font-bebas)] mt-1 animate-count ${data.atRiskCount > 0 ? 'text-red-400' : 'text-green-400'}`}>
               {data.atRiskCount}
             </p>
             <p className="text-[10px] text-pw-text-dim mt-1">su {data.totalClients} totali</p>
@@ -254,7 +254,7 @@ export default function DirectionPage() {
           <CardHeader><h2 className="text-sm font-semibold text-pw-text flex items-center gap-2"><Target size={14} className="text-pw-accent" />Pipeline</h2></CardHeader>
           <CardContent className="space-y-3">
             <div className="text-center py-2">
-              <p className="text-3xl font-bold text-green-400 font-[var(--font-bebas)]">{data.wonThisMonth}</p>
+              <p className="text-3xl font-bold text-green-400 font-[var(--font-bebas)] animate-count">{data.wonThisMonth}</p>
               <p className="text-xs text-pw-text-muted">Deal vinti questo mese</p>
               <p className="text-sm font-medium text-pw-text mt-1">{formatCurrency(data.wonValueThisMonth)}</p>
             </div>
@@ -289,7 +289,7 @@ export default function DirectionPage() {
                 <span className="text-sm text-pw-text flex-1 truncate">{c.client_name}</span>
                 <div className="flex items-center gap-2">
                   <div className="w-16 h-1.5 bg-pw-surface-2 rounded-full overflow-hidden">
-                    <div className={`h-full rounded-full ${
+                    <div className={`h-full rounded-full progress-animated ${
                       c.health.health_score >= 80 ? 'bg-green-500' :
                       c.health.health_score >= 60 ? 'bg-yellow-500' :
                       c.health.health_score >= 40 ? 'bg-orange-500' : 'bg-red-500'

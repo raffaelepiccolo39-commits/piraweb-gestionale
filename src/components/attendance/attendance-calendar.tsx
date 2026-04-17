@@ -100,7 +100,7 @@ export function AttendanceCalendar({ data, month, year }: AttendanceCalendarProp
                 let daysPresent = 0;
 
                 return (
-                  <tr key={userId} className="hover:bg-pw-surface-2/40 transition-colors duration-150">
+                  <tr key={userId} className="row-hover">
                     <td className="px-3 py-2 sticky left-0 bg-pw-surface z-10">
                       <div className="flex items-center gap-1.5">
                         <div className="w-6 h-6 rounded-full bg-pw-accent flex items-center justify-center shrink-0">

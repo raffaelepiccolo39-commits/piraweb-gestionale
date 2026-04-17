@@ -454,21 +454,21 @@ export default function CFOPage() {
         <Card>
           <CardContent className="p-4">
             <p className="text-[10px] uppercase tracking-widest text-pw-text-dim">MRR (Ricavo Mensile)</p>
-            <p className="text-2xl font-bold text-green-400 font-[var(--font-bebas)] mt-1">{formatCurrency(summary.mrr)}</p>
+            <p className="text-2xl font-bold text-green-400 font-[var(--font-bebas)] mt-1 animate-count">{formatCurrency(summary.mrr)}</p>
             <p className="text-xs text-pw-text-dim mt-1">{summary.activeContracts} contratti attivi</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
             <p className="text-[10px] uppercase tracking-widest text-pw-text-dim">Costi Mensili Totali</p>
-            <p className="text-2xl font-bold text-red-400 font-[var(--font-bebas)] mt-1">{formatCurrency(totalMonthlyCosts)}</p>
+            <p className="text-2xl font-bold text-red-400 font-[var(--font-bebas)] mt-1 animate-count">{formatCurrency(totalMonthlyCosts)}</p>
             <p className="text-xs text-pw-text-dim mt-1">Personale + Operativi</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
             <p className="text-[10px] uppercase tracking-widest text-pw-text-dim">Utile Netto Mensile</p>
-            <p className={`text-2xl font-bold font-[var(--font-bebas)] mt-1 ${monthlyNetProfit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+            <p className={`text-2xl font-bold font-[var(--font-bebas)] mt-1 animate-count ${monthlyNetProfit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
               {formatCurrency(monthlyNetProfit)}
             </p>
             <p className="text-xs text-pw-text-dim mt-1">Margine: {monthlyMarginPct.toFixed(1)}%</p>
@@ -477,7 +477,7 @@ export default function CFOPage() {
         <Card>
           <CardContent className="p-4">
             <p className="text-[10px] uppercase tracking-widest text-pw-text-dim">Incassato vs Atteso</p>
-            <p className="text-2xl font-bold text-pw-accent font-[var(--font-bebas)] mt-1">{formatCurrency(summary.totalReceived)}</p>
+            <p className="text-2xl font-bold text-pw-accent font-[var(--font-bebas)] mt-1 animate-count">{formatCurrency(summary.totalReceived)}</p>
             <p className="text-xs text-pw-text-dim mt-1">
               da incassare: {formatCurrency(summary.totalPending)}
             </p>
@@ -571,23 +571,23 @@ export default function CFOPage() {
       </Card>
 
       {/* ═══ SEZIONE 3: PROIEZIONE ANNUALE ═══ */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 stagger-children">
         <Card>
           <CardContent className="p-4 text-center">
             <p className="text-[10px] uppercase tracking-widest text-pw-text-dim">Fatturato Annuo Stimato</p>
-            <p className="text-2xl font-bold text-green-400 font-[var(--font-bebas)] mt-2">{formatCurrency(annualRevenue)}</p>
+            <p className="text-2xl font-bold text-green-400 font-[var(--font-bebas)] mt-2 animate-count">{formatCurrency(annualRevenue)}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4 text-center">
             <p className="text-[10px] uppercase tracking-widest text-pw-text-dim">Costi Annui Stimati</p>
-            <p className="text-2xl font-bold text-red-400 font-[var(--font-bebas)] mt-2">{formatCurrency(annualCosts)}</p>
+            <p className="text-2xl font-bold text-red-400 font-[var(--font-bebas)] mt-2 animate-count">{formatCurrency(annualCosts)}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4 text-center">
             <p className="text-[10px] uppercase tracking-widest text-pw-text-dim">Utile Annuo Stimato</p>
-            <p className={`text-2xl font-bold font-[var(--font-bebas)] mt-2 ${annualNetProfit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+            <p className={`text-2xl font-bold font-[var(--font-bebas)] mt-2 animate-count ${annualNetProfit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
               {formatCurrency(annualNetProfit)}
             </p>
           </CardContent>
@@ -629,7 +629,7 @@ export default function CFOPage() {
                 const irpef = realData ? realData.irpef : emp.costs.irpef;
                 const netto = realData ? realData.netto_mensile : emp.costs.monthlyNet;
                 return (
-                  <tr key={emp.id} className="border-b border-pw-border/50 hover:bg-pw-surface-2/50">
+                  <tr key={emp.id} className="border-b border-pw-border/50 row-hover">
                     <td className="py-3">
                       <p className="font-medium text-pw-text">{emp.full_name}</p>
                       <p className="text-[10px] text-pw-text-dim">
@@ -687,7 +687,7 @@ export default function CFOPage() {
               {clientProfitability.map(client => {
                 const collectionRate = client.totalExpected > 0 ? (client.totalPaid / client.totalExpected) * 100 : 0;
                 return (
-                  <tr key={client.clientId} className="border-b border-pw-border/50 hover:bg-pw-surface-2/50">
+                  <tr key={client.clientId} className="border-b border-pw-border/50 row-hover">
                     <td className="py-3 font-medium text-pw-text">{client.clientName}</td>
                     <td className="text-right text-pw-text-muted">{formatCurrency(client.monthlyFee)}</td>
                     <td className="text-right text-green-400 font-medium">{formatCurrency(client.totalPaid)}</td>
@@ -777,7 +777,7 @@ export default function CFOPage() {
       </Card>
 
       {/* ═══ SEZIONE 7: RIEPILOGO QUICK ═══ */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 stagger-children">
         <Card>
           <CardContent className="p-4 text-center">
             <Briefcase size={20} className="text-pw-text-dim mx-auto mb-1" />
@@ -844,7 +844,7 @@ export default function CFOPage() {
               </thead>
               <tbody>
                 {payslips.map(ps => (
-                  <tr key={ps.id} className="border-b border-pw-border/50 hover:bg-pw-surface-2/50">
+                  <tr key={ps.id} className="border-b border-pw-border/50 row-hover">
                     <td className="py-2 font-medium text-pw-text">{employees.find(e => e.id === ps.employee_id)?.full_name || '—'}</td>
                     <td className="py-2 text-pw-text-muted">{new Date(ps.month).toLocaleDateString('it-IT', { month: 'long', year: 'numeric' })}</td>
                     <td className="py-2 text-right text-pw-text-muted">{formatCurrency(ps.lordo_mensile)}</td>
@@ -917,7 +917,7 @@ export default function CFOPage() {
                     const net = calculateInvoiceNet(inv);
                     const client = inv.client as Client | undefined;
                     return (
-                      <tr key={inv.id} className="border-b border-pw-border/50 hover:bg-pw-surface-2/50">
+                      <tr key={inv.id} className="border-b border-pw-border/50 row-hover">
                         <td className="py-2 font-mono text-xs text-pw-accent">{inv.invoice_number}</td>
                         <td className="py-2 text-pw-text">{client?.ragione_sociale || client?.company || client?.name || '—'}</td>
                         <td className="py-2">

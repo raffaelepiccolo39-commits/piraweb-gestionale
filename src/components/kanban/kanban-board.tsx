@@ -109,7 +109,7 @@ export function KanbanBoard({ tasks, onTaskClick, onTasksUpdate }: KanbanBoardPr
                             {...provided.dragHandleProps}
                             onClick={() => onTaskClick(task)}
                             className={cn(
-                              'bg-pw-surface rounded-xl p-3 border border-pw-border cursor-pointer hover:shadow-md transition-shadow',
+                              'bg-pw-surface rounded-xl p-3 border border-pw-border cursor-pointer hover:shadow-md transition-shadow hover-glow',
                               snapshot.isDragging && 'shadow-lg ring-2 ring-indigo-500'
                             )}
                           >

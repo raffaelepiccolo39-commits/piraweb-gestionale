@@ -453,7 +453,7 @@ export default function ProfitabilityPage() {
                       </div>
                       <div className="h-3 bg-pw-surface-2 rounded-full overflow-hidden">
                         <div
-                          className={`h-full rounded-full transition-all duration-200 ease-out ${
+                          className={`h-full rounded-full transition-all duration-200 ease-out progress-animated ${
                             project.totalHoursLogged >= project.maxTotalHoursAffordable ? 'bg-red-500' :
                             project.totalHoursLogged >= project.maxTotalHoursAffordable * 0.8 ? 'bg-yellow-500' :
                             'bg-green-500'
@@ -491,7 +491,7 @@ export default function ProfitabilityPage() {
                             {project.employeeBreakdown.map((eb) => {
                               const remaining = eb.maxAffordableHours - eb.hoursLogged;
                               return (
-                                <tr key={eb.employee.profile.id} className="border-b border-pw-border/20 hover:bg-pw-surface-2/40 transition-colors duration-150">
+                                <tr key={eb.employee.profile.id} className="border-b border-pw-border/20 row-hover">
                                   <td className="py-2.5">
                                     <div className="flex items-center gap-2">
                                       <div

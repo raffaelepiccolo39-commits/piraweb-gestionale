@@ -45,7 +45,7 @@ export function DayEvents({ date, events, onCreateEvent, onEditEvent, onDeleteEv
         ) : (
           <div className="divide-y divide-pw-border">
             {events.map((event) => (
-              <div key={event.id} className="px-6 py-4">
+              <div key={event.id} className="px-6 py-4 hover-glow transition-all rounded-lg">
                 <div className="flex items-start gap-3">
                   <div
                     className="w-1 h-full min-h-[40px] rounded-full shrink-0"

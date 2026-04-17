@@ -50,7 +50,7 @@ export const ProjectProgress = memo(function ProjectProgress({ projects }: Proje
               </div>
               <div className="h-1.5 bg-pw-surface rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-pw-accent rounded-full transition-all duration-500"
+                  className="h-full bg-pw-accent rounded-full transition-all duration-500 progress-animated"
                   style={{ width: `${pct}%` }}
                 />
               </div>

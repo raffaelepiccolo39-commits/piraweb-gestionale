@@ -303,7 +303,7 @@ export default function CashflowPage() {
                   <p className="text-sm opacity-80 capitalize">Entrate — {periodLabel}</p>
                   <ArrowUpRight size={20} className="opacity-60" />
                 </div>
-                <p className="text-3xl font-bold font-[var(--font-bebas)]">{formatCurrency(pnl.total_received)}</p>
+                <p className="text-3xl font-bold font-[var(--font-bebas)] animate-count">{formatCurrency(pnl.total_received)}</p>
                 <p className="text-sm opacity-70 mt-1">
                   Attese: {formatCurrency(pnl.total_revenue)} &middot; Da incassare: {formatCurrency(pnl.total_pending_revenue)}
                 </p>
@@ -315,7 +315,7 @@ export default function CashflowPage() {
                   <p className="text-sm opacity-80 capitalize">Uscite Stipendi — {periodLabel}</p>
                   <ArrowDownRight size={20} className="opacity-60" />
                 </div>
-                <p className="text-3xl font-bold font-[var(--font-bebas)]">{formatCurrency(pnl.total_salary_cost_period)}</p>
+                <p className="text-3xl font-bold font-[var(--font-bebas)] animate-count">{formatCurrency(pnl.total_salary_cost_period)}</p>
                 <p className="text-sm opacity-70 mt-1">
                   {formatCurrency(pnl.monthly_salary_cost)}/mese &middot; {pnl.num_months} mesi
                 </p>
@@ -331,7 +331,7 @@ export default function CashflowPage() {
                   <p className="text-sm opacity-80 capitalize">Margine Netto — {periodLabel}</p>
                   {netMargin >= 0 ? <TrendingUp size={20} className="opacity-60" /> : <TrendingDown size={20} className="opacity-60" />}
                 </div>
-                <p className="text-3xl font-bold font-[var(--font-bebas)] truncate">{formatCurrency(netMargin)}</p>
+                <p className="text-3xl font-bold font-[var(--font-bebas)] truncate animate-count">{formatCurrency(netMargin)}</p>
                 <p className="text-sm opacity-70 mt-1 truncate">
                   {netMarginPct > 0 ? '+' : ''}{netMarginPct}% netto &middot; {grossMarginPct > 0 ? '+' : ''}{grossMarginPct}% lordo
                 </p>
@@ -636,7 +636,7 @@ export default function CashflowPage() {
                           <div className="w-10 shrink-0">
                             <div className="h-1.5 bg-pw-surface-3 rounded-full overflow-hidden">
                               <div
-                                className={`h-full rounded-full ${
+                                className={`h-full rounded-full progress-animated ${
                                   clientRate >= 75 ? 'bg-green-500' : clientRate >= 50 ? 'bg-amber-500' : 'bg-red-500'
                                 }`}
                                 style={{ width: `${clientRate}%` }}

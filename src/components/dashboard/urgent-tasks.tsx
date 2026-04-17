@@ -42,7 +42,7 @@ export const UrgentTasks = memo(function UrgentTasks({ tasks, isAdmin }: UrgentT
             <Link
               key={task.id}
               href="/tasks"
-              className="block px-6 py-3 hover:bg-red-500/5 transition-colors"
+              className="block px-6 py-3 hover:bg-red-500/5 transition-colors hover-glow"
             >
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2 min-w-0">

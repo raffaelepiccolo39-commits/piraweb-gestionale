@@ -11,11 +11,9 @@ export function Card({ children, className, hover = false, glass = false, ...pro
   return (
     <div
       className={cn(
-        'rounded-2xl border border-pw-border/60 overflow-hidden',
-        glass
-          ? 'glass'
-          : 'bg-gradient-to-br from-pw-surface via-pw-surface to-pw-surface-2/50',
-        hover && 'card-hover cursor-pointer',
+        'rounded-2xl overflow-hidden card-premium',
+        glass && 'glass !bg-[rgba(6,11,18,0.92)]',
+        hover && 'cursor-pointer',
         className
       )}
       {...props}

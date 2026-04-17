@@ -43,15 +43,15 @@ export function ForecastCard({ monthlyRevenue, monthlySalaryCost, activeContract
                 <div className="space-y-1.5 text-sm">
                   <div className="flex justify-between">
                     <span className="text-pw-text-muted">Entrate</span>
-                    <span className="text-green-400 font-medium">{formatCurrency(rev)}</span>
+                    <span className="text-green-400 font-medium animate-count">{formatCurrency(rev)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-pw-text-muted">Costi</span>
-                    <span className="text-red-400 font-medium">{formatCurrency(cost)}</span>
+                    <span className="text-red-400 font-medium animate-count">{formatCurrency(cost)}</span>
                   </div>
                   <div className="flex justify-between pt-1.5 border-t border-pw-border">
                     <span className="text-pw-text font-medium">Margine</span>
-                    <span className={`font-bold ${margin >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                    <span className={`font-bold animate-count ${margin >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                       {formatCurrency(margin)}
                     </span>
                   </div>
@@ -70,7 +70,7 @@ export function ForecastCard({ monthlyRevenue, monthlySalaryCost, activeContract
               <TrendingDown size={24} className="text-red-400" />
             )}
             <div>
-              <p className={`text-lg font-bold ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
+              <p className={`text-lg font-bold animate-count ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
                 {formatCurrency(projectedMargin)} margine previsto
               </p>
               <p className="text-xs text-pw-text-muted">
