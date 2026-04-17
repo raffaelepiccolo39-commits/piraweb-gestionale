@@ -149,7 +149,7 @@ export const ChannelList = memo(function ChannelList({
                 : 'text-pw-text-muted hover:text-pw-text hover:bg-pw-surface-2'
             }`}
           >
-            <div className="w-6 h-6 rounded-full bg-pw-purple flex items-center justify-center shrink-0">
+            <div className="w-6 h-6 rounded-full bg-pw-navy flex items-center justify-center shrink-0">
               <span className="text-white text-[8px] font-bold">{getDirectInitials(channel)}</span>
             </div>
             <div className="flex-1 min-w-0 text-left">

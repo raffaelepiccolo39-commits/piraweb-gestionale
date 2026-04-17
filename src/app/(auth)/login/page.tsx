@@ -144,7 +144,7 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-pw-bg px-4 relative overflow-hidden">
       {/* Animated gradient orbs */}
       <div className="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] rounded-full bg-gradient-to-br from-pw-accent/[0.07] to-transparent blur-3xl animate-float" />
-      <div className="absolute bottom-[-30%] right-[-10%] w-[500px] h-[500px] rounded-full bg-gradient-to-tl from-pw-purple/[0.06] to-transparent blur-3xl animate-float" style={{ animationDelay: '-3s' }} />
+      <div className="absolute bottom-[-30%] right-[-10%] w-[500px] h-[500px] rounded-full bg-gradient-to-tl from-pw-red/[0.06] to-transparent blur-3xl animate-float" style={{ animationDelay: '-3s' }} />
       <div className="absolute top-[40%] right-[20%] w-[300px] h-[300px] rounded-full bg-gradient-to-bl from-pw-cyan/[0.04] to-transparent blur-3xl animate-float" style={{ animationDelay: '-1.5s' }} />
 
       {/* Grid pattern overlay */}
@@ -159,11 +159,11 @@ export default function LoginPage() {
               alt="PiraWeb"
               width={180}
               height={85}
-              className="mx-auto drop-shadow-[0_0_30px_rgba(184,247,71,0.15)]"
+              className="mx-auto drop-shadow-[0_0_30px_rgba(255,209,8,0.15)]"
               priority
             />
           </div>
-          <p className="text-[10px] uppercase tracking-[0.3em] text-pw-text-dim font-medium">
+          <p className="text-[10px] uppercase tracking-[0.3em] text-pw-text-dim font-medium font-[var(--font-dm-serif)] italic">
             Piattaforma Gestionale
           </p>
         </div>
@@ -171,7 +171,7 @@ export default function LoginPage() {
         {/* Login card */}
         <div className="glass rounded-3xl p-8 shadow-2xl shadow-black/30">
           {/* Gradient border effect */}
-          <div className="absolute inset-0 rounded-3xl p-px bg-gradient-to-br from-pw-accent/20 via-transparent to-pw-purple/20 -z-10 opacity-60" />
+          <div className="absolute inset-0 rounded-3xl p-px bg-gradient-to-br from-pw-accent/20 via-transparent to-pw-red/20 -z-10 opacity-60" />
 
           {step === 'credentials' ? (
             <>
@@ -240,7 +240,7 @@ export default function LoginPage() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full bg-gradient-to-r from-pw-accent to-[#a8e032] hover:from-pw-accent-hover hover:to-[#baef48] text-pw-bg font-bold py-3.5 px-4 rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2.5 text-[13px] uppercase tracking-[0.08em] shadow-[0_4px_20px_-4px_rgba(184,247,71,0.35)] hover:shadow-[0_8px_30px_-4px_rgba(184,247,71,0.45)] active:scale-[0.98]"
+                  className="w-full bg-gradient-to-r from-pw-accent to-[#FFBF00] hover:from-pw-accent-hover hover:to-[#FFD108] text-[#0A263A] font-bold py-3.5 px-4 rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2.5 text-[13px] uppercase tracking-[0.08em] shadow-[0_4px_20px_-4px_rgba(255,209,8,0.25)] hover:shadow-[0_8px_30px_-4px_rgba(255,209,8,0.35)] active:scale-[0.98]"
                 >
                   {loading ? (
                     <>
@@ -309,7 +309,7 @@ export default function LoginPage() {
                   type="button"
                   onClick={handleVerify2FA}
                   disabled={verifying2FA || totpCode.some(d => d === '')}
-                  className="w-full bg-gradient-to-r from-pw-accent to-[#a8e032] hover:from-pw-accent-hover hover:to-[#baef48] text-pw-bg font-bold py-3.5 px-4 rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2.5 text-[13px] uppercase tracking-[0.08em] shadow-[0_4px_20px_-4px_rgba(184,247,71,0.35)] hover:shadow-[0_8px_30px_-4px_rgba(184,247,71,0.45)] active:scale-[0.98]"
+                  className="w-full bg-gradient-to-r from-pw-accent to-[#FFBF00] hover:from-pw-accent-hover hover:to-[#FFD108] text-[#0A263A] font-bold py-3.5 px-4 rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2.5 text-[13px] uppercase tracking-[0.08em] shadow-[0_4px_20px_-4px_rgba(255,209,8,0.25)] hover:shadow-[0_8px_30px_-4px_rgba(255,209,8,0.35)] active:scale-[0.98]"
                 >
                   {verifying2FA ? (
                     <>

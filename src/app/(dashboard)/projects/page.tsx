@@ -137,7 +137,7 @@ export default function ProjectsPage() {
         <AlertTriangle size={48} className="text-red-400" />
         <h2 className="text-xl font-semibold text-pw-text">Errore nel caricamento</h2>
         <p className="text-pw-text-muted max-w-md text-sm">Non è stato possibile caricare i dati. Riprova.</p>
-        <button onClick={() => { setLoading(true); setError(false); fetchProjects(); }} className="px-4 py-2 rounded-xl bg-pw-accent text-pw-bg text-sm font-medium hover:bg-pw-accent-hover transition-colors">Riprova</button>
+        <button onClick={() => { setLoading(true); setError(false); fetchProjects(); }} className="px-4 py-2 rounded-xl bg-pw-accent text-[#0A263A] text-sm font-medium hover:bg-pw-accent-hover transition-colors">Riprova</button>
       </div>
     );
   }
@@ -174,7 +174,7 @@ export default function ProjectsPage() {
             onClick={() => setFilterMember('')}
             className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
               !filterMember
-                ? 'bg-pw-accent text-pw-bg'
+                ? 'bg-pw-accent text-[#0A263A]'
                 : 'bg-pw-surface-2 text-pw-text-muted hover:bg-pw-surface-3'
             }`}
           >
@@ -186,7 +186,7 @@ export default function ProjectsPage() {
               onClick={() => setFilterMember(filterMember === m.id ? '' : m.id)}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                 filterMember === m.id
-                  ? 'bg-pw-accent text-pw-bg'
+                  ? 'bg-pw-accent text-[#0A263A]'
                   : 'bg-pw-surface-2 text-pw-text-muted hover:bg-pw-surface-3'
               }`}
             >

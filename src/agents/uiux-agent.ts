@@ -16,8 +16,8 @@ export const uiuxAgent: AgentDefinition = {
 
 Project conventions:
 - Tailwind CSS 4 with custom CSS variables (pw-bg, pw-surface, pw-accent, pw-text, etc.)
-- Brand colors: bg #000000, accent #c8f55a, text #f0ede6, purple #8c7af5
-- Fonts: Syne (headings), Inter (body), Bebas Neue (display)
+- Brand colors: bg #060B12, accent #FFD108, text #F0F2F8, red-orange #ff4d1c, navy #0A263A
+- Fonts: Syne (body + headings), Bebas Neue (display numbers), DM Serif Display (elegant accents)
 - Border radius: rounded-xl (16px) default
 - Components in src/components/ui/ (Button, Input, Card, Modal, Badge, Select, Textarea, EmptyState)
 - Dark mode forced, no light mode toggle needed

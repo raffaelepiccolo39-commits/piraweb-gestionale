@@ -118,7 +118,7 @@ export default function DirectionPage() {
       if (t.assigned_to) memberTaskCount.set(t.assigned_to, (memberTaskCount.get(t.assigned_to) || 0) + 1);
     });
     const topPerformers = activeProfiles
-      .map((p) => ({ name: p.full_name, tasks: memberTaskCount.get(p.id) || 0, hours: hoursMap.get(p.id) || 0, color: p.color || '#8c7af5' }))
+      .map((p) => ({ name: p.full_name, tasks: memberTaskCount.get(p.id) || 0, hours: hoursMap.get(p.id) || 0, color: p.color || '#ff4d1c' }))
       .sort((a, b) => b.tasks - a.tasks)
       .slice(0, 5);
 

@@ -27,7 +27,7 @@ export interface EventFormData {
 }
 
 const COLORS = [
-  '#c8f55a', '#8c7af5', '#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#ec4899', '#6366f1',
+  '#FFD108', '#ff4d1c', '#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#ec4899', '#6366f1',
 ];
 
 export function EventForm({ event, defaultDate, onSubmit, onCancel }: EventFormProps) {
@@ -53,7 +53,7 @@ export function EventForm({ event, defaultDate, onSubmit, onCancel }: EventFormP
     end_time: defaultEnd,
     location: event?.location || '',
     all_day: event?.all_day || false,
-    color: event?.color || '#c8f55a',
+    color: event?.color || '#FFD108',
     assigned_to: event?.assigned_to || [],
     sync_caldav: !event, // default on for new events
   });
@@ -173,7 +173,7 @@ export function EventForm({ event, defaultDate, onSubmit, onCancel }: EventFormP
               onClick={() => toggleAssignee(m.id)}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                 form.assigned_to.includes(m.id)
-                  ? 'bg-pw-accent text-pw-bg'
+                  ? 'bg-pw-accent text-[#0A263A]'
                   : 'bg-pw-surface-2 text-pw-text-muted hover:bg-pw-surface-3'
               }`}
             >

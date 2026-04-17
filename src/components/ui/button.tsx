@@ -11,11 +11,11 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant = 'primary', size = 'md', loading, disabled, children, ...props }, ref) => {
     const variants = {
-      primary: 'bg-gradient-to-r from-pw-accent to-[#a8e032] hover:from-pw-accent-hover hover:to-[#baef48] text-pw-bg font-semibold shadow-[0_2px_12px_-2px_rgba(184,247,71,0.3)] hover:shadow-[0_4px_20px_-2px_rgba(184,247,71,0.4)]',
+      primary: 'bg-gradient-to-r from-pw-accent to-[#FFBF00] hover:from-pw-accent-hover hover:to-[#FFD108] text-[#0A263A] font-semibold shadow-[0_2px_12px_-2px_rgba(255,209,8,0.25)] hover:shadow-[0_4px_20px_-2px_rgba(255,209,8,0.35)]',
       secondary: 'bg-pw-surface-2 hover:bg-pw-surface-3 text-pw-text border border-pw-border/40 hover:border-pw-border',
       outline: 'border border-pw-border/60 hover:border-pw-accent/40 hover:bg-pw-accent/5 text-pw-text-muted hover:text-pw-accent',
       ghost: 'hover:bg-white/[0.04] text-pw-text-muted hover:text-pw-text',
-      danger: 'bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400 text-white shadow-[0_2px_12px_-2px_rgba(239,68,68,0.3)]',
+      danger: 'bg-gradient-to-r from-[#ff4d1c] to-[#ff6633] hover:from-[#ff6633] hover:to-[#ff7744] text-white shadow-[0_2px_12px_-2px_rgba(255,77,28,0.3)]',
     };
 
     const sizes = {

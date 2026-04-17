@@ -160,7 +160,7 @@ export function Header({ onMobileMenuToggle, mobileMenuOpen }: HeaderProps) {
           >
             <Bell size={18} />
             {unreadCount > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 w-4.5 h-4.5 bg-pw-accent text-pw-bg text-[9px] font-bold rounded-full flex items-center justify-center shadow-[0_0_8px_rgba(184,247,71,0.5)] pulse-dot">
+              <span className="absolute -top-0.5 -right-0.5 w-4.5 h-4.5 bg-pw-accent text-[#0A263A] text-[9px] font-bold rounded-full flex items-center justify-center shadow-[0_0_8px_rgba(255,209,8,0.5)] pulse-dot">
                 {unreadCount > 9 ? '9+' : unreadCount}
               </span>
             )}
@@ -230,7 +230,7 @@ export function Header({ onMobileMenuToggle, mobileMenuOpen }: HeaderProps) {
             aria-haspopup="true"
           >
             <div className="w-8 h-8 rounded-full bg-pw-accent flex items-center justify-center">
-              <span className="text-pw-bg text-xs font-bold">
+              <span className="text-[#0A263A] text-xs font-bold">
                 {profile ? getInitials(profile.full_name) : '?'}
               </span>
             </div>

@@ -484,8 +484,8 @@ const globalStyles = `
     color: #f0ede6;
   }
   .cns-slot-btn--active {
-    background: #c8f55a;
-    border-color: #c8f55a;
+    background: #FFD108;
+    border-color: #FFD108;
     color: #0a0a0a;
     font-weight: 700;
   }
@@ -559,8 +559,8 @@ const globalStyles = `
     margin-top: 4px;
   }
   .cns-submit--ready {
-    background: #c8f55a;
-    border-color: #c8f55a;
+    background: #FFD108;
+    border-color: #FFD108;
     color: #0a0a0a;
     cursor: pointer;
   }
@@ -609,14 +609,14 @@ const globalStyles = `
     width: 64px;
     height: 64px;
     border-radius: 50%;
-    background: rgba(200,245,90,0.1);
-    border: 2px solid #c8f55a;
+    background: rgba(255,209,8,0.1);
+    border: 2px solid #FFD108;
     display: flex;
     align-items: center;
     justify-content: center;
     margin: 0 auto 20px;
     font-size: 24px;
-    color: #c8f55a;
+    color: #FFD108;
   }
   .cns-confirm-title {
     font-size: clamp(24px, 4vw, 32px);

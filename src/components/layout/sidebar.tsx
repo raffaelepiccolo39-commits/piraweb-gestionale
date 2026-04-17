@@ -220,14 +220,14 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                 >
                   {/* Active indicator */}
                   {isActive && (
-                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-pw-accent" />
+                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[4px] h-5 rounded-r-full bg-pw-accent" />
                   )}
 
                   <Icon
                     size={18}
                     className={cn(
                       'shrink-0 transition-transform duration-200',
-                      isActive && 'drop-shadow-[0_0_6px_rgba(184,247,71,0.4)]',
+                      isActive && 'drop-shadow-[0_0_6px_rgba(255,209,8,0.4)]',
                       !isActive && 'group-hover:scale-110'
                     )}
                   />

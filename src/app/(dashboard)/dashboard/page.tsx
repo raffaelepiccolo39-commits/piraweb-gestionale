@@ -318,7 +318,7 @@ export default function DashboardPage() {
         <AlertTriangle size={48} className="text-red-400" />
         <h2 className="text-xl font-semibold text-pw-text">Errore nel caricamento</h2>
         <p className="text-pw-text-muted max-w-md text-sm">Non è stato possibile caricare i dati. Riprova.</p>
-        <button onClick={() => { setLoading(true); fetchDashboardData(); }} className="px-4 py-2 rounded-xl bg-pw-accent text-pw-bg text-sm font-medium hover:bg-pw-accent-hover transition-colors">Riprova</button>
+        <button onClick={() => { setLoading(true); fetchDashboardData(); }} className="px-4 py-2 rounded-xl bg-pw-accent text-[#0A263A] text-sm font-medium hover:bg-pw-accent-hover transition-colors">Riprova</button>
       </div>
     );
   }
@@ -329,7 +329,7 @@ export default function DashboardPage() {
         <AlertTriangle size={48} className="text-yellow-500" />
         <h2 className="text-xl font-semibold text-pw-text">Profilo non trovato</h2>
         <p className="text-pw-text-muted max-w-md text-sm">Il tuo profilo non è stato ancora configurato.</p>
-        <button onClick={retryLoadProfile} className="px-4 py-2 rounded-xl bg-pw-accent text-pw-bg text-sm font-medium hover:bg-pw-accent-hover transition-colors">Riprova</button>
+        <button onClick={retryLoadProfile} className="px-4 py-2 rounded-xl bg-pw-accent text-[#0A263A] text-sm font-medium hover:bg-pw-accent-hover transition-colors">Riprova</button>
       </div>
     );
   }
@@ -443,7 +443,7 @@ export default function DashboardPage() {
                   <div key={member.id} className="px-6 py-3">
                     <div className="flex items-center gap-3 mb-2">
                       <div className="w-8 h-8 rounded-full bg-pw-accent flex items-center justify-center">
-                        <span className="text-pw-bg text-xs font-bold">{getInitials(member.full_name)}</span>
+                        <span className="text-[#0A263A] text-xs font-bold">{getInitials(member.full_name)}</span>
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-pw-text truncate">{member.full_name}</p>

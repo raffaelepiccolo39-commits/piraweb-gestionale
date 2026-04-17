@@ -49,8 +49,8 @@ export function ProfitLossChart({ data }: ProfitLossChartProps) {
                 <stop offset="95%" stopColor="#EF4444" stopOpacity={0} />
               </linearGradient>
               <linearGradient id="colorMargine" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#c8f55a" stopOpacity={0.4} />
-                <stop offset="95%" stopColor="#c8f55a" stopOpacity={0} />
+                <stop offset="5%" stopColor="#FFD108" stopOpacity={0.4} />
+                <stop offset="95%" stopColor="#FFD108" stopOpacity={0} />
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(240,237,230,0.08)" />
@@ -97,7 +97,7 @@ export function ProfitLossChart({ data }: ProfitLossChartProps) {
               type="monotone"
               dataKey="margine"
               name="Margine"
-              stroke="#c8f55a"
+              stroke="#FFD108"
               fill="url(#colorMargine)"
               strokeWidth={2.5}
             />

@@ -321,7 +321,7 @@ export default function ChatPage() {
         <AlertTriangle size={48} className="text-red-400" />
         <h2 className="text-xl font-semibold text-pw-text">Errore nel caricamento</h2>
         <p className="text-pw-text-muted max-w-md text-sm">Non è stato possibile caricare i dati. Riprova.</p>
-        <button onClick={() => { setLoading(true); setError(false); fetchChannels(); }} className="px-4 py-2 rounded-xl bg-pw-accent text-pw-bg text-sm font-medium hover:bg-pw-accent-hover transition-colors">Riprova</button>
+        <button onClick={() => { setLoading(true); setError(false); fetchChannels(); }} className="px-4 py-2 rounded-xl bg-pw-accent text-[#0A263A] text-sm font-medium hover:bg-pw-accent-hover transition-colors">Riprova</button>
       </div>
     );
   }
@@ -371,15 +371,15 @@ export default function ChatPage() {
               <MessageCircle size={16} className="text-pw-accent" />
             </div>
           ) : selectedChannel?.type === 'project' ? (
-            <div className="w-8 h-8 rounded-full bg-pw-purple/20 flex items-center justify-center">
-              <FolderKanban size={16} className="text-pw-purple" />
+            <div className="w-8 h-8 rounded-full bg-pw-red/20 flex items-center justify-center">
+              <FolderKanban size={16} className="text-pw-red" />
             </div>
           ) : selectedChannel?.type === 'group' ? (
             <div className="w-8 h-8 rounded-full bg-pw-gold/20 flex items-center justify-center">
               <Users size={16} className="text-pw-gold" />
             </div>
           ) : (
-            <div className="w-8 h-8 rounded-full bg-pw-purple flex items-center justify-center">
+            <div className="w-8 h-8 rounded-full bg-pw-navy flex items-center justify-center">
               <span className="text-white text-[10px] font-bold">
                 {channelDisplayName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
               </span>
@@ -487,7 +487,7 @@ export default function ChatPage() {
                         isSelected ? 'bg-pw-accent' : 'bg-pw-surface-3'
                       }`}>
                         {isSelected ? (
-                          <Check size={14} className="text-pw-bg" />
+                          <Check size={14} className="text-[#0A263A]" />
                         ) : (
                           <span className="text-pw-text-muted text-[9px] font-bold">{getInitials(member.full_name)}</span>
                         )}

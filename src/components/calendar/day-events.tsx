@@ -49,7 +49,7 @@ export function DayEvents({ date, events, onCreateEvent, onEditEvent, onDeleteEv
                 <div className="flex items-start gap-3">
                   <div
                     className="w-1 h-full min-h-[40px] rounded-full shrink-0"
-                    style={{ backgroundColor: event.color || '#c8f55a' }}
+                    style={{ backgroundColor: event.color || '#FFD108' }}
                   />
                   <div className="flex-1 min-w-0">
                     <h3 className="text-sm font-semibold text-pw-text">{event.title}</h3>

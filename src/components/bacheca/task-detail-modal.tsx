@@ -427,7 +427,7 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
               <button
                 onClick={handleSendComment}
                 disabled={!newComment.trim() || sendingComment}
-                className="p-2 rounded-lg bg-pw-accent text-pw-bg hover:bg-pw-accent-hover disabled:opacity-40 transition-colors self-end"
+                className="p-2 rounded-lg bg-pw-accent text-[#0A263A] hover:bg-pw-accent-hover disabled:opacity-40 transition-colors self-end"
               >
                 <Send size={14} />
               </button>
@@ -442,7 +442,7 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
                 const commenter = (comment.user as { full_name: string } | undefined)?.full_name || '?';
                 return (
                   <div key={comment.id} className="flex gap-2">
-                    <div className="w-6 h-6 rounded-full bg-pw-purple flex items-center justify-center shrink-0 mt-0.5">
+                    <div className="w-6 h-6 rounded-full bg-pw-navy flex items-center justify-center shrink-0 mt-0.5">
                       <span className="text-white text-[8px] font-bold">{getInitials(commenter)}</span>
                     </div>
                     <div className="flex-1 min-w-0">

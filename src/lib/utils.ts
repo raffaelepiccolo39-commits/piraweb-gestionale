@@ -33,7 +33,7 @@ export function getInitials(name: string): string {
 }
 
 export function getUserColor(profile?: { color?: string | null } | null): string {
-  return profile?.color || '#8c7af5';
+  return profile?.color || '#ff4d1c';
 }
 
 export function getRoleLabel(role: string): string {
@@ -60,22 +60,22 @@ export function getRoleColor(role: string): string {
 
 export function getPriorityColor(priority: string): string {
   const colors: Record<string, string> = {
-    low: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300',
-    medium: 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300',
-    high: 'bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300',
-    urgent: 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300',
+    low: 'bg-[#0A263A]/20 text-[#6B8FA8]',
+    medium: 'bg-[#FFD108]/10 text-[#FFD108]',
+    high: 'bg-[#ff4d1c]/10 text-[#ff6633]',
+    urgent: 'bg-red-500/15 text-red-400',
   };
   return colors[priority] || '';
 }
 
 export function getStatusColor(status: string): string {
   const colors: Record<string, string> = {
-    backlog: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
-    todo: 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300',
-    in_progress: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300',
-    review: 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300',
-    done: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300',
-    archived: 'bg-gray-100 text-gray-500 dark:bg-gray-900 dark:text-gray-500',
+    backlog: 'bg-[#0A263A]/30 text-[#6B8FA8]',
+    todo: 'bg-[#FFD108]/10 text-[#FFD108]',
+    in_progress: 'bg-[#ff4d1c]/10 text-[#ff6633]',
+    review: 'bg-[#22d3ee]/10 text-[#22d3ee]',
+    done: 'bg-green-500/10 text-green-400',
+    archived: 'bg-white/5 text-pw-text-dim',
   };
   return colors[status] || '';
 }

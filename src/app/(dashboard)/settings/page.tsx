@@ -351,7 +351,7 @@ export default function SettingsPage() {
     setEditForm({
       salary: member.salary ? String(member.salary) : '',
       iban: member.iban || '',
-      color: member.color || '#8c7af5',
+      color: member.color || '#ff4d1c',
       contract_type: member.contract_type || '',
       contract_start_date: member.contract_start_date || '',
     });
@@ -1022,7 +1022,7 @@ export default function SettingsPage() {
                 Colore identificativo
               </label>
               <div className="flex items-center gap-2">
-                {['#8c7af5', '#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#ec4899', '#6366f1', '#f97316', '#14b8a6', '#a855f7'].map((c) => (
+                {['#ff4d1c', '#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#ec4899', '#6366f1', '#f97316', '#14b8a6', '#a855f7'].map((c) => (
                   <button
                     key={c}
                     type="button"

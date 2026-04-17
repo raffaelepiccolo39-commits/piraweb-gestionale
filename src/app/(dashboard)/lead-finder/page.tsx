@@ -306,10 +306,10 @@ export default function LeadFinderPage() {
 
       {/* Tabs */}
       <div className="flex gap-2">
-        <button onClick={() => setTab('search')} className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${tab === 'search' ? 'bg-pw-accent text-pw-bg' : 'bg-pw-surface-2 text-pw-text-muted hover:text-pw-text'}`}>
+        <button onClick={() => setTab('search')} className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${tab === 'search' ? 'bg-pw-accent text-[#0A263A]' : 'bg-pw-surface-2 text-pw-text-muted hover:text-pw-text'}`}>
           <Search size={14} className="inline mr-1.5" />Cerca
         </button>
-        <button onClick={() => setTab('saved')} className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${tab === 'saved' ? 'bg-pw-accent text-pw-bg' : 'bg-pw-surface-2 text-pw-text-muted hover:text-pw-text'}`}>
+        <button onClick={() => setTab('saved')} className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${tab === 'saved' ? 'bg-pw-accent text-[#0A263A]' : 'bg-pw-surface-2 text-pw-text-muted hover:text-pw-text'}`}>
           <Eye size={14} className="inline mr-1.5" />Salvati ({prospects.length})
         </button>
       </div>
@@ -323,19 +323,19 @@ export default function LeadFinderPage() {
               <div className="flex gap-2">
                 <button
                   onClick={() => setSearchMode('sector')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${searchMode === 'sector' ? 'bg-pw-accent text-pw-bg' : 'bg-pw-surface-2 text-pw-text-muted hover:text-pw-text'}`}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${searchMode === 'sector' ? 'bg-pw-accent text-[#0A263A]' : 'bg-pw-surface-2 text-pw-text-muted hover:text-pw-text'}`}
                 >
                   Per settore + citta'
                 </button>
                 <button
                   onClick={() => setSearchMode('name')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${searchMode === 'name' ? 'bg-pw-accent text-pw-bg' : 'bg-pw-surface-2 text-pw-text-muted hover:text-pw-text'}`}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${searchMode === 'name' ? 'bg-pw-accent text-[#0A263A]' : 'bg-pw-surface-2 text-pw-text-muted hover:text-pw-text'}`}
                 >
                   Per nome attivita'
                 </button>
                 <button
                   onClick={() => setSearchMode('manual')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${searchMode === 'manual' ? 'bg-pw-accent text-pw-bg' : 'bg-pw-surface-2 text-pw-text-muted hover:text-pw-text'}`}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${searchMode === 'manual' ? 'bg-pw-accent text-[#0A263A]' : 'bg-pw-surface-2 text-pw-text-muted hover:text-pw-text'}`}
                 >
                   Analisi manuale
                 </button>
@@ -1078,7 +1078,7 @@ export default function LeadFinderPage() {
                                 onClick={() => handleStatusChange(prospect.id, status)}
                                 className={`px-2.5 py-1 rounded-lg text-[10px] font-medium transition-all ${
                                   prospect.outreach_status === status
-                                    ? 'bg-pw-accent text-pw-bg'
+                                    ? 'bg-pw-accent text-[#0A263A]'
                                     : 'bg-pw-surface-2 text-pw-text-muted hover:text-pw-text'
                                 }`}
                               >

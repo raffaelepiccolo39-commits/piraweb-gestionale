@@ -60,6 +60,6 @@ export const SCRIPT_TYPES: Record<string, string> = {
 };
 
 export const EVENT_COLORS = [
-  '#c8f55a', '#8c7af5', '#ef4444', '#f59e0b',
+  '#FFD108', '#ff4d1c', '#ef4444', '#f59e0b',
   '#10b981', '#3b82f6', '#ec4899', '#6366f1',
 ] as const;

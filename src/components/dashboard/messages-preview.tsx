@@ -31,7 +31,7 @@ export const MessagesPreview = memo(function MessagesPreview({ messages, unreadC
           </div>
           <div className="flex items-center gap-2">
             {unreadCount > 0 && (
-              <Badge className="bg-pw-accent text-pw-bg">{unreadCount}</Badge>
+              <Badge className="bg-pw-accent text-[#0A263A]">{unreadCount}</Badge>
             )}
             <Link href="/chat" className="text-xs text-pw-accent hover:underline">Apri chat</Link>
           </div>

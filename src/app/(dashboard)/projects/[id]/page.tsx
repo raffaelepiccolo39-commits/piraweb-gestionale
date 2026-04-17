@@ -250,7 +250,7 @@ export default function ProjectDetailPage({
                 <div
                   key={member.id}
                   className="w-8 h-8 rounded-full flex items-center justify-center border-2 border-white dark:border-gray-900"
-                  style={{ backgroundColor: (member.profile as { color?: string })?.color || '#8c7af5' }}
+                  style={{ backgroundColor: (member.profile as { color?: string })?.color || '#ff4d1c' }}
                   title={memberProfile?.full_name || 'Membro'}
                 >
                   <span className="text-white text-[10px] font-semibold">
@@ -278,7 +278,7 @@ export default function ProjectDetailPage({
             <button
               onClick={() => setFilterMember('')}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                !filterMember ? 'bg-pw-accent text-pw-bg' : 'bg-pw-surface-2 text-pw-text-muted hover:bg-pw-surface-3'
+                !filterMember ? 'bg-pw-accent text-[#0A263A]' : 'bg-pw-surface-2 text-pw-text-muted hover:bg-pw-surface-3'
               }`}
             >
               Tutti
@@ -288,7 +288,7 @@ export default function ProjectDetailPage({
                 key={id}
                 onClick={() => setFilterMember(filterMember === id ? '' : id)}
                 className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                  filterMember === id ? 'bg-pw-accent text-pw-bg' : 'bg-pw-surface-2 text-pw-text-muted hover:bg-pw-surface-3'
+                  filterMember === id ? 'bg-pw-accent text-[#0A263A]' : 'bg-pw-surface-2 text-pw-text-muted hover:bg-pw-surface-3'
                 }`}
               >
                 {name}

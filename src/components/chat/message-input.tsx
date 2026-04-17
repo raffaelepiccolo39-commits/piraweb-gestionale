@@ -143,7 +143,7 @@ export function MessageInput({ onSend, disabled, members = [] }: MessageInputPro
         <button
           onClick={handleSend}
           disabled={!content.trim() || sending || disabled}
-          className="p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl bg-pw-accent text-pw-bg hover:bg-pw-accent-hover disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+          className="p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl bg-pw-accent text-[#0A263A] hover:bg-pw-accent-hover disabled:opacity-40 disabled:cursor-not-allowed transition-all"
           aria-label="Invia messaggio"
         >
           <Send size={18} />

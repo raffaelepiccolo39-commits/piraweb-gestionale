@@ -38,7 +38,7 @@ export async function PUT(
       end_time,
       location: location || null,
       all_day: all_day || false,
-      color: color || '#c8f55a',
+      color: color || '#FFD108',
       assigned_to: assigned_to || [],
     })
     .eq('id', id)

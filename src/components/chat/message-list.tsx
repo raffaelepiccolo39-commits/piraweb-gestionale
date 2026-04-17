@@ -106,7 +106,7 @@ export function MessageList({ messages, currentUserId, loading }: MessageListPro
                   {/* Avatar */}
                   <div className="w-7 shrink-0">
                     {showAvatar && !isOwn && (
-                      <div className="w-7 h-7 rounded-full bg-pw-purple flex items-center justify-center">
+                      <div className="w-7 h-7 rounded-full bg-pw-navy flex items-center justify-center">
                         <span className="text-white text-[9px] font-bold">
                           {getInitials(senderName)}
                         </span>
@@ -122,7 +122,7 @@ export function MessageList({ messages, currentUserId, loading }: MessageListPro
                     <div
                       className={`px-3.5 py-2 rounded-2xl text-sm leading-relaxed ${
                         isOwn
-                          ? 'bg-pw-accent text-pw-bg rounded-br-md'
+                          ? 'bg-pw-accent text-[#0A263A] rounded-br-md'
                           : 'bg-pw-surface-3 text-pw-text rounded-bl-md'
                       }`}
                     >

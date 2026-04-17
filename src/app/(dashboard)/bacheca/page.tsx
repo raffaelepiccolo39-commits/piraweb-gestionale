@@ -193,7 +193,7 @@ export default function BachecaPage() {
       } else {
         const { data: newProject } = await supabase
           .from('projects')
-          .insert({ name: 'Generale', status: 'active', color: '#c8f55a', created_by: profile.id })
+          .insert({ name: 'Generale', status: 'active', color: '#FFD108', created_by: profile.id })
           .select()
           .single();
         projectId = newProject?.id || null;
@@ -247,7 +247,7 @@ export default function BachecaPage() {
 
   const getProjectColor = (task: Task): string => {
     const project = task.project as { color: string } | undefined;
-    return project?.color || '#c8f55a';
+    return project?.color || '#FFD108';
   };
 
   const isOverdue = (task: Task): boolean => {
@@ -381,7 +381,7 @@ export default function BachecaPage() {
                 {/* Column header */}
                 <div className="flex items-center justify-between mb-3 px-1">
                   <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 rounded-full flex items-center justify-center" style={{ backgroundColor: member.color || '#8c7af5' }}>
+                    <div className="w-7 h-7 rounded-full flex items-center justify-center" style={{ backgroundColor: member.color || '#ff4d1c' }}>
                       <span className="text-white text-[9px] font-bold">{getInitials(member.full_name)}</span>
                     </div>
                     <div>

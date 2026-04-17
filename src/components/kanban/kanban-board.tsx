@@ -147,7 +147,7 @@ export function KanbanBoard({ tasks, onTaskClick, onTasksUpdate }: KanbanBoardPr
                               {task.assignee && (
                                 <div
                                   className="w-6 h-6 rounded-full flex items-center justify-center"
-                                  style={{ backgroundColor: (task.assignee as { color?: string }).color || '#8c7af5' }}
+                                  style={{ backgroundColor: (task.assignee as { color?: string }).color || '#ff4d1c' }}
                                   title={task.assignee.full_name}
                                 >
                                   <span className="text-white text-[10px] font-semibold">

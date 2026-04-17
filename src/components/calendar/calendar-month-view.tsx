@@ -61,7 +61,7 @@ export function CalendarMonthView({ currentMonth, events, selectedDate, onSelect
             >
               <span className={cn(
                 'text-xs font-medium inline-flex items-center justify-center w-6 h-6 rounded-full',
-                today && 'bg-pw-accent text-pw-bg',
+                today && 'bg-pw-accent text-[#0A263A]',
                 !today && isCurrentMonth && 'text-pw-text',
                 !today && !isCurrentMonth && 'text-pw-text-dim'
               )}>
@@ -74,7 +74,7 @@ export function CalendarMonthView({ currentMonth, events, selectedDate, onSelect
                   <div
                     key={event.id}
                     className="text-[10px] leading-tight px-1 py-0.5 rounded truncate"
-                    style={{ backgroundColor: `${event.color || '#c8f55a'}20`, color: event.color || '#c8f55a' }}
+                    style={{ backgroundColor: `${event.color || '#FFD108'}20`, color: event.color || '#FFD108' }}
                   >
                     {event.title}
                   </div>
