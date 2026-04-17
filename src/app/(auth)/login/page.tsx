@@ -1,12 +1,20 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import { Eye, EyeOff, Loader2, ArrowRight, ShieldCheck, ArrowLeft } from 'lucide-react';
 
 export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginContent />
+    </Suspense>
+  );
+}
+
+function LoginContent() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
