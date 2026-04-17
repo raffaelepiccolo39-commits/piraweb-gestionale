@@ -1,4 +1,5 @@
 import { createServerClient } from '@supabase/ssr';
+import { createClient } from '@supabase/supabase-js';
 import { NextResponse, type NextRequest } from 'next/server';
 
 export async function updateSession(request: NextRequest) {
@@ -13,7 +14,7 @@ export async function updateSession(request: NextRequest) {
           return request.cookies.getAll();
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) =>
+          cookiesToSet.forEach(({ name, value }) =>
             request.cookies.set(name, value)
           );
           supabaseResponse = NextResponse.next({ request });
@@ -50,15 +51,54 @@ export async function updateSession(request: NextRequest) {
     return redirectResponse;
   }
 
-  // Redirect authenticated users away from login
+  // 2FA check: utente autenticato che cerca di accedere alla dashboard
+  if (user && !isAuthPage && !isApiRoute && !isPublicPage) {
+    const tfaCookie = request.cookies.get('2fa_verified');
+    const isTfaVerified = tfaCookie?.value === user.id;
+
+    if (!isTfaVerified) {
+      // Controlla se l'utente ha la 2FA abilitata usando service role
+      try {
+        const serviceClient = createClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.SUPABASE_SERVICE_ROLE_KEY!
+        );
+        const { data: totp } = await serviceClient
+          .from('user_totp')
+          .select('enabled')
+          .eq('user_id', user.id)
+          .eq('enabled', true)
+          .single();
+
+        if (totp) {
+          // 2FA abilitata ma non verificata → redirect a login con parametro verify
+          const url = request.nextUrl.clone();
+          url.pathname = '/login';
+          url.searchParams.set('verify', '2fa');
+          const redirectResponse = NextResponse.redirect(url);
+          supabaseResponse.cookies.getAll().forEach((cookie) => {
+            redirectResponse.cookies.set(cookie.name, cookie.value);
+          });
+          return redirectResponse;
+        }
+      } catch {
+        // Se la tabella non esiste ancora o errore, lascia passare
+      }
+    }
+  }
+
+  // Redirect authenticated users away from login (solo se non stanno verificando 2FA)
   if (user && isAuthPage) {
-    const url = request.nextUrl.clone();
-    url.pathname = '/dashboard';
-    const redirectResponse = NextResponse.redirect(url);
-    supabaseResponse.cookies.getAll().forEach((cookie) => {
-      redirectResponse.cookies.set(cookie.name, cookie.value);
-    });
-    return redirectResponse;
+    const isVerifying2FA = request.nextUrl.searchParams.get('verify') === '2fa';
+    if (!isVerifying2FA) {
+      const url = request.nextUrl.clone();
+      url.pathname = '/dashboard';
+      const redirectResponse = NextResponse.redirect(url);
+      supabaseResponse.cookies.getAll().forEach((cookie) => {
+        redirectResponse.cookies.set(cookie.name, cookie.value);
+      });
+      return redirectResponse;
+    }
   }
 
   return supabaseResponse;

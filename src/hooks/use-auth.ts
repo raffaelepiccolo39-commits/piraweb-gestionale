@@ -72,6 +72,8 @@ export function useAuth() {
   }, []);
 
   const signOut = async () => {
+    // Cancella cookie 2FA (httpOnly, serve API server-side)
+    await fetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
     await supabase.auth.signOut();
     setProfile(null);
     window.location.href = '/login';

@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Modal } from '@/components/ui/modal';
 import { getRoleLabel, getRoleColor, getInitials, formatCurrency } from '@/lib/utils';
 import type { Profile } from '@/types/database';
-import { Settings, Users, Shield, Save, UserPlus, Eye, EyeOff, Pencil, Lock, ArrowRightLeft, AlertTriangle } from 'lucide-react';
+import { Settings, Users, Shield, ShieldCheck, ShieldOff, Save, UserPlus, Eye, EyeOff, Pencil, Lock, ArrowRightLeft, AlertTriangle, Loader2, Copy, Check } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
 
 const roleOptions = [
@@ -82,7 +82,115 @@ export default function SettingsPage() {
   const [reassignTo, setReassignTo] = useState('');
   const [reassignLoading, setReassignLoading] = useState(false);
 
+  // 2FA state
+  const [twoFAEnabled, setTwoFAEnabled] = useState(false);
+  const [twoFALoading, setTwoFALoading] = useState(true);
+  const [showSetup2FA, setShowSetup2FA] = useState(false);
+  const [qrCode, setQrCode] = useState('');
+  const [backupSecret, setBackupSecret] = useState('');
+  const [setupCode, setSetupCode] = useState('');
+  const [setupLoading, setSetupLoading] = useState(false);
+  const [showDisable2FA, setShowDisable2FA] = useState(false);
+  const [disableCode, setDisableCode] = useState('');
+  const [disableLoading, setDisableLoading] = useState(false);
+  const [secretCopied, setSecretCopied] = useState(false);
+
   const toast = useToast();
+
+  // Carica stato 2FA
+  useEffect(() => {
+    async function check2FAStatus() {
+      try {
+        const res = await fetch('/api/auth/2fa/status');
+        const data = await res.json();
+        setTwoFAEnabled(data.enabled);
+      } catch {
+        // ignore
+      }
+      setTwoFALoading(false);
+    }
+    check2FAStatus();
+  }, []);
+
+  const handleStart2FASetup = async () => {
+    setSetupLoading(true);
+    try {
+      const res = await fetch('/api/auth/2fa/setup', { method: 'POST' });
+      const data = await res.json();
+      if (res.ok) {
+        setQrCode(data.qrCode);
+        setBackupSecret(data.secret);
+        setShowSetup2FA(true);
+      } else {
+        toast.error(data.error || 'Errore nel setup 2FA');
+      }
+    } catch {
+      toast.error('Errore di connessione');
+    }
+    setSetupLoading(false);
+  };
+
+  const handleConfirm2FASetup = async () => {
+    if (setupCode.length !== 6) {
+      toast.error('Inserisci un codice di 6 cifre');
+      return;
+    }
+    setSetupLoading(true);
+    try {
+      const res = await fetch('/api/auth/2fa/verify-setup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: setupCode }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setTwoFAEnabled(true);
+        setShowSetup2FA(false);
+        setSetupCode('');
+        setQrCode('');
+        setBackupSecret('');
+        toast.success('Autenticazione a due fattori attivata!');
+      } else {
+        toast.error(data.error || 'Codice non valido');
+      }
+    } catch {
+      toast.error('Errore di connessione');
+    }
+    setSetupLoading(false);
+  };
+
+  const handleDisable2FA = async () => {
+    if (disableCode.length !== 6) {
+      toast.error('Inserisci il codice per confermare');
+      return;
+    }
+    setDisableLoading(true);
+    try {
+      const res = await fetch('/api/auth/2fa/disable', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: disableCode }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setTwoFAEnabled(false);
+        setShowDisable2FA(false);
+        setDisableCode('');
+        toast.success('Autenticazione a due fattori disattivata');
+      } else {
+        toast.error(data.error || 'Codice non valido');
+      }
+    } catch {
+      toast.error('Errore di connessione');
+    }
+    setDisableLoading(false);
+  };
+
+  const copySecret = () => {
+    navigator.clipboard.writeText(backupSecret);
+    setSecretCopied(true);
+    setTimeout(() => setSecretCopied(false), 2000);
+  };
 
   const handleChangePassword = async () => {
     if (passwordForm.new_password !== passwordForm.confirm_password) {
@@ -398,6 +506,183 @@ export default function SettingsPage() {
           </Button>
         </CardContent>
       </Card>
+
+      {/* 2FA Authentication */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Shield size={20} className="text-gray-400" />
+              <h2 className="text-lg font-semibold text-pw-text">Autenticazione a Due Fattori (2FA)</h2>
+            </div>
+            {!twoFALoading && (
+              <span className={`px-3 py-1 rounded-lg text-xs font-medium ${
+                twoFAEnabled
+                  ? 'bg-green-500/15 text-green-400'
+                  : 'bg-pw-surface-3 text-pw-text-dim'
+              }`}>
+                {twoFAEnabled ? 'Attiva' : 'Non attiva'}
+              </span>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-pw-text-muted">
+            Aggiungi un livello di sicurezza extra al tuo account. Dopo aver inserito la password, dovrai inserire un codice generato dalla tua app Authenticator (Google Authenticator, Authy, ecc.).
+          </p>
+
+          {twoFALoading ? (
+            <div className="flex items-center gap-2 text-pw-text-dim text-sm">
+              <Loader2 size={16} className="animate-spin" />
+              Caricamento...
+            </div>
+          ) : twoFAEnabled ? (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 p-3 rounded-xl bg-green-500/10 text-green-400 text-sm">
+                <ShieldCheck size={18} />
+                La 2FA è attiva sul tuo account
+              </div>
+              <Button
+                variant="outline"
+                onClick={() => { setShowDisable2FA(true); setDisableCode(''); }}
+              >
+                <ShieldOff size={16} />
+                Disattiva 2FA
+              </Button>
+            </div>
+          ) : (
+            <Button onClick={handleStart2FASetup} loading={setupLoading}>
+              <ShieldCheck size={16} />
+              Attiva 2FA
+            </Button>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Setup 2FA Modal */}
+      <Modal
+        open={showSetup2FA}
+        onClose={() => { setShowSetup2FA(false); setSetupCode(''); }}
+        title="Configura Autenticazione 2FA"
+      >
+        <div className="space-y-5">
+          <div className="space-y-2">
+            <p className="text-sm text-pw-text-muted">
+              <strong className="text-pw-text">1.</strong> Scansiona il QR code con la tua app Authenticator
+            </p>
+            {qrCode && (
+              <div className="flex justify-center p-4 bg-pw-surface-2 rounded-xl">
+                <img src={qrCode} alt="QR Code 2FA" className="w-48 h-48" />
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <p className="text-sm text-pw-text-muted">
+              <strong className="text-pw-text">2.</strong> Oppure inserisci manualmente questo codice nell&apos;app:
+            </p>
+            <div className="flex items-center gap-2">
+              <code className="flex-1 px-3 py-2 rounded-lg bg-pw-surface-2 text-pw-accent font-mono text-xs break-all select-all">
+                {backupSecret}
+              </code>
+              <button
+                onClick={copySecret}
+                className="p-2 rounded-lg bg-pw-surface-2 hover:bg-pw-surface-3 text-pw-text-muted hover:text-pw-text transition-colors shrink-0"
+                title="Copia"
+              >
+                {secretCopied ? <Check size={16} className="text-green-400" /> : <Copy size={16} />}
+              </button>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <p className="text-sm text-pw-text-muted">
+              <strong className="text-pw-text">3.</strong> Inserisci il codice a 6 cifre per confermare:
+            </p>
+            <input
+              type="text"
+              inputMode="numeric"
+              maxLength={6}
+              value={setupCode}
+              onChange={(e) => setSetupCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+              placeholder="000000"
+              className="w-full px-4 py-3 rounded-xl border border-pw-border bg-pw-surface-2 text-pw-text text-center text-2xl font-mono tracking-[0.5em] focus:ring-2 focus:ring-pw-accent/30 focus:border-pw-accent/50 outline-none placeholder:tracking-[0.5em] placeholder:text-pw-text-dim/30"
+              autoFocus
+            />
+          </div>
+
+          <div className="flex gap-3 pt-2">
+            <Button
+              variant="outline"
+              onClick={() => { setShowSetup2FA(false); setSetupCode(''); }}
+              className="flex-1"
+            >
+              Annulla
+            </Button>
+            <Button
+              onClick={handleConfirm2FASetup}
+              loading={setupLoading}
+              disabled={setupCode.length !== 6}
+              className="flex-1"
+            >
+              <ShieldCheck size={16} />
+              Attiva 2FA
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Disable 2FA Modal */}
+      <Modal
+        open={showDisable2FA}
+        onClose={() => { setShowDisable2FA(false); setDisableCode(''); }}
+        title="Disattiva 2FA"
+        size="sm"
+      >
+        <div className="space-y-4">
+          <div className="p-3 rounded-xl bg-amber-500/10 flex items-center gap-3">
+            <AlertTriangle size={20} className="text-amber-500 shrink-0" />
+            <p className="text-sm text-amber-400">
+              Stai per disattivare la protezione 2FA. Il tuo account sara meno sicuro.
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-pw-text-muted mb-2">
+              Inserisci il codice dall&apos;app Authenticator per confermare
+            </label>
+            <input
+              type="text"
+              inputMode="numeric"
+              maxLength={6}
+              value={disableCode}
+              onChange={(e) => setDisableCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+              placeholder="000000"
+              className="w-full px-4 py-3 rounded-xl border border-pw-border bg-pw-surface-2 text-pw-text text-center text-2xl font-mono tracking-[0.5em] focus:ring-2 focus:ring-pw-accent/30 focus:border-pw-accent/50 outline-none placeholder:tracking-[0.5em] placeholder:text-pw-text-dim/30"
+              autoFocus
+            />
+          </div>
+
+          <div className="flex gap-3 pt-2">
+            <Button
+              variant="outline"
+              onClick={() => { setShowDisable2FA(false); setDisableCode(''); }}
+              className="flex-1"
+            >
+              Annulla
+            </Button>
+            <Button
+              onClick={handleDisable2FA}
+              loading={disableLoading}
+              disabled={disableCode.length !== 6}
+              className="flex-1 !bg-red-500/20 !text-red-400 hover:!bg-red-500/30"
+            >
+              <ShieldOff size={16} />
+              Disattiva
+            </Button>
+          </div>
+        </div>
+      </Modal>
 
       {/* Team management (admin only) */}
       {profile?.role === 'admin' && (
