@@ -126,7 +126,7 @@ export function Header({ onMobileMenuToggle, mobileMenuOpen }: HeaderProps) {
   };
 
   return (
-    <header className="h-14 glass border-b border-pw-border/40 flex items-center justify-between px-4 lg:px-6 sticky top-0 z-30">
+    <header className="h-14 bg-[#080F1A]/95 backdrop-blur-xl border-b border-pw-border flex items-center justify-between px-4 lg:px-6 sticky top-0 z-30">
       {/* Mobile menu button */}
       <button
         onClick={onMobileMenuToggle}

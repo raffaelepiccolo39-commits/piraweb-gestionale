@@ -7,14 +7,14 @@
      ══════════════════════════════════════════ */
 
   /* Background layers — deep navy for reduced eye strain */
-  --color-pw-bg: #060B12;
+  --color-pw-bg: #04080E;
   --color-pw-surface: #0A1420;
-  --color-pw-surface-2: #0F1D2E;
-  --color-pw-surface-3: #162A3D;
+  --color-pw-surface-2: #101C2C;
+  --color-pw-surface-3: #182D42;
 
   /* Borders — slate-blue tint */
-  --color-pw-border: rgba(120, 150, 180, 0.10);
-  --color-pw-border-hover: rgba(120, 150, 180, 0.20);
+  --color-pw-border: rgba(120, 150, 180, 0.13);
+  --color-pw-border-hover: rgba(120, 150, 180, 0.25);
 
   /* Text hierarchy */
   --color-pw-text: #F0F2F8;
@@ -122,10 +122,10 @@ body::after {
 
 /* ═══════════ GLASS MORPHISM ═══════════ */
 .glass {
-  background: rgba(8, 15, 25, 0.95);
+  background: rgba(8, 16, 28, 0.97);
   backdrop-filter: blur(24px) saturate(1.3);
   -webkit-backdrop-filter: blur(24px) saturate(1.3);
-  border: 1px solid rgba(120, 150, 180, 0.12);
+  border: 1px solid rgba(120, 150, 180, 0.14);
 }
 
 .glass-light {
@@ -276,17 +276,16 @@ body::after {
 /* ═══════════ PREMIUM CARD SYSTEM ═══════════ */
 .card-premium {
   position: relative;
-  border: 1px solid rgba(120, 150, 180, 0.12);
+  border: 1px solid rgba(120, 150, 180, 0.15);
   border-radius: 16px;
-  background: linear-gradient(145deg, #0E1A28 0%, #0A1420 100%);
-  transition: all 300ms cubic-bezier(0.2, 0, 0, 1);
+  background: linear-gradient(160deg, #111E2E 0%, #0C1724 100%);
+  transition: all 250ms cubic-bezier(0.2, 0, 0, 1);
 }
 .card-premium:hover {
-  border-color: rgba(120, 150, 180, 0.22);
+  border-color: rgba(255, 209, 8, 0.15);
   box-shadow:
-    0 8px 30px -8px rgba(0, 0, 0, 0.5),
-    0 0 0 1px rgba(120, 150, 180, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.03);
+    0 8px 30px -8px rgba(0, 0, 0, 0.6),
+    0 0 0 1px rgba(255, 209, 8, 0.06);
   transform: translateY(-1px);
 }
 

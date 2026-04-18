@@ -317,7 +317,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   return (
     <aside
       className={cn(
-        'fixed top-0 left-0 z-40 h-screen flex flex-col transition-all duration-300 ease-out bg-pw-surface/80 backdrop-blur-xl border-r border-pw-border/60',
+        'fixed top-0 left-0 z-40 h-screen flex flex-col transition-all duration-300 ease-out bg-[#080F1A] border-r border-pw-border',
         collapsed ? 'w-[68px]' : 'w-[260px]'
       )}
     >
