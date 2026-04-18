@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { AdminGate } from '@/components/ui/admin-gate';
 import {
   BarChart3,
   Search,
@@ -126,6 +127,7 @@ export default function MarketResearchPage() {
   }
 
   return (
+    <AdminGate>
     <div className="space-y-6 animate-slide-up">
       {/* Header */}
       <div>
@@ -375,5 +377,6 @@ export default function MarketResearchPage() {
         </div>
       )}
     </div>
+    </AdminGate>
   );
 }

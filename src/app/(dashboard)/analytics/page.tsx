@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/ui/empty-state';
 import { getRoleLabel, getRoleColor, getInitials } from '@/lib/utils';
+import { AdminGate } from '@/components/ui/admin-gate';
 import type { TeamEfficiency, ProductivityTrend, TeamOverviewStats } from '@/types/database';
 import {
   BarChart3,
@@ -177,6 +178,7 @@ export default function AnalyticsPage() {
   ];
 
   return (
+    <AdminGate>
     <div className="space-y-6 animate-slide-up">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -371,5 +373,6 @@ export default function AnalyticsPage() {
         </>
       )}
     </div>
+    </AdminGate>
   );
 }

@@ -7,6 +7,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { formatCurrency, getInitials, getUserColor, getRoleLabel } from '@/lib/utils';
+import { AdminGate } from '@/components/ui/admin-gate';
 import type { Profile, Client } from '@/types/database';
 import {
   TrendingUp,
@@ -286,6 +287,7 @@ export default function ProfitabilityPage() {
   const profitableProjects = data.projects.filter((p) => p.status === 'profitable');
 
   return (
+    <AdminGate>
     <div className="space-y-6 animate-slide-up">
       {/* Header */}
       <div>
@@ -581,5 +583,6 @@ export default function ProfitabilityPage() {
         )}
       </div>
     </div>
+    </AdminGate>
   );
 }

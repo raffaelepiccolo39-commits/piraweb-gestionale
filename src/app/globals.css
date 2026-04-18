@@ -416,6 +416,15 @@ body::after {
   background-color: rgba(15, 29, 46, 0.5);
 }
 
+/* ═══════════ SHAKE ANIMATION ═══════════ */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-8px); }
+  40% { transform: translateX(8px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(4px); }
+}
+
 /* ═══════════ REDUCED MOTION ═══════════ */
 @media (prefers-reduced-motion: reduce) {
   *, .sidebar-transition, .card-hover, .card-premium, .animate-float, .shimmer, .pulse-dot, .animate-slide-up, .animate-slide-right, .animate-count, .animate-fade-scale, .progress-animated, .skeleton-premium, .stagger-children > * {

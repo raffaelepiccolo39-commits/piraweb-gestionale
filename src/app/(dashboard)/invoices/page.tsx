@@ -12,6 +12,7 @@ import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { formatCurrency, formatDate } from '@/lib/utils';
+import { AdminGate } from '@/components/ui/admin-gate';
 import type { Invoice, InvoiceItem, Client, InvoiceStatus, SdiStatus } from '@/types/database';
 import {
   Receipt,
@@ -222,6 +223,7 @@ export default function InvoicesPage() {
   }
 
   return (
+    <AdminGate>
     <div className="space-y-6 animate-slide-up">
       <div className="flex items-center justify-between">
         <div>
@@ -490,5 +492,6 @@ export default function InvoicesPage() {
         </div>
       </Modal>
     </div>
+    </AdminGate>
   );
 }

@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Modal } from '@/components/ui/modal';
 import { formatCurrency } from '@/lib/utils';
+import { AdminGate } from '@/components/ui/admin-gate';
 import type { Profile, OperatingExpense, Payslip, Invoice, Client } from '@/types/database';
 import { parsePayslipAction, savePayslipsAction } from './actions';
 import {
@@ -449,6 +450,7 @@ export default function CFOPage() {
   }
 
   return (
+    <AdminGate>
     <div className="space-y-8 max-w-7xl animate-slide-up">
       {/* Header */}
       <div>
@@ -1132,5 +1134,6 @@ export default function CFOPage() {
         </div>
       </Modal>
     </div>
+    </AdminGate>
   );
 }

@@ -12,6 +12,7 @@ import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { formatCurrency } from '@/lib/utils';
+import { AdminGate } from '@/components/ui/admin-gate';
 import type { Freelancer, TaskFreelancerAssignment } from '@/types/database';
 import {
   UserPlus,
@@ -168,6 +169,7 @@ export default function FreelancersPage() {
   }
 
   return (
+    <AdminGate>
     <div className="space-y-6 animate-slide-up">
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -319,5 +321,6 @@ export default function FreelancersPage() {
         </div>
       </Modal>
     </div>
+    </AdminGate>
   );
 }
