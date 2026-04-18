@@ -47,7 +47,7 @@ async function handleCron(request: NextRequest) {
       .is('analyzed_at', null)
       .eq('outreach_status', 'new')
       .order('created_at', { ascending: true })
-      .limit(10);
+      .limit(20); // Accelerato da 10 a 20 per run
 
     if (fetchError) throw new Error(`Errore fetch leads: ${fetchError.message}`);
     if (!leads || leads.length === 0) {

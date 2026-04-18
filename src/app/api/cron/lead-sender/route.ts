@@ -71,7 +71,7 @@ async function handleCron(request: NextRequest) {
       .not('outreach_message', 'is', null)
       .is('outreach_sent_at', null)
       .order('score_total', { ascending: true })
-      .limit(10); // Max 10 invii per run
+      .limit(20); // Max 20 invii per run (accelerato da 10)
 
     if (fetchError) throw new Error(`Errore fetch leads: ${fetchError.message}`);
     if (!leads || leads.length === 0) {

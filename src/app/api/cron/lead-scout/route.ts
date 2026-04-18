@@ -4,6 +4,7 @@ export const maxDuration = 300;
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { getRicercaDelGiorno } from '@/lib/lead-agents/config';
+import { checkApiBudget, trackApiUsage } from '@/lib/lead-agents/api-budget';
 
 /**
  * LEAD SCOUT AGENT
@@ -37,6 +38,22 @@ async function handleCron(request: NextRequest) {
   const supabase = await createServiceRoleClient();
   const runId = crypto.randomUUID();
 
+  // Check budget API Google Places (limite 100€/mese)
+  try {
+    const budget = await checkApiBudget(supabase);
+    if (!budget.allowed) {
+      return NextResponse.json({
+        error: 'Budget API Google Places esaurito per questo mese',
+        used: budget.used,
+        limit: budget.limit,
+        spentEur: budget.spentEur,
+        budgetEur: budget.budgetEur,
+      }, { status: 429 });
+    }
+  } catch {
+    // Se la tabella api_usage non esiste ancora, procedi comunque
+  }
+
   // Cosa cerchiamo oggi?
   const { zona, settori, zonaIndex } = getRicercaDelGiorno();
 
@@ -60,6 +77,7 @@ async function handleCron(request: NextRequest) {
 
     let totalFound = 0;
     let totalSkipped = 0;
+    let apiCallsCount = 0;
     const allNewLeads: string[] = [];
 
     // Per ogni comune della zona, cerca i settori di oggi
@@ -83,6 +101,7 @@ async function handleCron(request: NextRequest) {
           if (res.ok) {
             const data = await res.json();
             places = data.places || [];
+            apiCallsCount++;
           }
         } catch {
           continue;
@@ -184,6 +203,11 @@ async function handleCron(request: NextRequest) {
           }
         }
       }
+    }
+
+    // Track API usage per budget mensile
+    if (apiCallsCount > 0) {
+      try { await trackApiUsage(supabase, apiCallsCount); } catch { /* tabella potrebbe non esistere ancora */ }
     }
 
     await supabase.from('agent_runs').update({

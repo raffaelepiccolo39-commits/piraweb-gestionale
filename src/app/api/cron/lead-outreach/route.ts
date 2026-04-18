@@ -47,7 +47,7 @@ async function handleCron(request: NextRequest) {
       .eq('outreach_status', 'new')
       .lte('score_total', 50)
       .order('score_total', { ascending: true }) // Peggiori prima = migliori prospect
-      .limit(5); // Max 5 per run per non esaurire token AI
+      .limit(15); // Max 15 per run (accelerato da 5)
 
     if (fetchError) throw new Error(`Errore fetch leads: ${fetchError.message}`);
     if (!leads || leads.length === 0) {
