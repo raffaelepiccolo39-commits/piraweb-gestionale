@@ -56,7 +56,7 @@ export default function DashboardLayout({
           onMobileMenuToggle={() => setMobileMenuOpen(!mobileMenuOpen)}
           mobileMenuOpen={mobileMenuOpen}
         />
-        <main id="main-content" className="p-4 lg:p-6 min-w-0">
+        <main id="main-content" className="p-4 lg:p-6 xl:p-8 min-w-0 max-w-[1600px]">
           <ErrorBoundary>
             {children}
           </ErrorBoundary>

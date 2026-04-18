@@ -264,7 +264,7 @@ export default function TaskDetailPage({
                         disabled={task.status === s}
                         className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ease-out ${
                           task.status === s
-                            ? 'bg-pw-accent text-white'
+                            ? 'bg-pw-accent text-[#0A263A]'
                             : 'bg-pw-surface-2 text-pw-text-muted hover:bg-pw-surface-3 hover:text-pw-text'
                         }`}
                       >

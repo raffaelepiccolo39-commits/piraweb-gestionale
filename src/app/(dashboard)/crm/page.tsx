@@ -240,8 +240,8 @@ export default function CRMPage() {
         </div>
         <div className="flex gap-2">
           <div className="flex rounded-lg border border-pw-border overflow-hidden">
-            <button onClick={() => setView('pipeline')} className={`px-3 py-1.5 text-xs ${view === 'pipeline' ? 'bg-pw-accent text-white' : 'text-pw-text-muted hover:bg-pw-surface-2'}`}>Pipeline</button>
-            <button onClick={() => setView('list')} className={`px-3 py-1.5 text-xs ${view === 'list' ? 'bg-pw-accent text-white' : 'text-pw-text-muted hover:bg-pw-surface-2'}`}>Lista</button>
+            <button onClick={() => setView('pipeline')} className={`px-3 py-1.5 text-xs font-medium transition-all duration-200 ${view === 'pipeline' ? 'bg-pw-accent text-[#0A263A]' : 'text-pw-text-muted hover:bg-pw-surface-2 hover:text-pw-text'}`}>Pipeline</button>
+            <button onClick={() => setView('list')} className={`px-3 py-1.5 text-xs font-medium transition-all duration-200 ${view === 'list' ? 'bg-pw-accent text-[#0A263A]' : 'text-pw-text-muted hover:bg-pw-surface-2 hover:text-pw-text'}`}>Lista</button>
           </div>
           <Button onClick={() => setShowForm(true)}>
             <Plus size={16} />
