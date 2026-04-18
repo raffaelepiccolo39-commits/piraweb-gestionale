@@ -113,6 +113,18 @@ export default function MarketResearchPage() {
     setLoading(false);
   };
 
+  if (!profile || profile.role !== 'admin') {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <BarChart3 size={40} className="mx-auto text-pw-text-dim mb-3" />
+          <p className="text-pw-text font-semibold">Accesso non autorizzato</p>
+          <p className="text-sm text-pw-text-muted mt-1">Solo gli amministratori possono accedere a questa sezione</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 animate-slide-up">
       {/* Header */}

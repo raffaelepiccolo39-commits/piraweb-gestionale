@@ -147,6 +147,18 @@ export default function FreelancersPage() {
   const totalCost = assignments.reduce((sum, a) => sum + (a.total_cost || 0), 0);
   const activeAssignments = assignments.filter((a) => a.status === 'assigned' || a.status === 'in_progress');
 
+  if (!profile || profile.role !== 'admin') {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <Briefcase size={40} className="mx-auto text-pw-text-dim mb-3" />
+          <p className="text-pw-text font-semibold">Accesso non autorizzato</p>
+          <p className="text-sm text-pw-text-muted mt-1">Solo gli amministratori possono accedere a questa sezione</p>
+        </div>
+      </div>
+    );
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">

@@ -166,6 +166,18 @@ export default function DirectionPage() {
     fetchData().finally(() => setLoading(false));
   }, [fetchData]);
 
+  if (!profile || profile.role !== 'admin') {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <Crown size={40} className="mx-auto text-pw-text-dim mb-3" />
+          <p className="text-pw-text font-semibold">Accesso non autorizzato</p>
+          <p className="text-sm text-pw-text-muted mt-1">Solo gli amministratori possono accedere a questa sezione</p>
+        </div>
+      </div>
+    );
+  }
+
   if (loading) {
     return <div className="flex items-center justify-center h-64"><div className="w-8 h-8 border-3 border-pw-accent border-t-transparent rounded-full animate-spin" /></div>;
   }

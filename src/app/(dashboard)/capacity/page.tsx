@@ -92,6 +92,18 @@ export default function CapacityPage() {
   const totalRemainingHours = members.reduce((s, m) => s + m.estimatedHoursRemaining, 0);
   const availableCapacity = members.reduce((s, m) => s + Math.max(0, MONTHLY_HOURS - m.loggedHoursThisMonth), 0);
 
+  if (!profile || profile.role !== 'admin') {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <BarChart3 size={40} className="mx-auto text-pw-text-dim mb-3" />
+          <p className="text-pw-text font-semibold">Accesso non autorizzato</p>
+          <p className="text-sm text-pw-text-muted mt-1">Solo gli amministratori possono accedere a questa sezione</p>
+        </div>
+      </div>
+    );
+  }
+
   if (loading) {
     return <div className="flex items-center justify-center h-64"><div className="w-8 h-8 border-3 border-pw-accent border-t-transparent rounded-full animate-spin" /></div>;
   }

@@ -156,6 +156,18 @@ export default function LeadAIPage() {
     bassa: { color: 'text-green-400', bg: 'bg-green-500/10 border-green-500/20', label: 'Bassa Priorita\'' },
   };
 
+  if (!profile || profile.role !== 'admin') {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <Sparkles size={40} className="mx-auto text-pw-text-dim mb-3" />
+          <p className="text-pw-text font-semibold">Accesso non autorizzato</p>
+          <p className="text-sm text-pw-text-muted mt-1">Solo gli amministratori possono accedere a questa sezione</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 animate-slide-up">
       {/* Header */}
