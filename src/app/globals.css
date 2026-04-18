@@ -6,15 +6,15 @@
      Brand-aligned · Navy + Yellow + Red-Orange
      ══════════════════════════════════════════ */
 
-  /* Background layers — deep navy for reduced eye strain */
-  --color-pw-bg: #04080E;
-  --color-pw-surface: #0A1420;
-  --color-pw-surface-2: #101C2C;
-  --color-pw-surface-3: #182D42;
+  /* Background layers — deep navy, high contrast between layers */
+  --color-pw-bg: #030709;
+  --color-pw-surface: #0D1520;
+  --color-pw-surface-2: #15223A;
+  --color-pw-surface-3: #1E3050;
 
-  /* Borders — slate-blue tint */
-  --color-pw-border: rgba(120, 150, 180, 0.13);
-  --color-pw-border-hover: rgba(120, 150, 180, 0.25);
+  /* Borders — clearly visible */
+  --color-pw-border: rgba(100, 140, 200, 0.18);
+  --color-pw-border-hover: rgba(100, 140, 200, 0.35);
 
   /* Text hierarchy */
   --color-pw-text: #F0F2F8;
@@ -276,16 +276,17 @@ body::after {
 /* ═══════════ PREMIUM CARD SYSTEM ═══════════ */
 .card-premium {
   position: relative;
-  border: 1px solid rgba(120, 150, 180, 0.15);
+  border: 1px solid rgba(100, 140, 200, 0.18);
   border-radius: 16px;
-  background: linear-gradient(160deg, #111E2E 0%, #0C1724 100%);
+  background: #0D1825;
   transition: all 250ms cubic-bezier(0.2, 0, 0, 1);
 }
 .card-premium:hover {
-  border-color: rgba(255, 209, 8, 0.15);
+  border-color: rgba(255, 209, 8, 0.25);
+  background: #101D2D;
   box-shadow:
-    0 8px 30px -8px rgba(0, 0, 0, 0.6),
-    0 0 0 1px rgba(255, 209, 8, 0.06);
+    0 4px 24px -4px rgba(0, 0, 0, 0.6),
+    0 0 0 1px rgba(255, 209, 8, 0.08);
   transform: translateY(-1px);
 }
 
@@ -298,10 +299,10 @@ body::after {
   content: '';
   position: absolute;
   top: 0;
-  left: 10%;
-  right: 10%;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(255, 209, 8, 0.3), transparent);
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent 5%, rgba(255, 209, 8, 0.5) 30%, rgba(255, 209, 8, 0.5) 70%, transparent 95%);
   pointer-events: none;
 }
 

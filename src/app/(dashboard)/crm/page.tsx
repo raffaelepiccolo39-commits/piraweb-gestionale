@@ -252,25 +252,25 @@ export default function CRMPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4 stagger-children">
-        <Card><CardContent className="p-3 text-center">
-          <p className="text-xl font-bold text-pw-text">{activeDeals.length}</p>
-          <p className="text-[10px] text-pw-text-muted">Deal attivi</p>
+        <Card className="card-accent-top"><CardContent className="p-4 text-center">
+          <p className="text-2xl font-bold text-pw-accent font-[var(--font-bebas)] animate-count">{activeDeals.length}</p>
+          <p className="text-[10px] text-pw-text-muted uppercase tracking-wider mt-1">Deal attivi</p>
         </CardContent></Card>
-        <Card><CardContent className="p-3 text-center">
-          <p className="text-xl font-bold text-pw-text">{formatCurrency(totalPipelineValue)}</p>
-          <p className="text-[10px] text-pw-text-muted">Valore pipeline</p>
+        <Card className="card-accent-top"><CardContent className="p-4 text-center">
+          <p className="text-2xl font-bold text-pw-text font-[var(--font-bebas)] animate-count">{formatCurrency(totalPipelineValue)}</p>
+          <p className="text-[10px] text-pw-text-muted uppercase tracking-wider mt-1">Valore pipeline</p>
         </CardContent></Card>
-        <Card><CardContent className="p-3 text-center">
-          <p className="text-xl font-bold text-pw-text">{formatCurrency(weightedValue)}</p>
-          <p className="text-[10px] text-pw-text-muted">Valore pesato</p>
+        <Card className="card-accent-top"><CardContent className="p-4 text-center">
+          <p className="text-2xl font-bold text-pw-text font-[var(--font-bebas)] animate-count">{formatCurrency(weightedValue)}</p>
+          <p className="text-[10px] text-pw-text-muted uppercase tracking-wider mt-1">Valore pesato</p>
         </CardContent></Card>
-        <Card><CardContent className="p-3 text-center">
-          <p className="text-xl font-bold text-green-400">{wonDeals.length}</p>
-          <p className="text-[10px] text-pw-text-muted">Vinti</p>
+        <Card className="card-accent-top"><CardContent className="p-4 text-center">
+          <p className="text-2xl font-bold text-green-400 font-[var(--font-bebas)] animate-count">{wonDeals.length}</p>
+          <p className="text-[10px] text-pw-text-muted uppercase tracking-wider mt-1">Vinti</p>
         </CardContent></Card>
-        <Card><CardContent className="p-3 text-center">
-          <p className="text-xl font-bold text-pw-text">{winRate}%</p>
-          <p className="text-[10px] text-pw-text-muted">Win rate</p>
+        <Card className="card-accent-top"><CardContent className="p-4 text-center">
+          <p className="text-2xl font-bold text-pw-accent font-[var(--font-bebas)] animate-count">{winRate}%</p>
+          <p className="text-[10px] text-pw-text-muted uppercase tracking-wider mt-1">Win rate</p>
         </CardContent></Card>
       </div>
 
