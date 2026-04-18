@@ -383,7 +383,10 @@ export default function CRMPage() {
 
       {/* Deal detail sidebar */}
       {selectedDeal && (
-        <div className="fixed inset-y-0 right-0 w-full max-w-md bg-pw-surface border-l border-pw-border shadow-2xl z-50 overflow-y-auto">
+        <>
+        {/* Overlay */}
+        <div className="fixed inset-0 bg-black/40 z-40 lg:bg-transparent" onClick={() => setSelectedDeal(null)} />
+        <div className="fixed inset-y-0 right-0 w-[90vw] sm:w-[450px] lg:w-[480px] bg-[#0A1218] border-l border-pw-border shadow-[-8px_0_30px_rgba(0,0,0,0.5)] z-50 overflow-y-auto animate-slide-right">
           <div className="p-6 space-y-5">
             {/* Header */}
             <div className="flex items-start justify-between">
@@ -509,6 +512,7 @@ export default function CRMPage() {
             </div>
           </div>
         </div>
+        </>
       )}
 
       {/* Create deal modal */}
