@@ -19,12 +19,27 @@ import {
   Settings,
   PanelLeftClose,
   PanelLeft,
+  BarChart3,
+  Euro,
   Clock,
   MessageCircle,
   CalendarDays,
+  Calendar,
+  Video,
+  FileEdit,
+  Briefcase,
+  Timer,
+  LayoutTemplate,
+  RefreshCw,
   Target,
   Crown,
+  Receipt,
+  Zap,
+  Search,
+  Wrench,
   Calculator,
+  Network,
+  MessageSquareWarning,
   LogOut,
   Moon,
   Sun,
@@ -35,27 +50,76 @@ interface NavItem {
   href: string;
   icon: React.ElementType;
   badgeKey?: string;
+  adminOnly?: boolean;
 }
 
-// Items visible to ALL users
-const commonItems: NavItem[] = [
-  { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { label: 'Task', href: '/tasks', icon: ListTodo, badgeKey: 'tasks' },
-  { label: 'Bacheca', href: '/bacheca', icon: MessageSquare },
-  { label: 'Progetti', href: '/projects', icon: FolderKanban },
-  { label: 'Chat', href: '/chat', icon: MessageCircle, badgeKey: 'chat' },
-  { label: 'Calendario', href: '/calendario', icon: CalendarDays },
-  { label: 'Presenze', href: '/presenze', icon: Clock },
-  { label: 'AI Assistant', href: '/ai', icon: Sparkles },
-  { label: 'Impostazioni', href: '/settings', icon: Settings },
-];
+interface NavSection {
+  label: string;
+  items: NavItem[];
+  adminOnly?: boolean;
+}
 
-// Additional items for ADMIN users only (shown below a divider)
-const adminItems: NavItem[] = [
-  { label: 'Clienti', href: '/clients', icon: Users },
-  { label: 'CRM', href: '/crm', icon: Target },
-  { label: 'Direzione', href: '/direzione', icon: Crown },
-  { label: 'CFO', href: '/cfo', icon: Calculator },
+const navSections: NavSection[] = [
+  {
+    label: '',
+    items: [
+      { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+      { label: 'Le mie task', href: '/tasks', icon: ListTodo, badgeKey: 'tasks' },
+      { label: 'Progetti', href: '/projects', icon: FolderKanban },
+      { label: 'Chat', href: '/chat', icon: MessageCircle, badgeKey: 'chat' },
+    ],
+  },
+  {
+    label: 'Contenuti',
+    items: [
+      { label: 'Piano Editoriale', href: '/social-calendar', icon: Calendar },
+      { label: 'Brief Creativi', href: '/briefs', icon: FileEdit },
+      { label: 'AI Assistant', href: '/ai', icon: Sparkles },
+      { label: 'AI Contenuti', href: '/ai-content', icon: Sparkles },
+    ],
+  },
+  {
+    label: 'Team',
+    items: [
+      { label: 'Bacheca', href: '/bacheca', icon: MessageSquare },
+      { label: 'Meeting', href: '/meetings', icon: Video },
+      { label: 'Timesheet', href: '/timesheet', icon: Timer },
+      { label: 'Presenze', href: '/presenze', icon: Clock },
+      { label: 'Calendario', href: '/calendario', icon: CalendarDays },
+      { label: 'Organigramma', href: '/organigramma', icon: Network },
+      { label: 'Tools', href: '/tools', icon: Wrench },
+    ],
+  },
+  {
+    label: 'Business',
+    adminOnly: true,
+    items: [
+      { label: 'Clienti', href: '/clients', icon: Users },
+      { label: 'CRM Pipeline', href: '/crm', icon: Target },
+      { label: 'Direzione', href: '/direzione', icon: Crown },
+      { label: 'Lead AI', href: '/lead-ai', icon: Sparkles },
+      { label: 'Lead Finder', href: '/lead-finder', icon: Search },
+      { label: 'Indagine Mercato', href: '/market-research', icon: BarChart3 },
+      { label: 'Capacita\' Team', href: '/capacity', icon: BarChart3 },
+      { label: 'Profittabilita\'', href: '/profitability', icon: Euro },
+      { label: 'CFO', href: '/cfo', icon: Calculator },
+      { label: 'Fatturazione', href: '/invoices', icon: Receipt },
+      { label: 'Cashflow', href: '/cashflow', icon: Euro },
+      { label: 'Efficienza', href: '/analytics', icon: BarChart3 },
+    ],
+  },
+  {
+    label: 'Configurazione',
+    adminOnly: true,
+    items: [
+      { label: 'Freelancer', href: '/freelancers', icon: Briefcase },
+      { label: 'Templates', href: '/templates', icon: LayoutTemplate },
+      { label: 'Task Ricorrenti', href: '/recurring-tasks', icon: RefreshCw },
+      { label: 'Automazioni', href: '/automations', icon: Zap },
+      { label: 'Note Dev', href: '/note-dev', icon: MessageSquareWarning },
+      { label: 'Impostazioni', href: '/settings', icon: Settings },
+    ],
+  },
 ];
 
 interface SidebarProps {
@@ -216,36 +280,34 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         </Link>
       </div>
 
-      {/* Navigation — flat list, no collapsible sections */}
+      {/* Navigation — sections with label dividers */}
       <nav aria-label="Navigazione principale" className="flex-1 py-2 px-2 overflow-y-auto no-scrollbar">
-        {/* Common items */}
-        <div className="space-y-0.5">
-          {commonItems.map((item) => {
-            const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
-            return renderNavLink(item, isActive);
-          })}
-        </div>
+        {navSections.map((section) => {
+          // Hide admin-only sections for non-admin
+          if (section.adminOnly && !isAdmin) return null;
 
-        {/* Admin-only items below a divider */}
-        {isAdmin && (
-          <>
-            <div className={cn(
-              'my-3',
-              collapsed ? 'mx-auto w-5 h-px bg-pw-border/60' : 'mx-3 h-px bg-pw-border/40'
-            )} />
-            <div className="space-y-0.5">
-              {!collapsed && (
-                <p className="px-3 pb-1 text-[10px] uppercase tracking-[0.1em] text-pw-text-dim font-semibold">
-                  Admin
+          return (
+            <div key={section.label || 'core'} className={section.label ? 'mt-3' : ''}>
+              {/* Section label */}
+              {section.label && !collapsed && (
+                <p className="px-3 pb-1 pt-1 text-[10px] uppercase tracking-[0.1em] text-pw-text-dim font-semibold">
+                  {section.label}
                 </p>
               )}
-              {adminItems.map((item) => {
-                const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
-                return renderNavLink(item, isActive);
-              })}
+              {section.label && collapsed && (
+                <div className="mx-auto w-5 h-px bg-pw-border/60 my-2" />
+              )}
+
+              {/* Items */}
+              <div className="space-y-0.5">
+                {section.items.map((item) => {
+                  const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+                  return renderNavLink(item, isActive);
+                })}
+              </div>
             </div>
-          </>
-        )}
+          );
+        })}
       </nav>
 
       {/* Bottom section: user card + actions */}
