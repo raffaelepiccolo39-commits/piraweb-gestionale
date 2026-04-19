@@ -164,7 +164,7 @@ export default function BachecaPage() {
       if (res.ok && data.description) {
         setNewTask((prev) => ({ ...prev, description: data.description }));
       }
-    } catch { /* ignore */ }
+    } catch { setGeneratingAi(false); }
     setGeneratingAi(false);
   };
 

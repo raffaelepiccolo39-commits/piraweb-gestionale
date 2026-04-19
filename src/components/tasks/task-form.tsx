@@ -77,6 +77,7 @@ export function TaskForm({
   const [loading, setLoading] = useState(false);
   const [members, setMembers] = useState<Profile[]>([]);
   const [generatingAi, setGeneratingAi] = useState(false);
+  const [aiError, setAiError] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
   const [form, setForm] = useState<TaskFormData>({
     title: task?.title || '',
@@ -133,8 +134,10 @@ export function TaskForm({
       const data = await res.json();
       if (res.ok && data.description) {
         setForm((prev) => ({ ...prev, description: data.description }));
+      } else {
+        setAiError(true); setTimeout(() => setAiError(false), 3000);
       }
-    } catch { /* ignore */ }
+    } catch { setAiError(true); setTimeout(() => setAiError(false), 3000); }
     setGeneratingAi(false);
   };
 
@@ -181,15 +184,18 @@ export function TaskForm({
           rows={3}
         />
         {showAiDescription && (
-          <button
-            type="button"
-            onClick={handleAiDescription}
-            disabled={generatingAi || !form.title.trim()}
-            className="mt-2 flex items-center gap-1.5 text-[11px] text-pw-accent hover:text-pw-accent-hover transition-colors duration-200 disabled:opacity-40"
-          >
-            {generatingAi ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
-            {generatingAi ? 'Generazione...' : 'Genera con AI'}
-          </button>
+          <div className="mt-2 flex items-center">
+            <button
+              type="button"
+              onClick={handleAiDescription}
+              disabled={generatingAi || !form.title.trim()}
+              className="flex items-center gap-1.5 text-[11px] text-pw-accent hover:text-pw-accent-hover transition-colors duration-200 disabled:opacity-40"
+            >
+              {generatingAi ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
+              {generatingAi ? 'Generazione...' : 'Genera con AI'}
+            </button>
+            {aiError && <span className="text-[11px] text-red-400 ml-2">Errore, riprova</span>}
+          </div>
         )}
       </div>
 

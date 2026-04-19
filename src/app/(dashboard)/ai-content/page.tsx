@@ -149,6 +149,8 @@ export default function AiContentPage() {
       if (res.ok) {
         setResult(data as GenerationResponse);
         toast.success('Contenuti generati con successo!');
+      } else if (res.status === 429) {
+        toast.error('Hai raggiunto il limite di richieste. Riprova tra qualche minuto.');
       } else {
         toast.error(data.error || 'Errore nella generazione');
       }
@@ -394,8 +396,8 @@ export default function AiContentPage() {
             disabled={loading}
             className="w-full"
           >
-            <Sparkles size={18} />
-            Genera Contenuti
+            {loading ? <Loader2 size={18} className="animate-spin" /> : <Sparkles size={18} />}
+            {loading ? 'Generazione in corso...' : 'Genera Contenuti'}
           </Button>
         </CardContent>
       </Card>

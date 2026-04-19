@@ -68,6 +68,7 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
   const [attachments, setAttachments] = useState<TaskAttachment[]>([]);
   const [uploadingFile, setUploadingFile] = useState(false);
   const [generatingAi, setGeneratingAi] = useState(false);
+  const [aiError, setAiError] = useState(false);
   const [deliveryUrl, setDeliveryUrl] = useState('');
 
   useEffect(() => {
@@ -152,8 +153,10 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
       const data = await res.json();
       if (res.ok && data.description) {
         setDescription(data.description);
+      } else {
+        setAiError(true); setTimeout(() => setAiError(false), 3000);
       }
-    } catch { /* ignore */ }
+    } catch { setAiError(true); setTimeout(() => setAiError(false), 3000); }
     setGeneratingAi(false);
   };
 
@@ -317,11 +320,12 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
                   type="button"
                   onClick={handleAiDescription}
                   disabled={generatingAi || !title.trim()}
-                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium bg-pw-accent/15 text-pw-accent hover:bg-pw-accent/25 disabled:opacity-40 transition-colors"
+                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium text-pw-accent hover:text-pw-accent-hover transition-colors duration-200 disabled:opacity-40"
                 >
                   {generatingAi ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
-                  {generatingAi ? 'Generando...' : 'Scrivi con AI'}
+                  {generatingAi ? 'Generazione...' : 'Scrivi con AI'}
                 </button>
+                {aiError && <span className="text-[11px] text-red-400 ml-2">Errore, riprova</span>}
               </div>
               <textarea
                 value={description}

@@ -29,8 +29,8 @@ import {
 const scriptTypeOptions = [
   { value: 'social_post', label: 'Post Social' },
   { value: 'blog_article', label: 'Articolo Blog' },
-  { value: 'email_campaign', label: 'Email Campaign' },
-  { value: 'ad_copy', label: 'Ad Copy' },
+  { value: 'email_campaign', label: 'Campagna Email' },
+  { value: 'ad_copy', label: 'Copy Pubblicitario' },
   { value: 'video_script', label: 'Script Video' },
   { value: 'brand_guidelines', label: 'Brand Guidelines' },
   { value: 'other', label: 'Altro' },
@@ -77,6 +77,7 @@ export default function AiPage() {
   }> | null>(null);
   const [taskLoading, setTaskLoading] = useState(false);
   const [tasksSaved, setTasksSaved] = useState(false);
+  const [taskError, setTaskError] = useState<string | null>(null);
 
   const isAdmin = profile?.role === 'admin';
 
@@ -116,6 +117,8 @@ export default function AiPage() {
         setGeneratedResult(data.script.result);
         setGeneratedProvider(data.provider);
         fetchData();
+      } else if (res.status === 429) {
+        setGeneratedResult('Hai raggiunto il limite di richieste. Riprova tra qualche minuto.');
       } else {
         setGeneratedResult(`Errore: ${data.error}`);
       }
@@ -131,6 +134,7 @@ export default function AiPage() {
     setTaskLoading(true);
     setParsedTasks(null);
     setTasksSaved(false);
+    setTaskError(null);
 
     try {
       const res = await fetch('/api/ai/parse-tasks', {
@@ -142,9 +146,13 @@ export default function AiPage() {
       const data = await res.json();
       if (res.ok) {
         setParsedTasks(data.tasks);
+      } else if (res.status === 429) {
+        setTaskError('Hai raggiunto il limite di richieste. Riprova tra qualche minuto.');
+      } else {
+        setTaskError(data.error || 'Errore nella generazione dei task');
       }
     } catch {
-      // error handled
+      setTaskError('Errore di connessione');
     } finally {
       setTaskLoading(false);
     }
@@ -273,11 +281,11 @@ export default function AiPage() {
               <Button
                 onClick={handleGenerateScript}
                 loading={loading}
-                disabled={!scriptForm.prompt}
+                disabled={!scriptForm.prompt || loading}
                 className="w-full"
               >
-                <Sparkles size={18} />
-                Genera
+                {loading ? <Loader2 size={18} className="animate-spin" /> : <Sparkles size={18} />}
+                {loading ? 'Generazione in corso...' : 'Genera con AI'}
               </Button>
             </CardContent>
           </Card>
@@ -297,9 +305,16 @@ export default function AiPage() {
             </CardHeader>
             <CardContent>
               {loading ? (
-                <div className="flex flex-col items-center justify-center py-12">
+                <div className="flex flex-col items-center justify-center py-8">
                   <Brain size={40} className="text-indigo-500 animate-pulse mb-3" />
-                  <p className="text-sm text-pw-text-dim">Generazione in corso...</p>
+                  <p className="text-sm text-pw-text-muted font-medium">Generazione in corso...</p>
+                  <p className="text-xs text-pw-text-dim mt-1">L&apos;AI sta elaborando la tua richiesta</p>
+                  <div className="w-full mt-6 space-y-3">
+                    <div className="h-3 bg-pw-surface-3 rounded-full animate-pulse" />
+                    <div className="h-3 bg-pw-surface-3 rounded-full animate-pulse w-5/6" />
+                    <div className="h-3 bg-pw-surface-3 rounded-full animate-pulse w-4/6" />
+                    <div className="h-3 bg-pw-surface-3 rounded-full animate-pulse w-3/4" />
+                  </div>
                 </div>
               ) : generatedResult ? (
                 <div>
@@ -368,6 +383,9 @@ export default function AiPage() {
                 <Brain size={18} />
                 Analizza e Crea Task
               </Button>
+              {taskError && (
+                <p className="text-sm text-red-400 mt-2">{taskError}</p>
+              )}
             </CardContent>
           </Card>
 
