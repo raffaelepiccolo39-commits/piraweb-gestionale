@@ -95,7 +95,7 @@ export function Modal({ open, onClose, title, children, size = 'md' }: ModalProp
         tabIndex={-1}
         className={cn(
           'relative w-full rounded-2xl shadow-2xl shadow-black/40 max-h-[90vh] overflow-y-auto overscroll-contain',
-          'bg-[rgba(6,11,18,0.97)] border border-[rgba(120,150,180,0.12)]',
+          'bg-pw-surface border border-pw-border',
           sizes[size]
         )}
       >

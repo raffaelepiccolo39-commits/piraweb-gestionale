@@ -60,7 +60,7 @@ export function getRoleColor(role: string): string {
 
 export function getPriorityColor(priority: string): string {
   const colors: Record<string, string> = {
-    low: 'bg-[#0A263A]/20 text-[#6B8FA8]',
+    low: 'bg-pw-surface-3 text-pw-text-muted',
     medium: 'bg-[#FFD108]/10 text-[#FFD108]',
     high: 'bg-[#ff4d1c]/10 text-[#ff6633]',
     urgent: 'bg-red-500/15 text-red-400',
@@ -70,7 +70,7 @@ export function getPriorityColor(priority: string): string {
 
 export function getStatusColor(status: string): string {
   const colors: Record<string, string> = {
-    backlog: 'bg-[#0A263A]/30 text-[#6B8FA8]',
+    backlog: 'bg-pw-surface-3 text-pw-text-muted',
     todo: 'bg-[#FFD108]/10 text-[#FFD108]',
     in_progress: 'bg-[#ff4d1c]/10 text-[#ff6633]',
     review: 'bg-[#22d3ee]/10 text-[#22d3ee]',

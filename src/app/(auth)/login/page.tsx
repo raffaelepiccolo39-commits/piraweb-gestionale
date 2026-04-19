@@ -149,7 +149,7 @@ function LoginContent() {
   }, [totpCode, step]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-pw-bg px-4 relative overflow-hidden">
+    <div className="dark min-h-screen flex items-center justify-center bg-pw-bg px-4 relative overflow-hidden">
       {/* Animated gradient orbs */}
       <div className="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] rounded-full bg-gradient-to-br from-pw-accent/[0.07] to-transparent blur-3xl animate-float" />
       <div className="absolute bottom-[-30%] right-[-10%] w-[500px] h-[500px] rounded-full bg-gradient-to-tl from-pw-red/[0.06] to-transparent blur-3xl animate-float" style={{ animationDelay: '-3s' }} />

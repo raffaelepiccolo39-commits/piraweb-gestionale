@@ -22,7 +22,7 @@ interface StatCardsProps {
 export const StatCards = memo(function StatCards({ stats, isAdmin }: StatCardsProps) {
   const cards = useMemo(() => [
     ...(isAdmin
-      ? [{ label: 'Clienti', value: stats.totalClients, icon: Users, color: 'text-[#4A8FBF] bg-[#0A263A]/20', href: '/clients' }]
+      ? [{ label: 'Clienti', value: stats.totalClients, icon: Users, color: 'text-blue-500 bg-blue-500/10', href: '/clients' }]
       : []),
     { label: 'Progetti Attivi', value: stats.activeProjects, icon: FolderKanban, color: 'text-[#FFD108] bg-[#FFD108]/10', href: '/projects' },
     { label: 'Task totali', value: stats.totalTasks, icon: ListTodo, color: 'text-pw-text-muted bg-pw-surface-3', href: '/tasks' },

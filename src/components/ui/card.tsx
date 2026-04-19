@@ -12,7 +12,7 @@ export function Card({ children, className, hover = false, glass = false, ...pro
     <div
       className={cn(
         'rounded-2xl overflow-hidden card-premium',
-        glass && 'glass !bg-[rgba(6,11,18,0.92)]',
+        glass && 'glass',
         hover && 'cursor-pointer',
         className
       )}
