@@ -219,7 +219,10 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
             alt="PiraWeb"
             width={collapsed ? 28 : 110}
             height={collapsed ? 13 : 52}
-            className="object-contain transition-all duration-300 ease-out"
+            className={cn(
+              'object-contain transition-all duration-300 ease-out',
+              theme === 'light' && 'dark:invert-0 invert brightness-0'
+            )}
             priority
           />
         </Link>
