@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { usePathname } from 'next/navigation';
+import { useState, useEffect, useRef, useMemo } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
 import { createClient } from '@/lib/supabase/client';
 import { getInitials, cn } from '@/lib/utils';
@@ -27,7 +27,29 @@ import {
   Menu,
   X,
   Check,
+  Search,
 } from 'lucide-react';
+
+const SEARCH_ITEMS = [
+  { label: 'Dashboard', href: '/dashboard' },
+  { label: 'Le mie task', href: '/tasks' },
+  { label: 'Progetti', href: '/projects' },
+  { label: 'Chat', href: '/chat' },
+  { label: 'Bacheca', href: '/bacheca' },
+  { label: 'Calendario', href: '/calendario' },
+  { label: 'Presenze', href: '/presenze' },
+  { label: 'AI Assistant', href: '/ai' },
+  { label: 'AI Contenuti', href: '/ai-content' },
+  { label: 'Piano Editoriale', href: '/social-calendar' },
+  { label: 'Brief Creativi', href: '/briefs' },
+  { label: 'Clienti', href: '/clients' },
+  { label: 'CRM Pipeline', href: '/crm' },
+  { label: 'Direzione', href: '/direzione' },
+  { label: 'CFO', href: '/cfo' },
+  { label: 'Meeting', href: '/meetings' },
+  { label: 'Timesheet', href: '/timesheet' },
+  { label: 'Impostazioni', href: '/settings' },
+];
 
 interface HeaderProps {
   onMobileMenuToggle: () => void;
@@ -36,12 +58,47 @@ interface HeaderProps {
 
 export function Header({ onMobileMenuToggle, mobileMenuOpen }: HeaderProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const { profile, signOut } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchFocused, setSearchFocused] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const supabase = createClient();
+
+  // Search results
+  const searchResults = useMemo(() => {
+    if (!searchQuery.trim()) return [];
+    const q = searchQuery.toLowerCase();
+    return SEARCH_ITEMS.filter((item) =>
+      item.label.toLowerCase().includes(q)
+    ).slice(0, 6);
+  }, [searchQuery]);
+
+  // Keyboard shortcut: "/" to focus search, Escape to close
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (
+        e.key === '/' &&
+        !e.ctrlKey &&
+        !e.metaKey &&
+        document.activeElement?.tagName !== 'INPUT' &&
+        document.activeElement?.tagName !== 'TEXTAREA'
+      ) {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      }
+      if (e.key === 'Escape' && searchFocused) {
+        setSearchQuery('');
+        searchInputRef.current?.blur();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [searchFocused]);
 
   const unreadCount = notifications.filter((n) => !n.is_read).length;
 
@@ -141,6 +198,75 @@ export function Header({ onMobileMenuToggle, mobileMenuOpen }: HeaderProps) {
         <span className="lg:hidden text-sm font-semibold text-pw-text font-[var(--font-syne)]">
           {PAGE_TITLES[pathname] || PAGE_TITLES[`/${pathname.split('/')[1]}`] || ''}
         </span>
+      </div>
+
+      {/* Search bar — desktop only */}
+      <div className="hidden lg:flex relative">
+        <div
+          className={cn(
+            'relative flex items-center gap-2 px-3 py-2 w-64 rounded-xl border transition-all duration-200 ease-out',
+            searchFocused
+              ? 'border-pw-accent/40 bg-pw-surface-2 shadow-[0_0_12px_rgba(255,209,8,0.08)]'
+              : 'border-pw-border/40 bg-pw-surface-2/50 hover:border-pw-border-hover'
+          )}
+        >
+          <Search
+            size={14}
+            className={cn(
+              'shrink-0 transition-colors duration-200',
+              searchFocused ? 'text-pw-accent' : 'text-pw-text-dim'
+            )}
+          />
+          <input
+            ref={searchInputRef}
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onFocus={() => setSearchFocused(true)}
+            onBlur={() => setTimeout(() => setSearchFocused(false), 150)}
+            placeholder="Cerca in piattaforma..."
+            className="flex-1 bg-transparent text-xs text-pw-text placeholder:text-pw-text-dim outline-none"
+          />
+          {searchQuery ? (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="text-pw-text-dim hover:text-pw-text transition-colors duration-150"
+            >
+              <X size={12} />
+            </button>
+          ) : (
+            <kbd className="text-[9px] text-pw-text-dim/60 bg-pw-surface-3/80 px-1.5 py-0.5 rounded font-mono border border-pw-border/30">
+              /
+            </kbd>
+          )}
+        </div>
+
+        {/* Search results dropdown */}
+        {searchFocused && searchQuery.trim() && (
+          <div className="absolute top-full mt-2 left-0 w-full bg-pw-surface-2 rounded-xl shadow-2xl shadow-black/40 border border-pw-border/40 z-50 overflow-hidden animate-slide-up">
+            {searchResults.length > 0 ? (
+              searchResults.map((item) => (
+                <button
+                  key={item.href}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    setSearchQuery('');
+                    setSearchFocused(false);
+                    router.push(item.href);
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-pw-text hover:bg-pw-surface-3 transition-colors text-left"
+                >
+                  <Search size={13} className="text-pw-text-dim shrink-0" />
+                  <span>{item.label}</span>
+                </button>
+              ))
+            ) : (
+              <p className="px-4 py-3 text-xs text-pw-text-dim text-center">
+                Nessun risultato
+              </p>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Right side actions */}
