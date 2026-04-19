@@ -108,6 +108,7 @@ export default function RecurringTasksPage() {
   };
 
   const handleDelete = async (id: string) => {
+    // TODO: replace with ConfirmDialog component
     if (!confirm('Eliminare questa task ricorrente?')) return;
     await supabase.from('recurring_tasks').delete().eq('id', id);
     fetchTasks();

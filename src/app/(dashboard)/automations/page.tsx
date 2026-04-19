@@ -96,6 +96,7 @@ export default function AutomationsPage() {
   };
 
   const handleDelete = async (id: string) => {
+    // TODO: replace with ConfirmDialog component
     if (!confirm('Eliminare questa automazione?')) return;
     const { error } = await supabase.from('automations').delete().eq('id', id);
     if (!error) fetchAutomations();

@@ -3,6 +3,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -11,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Select } from '@/components/ui/select';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Modal } from '@/components/ui/modal';
+import { Input } from '@/components/ui/input';
 import { formatDate, getPriorityColor, getStatusColor, getRoleLabel } from '@/lib/utils';
 import type { Task, Project, Client } from '@/types/database';
 import { useToast } from '@/components/ui/toast';
@@ -47,6 +49,11 @@ export default function TasksPage() {
   const [parsedTasks, setParsedTasks] = useState<ParsedTask[] | null>(null);
   const [tasksSaved, setTasksSaved] = useState(false);
   const [error, setError] = useState(false);
+
+  // Delivery URL modal (replaces prompt())
+  const [showDeliveryModal, setShowDeliveryModal] = useState(false);
+  const [deliveryUrl, setDeliveryUrl] = useState('');
+  const [pendingDoneTaskId, setPendingDoneTaskId] = useState<string | null>(null);
 
   const isAdmin = profile?.role === 'admin';
   const toast = useToast();
@@ -135,23 +142,13 @@ export default function TasksPage() {
   }, [fetchTasks, fetchClients, fetchTeamMembers]);
 
   const handleStatusChange = async (taskId: string, newStatus: string) => {
-    // When marking as done, ask for delivery link
+    // When marking as done, ask for delivery link via modal
     if (newStatus === 'done') {
       const task = tasks.find(t => t.id === taskId);
       if (task && !task.delivery_url) {
-        const link = prompt('Inserisci il link al lavoro completato (Google Drive, Figma, ecc.):');
-        if (!link || !link.trim()) {
-          toast.error('Link obbligatorio per completare la task');
-          return;
-        }
-        try {
-          const { error } = await supabase.from('tasks').update({ status: 'done', delivery_url: link.trim() }).eq('id', taskId);
-          if (error) throw error;
-          toast.success('Task completata con link al lavoro');
-          fetchTasks();
-        } catch {
-          toast.error('Errore durante l\'aggiornamento');
-        }
+        setPendingDoneTaskId(taskId);
+        setDeliveryUrl('');
+        setShowDeliveryModal(true);
         return;
       }
     }
@@ -163,6 +160,24 @@ export default function TasksPage() {
       fetchTasks();
     } catch {
       toast.error('Errore durante l\'aggiornamento dello stato');
+    }
+  };
+
+  const handleConfirmDelivery = async () => {
+    if (!pendingDoneTaskId || !deliveryUrl.trim()) {
+      toast.error('Link obbligatorio per completare la task');
+      return;
+    }
+    try {
+      const { error } = await supabase.from('tasks').update({ status: 'done', delivery_url: deliveryUrl.trim() }).eq('id', pendingDoneTaskId);
+      if (error) throw error;
+      toast.success('Task completata con link al lavoro');
+      setShowDeliveryModal(false);
+      setPendingDoneTaskId(null);
+      setDeliveryUrl('');
+      fetchTasks();
+    } catch {
+      toast.error('Errore durante l\'aggiornamento');
     }
   };
 
@@ -384,9 +399,9 @@ export default function TasksPage() {
                         )}
                       </div>
                       <h3 className="font-medium text-pw-text mb-2">
-                        <a href={`/tasks/${task.id}`} className="hover:text-pw-accent transition-colors duration-200 ease-out">
+                        <Link href={`/tasks/${task.id}`} className="hover:text-pw-accent transition-colors duration-200 ease-out">
                           {task.title}
-                        </a>
+                        </Link>
                       </h3>
                       {task.description && (
                         <p className="text-xs text-pw-text-muted mb-2 line-clamp-1">{task.description}</p>
@@ -466,6 +481,44 @@ export default function TasksPage() {
           })}
         </div>
       )}
+
+      {/* Delivery URL Modal */}
+      <Modal
+        open={showDeliveryModal}
+        onClose={() => { setShowDeliveryModal(false); setPendingDoneTaskId(null); }}
+        title="Completa Task - Inserisci link al lavoro"
+        size="sm"
+      >
+        <div className="space-y-4">
+          <div className="p-3 rounded-xl bg-amber-500/10 text-amber-400 text-sm">
+            Per segnare la task come completata, inserisci il link dove si trova il lavoro finito (Google Drive, Figma, Canva, ecc.)
+          </div>
+          <Input
+            id="delivery-url"
+            label="Link al lavoro (Google Drive, Figma, Canva...)"
+            value={deliveryUrl}
+            onChange={(e) => setDeliveryUrl(e.target.value)}
+            placeholder="https://drive.google.com/..."
+          />
+          <div className="flex gap-2 pt-2">
+            <Button
+              variant="outline"
+              onClick={() => { setShowDeliveryModal(false); setPendingDoneTaskId(null); }}
+              className="flex-1"
+            >
+              Annulla
+            </Button>
+            <Button
+              onClick={handleConfirmDelivery}
+              disabled={!deliveryUrl.trim()}
+              className="flex-1"
+            >
+              <Check size={14} />
+              Completa Task
+            </Button>
+          </div>
+        </div>
+      </Modal>
 
       {/* AI Task Creation Modal */}
       <Modal

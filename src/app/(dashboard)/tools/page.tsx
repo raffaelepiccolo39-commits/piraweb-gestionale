@@ -153,6 +153,7 @@ export default function ToolsPage() {
   };
 
   const handleDelete = async (toolId: string) => {
+    // TODO: replace with ConfirmDialog component
     if (!confirm('Eliminare questo tool?')) return;
     await supabase.from('team_tools').update({ is_active: false }).eq('id', toolId);
     toast.success('Tool rimosso');

@@ -308,6 +308,7 @@ export default function CFOPage() {
   };
 
   const handleDeleteExpense = async (id: string) => {
+    // TODO: replace with ConfirmDialog component
     if (!confirm('Eliminare questa spesa?')) return;
     await supabase.from('operating_expenses').update({ is_active: false }).eq('id', id);
     fetchAll();
@@ -365,6 +366,7 @@ export default function CFOPage() {
   };
 
   const handleDeletePayslip = async (id: string) => {
+    // TODO: replace with ConfirmDialog component
     if (!confirm('Eliminare questa busta paga?')) return;
     await supabase.from('payslips').delete().eq('id', id);
     fetchAll();

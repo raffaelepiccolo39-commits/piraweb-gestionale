@@ -132,6 +132,7 @@ export default function FreelancersPage() {
   };
 
   const handleDelete = async (id: string) => {
+    // TODO: replace with ConfirmDialog component
     if (!confirm('Eliminare questo freelancer?')) return;
     await supabase.from('freelancers').delete().eq('id', id);
     toast.success('Freelancer eliminato');

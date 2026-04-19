@@ -37,6 +37,7 @@ export default function MeetingsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [teamMembers, setTeamMembers] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [selectedMeeting, setSelectedMeeting] = useState<Meeting | null>(null);
   const [actionItems, setActionItems] = useState<MeetingActionItem[]>([]);
@@ -80,7 +81,7 @@ export default function MeetingsPage() {
       supabase.from('clients').select('id, name, company').eq('is_active', true).order('company').then((r) => setClients((r.data as Client[]) || [])),
       supabase.from('projects').select('id, name, client_id').order('name').then((r) => setProjects((r.data as Project[]) || [])),
       supabase.from('profiles').select('*').eq('is_active', true).order('full_name').then((r) => setTeamMembers((r.data as Profile[]) || [])),
-    ]).finally(() => setLoading(false));
+    ]).catch(() => setError(true)).finally(() => setLoading(false));
   }, [fetchMeetings, supabase]);
 
   useEffect(() => {
@@ -170,6 +171,17 @@ export default function MeetingsPage() {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="w-8 h-8 border-3 border-pw-accent border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 gap-4">
+        <p className="text-pw-text-muted text-sm">Errore nel caricamento dei meeting.</p>
+        <Button variant="outline" onClick={() => { setError(false); setLoading(true); Promise.all([fetchMeetings(), supabase.from('clients').select('id, name, company').eq('is_active', true).order('company').then((r) => setClients((r.data as Client[]) || [])), supabase.from('projects').select('id, name, client_id').order('name').then((r) => setProjects((r.data as Project[]) || [])), supabase.from('profiles').select('*').eq('is_active', true).order('full_name').then((r) => setTeamMembers((r.data as Profile[]) || []))]).catch(() => setError(true)).finally(() => setLoading(false)); }}>
+          Riprova
+        </Button>
       </div>
     );
   }

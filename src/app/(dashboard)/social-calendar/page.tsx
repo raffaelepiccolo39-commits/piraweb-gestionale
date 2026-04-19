@@ -158,7 +158,7 @@ export default function SocialCalendarPage() {
       setMetaConnected(data.connected || false);
       setMetaPages(data.pages || []);
       setMetaUserName(data.user_name || '');
-    }).catch(() => {});
+    }).catch(() => { /* Meta integration not configured - this is OK, just skip */ });
   }, [fetchPosts, fetchClients]);
 
   const handleCreate = async () => {

@@ -64,6 +64,16 @@ export default function TaskDetailPage({
   const [driveUrl, setDriveUrl] = useState('');
   const [pendingDoneStatus, setPendingDoneStatus] = useState(false);
 
+  // Revision reason modal (replaces prompt())
+  const [showRevisionModal, setShowRevisionModal] = useState(false);
+  const [revisionComment, setRevisionComment] = useState('');
+  const [pendingRevisionApprovalId, setPendingRevisionApprovalId] = useState<string | null>(null);
+
+  // Approval submission modal (replaces prompt())
+  const [showApprovalModal, setShowApprovalModal] = useState(false);
+  const [approvalTitle, setApprovalTitle] = useState('');
+  const [approvalContentUrl, setApprovalContentUrl] = useState('');
+
   const isAdmin = profile?.role === 'admin';
 
   const fetchTask = useCallback(async () => {
@@ -442,17 +452,10 @@ export default function TaskDetailPage({
                         <Button
                           size="sm"
                           variant="danger"
-                          onClick={async () => {
-                            const comment = prompt('Motivo del rifiuto:');
-                            if (comment === null) return;
-                            await supabase.from('content_approvals').update({
-                              status: 'revision_requested',
-                              reviewed_by: profile?.id,
-                              reviewed_at: new Date().toISOString(),
-                              review_comment: comment,
-                            }).eq('id', approval.id);
-                            toast.success('Revisione richiesta');
-                            fetchApprovals();
+                          onClick={() => {
+                            setPendingRevisionApprovalId(approval.id);
+                            setRevisionComment('');
+                            setShowRevisionModal(true);
                           }}
                         >
                           <XCircle size={12} />
@@ -617,18 +620,10 @@ export default function TaskDetailPage({
           {!isAdmin && task.assigned_to === profile?.id && (
             <Button
               className="w-full"
-              onClick={async () => {
-                const title = prompt('Titolo del contenuto da approvare:');
-                if (!title) return;
-                const contentUrl = prompt('Link al contenuto (Figma, Google Docs, etc.):');
-                await supabase.from('content_approvals').insert({
-                  task_id: taskId,
-                  title,
-                  content_url: contentUrl || null,
-                  submitted_by: profile.id,
-                });
-                toast.success('Contenuto inviato per approvazione');
-                fetchApprovals();
+              onClick={() => {
+                setApprovalTitle('');
+                setApprovalContentUrl('');
+                setShowApprovalModal(true);
               }}
             >
               <CheckCircle size={14} />
@@ -676,6 +671,108 @@ export default function TaskDetailPage({
               ) : (
                 <><Link2 size={14} /> Salva Link</>
               )}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Revision Reason Modal */}
+      <Modal
+        open={showRevisionModal}
+        onClose={() => { setShowRevisionModal(false); setPendingRevisionApprovalId(null); }}
+        title="Richiedi revisione"
+        size="sm"
+      >
+        <div className="space-y-4">
+          <Input
+            id="revision-comment"
+            label="Motivo del rifiuto"
+            value={revisionComment}
+            onChange={(e) => setRevisionComment(e.target.value)}
+            placeholder="Spiega cosa va modificato..."
+          />
+          <div className="flex gap-2 pt-2">
+            <Button
+              variant="outline"
+              onClick={() => { setShowRevisionModal(false); setPendingRevisionApprovalId(null); }}
+              className="flex-1"
+            >
+              Annulla
+            </Button>
+            <Button
+              onClick={async () => {
+                if (!pendingRevisionApprovalId) return;
+                await supabase.from('content_approvals').update({
+                  status: 'revision_requested',
+                  reviewed_by: profile?.id,
+                  reviewed_at: new Date().toISOString(),
+                  review_comment: revisionComment || null,
+                }).eq('id', pendingRevisionApprovalId);
+                toast.success('Revisione richiesta');
+                setShowRevisionModal(false);
+                setPendingRevisionApprovalId(null);
+                setRevisionComment('');
+                fetchApprovals();
+              }}
+              className="flex-1"
+            >
+              <XCircle size={14} />
+              Richiedi revisione
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Approval Submission Modal */}
+      <Modal
+        open={showApprovalModal}
+        onClose={() => setShowApprovalModal(false)}
+        title="Invia per approvazione"
+        size="sm"
+      >
+        <div className="space-y-4">
+          <Input
+            id="approval-title"
+            label="Titolo del contenuto da approvare *"
+            value={approvalTitle}
+            onChange={(e) => setApprovalTitle(e.target.value)}
+            placeholder="Es: Post Instagram lancio prodotto"
+          />
+          <Input
+            id="approval-content-url"
+            label="Link al contenuto (Figma, Google Docs, etc.)"
+            value={approvalContentUrl}
+            onChange={(e) => setApprovalContentUrl(e.target.value)}
+            placeholder="https://..."
+          />
+          <div className="flex gap-2 pt-2">
+            <Button
+              variant="outline"
+              onClick={() => setShowApprovalModal(false)}
+              className="flex-1"
+            >
+              Annulla
+            </Button>
+            <Button
+              disabled={!approvalTitle.trim()}
+              onClick={async () => {
+                if (!profile || !approvalTitle.trim()) return;
+                await supabase.from('content_approvals').insert({
+                  task_id: taskId,
+                  title: approvalTitle.trim(),
+                  content_url: approvalContentUrl.trim() || null,
+                  submitted_by: profile.id,
+                });
+                toast.success('Contenuto inviato per approvazione');
+                setShowApprovalModal(false);
+                setApprovalTitle('');
+                setApprovalContentUrl('');
+                fetchApprovals();
+              }}
+              className="flex-1"
+            >
+              <CheckCircle size={14} />
+              Invia
             </Button>
           </div>
         </div>

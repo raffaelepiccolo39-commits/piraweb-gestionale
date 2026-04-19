@@ -79,6 +79,11 @@ export default function CRMPage() {
   const [showActivity, setShowActivity] = useState(false);
   const [view, setView] = useState<'pipeline' | 'list'>('pipeline');
 
+  // Lost reason modal (replaces prompt())
+  const [showLostReasonModal, setShowLostReasonModal] = useState(false);
+  const [lostReason, setLostReason] = useState('');
+  const [pendingLostDealId, setPendingLostDealId] = useState<string | null>(null);
+
   const isAdmin = profile?.role === 'admin';
 
   const [form, setForm] = useState({
@@ -146,19 +151,37 @@ export default function CRMPage() {
   };
 
   const handleStageChange = async (dealId: string, newStage: DealStage) => {
-    let updates: Record<string, unknown> = { stage: newStage };
-
     if (newStage === 'closed_lost') {
-      const reason = prompt('Motivo della perdita (opzionale):');
-      if (reason !== null) updates.lost_reason = reason || null;
+      setPendingLostDealId(dealId);
+      setLostReason('');
+      setShowLostReasonModal(true);
+      return;
     }
 
-    await supabase.from('deals').update(updates).eq('id', dealId);
+    await supabase.from('deals').update({ stage: newStage }).eq('id', dealId);
     toast.success(`Deal spostato a: ${STAGES.find((s) => s.id === newStage)?.label}`);
     fetchDeals();
     if (selectedDeal?.id === dealId) {
       setSelectedDeal((d) => d ? { ...d, stage: newStage } : null);
       fetchActivities(dealId);
+    }
+  };
+
+  const handleConfirmLostDeal = async () => {
+    if (!pendingLostDealId) return;
+    const updates: Record<string, unknown> = {
+      stage: 'closed_lost',
+      lost_reason: lostReason.trim() || null,
+    };
+    await supabase.from('deals').update(updates).eq('id', pendingLostDealId);
+    toast.success(`Deal spostato a: ${STAGES.find((s) => s.id === 'closed_lost')?.label}`);
+    setShowLostReasonModal(false);
+    setPendingLostDealId(null);
+    setLostReason('');
+    fetchDeals();
+    if (selectedDeal?.id === pendingLostDealId) {
+      setSelectedDeal((d) => d ? { ...d, stage: 'closed_lost' as DealStage } : null);
+      fetchActivities(pendingLostDealId);
     }
   };
 
@@ -562,6 +585,41 @@ export default function CRMPage() {
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="ghost" onClick={() => setShowActivity(false)}>Annulla</Button>
             <Button onClick={handleAddActivity}>Salva</Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Lost Reason Modal */}
+      <Modal
+        open={showLostReasonModal}
+        onClose={() => { setShowLostReasonModal(false); setPendingLostDealId(null); }}
+        title="Deal perso"
+        size="sm"
+      >
+        <div className="space-y-4">
+          <Textarea
+            id="lost-reason"
+            label="Motivo della perdita (opzionale)"
+            value={lostReason}
+            onChange={(e) => setLostReason(e.target.value)}
+            placeholder="Es: Budget insufficiente, scelto competitor..."
+            rows={3}
+          />
+          <div className="flex gap-2 pt-2">
+            <Button
+              variant="outline"
+              onClick={() => { setShowLostReasonModal(false); setPendingLostDealId(null); }}
+              className="flex-1"
+            >
+              Annulla
+            </Button>
+            <Button
+              onClick={handleConfirmLostDeal}
+              className="flex-1"
+            >
+              <XCircle size={14} />
+              Conferma
+            </Button>
           </div>
         </div>
       </Modal>

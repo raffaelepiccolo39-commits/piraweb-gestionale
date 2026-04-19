@@ -41,6 +41,7 @@ export default function BachecaPage() {
   const [members, setMembers] = useState<Profile[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
   const [showAddTask, setShowAddTask] = useState(false);
   const [addToMemberId, setAddToMemberId] = useState<string | null>(null);
   const [newTask, setNewTask] = useState({ title: '', description: '', client_id: '', priority: 'medium', deadline: '' });
@@ -83,7 +84,7 @@ export default function BachecaPage() {
   }, []);
 
   useEffect(() => {
-    fetchData();
+    fetchData().catch(() => setError(true));
   }, [fetchData]);
 
   const handleDragEnd = async (result: DropResult) => {
@@ -260,6 +261,17 @@ export default function BachecaPage() {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="w-8 h-8 border-4 border-pw-accent border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 gap-4">
+        <p className="text-pw-text-muted text-sm">Errore nel caricamento della bacheca.</p>
+        <Button variant="outline" onClick={() => { setError(false); setLoading(true); fetchData().catch(() => setError(true)); }}>
+          Riprova
+        </Button>
       </div>
     );
   }
