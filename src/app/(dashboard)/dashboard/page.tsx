@@ -105,20 +105,28 @@ export default function DashboardPage() {
         supabase.from('clients').select('id', { count: 'exact', head: true }).eq('is_active', true),
         // 1: projects count
         supabase.from('projects').select('id', { count: 'exact', head: true }).eq('status', 'active'),
-        // 2: all tasks for stats (only non-archived, limit for perf)
-        supabase.from('tasks').select('id, status, deadline').neq('status', 'archived').limit(200),
-        // 3: recent tasks
+        // 2: tasks for stats (admin vede tutto, dipendenti solo le proprie)
+        isAdmin
+          ? supabase.from('tasks').select('id, status, deadline').neq('status', 'archived').limit(200)
+          : supabase.from('tasks').select('id, status, deadline').eq('assigned_to', profile.id).neq('status', 'archived').limit(200),
+        // 3: recent tasks (solo le mie)
         supabase.from('tasks').select(`
           id, title, status, priority, deadline,
           project:projects(name, color),
           assignee:profiles!tasks_assigned_to_fkey(full_name)
-        `).neq('status', 'done').order('updated_at', { ascending: false }).limit(8),
-        // 4: urgent tasks (overdue + due today)
-        supabase.from('tasks').select(`
-          id, title, deadline,
-          project:projects(name, color),
-          assignee:profiles!tasks_assigned_to_fkey(full_name)
-        `).neq('status', 'done').lte('deadline', tomorrowStr).order('deadline', { ascending: true }).limit(10),
+        `).eq('assigned_to', profile.id).neq('status', 'done').order('updated_at', { ascending: false }).limit(8),
+        // 4: urgent tasks (overdue + due today) — dipendenti vedono solo le proprie
+        isAdmin
+          ? supabase.from('tasks').select(`
+              id, title, deadline,
+              project:projects(name, color),
+              assignee:profiles!tasks_assigned_to_fkey(full_name)
+            `).neq('status', 'done').lte('deadline', tomorrowStr).order('deadline', { ascending: true }).limit(10)
+          : supabase.from('tasks').select(`
+              id, title, deadline,
+              project:projects(name, color),
+              assignee:profiles!tasks_assigned_to_fkey(full_name)
+            `).eq('assigned_to', profile.id).neq('status', 'done').lte('deadline', tomorrowStr).order('deadline', { ascending: true }).limit(10),
         // 5: my attendance
         supabase.from('attendance_records').select('*').eq('user_id', profile.id).eq('date', todayStr).maybeSingle(),
         // 6: projects with tasks for progress
