@@ -336,7 +336,7 @@ export default function ChatPage() {
   return (
     <div className="h-[calc(100vh-theme(spacing.14)-theme(spacing.8))] flex rounded-2xl border border-pw-border overflow-hidden bg-pw-surface animate-slide-up">
       {/* Channel list — desktop always, mobile toggle */}
-      <div className={`w-72 border-r border-pw-border bg-black shrink-0 ${
+      <div className={`w-72 border-r border-pw-border bg-pw-surface-2 shrink-0 ${
         showChannels ? 'block' : 'hidden lg:block'
       }`}>
         <div className="h-14 flex items-center px-4 border-b border-pw-border">
