@@ -215,14 +215,11 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
       <div className="h-[56px] flex items-center px-4 shrink-0">
         <Link href="/dashboard" className="transition-opacity duration-200 hover:opacity-80">
           <Image
-            src="/logo.png"
+            src={theme === 'dark' ? '/logo.png' : '/logo-dark.png'}
             alt="PiraWeb"
             width={collapsed ? 28 : 110}
             height={collapsed ? 13 : 52}
-            className={cn(
-              'object-contain transition-all duration-300 ease-out',
-              theme === 'light' && 'dark:invert-0 invert brightness-0'
-            )}
+            className="object-contain transition-all duration-300 ease-out"
             priority
           />
         </Link>
