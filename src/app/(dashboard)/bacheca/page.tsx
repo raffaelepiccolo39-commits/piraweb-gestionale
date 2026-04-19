@@ -18,6 +18,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select } from '@/components/ui/select';
 import { EmptyState } from '@/components/ui/empty-state';
 import { TaskDetailModal } from '@/components/bacheca/task-detail-modal';
+import { TaskForm } from '@/components/tasks/task-form';
 import { formatDate, getPriorityColor, getInitials } from '@/lib/utils';
 import type { Task, Profile, Client } from '@/types/database';
 import {
@@ -507,123 +508,89 @@ export default function BachecaPage() {
         onUpdate={() => { setSelectedTask(null); fetchData(); }}
       />
 
-      {/* Add task modal */}
+      {/* Add task modal — usa TaskForm universale */}
       <Modal
         open={showAddTask}
         onClose={() => setShowAddTask(false)}
-        title="Aggiungi Scheda"
+        title="Nuova Task"
+        size="lg"
       >
-        <div className="space-y-4">
-          <Input
-            id="task-title"
-            label="Titolo *"
-            value={newTask.title}
-            onChange={(e) => setNewTask({ ...newTask, title: e.target.value })}
-            placeholder="es. CLIENTE - cosa fare"
-          />
-          <Select
-            id="task-client"
-            label="Cliente"
-            value={newTask.client_id}
-            onChange={(e) => setNewTask({ ...newTask, client_id: e.target.value })}
-            options={clients.map((c) => ({ value: c.id, label: c.company || c.name }))}
-            placeholder="Seleziona cliente"
-          />
-          <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <label className="block text-[11px] uppercase tracking-[0.08em] font-medium text-pw-text-muted">
-                Descrizione
-              </label>
-              <button
-                type="button"
-                onClick={handleAiDescription}
-                disabled={generatingAi || !newTask.title.trim()}
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium bg-pw-accent/15 text-pw-accent hover:bg-pw-accent/25 disabled:opacity-40 transition-colors duration-200 ease-out"
-              >
-                {generatingAi ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
-                {generatingAi ? 'Generando...' : 'Scrivi con AI'}
-              </button>
-            </div>
-            <Textarea
-              id="task-desc"
-              value={newTask.description}
-              onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
-              placeholder="Dettagli del task..."
-              rows={3}
-            />
-          </div>
+        <TaskForm
+          showClientSelect
+          clients={clients}
+          showAttachments
+          showAiDescription
+          onSubmit={async (data, files) => {
+            if (!profile) return;
+            setAddingTask(true);
 
-          {/* File upload */}
-          <div>
-            <label className="block text-[11px] uppercase tracking-[0.08em] font-medium text-pw-text-muted mb-1.5">
-              Allegati
-            </label>
-            <label
-              htmlFor="task-files"
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-dashed border-pw-border hover:border-pw-accent/50 cursor-pointer transition-colors duration-200 ease-out text-sm text-pw-text-muted"
-            >
-              <Paperclip size={16} />
-              Carica documenti...
-              <input
-                id="task-files"
-                type="file"
-                multiple
-                className="hidden"
-                onChange={(e) => {
-                  if (e.target.files) {
-                    setAttachFiles((prev) => [...prev, ...Array.from(e.target.files!)]);
+            let projectId: string | null = null;
+            if (data.client_id) {
+              const { data: pid } = await supabase.rpc('get_or_create_client_project', {
+                p_client_id: data.client_id,
+                p_created_by: profile.id,
+              });
+              projectId = pid;
+            }
+
+            if (!projectId) {
+              const { data: defaultProject } = await supabase
+                .from('projects')
+                .select('id')
+                .eq('name', 'Generale')
+                .maybeSingle();
+              if (defaultProject) {
+                projectId = defaultProject.id;
+              } else {
+                const { data: newProject } = await supabase
+                  .from('projects')
+                  .insert({ name: 'Generale', status: 'active', color: '#FFD108', created_by: profile.id })
+                  .select()
+                  .single();
+                projectId = newProject?.id || null;
+              }
+            }
+
+            if (projectId) {
+              const { data: createdTask } = await supabase.from('tasks').insert({
+                title: data.title,
+                description: data.description || null,
+                project_id: projectId,
+                assigned_to: data.assigned_to || addToMemberId,
+                priority: data.priority,
+                deadline: data.deadline || null,
+                estimated_hours: data.estimated_hours ? Number(data.estimated_hours) : null,
+                status: data.status || 'todo',
+                position: 0,
+                created_by: profile.id,
+              }).select('id').single();
+
+              if (createdTask && files && files.length > 0) {
+                for (const file of files) {
+                  const path = `${createdTask.id}/${Date.now()}_${file.name}`;
+                  const { error: uploadError } = await supabase.storage.from('attachments').upload(path, file);
+                  if (!uploadError) {
+                    const { data: urlData } = supabase.storage.from('attachments').getPublicUrl(path);
+                    await supabase.from('task_attachments').insert({
+                      task_id: createdTask.id,
+                      file_name: file.name,
+                      file_url: urlData.publicUrl,
+                      file_type: file.type,
+                      file_size: file.size,
+                      uploaded_by: profile.id,
+                    });
                   }
-                }}
-              />
-            </label>
-            {attachFiles.length > 0 && (
-              <div className="mt-2 space-y-1">
-                {attachFiles.map((file, i) => (
-                  <div key={i} className="flex items-center justify-between px-3 py-1.5 rounded-lg bg-pw-surface-3 text-xs text-pw-text-muted">
-                    <span className="truncate">{file.name}</span>
-                    <button
-                      type="button"
-                      onClick={() => setAttachFiles((prev) => prev.filter((_, idx) => idx !== i))}
-                      className="shrink-0 ml-2 text-pw-text-dim hover:text-red-400 transition-colors duration-200 ease-out"
-                    >
-                      <X size={14} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <Select
-              id="task-priority"
-              label="Priorità"
-              value={newTask.priority}
-              onChange={(e) => setNewTask({ ...newTask, priority: e.target.value })}
-              options={[
-                { value: 'low', label: 'Bassa' },
-                { value: 'medium', label: 'Media' },
-                { value: 'high', label: 'Alta' },
-                { value: 'urgent', label: 'Urgente' },
-              ]}
-            />
-            <Input
-              id="task-deadline"
-              label="Scadenza"
-              type="date"
-              value={newTask.deadline}
-              onChange={(e) => setNewTask({ ...newTask, deadline: e.target.value })}
-            />
-          </div>
-          <div className="flex gap-3 pt-2">
-            <Button variant="outline" onClick={() => setShowAddTask(false)} className="flex-1">
-              Annulla
-            </Button>
-            <Button onClick={handleAddTask} loading={addingTask} disabled={!newTask.title.trim()} className="flex-1">
-              <Plus size={14} />
-              Aggiungi
-            </Button>
-          </div>
-        </div>
+                }
+              }
+            }
+
+            setShowAddTask(false);
+            setAddingTask(false);
+            setAttachFiles([]);
+            fetchData();
+          }}
+          onCancel={() => setShowAddTask(false)}
+        />
       </Modal>
     </div>
   );
