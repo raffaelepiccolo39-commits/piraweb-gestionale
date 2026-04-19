@@ -53,7 +53,7 @@ const navSections: NavSection[] = [
     label: 'Lavoro',
     items: [
       { label: 'Contenuti', href: '/contenuti', icon: Sparkles },
-      { label: 'Team', href: '/team', icon: MessageSquare },
+      { label: 'Bacheca Team', href: '/team', icon: MessageSquare },
     ],
   },
   {
