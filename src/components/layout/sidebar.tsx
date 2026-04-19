@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn, getRoleLabel, getInitials, getUserColor } from '@/lib/utils';
+import { useTheme } from '@/components/theme-provider';
 import { useAuth } from '@/hooks/use-auth';
 import { createClient } from '@/lib/supabase/client';
 import type { UserRole } from '@/types/database';
@@ -125,6 +126,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const [searchFocused, setSearchFocused] = useState(false);
   const [badges, setBadges] = useState<Record<string, number>>({});
   const [loggingOut, setLoggingOut] = useState(false);
+  const { theme, toggleTheme } = useTheme();
   const searchRef = useRef<HTMLInputElement>(null);
 
   // Keyboard shortcut: "/" to focus search
@@ -317,7 +319,8 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   return (
     <aside
       className={cn(
-        'fixed top-0 left-0 z-40 h-screen flex flex-col transition-all duration-300 ease-out bg-[#060D18] border-r border-[rgba(100,140,200,0.15)]',
+        'fixed top-0 left-0 z-40 h-screen flex flex-col transition-all duration-300 ease-out border-r border-pw-border',
+        'bg-[var(--pw-sidebar-bg)]',
         collapsed ? 'w-[68px]' : 'w-[260px]'
       )}
     >
@@ -496,6 +499,19 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
           >
             <LogOut size={14} className={cn(loggingOut && 'animate-spin')} />
             {!collapsed && <span className="uppercase tracking-wide font-medium">Esci</span>}
+          </button>
+
+          {/* Theme toggle */}
+          <button
+            onClick={toggleTheme}
+            className={cn(
+              'flex items-center justify-center gap-2 rounded-lg text-[11px] text-pw-text-dim hover:text-pw-accent hover:bg-pw-accent/10 transition-all duration-200 ease-out',
+              collapsed ? 'w-10 h-8' : 'px-3 py-1.5'
+            )}
+            aria-label={theme === 'dark' ? 'Tema chiaro' : 'Tema scuro'}
+            title={theme === 'dark' ? 'Tema chiaro' : 'Tema scuro'}
+          >
+            {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
           </button>
 
           {/* Divider */}

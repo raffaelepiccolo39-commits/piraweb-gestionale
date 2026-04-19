@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { Syne, Bebas_Neue, DM_Serif_Display } from 'next/font/google';
+import { ThemeProvider } from '@/components/theme-provider';
 import './globals.css';
 
 const syne = Syne({
@@ -40,7 +41,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: '#04080E',
+  themeColor: '#0A263A',
   width: 'device-width',
   initialScale: 1,
 };
@@ -51,9 +52,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="it" className={`${syne.variable} ${bebasNeue.variable} ${dmSerif.variable} h-full dark`} suppressHydrationWarning>
+    <html lang="it" className={`${syne.variable} ${bebasNeue.variable} ${dmSerif.variable} h-full`} suppressHydrationWarning>
       <body className={`${syne.className} min-h-full bg-pw-bg text-pw-text antialiased`}>
-        {children}
+        <ThemeProvider>
+          {children}
+        </ThemeProvider>
         <script dangerouslySetInnerHTML={{ __html: `
           if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {

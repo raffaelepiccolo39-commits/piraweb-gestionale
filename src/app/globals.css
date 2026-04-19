@@ -3,46 +3,42 @@
 @theme inline {
   /* ══════════════════════════════════════════
      PiraWeb Premium Design System
-     Brand-aligned · Navy + Yellow + Red-Orange
+     Dual Theme: Light (default) + Dark
      ══════════════════════════════════════════ */
 
-  /* Background layers — deep navy, high contrast between layers */
-  --color-pw-bg: #030709;
-  --color-pw-surface: #0D1520;
-  --color-pw-surface-2: #15223A;
-  --color-pw-surface-3: #1E3050;
+  /* Colors reference CSS custom properties set per-theme below */
+  --color-pw-bg: var(--pw-bg);
+  --color-pw-surface: var(--pw-surface);
+  --color-pw-surface-2: var(--pw-surface-2);
+  --color-pw-surface-3: var(--pw-surface-3);
+  --color-pw-border: var(--pw-border);
+  --color-pw-border-hover: var(--pw-border-hover);
+  --color-pw-text: var(--pw-text);
+  --color-pw-text-muted: var(--pw-text-muted);
+  --color-pw-text-dim: var(--pw-text-dim);
 
-  /* Borders — clearly visible */
-  --color-pw-border: rgba(100, 140, 200, 0.18);
-  --color-pw-border-hover: rgba(100, 140, 200, 0.35);
+  /* Brand accent — same in both themes */
+  --color-pw-accent: #D4A800;
+  --color-pw-accent-hover: #B8930A;
 
-  /* Text hierarchy */
-  --color-pw-text: #F0F2F8;
-  --color-pw-text-muted: rgba(240, 242, 248, 0.55);
-  --color-pw-text-dim: rgba(240, 242, 248, 0.28);
-
-  /* Brand accent — PiraWeb yellow */
-  --color-pw-accent: #FFD108;
-  --color-pw-accent-hover: #FFE044;
-
-  /* Secondary accents — brand-derived */
-  --color-pw-red: #ff4d1c;
+  /* Secondary accents */
+  --color-pw-red: #E0431A;
   --color-pw-navy: #0A263A;
-  --color-pw-gold: #FFF241;
-  --color-pw-cyan: #22d3ee;
+  --color-pw-gold: #D4A800;
+  --color-pw-cyan: #0E9AB5;
 
   /* Semantic */
-  --color-primary: #FFD108;
-  --color-primary-hover: #FFE044;
-  --color-primary-light: rgba(255, 209, 8, 0.08);
-  --color-success: #34d399;
-  --color-warning: #f59e0b;
-  --color-danger: #f87171;
+  --color-primary: #D4A800;
+  --color-primary-hover: #B8930A;
+  --color-primary-light: var(--pw-accent-light);
+  --color-success: #16A34A;
+  --color-warning: #D97706;
+  --color-danger: #DC2626;
 
   /* Glow intensities */
-  --glow-accent: rgba(255, 209, 8, 0.12);
-  --glow-red: rgba(255, 77, 28, 0.12);
-  --glow-cyan: rgba(34, 211, 238, 0.10);
+  --glow-accent: var(--pw-glow-accent);
+  --glow-red: var(--pw-glow-red);
+  --glow-cyan: var(--pw-glow-cyan);
 
   /* Fonts — Syne as primary, brand-aligned */
   --font-sans: var(--font-syne);
@@ -51,16 +47,85 @@
   --font-serif: var(--font-dm-serif);
 }
 
+/* ═══════════ LIGHT THEME (default) ═══════════ */
+:root {
+  --pw-bg: #F5F6FA;
+  --pw-surface: #FFFFFF;
+  --pw-surface-2: #F0F1F5;
+  --pw-surface-3: #E4E6EE;
+  --pw-border: rgba(10, 38, 58, 0.12);
+  --pw-border-hover: rgba(10, 38, 58, 0.24);
+  --pw-text: #0F1729;
+  --pw-text-muted: rgba(15, 23, 41, 0.60);
+  --pw-text-dim: rgba(15, 23, 41, 0.35);
+  --pw-accent-light: rgba(212, 168, 0, 0.08);
+  --pw-glow-accent: rgba(212, 168, 0, 0.10);
+  --pw-glow-red: rgba(224, 67, 26, 0.10);
+  --pw-glow-cyan: rgba(14, 154, 181, 0.08);
+  --pw-card-bg: #FFFFFF;
+  --pw-card-hover-bg: #FAFBFC;
+  --pw-sidebar-bg: #FFFFFF;
+  --pw-glass-bg: rgba(255, 255, 255, 0.95);
+  --pw-glass-border: rgba(10, 38, 58, 0.10);
+  --pw-scrollbar: rgba(10, 38, 58, 0.15);
+  --pw-scrollbar-hover: rgba(10, 38, 58, 0.30);
+  --pw-selection-bg: rgba(212, 168, 0, 0.20);
+  --pw-row-hover: rgba(10, 38, 58, 0.04);
+}
+
+/* ═══════════ DARK THEME ═══════════ */
+.dark {
+  --pw-bg: #030709;
+  --pw-surface: #0D1520;
+  --pw-surface-2: #15223A;
+  --pw-surface-3: #1E3050;
+  --pw-border: rgba(100, 140, 200, 0.18);
+  --pw-border-hover: rgba(100, 140, 200, 0.35);
+  --pw-text: #F0F2F8;
+  --pw-text-muted: rgba(240, 242, 248, 0.55);
+  --pw-text-dim: rgba(240, 242, 248, 0.28);
+  --pw-accent-light: rgba(255, 209, 8, 0.08);
+  --pw-glow-accent: rgba(255, 209, 8, 0.12);
+  --pw-glow-red: rgba(255, 77, 28, 0.12);
+  --pw-glow-cyan: rgba(34, 211, 238, 0.10);
+  --pw-card-bg: #0D1825;
+  --pw-card-hover-bg: #101D2D;
+  --pw-sidebar-bg: #060D18;
+  --pw-glass-bg: rgba(8, 16, 28, 0.97);
+  --pw-glass-border: rgba(120, 150, 180, 0.14);
+  --pw-scrollbar: rgba(10, 38, 58, 0.4);
+  --pw-scrollbar-hover: rgba(10, 38, 58, 0.6);
+  --pw-selection-bg: rgba(255, 209, 8, 0.25);
+  --pw-row-hover: rgba(15, 29, 46, 0.5);
+
+  color-scheme: dark;
+}
+.dark {
+  --color-pw-accent: #FFD108;
+  --color-pw-accent-hover: #FFE044;
+  --color-pw-red: #ff4d1c;
+  --color-pw-gold: #FFF241;
+  --color-pw-cyan: #22d3ee;
+  --color-primary: #FFD108;
+  --color-primary-hover: #FFE044;
+  --color-success: #34d399;
+  --color-warning: #f59e0b;
+  --color-danger: #f87171;
+}
+
 /* ═══════════ GLOBAL RESETS ═══════════ */
 html {
+  color-scheme: light;
+}
+html.dark {
   color-scheme: dark;
 }
 body {
   max-width: 100vw;
 }
 
-/* ═══════════ AMBIENT BACKGROUND ═══════════ */
-body::before {
+/* ═══════════ AMBIENT BACKGROUND (dark only) ═══════════ */
+.dark body::before {
   content: '';
   position: fixed;
   inset: 0;
@@ -72,8 +137,8 @@ body::before {
   pointer-events: none;
 }
 
-/* ═══════════ NOISE TEXTURE OVERLAY ═══════════ */
-body::after {
+/* ═══════════ NOISE TEXTURE (dark only) ═══════════ */
+.dark body::after {
   content: '';
   position: fixed;
   inset: 0;
@@ -92,17 +157,17 @@ body::after {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(10, 38, 58, 0.4);
+  background: var(--pw-scrollbar);
   border-radius: 99px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(10, 38, 58, 0.6);
+  background: var(--pw-scrollbar-hover);
 }
 
 /* ═══════════ SELECTION ═══════════ */
 ::selection {
-  background: rgba(255, 209, 8, 0.25);
-  color: #F0F2F8;
+  background: var(--pw-selection-bg);
+  color: var(--pw-text);
 }
 
 /* ═══════════ FOCUS ═══════════ */
@@ -122,10 +187,10 @@ body::after {
 
 /* ═══════════ GLASS MORPHISM ═══════════ */
 .glass {
-  background: rgba(8, 16, 28, 0.97);
+  background: var(--pw-glass-bg);
   backdrop-filter: blur(24px) saturate(1.3);
   -webkit-backdrop-filter: blur(24px) saturate(1.3);
-  border: 1px solid rgba(120, 150, 180, 0.14);
+  border: 1px solid var(--pw-glass-border);
 }
 
 .glass-light {
@@ -276,18 +341,21 @@ body::after {
 /* ═══════════ PREMIUM CARD SYSTEM ═══════════ */
 .card-premium {
   position: relative;
-  border: 1px solid rgba(100, 140, 200, 0.18);
+  border: 1px solid var(--pw-border);
   border-radius: 16px;
-  background: #0D1825;
+  background: var(--pw-card-bg);
   transition: all 250ms cubic-bezier(0.2, 0, 0, 1);
 }
 .card-premium:hover {
-  border-color: rgba(255, 209, 8, 0.25);
-  background: #101D2D;
+  border-color: var(--pw-border-hover);
+  background: var(--pw-card-hover-bg);
+  box-shadow: 0 4px 24px -4px rgba(0, 0, 0, 0.12);
+  transform: translateY(-1px);
+}
+.dark .card-premium:hover {
   box-shadow:
     0 4px 24px -4px rgba(0, 0, 0, 0.6),
     0 0 0 1px rgba(255, 209, 8, 0.08);
-  transform: translateY(-1px);
 }
 
 /* Top accent line on cards */
@@ -413,7 +481,7 @@ body::after {
   transition: background-color 150ms ease-out;
 }
 .row-hover:hover {
-  background-color: rgba(15, 29, 46, 0.5);
+  background-color: var(--pw-row-hover);
 }
 
 /* ═══════════ SHAKE ANIMATION ═══════════ */
