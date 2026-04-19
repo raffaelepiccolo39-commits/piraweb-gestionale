@@ -12,7 +12,6 @@ import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { formatCurrency, formatDate, formatDateTime, getInitials, getUserColor } from '@/lib/utils';
-import { AdminGate } from '@/components/ui/admin-gate';
 import type { Deal, DealStage, DealActivity, Profile } from '@/types/database';
 import {
   Plus,
@@ -250,7 +249,6 @@ export default function CRMPage() {
   }
 
   return (
-    <AdminGate>
     <div className="space-y-6 animate-slide-up">
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -624,6 +622,5 @@ export default function CRMPage() {
         </div>
       </Modal>
     </div>
-    </AdminGate>
   );
 }

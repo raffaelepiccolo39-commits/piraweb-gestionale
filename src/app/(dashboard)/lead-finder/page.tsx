@@ -9,7 +9,6 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { formatDate } from '@/lib/utils';
-import { AdminGate } from '@/components/ui/admin-gate';
 import type { LeadProspect, OutreachStatus } from '@/types/database';
 import {
   Search,
@@ -305,7 +304,6 @@ export default function LeadFinderPage() {
   }
 
   return (
-    <AdminGate>
     <div className="space-y-6 animate-slide-up">
       {/* Header */}
       <div>
@@ -1119,6 +1117,5 @@ export default function LeadFinderPage() {
         </>
       )}
     </div>
-    </AdminGate>
   );
 }

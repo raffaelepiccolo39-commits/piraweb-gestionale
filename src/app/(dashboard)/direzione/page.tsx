@@ -6,7 +6,6 @@ import { useAuth } from '@/hooks/use-auth';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { formatCurrency, getInitials, getUserColor } from '@/lib/utils';
-import { AdminGate } from '@/components/ui/admin-gate';
 import type { ClientHealth, Profile } from '@/types/database';
 import {
   Crown,
@@ -192,7 +191,6 @@ export default function DirectionPage() {
   };
 
   return (
-    <AdminGate>
     <div className="space-y-6 animate-slide-up">
       <div>
         <h1 className="text-2xl font-bold text-pw-text font-[var(--font-syne)] flex items-center gap-2">
@@ -340,6 +338,5 @@ export default function DirectionPage() {
         </Card>
       </div>
     </div>
-    </AdminGate>
   );
 }

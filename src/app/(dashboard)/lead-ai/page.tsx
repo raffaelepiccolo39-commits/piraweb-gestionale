@@ -9,7 +9,6 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { createClient } from '@/lib/supabase/client';
-import { AdminGate } from '@/components/ui/admin-gate';
 import {
   Sparkles,
   Search,
@@ -170,7 +169,6 @@ export default function LeadAIPage() {
   }
 
   return (
-    <AdminGate>
     <div className="space-y-6 animate-slide-up">
       {/* Header */}
       <div>
@@ -419,6 +417,5 @@ export default function LeadAIPage() {
         </div>
       )}
     </div>
-    </AdminGate>
   );
 }

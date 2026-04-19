@@ -9,7 +9,6 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/ui/empty-state';
 import { formatCurrency, getRoleLabel } from '@/lib/utils';
-import { AdminGate } from '@/components/ui/admin-gate';
 import type { CashflowMonthly, CashflowSummary, RevenuePerClient, ProfitLossSummary, MonthlyExpenses } from '@/types/database';
 import { HealthIndicators } from '@/components/cashflow/health-indicators';
 import { ProfitLossChart } from '@/components/cashflow/profit-loss-chart';
@@ -176,7 +175,6 @@ export default function CashflowPage() {
   const netMarginPct = Number(pnl?.net_margin_pct || 0);
 
   return (
-    <AdminGate>
     <div className="space-y-6 animate-slide-up">
       {/* Header */}
       <div className="space-y-4">
@@ -656,6 +654,5 @@ export default function CashflowPage() {
         </>
       )}
     </div>
-    </AdminGate>
   );
 }
