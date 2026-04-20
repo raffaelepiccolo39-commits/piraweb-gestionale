@@ -90,6 +90,7 @@ export default function ProjectDetailPage({
       .filter((t) => t.status === data.status)
       .reduce((max, t) => Math.max(max, t.position), -1);
 
+    if (!profile) return;
     const { error } = await supabase.from('tasks').insert({
       title: data.title,
       description: data.description || null,
@@ -100,7 +101,7 @@ export default function ProjectDetailPage({
       deadline: data.deadline || null,
       estimated_hours: data.estimated_hours ? parseFloat(data.estimated_hours) : null,
       position: maxPosition + 1,
-      created_by: profile!.id,
+      created_by: profile.id,
     });
 
     if (!error) {

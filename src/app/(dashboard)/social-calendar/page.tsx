@@ -162,6 +162,7 @@ export default function SocialCalendarPage() {
   }, [fetchPosts, fetchClients]);
 
   const handleCreate = async () => {
+    if (!profile) return;
     if (!form.title || !form.client_id || form.platforms.length === 0) {
       toast.error('Compila titolo, cliente e almeno una piattaforma');
       return;
@@ -175,7 +176,7 @@ export default function SocialCalendarPage() {
       client_id: form.client_id,
       hashtags: form.hashtags || null,
       notes: form.notes || null,
-      created_by: profile!.id,
+      created_by: profile.id,
     });
     if (error) {
       toast.error('Errore nella creazione');

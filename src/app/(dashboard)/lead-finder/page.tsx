@@ -182,6 +182,7 @@ export default function LeadFinderPage() {
       }
     }
 
+    if (!profile) return;
     const { error } = await supabase.from('lead_prospects').insert({
       business_name: result.business_name,
       address: result.address,
@@ -196,7 +197,7 @@ export default function LeadFinderPage() {
       instagram_url: result.instagram_url || null,
       facebook_url: result.facebook_url || null,
       search_query: `${searchSector} ${searchCity}`,
-      created_by: profile!.id,
+      created_by: profile.id,
     });
 
     if (error) {

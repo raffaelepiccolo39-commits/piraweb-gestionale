@@ -89,6 +89,7 @@ export default function ProjectsPage() {
   }, [fetchProjects]);
 
   const handleCreate = async (data: ProjectFormData) => {
+    if (!profile) return;
     try {
       const { data: project, error } = await supabase
         .from('projects')
@@ -99,7 +100,7 @@ export default function ProjectsPage() {
           status: data.status,
           color: data.color,
           deadline: data.deadline || null,
-          created_by: profile!.id,
+          created_by: profile.id,
         })
         .select()
         .single();

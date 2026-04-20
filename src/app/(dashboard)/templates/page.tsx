@@ -82,9 +82,10 @@ export default function TemplatesPage() {
   }, [selectedTemplate, fetchTemplateTasks]);
 
   const handleCreateTemplate = async () => {
+    if (!profile) return;
     if (!form.name) { toast.error('Nome obbligatorio'); return; }
     const { error } = await supabase.from('project_templates').insert({
-      name: form.name, description: form.description || null, category: form.category, created_by: profile!.id,
+      name: form.name, description: form.description || null, category: form.category, created_by: profile.id,
     });
     if (!error) {
       toast.success('Template creato');
@@ -119,12 +120,12 @@ export default function TemplatesPage() {
   };
 
   const handleUseTemplate = async () => {
-    if (!useForm.project_name || !selectedTemplate) return;
+    if (!profile || !useForm.project_name || !selectedTemplate) return;
     const { data, error } = await supabase.rpc('create_project_from_template', {
       p_template_id: selectedTemplate.id,
       p_project_name: useForm.project_name,
       p_client_id: useForm.client_id || null,
-      p_created_by: profile!.id,
+      p_created_by: profile.id,
     });
     if (error) {
       toast.error('Errore nella creazione del progetto');

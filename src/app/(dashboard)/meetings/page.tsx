@@ -92,6 +92,7 @@ export default function MeetingsPage() {
   }, [selectedMeeting, fetchActionItems]);
 
   const handleCreate = async () => {
+    if (!profile) return;
     if (!form.title || !form.scheduled_at) {
       toast.error('Titolo e data sono obbligatori');
       return;
@@ -105,7 +106,7 @@ export default function MeetingsPage() {
       duration_minutes: parseInt(form.duration_minutes) || 60,
       location: form.location || null,
       attendees: form.attendees,
-      created_by: profile!.id,
+      created_by: profile.id,
     });
     if (error) {
       toast.error('Errore nella creazione');
@@ -137,7 +138,7 @@ export default function MeetingsPage() {
   };
 
   const handleCreateTaskFromAction = async (item: MeetingActionItem) => {
-    if (!selectedMeeting) return;
+    if (!profile || !selectedMeeting) return;
     // Create task from action item
     const { data: task, error } = await supabase.from('tasks').insert({
       title: item.content,
@@ -146,7 +147,7 @@ export default function MeetingsPage() {
       assigned_to: item.assigned_to,
       status: 'todo',
       priority: 'medium',
-      created_by: profile!.id,
+      created_by: profile.id,
     }).select('id').single();
 
     if (!error && task) {

@@ -130,11 +130,12 @@ export default function ClientsPage() {
   };
 
   const handleCreate = async (data: ClientFormData) => {
+    if (!profile) return;
     try {
       const { logo, ...fields } = data;
       const { data: newClient, error } = await supabase.from('clients').insert({
         ...fields,
-        created_by: profile!.id,
+        created_by: profile.id,
       }).select().single();
       if (!error && newClient && logo) {
         const logoUrl = await uploadLogo(logo, newClient.id);
@@ -283,6 +284,7 @@ export default function ClientsPage() {
   };
 
   const createProjectsForServices = async (clientId: string, clientName: string, services: string[]) => {
+    if (!profile) return;
     // Pre-fetch all active profiles once to avoid N+1 queries per task
     const { data: activeProfiles } = await supabase
       .from('profiles')
@@ -303,7 +305,7 @@ export default function ClientsPage() {
         client_id: clientId,
         status: 'active',
         color: config.color,
-        created_by: profile!.id,
+        created_by: profile.id,
       }).select('id').single();
 
       if (projError || !project) continue;
@@ -311,7 +313,7 @@ export default function ClientsPage() {
       // Add creator as member
       await supabase.from('project_members').insert({
         project_id: project.id,
-        user_id: profile!.id,
+        user_id: profile.id,
       });
 
       // Collect unique members and batch-insert tasks
@@ -327,7 +329,7 @@ export default function ClientsPage() {
           estimated_hours: task.estimated_hours,
           position: i,
           status: 'todo' as const,
-          created_by: profile!.id,
+          created_by: profile.id,
         };
       });
 

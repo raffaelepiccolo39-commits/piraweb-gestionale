@@ -67,6 +67,7 @@ export default function AutomationsPage() {
   }, [selectedId, fetchLogs]);
 
   const handleCreate = async () => {
+    if (!profile) return;
     if (!form.name) { toast.error('Nome obbligatorio'); return; }
     let triggerConfig = {};
     let actionConfig = {};
@@ -80,7 +81,7 @@ export default function AutomationsPage() {
       trigger_config: triggerConfig,
       action_type: form.action_type,
       action_config: actionConfig,
-      created_by: profile!.id,
+      created_by: profile.id,
     });
     if (!error) {
       toast.success('Automazione creata');

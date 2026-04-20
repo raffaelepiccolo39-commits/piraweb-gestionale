@@ -79,6 +79,7 @@ export default function RecurringTasksPage() {
       default: nextDue = new Date(now.getTime() + 7 * 86400000);
     }
 
+    if (!profile) return;
     const { error } = await supabase.from('recurring_tasks').insert({
       title: form.title,
       description: form.description || null,
@@ -89,7 +90,7 @@ export default function RecurringTasksPage() {
       recurrence_type: form.recurrence_type,
       recurrence_day: form.recurrence_day ? parseInt(form.recurrence_day) : null,
       next_due_at: nextDue.toISOString(),
-      created_by: profile!.id,
+      created_by: profile.id,
     });
 
     if (!error) {

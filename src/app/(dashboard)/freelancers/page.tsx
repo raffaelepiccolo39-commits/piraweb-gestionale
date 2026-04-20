@@ -105,7 +105,8 @@ export default function FreelancersPage() {
       if (error) { toast.error('Errore nell\'aggiornamento'); return; }
       toast.success('Freelancer aggiornato');
     } else {
-      const { error } = await supabase.from('freelancers').insert({ ...data, created_by: profile!.id });
+      if (!profile) return;
+      const { error } = await supabase.from('freelancers').insert({ ...data, created_by: profile.id });
       if (error) { toast.error('Errore nella creazione'); return; }
       toast.success('Freelancer aggiunto');
     }

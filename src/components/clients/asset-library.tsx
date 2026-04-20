@@ -86,6 +86,7 @@ export function AssetLibrary({ clientId }: AssetLibraryProps) {
   }, [fetchAssets]);
 
   const handleAdd = async () => {
+    if (!profile) return;
     if (!form.name) { toast.error('Nome obbligatorio'); return; }
 
     const metadata: Record<string, unknown> = {};
@@ -100,7 +101,7 @@ export function AssetLibrary({ clientId }: AssetLibraryProps) {
       file_url: form.file_url || null,
       metadata,
       tags: form.tags ? form.tags.split(',').map((t) => t.trim()) : [],
-      uploaded_by: profile!.id,
+      uploaded_by: profile.id,
     });
 
     if (error) {

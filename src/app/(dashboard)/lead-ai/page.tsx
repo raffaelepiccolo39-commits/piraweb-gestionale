@@ -122,6 +122,7 @@ export default function LeadAIPage() {
   };
 
   const handleSaveLead = async (lead: Lead) => {
+    if (!profile) return;
     setSavingLead(lead.name);
     const { error } = await supabase.from('lead_prospects').insert({
       business_name: lead.name,
@@ -140,7 +141,7 @@ export default function LeadAIPage() {
       score_advertising: lead.has_ads ? 40 : 0,
       score_total: Math.max(0, 100 - lead.score * 15),
       search_query: `AI: ${sector} ${provincia} ${regione}`,
-      created_by: profile!.id,
+      created_by: profile.id,
     });
     if (error) {
       toast.error(error.message.includes('duplicate') ? 'Gia\' salvato' : 'Errore nel salvataggio');

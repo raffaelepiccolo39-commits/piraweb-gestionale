@@ -126,6 +126,7 @@ export default function CRMPage() {
   }, [selectedDeal, fetchActivities]);
 
   const handleCreate = async () => {
+    if (!profile) return;
     if (!form.title) { toast.error('Titolo obbligatorio'); return; }
     const { error } = await supabase.from('deals').insert({
       title: form.title,
@@ -139,8 +140,8 @@ export default function CRMPage() {
       services: form.services || null,
       notes: form.notes || null,
       expected_close_date: form.expected_close_date || null,
-      owner_id: form.owner_id || profile!.id,
-      created_by: profile!.id,
+      owner_id: form.owner_id || profile.id,
+      created_by: profile.id,
     });
     if (!error) {
       toast.success('Deal creato');
@@ -186,14 +187,14 @@ export default function CRMPage() {
   };
 
   const handleAddActivity = async () => {
-    if (!activityForm.title || !selectedDeal) return;
+    if (!profile || !activityForm.title || !selectedDeal) return;
     await supabase.from('deal_activities').insert({
       deal_id: selectedDeal.id,
       type: activityForm.type,
       title: activityForm.title,
       description: activityForm.description || null,
       scheduled_at: activityForm.scheduled_at || null,
-      created_by: profile!.id,
+      created_by: profile.id,
     });
     setShowActivity(false);
     setActivityForm({ type: 'note', title: '', description: '', scheduled_at: '' });
@@ -201,6 +202,7 @@ export default function CRMPage() {
   };
 
   const handleConvertToClient = async (deal: Deal) => {
+    if (!profile) return;
     // Create client from deal
     const { data: client, error } = await supabase.from('clients').insert({
       name: deal.contact_name || deal.title,
@@ -208,7 +210,7 @@ export default function CRMPage() {
       email: deal.contact_email || null,
       phone: deal.contact_phone || null,
       notes: `Convertito da deal: ${deal.title}\n${deal.notes || ''}`,
-      created_by: profile!.id,
+      created_by: profile.id,
     }).select('id').single();
 
     if (!error && client) {

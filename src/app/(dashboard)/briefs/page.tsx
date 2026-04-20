@@ -99,6 +99,7 @@ export default function BriefsPage() {
       .map((u) => u.trim())
       .filter(Boolean);
 
+    if (!profile) return;
     const { error } = await supabase.from('creative_briefs').insert({
       title: form.title,
       project_id: form.project_id,
@@ -113,7 +114,7 @@ export default function BriefsPage() {
       references_urls: refs,
       deadline: form.deadline || null,
       budget_notes: form.budget_notes || null,
-      created_by: profile!.id,
+      created_by: profile.id,
     });
 
     if (error) {
@@ -127,9 +128,10 @@ export default function BriefsPage() {
   };
 
   const handleApprove = async (briefId: string) => {
+    if (!profile) return;
     await supabase.from('creative_briefs').update({
       status: 'approved',
-      approved_by: profile!.id,
+      approved_by: profile.id,
       approved_at: new Date().toISOString(),
     }).eq('id', briefId);
     toast.success('Brief approvato');
