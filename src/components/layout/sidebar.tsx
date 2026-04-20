@@ -23,6 +23,9 @@ import {
   LogOut,
   Moon,
   Sun,
+  MessageSquare,
+  Sparkles,
+  Crown,
 } from 'lucide-react';
 
 interface NavItem {
@@ -50,18 +53,31 @@ const navSections: NavSection[] = [
     ],
   },
   {
+    label: 'Team',
+    items: [
+      { label: 'Bacheca Team', href: '/team', icon: MessageSquare },
+      { label: 'Timesheet', href: '/timesheet', icon: Clock },
+    ],
+  },
+  {
+    label: 'Lavoro',
+    items: [
+      { label: 'Contenuti', href: '/contenuti', icon: Sparkles },
+    ],
+  },
+  {
     label: 'Business',
     items: [
       { label: 'Clienti', href: '/clients', icon: Users },
       { label: 'CRM', href: '/crm', icon: Briefcase },
       { label: 'Cashflow', href: '/cashflow', icon: Wallet },
-      { label: 'Timesheet', href: '/timesheet', icon: Clock },
     ],
   },
   {
     label: 'Admin',
     adminOnly: true,
     items: [
+      { label: 'Gestione', href: '/gestione', icon: Crown },
       { label: 'Impostazioni', href: '/settings', icon: Settings },
     ],
   },

@@ -4,31 +4,42 @@ import { useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
 import { cn } from '@/lib/utils';
-import { MessageSquare, Video, Timer, Clock, CalendarDays, Network, Wrench } from 'lucide-react';
+import { useAuth } from '@/hooks/use-auth';
+import { MessageSquare, Video, Clock, Network, Wrench, UserCog, BarChart3 } from 'lucide-react';
 
 // Import delle pagine esistenti
 import BachecaPage from '../bacheca/page';
 import MeetingsPage from '../meetings/page';
-import TimesheetPage from '../timesheet/page';
 import PresenzePage from '../presenze/page';
-import CalendarioPage from '../calendario/page';
 import OrganigrammaPage from '../organigramma/page';
 import ToolsPage from '../tools/page';
+import FreelancersPage from '../freelancers/page';
+import CapacityPage from '../capacity/page';
 
-const tabs = [
+interface TeamTab {
+  id: string;
+  label: string;
+  icon: React.ElementType;
+  adminOnly?: boolean;
+}
+
+const tabs: TeamTab[] = [
   { id: 'bacheca', label: 'Bacheca', icon: MessageSquare },
   { id: 'meeting', label: 'Meeting', icon: Video },
-  { id: 'timesheet', label: 'Timesheet', icon: Timer },
   { id: 'presenze', label: 'Presenze', icon: Clock },
-  { id: 'calendario', label: 'Calendario', icon: CalendarDays },
   { id: 'organigramma', label: 'Organigramma', icon: Network },
   { id: 'tools', label: 'Tools', icon: Wrench },
+  { id: 'freelancers', label: 'Freelancers', icon: UserCog, adminOnly: true },
+  { id: 'capacity', label: 'Capacità', icon: BarChart3, adminOnly: true },
 ];
 
 function TeamContent() {
   const searchParams = useSearchParams();
   const initialTab = searchParams.get('tab') || 'bacheca';
   const [activeTab, setActiveTab] = useState(initialTab);
+  const { profile } = useAuth();
+  const isAdmin = profile?.role === 'admin';
+  const visibleTabs = tabs.filter(t => !t.adminOnly || isAdmin);
 
   return (
     <div className="space-y-6 animate-slide-up">
@@ -44,7 +55,7 @@ function TeamContent() {
 
       {/* Tab bar */}
       <div className="flex gap-1 p-1 rounded-xl bg-pw-surface-2/50 border border-pw-border/40 overflow-x-auto no-scrollbar">
-        {tabs.map((tab) => {
+        {visibleTabs.map((tab) => {
           const Icon = tab.icon;
           return (
             <button
@@ -68,11 +79,11 @@ function TeamContent() {
       <div>
         {activeTab === 'bacheca' && <BachecaPage />}
         {activeTab === 'meeting' && <MeetingsPage />}
-        {activeTab === 'timesheet' && <TimesheetPage />}
         {activeTab === 'presenze' && <PresenzePage />}
-        {activeTab === 'calendario' && <CalendarioPage />}
         {activeTab === 'organigramma' && <OrganigrammaPage />}
         {activeTab === 'tools' && <ToolsPage />}
+        {activeTab === 'freelancers' && isAdmin && <FreelancersPage />}
+        {activeTab === 'capacity' && isAdmin && <CapacityPage />}
       </div>
     </div>
   );

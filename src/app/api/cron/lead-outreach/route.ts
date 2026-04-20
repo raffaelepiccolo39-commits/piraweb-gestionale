@@ -7,8 +7,8 @@ import { createServiceRoleClient } from '@/lib/supabase/server';
 /**
  * LEAD OUTREACH AGENT
  * Prende i lead analizzati con score_total <= 50 (= hanno bisogno di servizi digital)
- * e genera messaggi WhatsApp + Email personalizzati usando AI.
- * Li mette in stato 'to_contact' pronti per l'invio manuale.
+ * e hanno un'email valida, poi genera messaggi email personalizzati usando AI.
+ * Li mette in stato 'to_contact' pronti per l'invio automatico.
  *
  * Schedule: ogni 4 ore, h24
  */
@@ -44,6 +44,7 @@ async function handleCron(request: NextRequest) {
       .from('lead_prospects')
       .select('*')
       .not('analyzed_at', 'is', null)
+      .not('email', 'is', null)
       .eq('outreach_status', 'new')
       .lte('score_total', 50)
       .order('score_total', { ascending: true }) // Peggiori prima = migliori prospect
@@ -73,11 +74,11 @@ async function handleCron(request: NextRequest) {
 
     for (const prospect of leads) {
       try {
-        // Decidi il canale: se ha il telefono -> WhatsApp, altrimenti -> Email
-        const channel = prospect.phone ? 'whatsapp' : 'email';
+        // Canale fisso: email. WhatsApp e' disabilitato perche' l'invio manuale tramite link non era affidabile.
+        const channel = 'email' as const;
 
         // Genera il messaggio personalizzato
-        const message = await generateOutreachMessage(prospect, channel);
+        const message = await generateOutreachMessage(prospect);
 
         if (message) {
           await supabase.from('lead_prospects').update({
@@ -184,9 +185,7 @@ function pickTopIssues(diagnostics: string[], maxCount = 3): string[] {
 
 async function generateOutreachMessage(
   prospect: Record<string, unknown>,
-  channel: 'whatsapp' | 'email'
 ): Promise<string | null> {
-  const isWhatsapp = channel === 'whatsapp';
   const diagnostics = buildScoreDiagnostics(prospect);
   const topIssues = pickTopIssues(diagnostics, 3);
 
@@ -206,7 +205,7 @@ async function generateOutreachMessage(
 
 CONTESTO: Hai analizzato la presenza digitale della loro attivita' con strumenti professionali e hai trovato delle aree critiche. Vuoi condividere questi risultati gratuitamente perche' credi nel supporto alle imprese del territorio.
 
-FORMATO: ${isWhatsapp ? 'Messaggio WhatsApp — conversazionale, diretto, tra professionisti. Massimo 200 parole. Niente oggetto, niente firma formale. Dai del voi.' : 'Testo email — professionale, pacato, da consulente. Massimo 300 parole. NON scrivere "Oggetto:" ne\' firme (vengono aggiunti automaticamente). Scrivi SOLO il corpo del messaggio.'}
+FORMATO: Testo email — professionale, pacato, da consulente. Massimo 300 parole. NON scrivere "Oggetto:" ne' firme (vengono aggiunti automaticamente). Scrivi SOLO il corpo del messaggio.
 
 AZIENDA ANALIZZATA:
 - Nome: ${prospect.business_name}

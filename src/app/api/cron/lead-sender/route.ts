@@ -3,14 +3,13 @@ export const maxDuration = 120;
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceRoleClient } from '@/lib/supabase/server';
-import { sendOutreachEmail, generateWhatsAppLink } from '@/lib/email-outreach';
+import { sendOutreachEmail } from '@/lib/email-outreach';
 
 /**
  * LEAD SENDER AGENT
- * Prende i lead con status 'to_contact' (messaggio gia' generato) e:
- * - Se ha email -> invia email automaticamente
- * - Se ha telefono -> genera link WhatsApp e notifica l'admin
- * Aggiorna lo status a 'contacted'.
+ * Prende i lead con status 'to_contact' (messaggio gia' generato) con email
+ * e invia l'email automaticamente. Aggiorna lo status a 'contacted'.
+ * I lead senza email vengono saltati (WhatsApp e' disabilitato).
  *
  * Schedule: ogni giorno alle 11:00, dopo che outreach ha generato i messaggi
  */
@@ -93,142 +92,74 @@ async function handleCron(request: NextRequest) {
       .in('id', leadIds);
 
     let emailsSent = 0;
-    let whatsappReady = 0;
     let failed = 0;
     const results: Array<{ name: string; method: string; status: string }> = [];
 
     for (const lead of leads) {
       const message = lead.outreach_message as string;
       const email = lead.email as string | null;
-      const phone = lead.phone as string | null;
-      const channel = lead.outreach_channel as string;
       const businessName = lead.business_name as string;
 
       try {
-        if (channel === 'email' && email) {
-          // ── Invio Email ──
-          await sendOutreachEmail({
-            to: email,
-            businessName,
-            messageBody: message,
-            scores: {
-              website: lead.score_website as number || 0,
-              social: lead.score_social as number || 0,
-              advertising: lead.score_advertising as number || 0,
-              seo: lead.score_seo as number || 0,
-              content: lead.score_content as number || 0,
-              total: lead.score_total as number || 0,
-            },
-            businessData: {
-              city: lead.city as string || undefined,
-              sector: lead.sector as string || undefined,
-              website: lead.website as string || undefined,
-              rating: lead.google_rating as number || undefined,
-              reviews: lead.google_reviews_count as number || undefined,
-              hasInstagram: !!(lead.instagram_url),
-              hasFacebook: !!(lead.facebook_url),
-              hasTiktok: !!(lead.tiktok_url),
-            },
-          });
-
+        if (!email) {
+          // Senza email non contattiamo: WhatsApp e' disabilitato. Riporta il lead a 'new' per eventuale ri-arricchimento.
           await supabase.from('lead_prospects').update({
-            outreach_status: 'contacted',
-            outreach_sent_at: new Date().toISOString(),
+            outreach_status: 'new',
           }).eq('id', lead.id);
-
-          emailsSent++;
-          results.push({ name: businessName, method: 'email', status: 'inviata' });
-
-        } else if (channel === 'whatsapp' && phone) {
-          // ── WhatsApp: genera link e segna come pronto ──
-          const waLink = generateWhatsAppLink(phone, message);
-
-          await supabase.from('lead_prospects').update({
-            outreach_status: 'contacted',
-            outreach_sent_at: new Date().toISOString(),
-            whatsapp_link: waLink,
-          }).eq('id', lead.id);
-
-          whatsappReady++;
-          results.push({ name: businessName, method: 'whatsapp', status: 'link_generato' });
-
-        } else if (email) {
-          // Ha email ma canale diverso -> invia email comunque
-          await sendOutreachEmail({
-            to: email,
-            businessName,
-            messageBody: message,
-            scores: {
-              website: lead.score_website as number || 0,
-              social: lead.score_social as number || 0,
-              advertising: lead.score_advertising as number || 0,
-              seo: lead.score_seo as number || 0,
-              content: lead.score_content as number || 0,
-              total: lead.score_total as number || 0,
-            },
-            businessData: {
-              city: lead.city as string || undefined,
-              sector: lead.sector as string || undefined,
-              website: lead.website as string || undefined,
-              rating: lead.google_rating as number || undefined,
-              reviews: lead.google_reviews_count as number || undefined,
-              hasInstagram: !!(lead.instagram_url),
-              hasFacebook: !!(lead.facebook_url),
-              hasTiktok: !!(lead.tiktok_url),
-            },
-          });
-
-          await supabase.from('lead_prospects').update({
-            outreach_status: 'contacted',
-            outreach_channel: 'email',
-            outreach_sent_at: new Date().toISOString(),
-          }).eq('id', lead.id);
-
-          emailsSent++;
-          results.push({ name: businessName, method: 'email_fallback', status: 'inviata' });
-
-        } else if (phone) {
-          // Ha solo telefono -> genera WhatsApp link
-          const waLink = generateWhatsAppLink(phone, message);
-
-          await supabase.from('lead_prospects').update({
-            outreach_status: 'contacted',
-            outreach_channel: 'whatsapp',
-            outreach_sent_at: new Date().toISOString(),
-            whatsapp_link: waLink,
-          }).eq('id', lead.id);
-
-          whatsappReady++;
-          results.push({ name: businessName, method: 'whatsapp_fallback', status: 'link_generato' });
-
-        } else {
-          // Nessun contatto -> salta
-          results.push({ name: businessName, method: 'nessuno', status: 'no_contatto' });
+          results.push({ name: businessName, method: 'nessuno', status: 'no_email' });
           failed++;
+          continue;
         }
+
+        await sendOutreachEmail({
+          to: email,
+          businessName,
+          messageBody: message,
+          scores: {
+            website: lead.score_website as number || 0,
+            social: lead.score_social as number || 0,
+            advertising: lead.score_advertising as number || 0,
+            seo: lead.score_seo as number || 0,
+            content: lead.score_content as number || 0,
+            total: lead.score_total as number || 0,
+          },
+          businessData: {
+            city: lead.city as string || undefined,
+            sector: lead.sector as string || undefined,
+            website: lead.website as string || undefined,
+            rating: lead.google_rating as number || undefined,
+            reviews: lead.google_reviews_count as number || undefined,
+            hasInstagram: !!(lead.instagram_url),
+            hasFacebook: !!(lead.facebook_url),
+            hasTiktok: !!(lead.tiktok_url),
+          },
+        });
+
+        await supabase.from('lead_prospects').update({
+          outreach_status: 'contacted',
+          outreach_channel: 'email',
+          outreach_sent_at: new Date().toISOString(),
+        }).eq('id', lead.id);
+
+        emailsSent++;
+        results.push({ name: businessName, method: 'email', status: 'inviata' });
 
       } catch (err) {
         failed++;
         results.push({
           name: businessName,
-          method: channel,
+          method: 'email',
           status: `errore: ${err instanceof Error ? err.message : 'sconosciuto'}`,
         });
       }
     }
 
-    // Se ci sono link WhatsApp pronti, notifica l'admin via email
-    if (whatsappReady > 0) {
-      await notifyAdminWhatsApp(supabase, results.filter(r => r.method.includes('whatsapp')));
-    }
-
     await supabase.from('agent_runs').update({
       status: 'completed',
       completed_at: new Date().toISOString(),
-      leads_contacted: emailsSent + whatsappReady,
+      leads_contacted: emailsSent,
       details: {
         emails_sent: emailsSent,
-        whatsapp_ready: whatsappReady,
         failed,
         results,
       },
@@ -238,7 +169,6 @@ async function handleCron(request: NextRequest) {
       success: true,
       agent: 'lead_sender',
       emails_sent: emailsSent,
-      whatsapp_ready: whatsappReady,
       failed,
     });
 
@@ -256,54 +186,3 @@ async function handleCron(request: NextRequest) {
   }
 }
 
-/**
- * Invia un'email di riepilogo all'admin con i link WhatsApp pronti da cliccare.
- */
-async function notifyAdminWhatsApp(
-  supabase: Awaited<ReturnType<typeof createServiceRoleClient>>,
-  waResults: Array<{ name: string; method: string; status: string }>
-) {
-  try {
-    // Trova l'email dell'admin
-    const { data: admin } = await supabase
-      .from('profiles')
-      .select('id, email:id')
-      .eq('role', 'admin')
-      .limit(1)
-      .single();
-
-    if (!admin) return;
-
-    // Prendi i lead con whatsapp_link appena generati
-    const { data: waLeads } = await supabase
-      .from('lead_prospects')
-      .select('business_name, city, phone, whatsapp_link, score_total')
-      .not('whatsapp_link', 'is', null)
-      .eq('outreach_status', 'contacted')
-      .order('outreach_sent_at', { ascending: false })
-      .limit(waResults.length);
-
-    if (!waLeads || waLeads.length === 0) return;
-
-    // Prendi l'email dell'admin da auth
-    const { data: authUser } = await supabase.auth.admin.getUserById(admin.id);
-    const adminEmail = authUser?.user?.email;
-    if (!adminEmail) return;
-
-    const { sendOutreachEmail: sendEmail } = await import('@/lib/email-outreach');
-
-    const leadsList = waLeads
-      .map(l => `- ${l.business_name} (${l.city}) - Score: ${l.score_total}/100\n  Clicca per inviare: ${l.whatsapp_link}`)
-      .join('\n\n');
-
-    await sendEmail({
-      to: adminEmail,
-      businessName: 'PiraWeb',
-      subject: `${waLeads.length} messaggi WhatsApp pronti da inviare`,
-      messageBody: `Ciao,\n\nGli agenti hanno preparato ${waLeads.length} messaggi WhatsApp per potenziali clienti.\nClicca sui link qui sotto per aprire WhatsApp con il messaggio gia' scritto:\n\n${leadsList}\n\nBuon lavoro!\nI tuoi agenti PiraWeb`,
-    });
-
-  } catch {
-    // Notifica non critica
-  }
-}

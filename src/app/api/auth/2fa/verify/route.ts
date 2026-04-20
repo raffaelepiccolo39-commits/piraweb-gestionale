@@ -37,13 +37,16 @@ export async function POST(request: Request) {
   }
 
   // Imposta cookie di verifica 2FA (httpOnly, secure, same-site)
+  // Durata lunga: richiesta solo al primo accesso sul device, poi persiste finche'
+  // l'utente non fa logout o cancella i cookie. Il cookie e' legato all'user_id:
+  // se un altro utente fa login sullo stesso browser, la 2FA viene richiesta di nuovo.
   const cookieStore = await cookies();
   cookieStore.set('2fa_verified', user.id, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
     path: '/',
-    maxAge: 60 * 60 * 24, // 24 ore
+    maxAge: 60 * 60 * 24 * 365, // 1 anno
   });
 
   return NextResponse.json({ success: true });
