@@ -122,6 +122,7 @@ export default function CFOPage() {
   const toast = useToast();
 
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [employees, setEmployees] = useState<(Profile & { costs: ReturnType<typeof calculateEmployeeCosts> })[]>([]);
   const [expenses, setExpenses] = useState<OperatingExpense[]>([]);
   const [clientProfitability, setClientProfitability] = useState<ClientProfitability[]>([]);
@@ -159,10 +160,7 @@ export default function CFOPage() {
 
   const fetchAll = useCallback(async () => {
     // Parallel fetch all data
-    const [
-      profilesRes, contractsRes, paymentsRes, expensesRes,
-      timeRes, freelancerRes, clientsRes, payslipsRes, invoicesRes,
-    ] = await Promise.all([
+    const responses = await Promise.all([
       supabase.from('profiles').select('*').eq('is_active', true).order('full_name'),
       supabase.from('client_contracts').select('client_id, monthly_fee, status, duration_months, start_date').eq('status', 'active'),
       supabase.from('client_payments').select('contract_id, amount, is_paid, due_date, client_id:client_contracts(client_id)').limit(5000),
@@ -173,6 +171,20 @@ export default function CFOPage() {
       supabase.from('payslips').select('*').order('month', { ascending: false }).limit(200),
       supabase.from('invoices').select('*, client:clients(id, name, company, ragione_sociale)').order('issue_date', { ascending: false }).limit(100),
     ]);
+
+    // Se anche solo una query fallisce: mostra errore in UI invece di pagina vuota silenziosa.
+    const firstError = responses.find(r => r.error)?.error;
+    if (firstError) {
+      setFetchError(firstError.message);
+      setLoading(false);
+      return;
+    }
+    setFetchError(null);
+
+    const [
+      profilesRes, contractsRes, paymentsRes, expensesRes,
+      timeRes, freelancerRes, clientsRes, payslipsRes, invoicesRes,
+    ] = responses;
 
     const profiles = (profilesRes.data || []) as Profile[];
     const contracts = contractsRes.data || [];
@@ -295,12 +307,15 @@ export default function CFOPage() {
       vendor: expenseForm.vendor || null,
       notes: expenseForm.notes || null,
     };
-    if (editingExpense) {
-      await supabase.from('operating_expenses').update(payload).eq('id', editingExpense.id);
-    } else {
-      await supabase.from('operating_expenses').insert({ ...payload, created_by: profile.id });
-    }
+    const { error } = editingExpense
+      ? await supabase.from('operating_expenses').update(payload).eq('id', editingExpense.id)
+      : await supabase.from('operating_expenses').insert({ ...payload, created_by: profile.id });
     setSavingExpense(false);
+    if (error) {
+      toast.error(`Errore salvataggio spesa: ${error.message}`);
+      return;
+    }
+    toast.success(editingExpense ? 'Spesa aggiornata' : 'Spesa aggiunta');
     setShowExpenseForm(false);
     resetExpenseForm();
     fetchAll();
@@ -309,7 +324,12 @@ export default function CFOPage() {
   const handleDeleteExpense = async (id: string) => {
     // TODO: replace with ConfirmDialog component
     if (!confirm('Eliminare questa spesa?')) return;
-    await supabase.from('operating_expenses').update({ is_active: false }).eq('id', id);
+    const { error } = await supabase.from('operating_expenses').update({ is_active: false }).eq('id', id);
+    if (error) {
+      toast.error(`Errore eliminazione: ${error.message}`);
+      return;
+    }
+    toast.success('Spesa eliminata');
     fetchAll();
   };
 
@@ -367,7 +387,12 @@ export default function CFOPage() {
   const handleDeletePayslip = async (id: string) => {
     // TODO: replace with ConfirmDialog component
     if (!confirm('Eliminare questa busta paga?')) return;
-    await supabase.from('payslips').delete().eq('id', id);
+    const { error } = await supabase.from('payslips').delete().eq('id', id);
+    if (error) {
+      toast.error(`Errore eliminazione: ${error.message}`);
+      return;
+    }
+    toast.success('Busta paga eliminata');
     fetchAll();
   };
 
@@ -462,6 +487,19 @@ export default function CFOPage() {
           Controllo finanziario completo - Costi, ricavi, margini, tasse
         </p>
       </div>
+
+      {fetchError && (
+        <div className="flex items-start gap-3 p-4 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900/40">
+          <AlertTriangle size={18} className="text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
+          <div className="flex-1 text-sm">
+            <p className="font-medium text-red-800 dark:text-red-300">Errore nel caricamento dei dati finanziari</p>
+            <p className="text-red-700 dark:text-red-400 mt-0.5">{fetchError}</p>
+          </div>
+          <Button size="sm" variant="ghost" onClick={() => { setLoading(true); fetchAll(); }}>
+            Riprova
+          </Button>
+        </div>
+      )}
 
       {/* ═══ SEZIONE 1: KPI PRINCIPALI ═══ */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 stagger-children">
