@@ -78,16 +78,10 @@ export function Header({ onMobileMenuToggle, mobileMenuOpen }: HeaderProps) {
     ).slice(0, 6);
   }, [searchQuery]);
 
-  // Keyboard shortcut: "/" to focus search, Escape to close
+  // Keyboard shortcut: Cmd/Ctrl+K to focus search, Escape to close
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (
-        e.key === '/' &&
-        !e.ctrlKey &&
-        !e.metaKey &&
-        document.activeElement?.tagName !== 'INPUT' &&
-        document.activeElement?.tagName !== 'TEXTAREA'
-      ) {
+      if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
         searchInputRef.current?.focus();
       }
@@ -183,7 +177,7 @@ export function Header({ onMobileMenuToggle, mobileMenuOpen }: HeaderProps) {
   };
 
   return (
-    <header className="h-14 bg-[var(--pw-sidebar-bg)]/97 backdrop-blur-xl border-b border-pw-border flex items-center justify-between px-4 lg:px-6 sticky top-0 z-30">
+    <header className="h-[56px] bg-pw-surface border-b border-pw-border flex items-center justify-between px-4 lg:px-7 sticky top-0 z-30">
       {/* Mobile menu button */}
       <button
         onClick={onMobileMenuToggle}
@@ -201,22 +195,16 @@ export function Header({ onMobileMenuToggle, mobileMenuOpen }: HeaderProps) {
       </div>
 
       {/* Search bar — desktop only */}
-      <div className="hidden lg:flex relative">
+      <div className="hidden lg:flex relative flex-1 max-w-[480px]">
         <div
           className={cn(
-            'relative flex items-center gap-2 px-3 py-2 w-64 rounded-xl border transition-all duration-200 ease-out',
+            'relative flex items-center gap-2.5 px-3 py-2 w-full rounded-md border transition-colors duration-150',
             searchFocused
-              ? 'border-pw-accent/40 bg-pw-surface-2 shadow-[0_0_12px_rgba(255,209,8,0.08)]'
-              : 'border-pw-border/40 bg-pw-surface-2/50 hover:border-pw-border-hover'
+              ? 'border-pw-border-strong bg-pw-surface'
+              : 'border-pw-border bg-pw-surface-soft hover:border-pw-border-strong'
           )}
         >
-          <Search
-            size={14}
-            className={cn(
-              'shrink-0 transition-colors duration-200',
-              searchFocused ? 'text-pw-accent' : 'text-pw-text-dim'
-            )}
-          />
+          <Search size={14} className="shrink-0 text-pw-text-dim" />
           <input
             ref={searchInputRef}
             type="text"
@@ -224,26 +212,27 @@ export function Header({ onMobileMenuToggle, mobileMenuOpen }: HeaderProps) {
             onChange={(e) => setSearchQuery(e.target.value)}
             onFocus={() => setSearchFocused(true)}
             onBlur={() => setTimeout(() => setSearchFocused(false), 150)}
-            placeholder="Cerca in piattaforma..."
-            className="flex-1 bg-transparent text-xs text-pw-text placeholder:text-pw-text-dim outline-none"
+            placeholder="Cerca clienti, task, progetti…"
+            className="flex-1 bg-transparent text-[13px] text-pw-text placeholder:text-pw-text-dim outline-none"
           />
           {searchQuery ? (
             <button
               onClick={() => setSearchQuery('')}
               className="text-pw-text-dim hover:text-pw-text transition-colors duration-150"
+              aria-label="Pulisci ricerca"
             >
               <X size={12} />
             </button>
           ) : (
-            <kbd className="text-[9px] text-pw-text-dim/60 bg-pw-surface-3/80 px-1.5 py-0.5 rounded font-mono border border-pw-border/30">
-              /
+            <kbd className="text-[10px] text-pw-text-dim bg-pw-surface px-1.5 py-0.5 rounded border border-pw-border font-[var(--font-jetbrains)]">
+              ⌘K
             </kbd>
           )}
         </div>
 
         {/* Search results dropdown */}
         {searchFocused && searchQuery.trim() && (
-          <div className="absolute top-full mt-2 left-0 w-full bg-pw-surface-2 rounded-xl shadow-2xl shadow-black/40 border border-pw-border/40 z-50 overflow-hidden animate-slide-up">
+          <div className="absolute top-full mt-2 left-0 w-full bg-pw-surface rounded-md shadow-[var(--pw-shadow-lg)] border border-pw-border z-50 overflow-hidden">
             {searchResults.length > 0 ? (
               searchResults.map((item) => (
                 <button
@@ -254,7 +243,7 @@ export function Header({ onMobileMenuToggle, mobileMenuOpen }: HeaderProps) {
                     setSearchFocused(false);
                     router.push(item.href);
                   }}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-pw-text hover:bg-pw-surface-3 transition-colors text-left"
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-pw-text hover:bg-pw-surface-soft transition-colors text-left"
                 >
                   <Search size={13} className="text-pw-text-dim shrink-0" />
                   <span>{item.label}</span>
@@ -279,16 +268,17 @@ export function Header({ onMobileMenuToggle, mobileMenuOpen }: HeaderProps) {
               setShowNotifications(!showNotifications);
               setShowUserMenu(false);
             }}
-            className="p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg text-pw-text-muted hover:text-pw-text hover:bg-pw-surface-2 transition-colors relative"
+            className="w-[34px] h-[34px] flex items-center justify-center rounded-md text-pw-text-muted hover:text-pw-text hover:bg-pw-surface-soft transition-colors duration-150 relative"
             aria-label="Notifiche"
             aria-expanded={showNotifications}
             aria-haspopup="true"
           >
-            <Bell size={18} />
+            <Bell size={17} />
             {unreadCount > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 w-4.5 h-4.5 bg-pw-accent text-[#0A263A] text-[9px] font-bold rounded-full flex items-center justify-center shadow-[0_0_8px_rgba(255,209,8,0.5)] pulse-dot">
-                {unreadCount > 9 ? '9+' : unreadCount}
-              </span>
+              <span
+                className="absolute top-[4px] right-[4px] w-2 h-2 rounded-full bg-[var(--pw-danger)] ring-2 ring-pw-surface"
+                aria-label={`${unreadCount} nuove notifiche`}
+              />
             )}
           </button>
 

@@ -8,6 +8,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/ui/empty-state';
+import { PageHeader } from '@/components/ui/page-header';
 import { formatCurrency, getRoleLabel } from '@/lib/utils';
 import type { CashflowMonthly, CashflowSummary, RevenuePerClient, ProfitLossSummary, MonthlyExpenses } from '@/types/database';
 import { HealthIndicators } from '@/components/cashflow/health-indicators';
@@ -176,17 +177,10 @@ export default function CashflowPage() {
 
   return (
     <div className="space-y-6 animate-slide-up">
-      {/* Header */}
-      <div className="space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-pw-text font-[var(--font-syne)]">
-              Cashflow
-            </h1>
-            <p className="text-sm text-pw-text-muted">
-              Entrate, uscite e marginalità aziendale
-            </p>
-          </div>
+      <PageHeader
+        title="Cashflow"
+        subtitle="Entrate, uscite e marginalità aziendale"
+        actions={
           <div className="flex gap-1 bg-pw-surface-3 p-1 rounded-xl overflow-x-auto no-scrollbar">
             {(['month', 'semester', 'year', 'custom'] as Period[]).map((p) => (
               <button
@@ -202,7 +196,9 @@ export default function CashflowPage() {
               </button>
             ))}
           </div>
-        </div>
+        }
+      />
+      <div className="space-y-4">
 
         {/* Filtri periodo */}
         <div className="flex flex-wrap items-center gap-3">

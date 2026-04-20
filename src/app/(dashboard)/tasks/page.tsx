@@ -13,7 +13,7 @@ import { Select } from '@/components/ui/select';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Modal } from '@/components/ui/modal';
 import { Input } from '@/components/ui/input';
-import { Toolbar, ToolbarHeader, ToolbarFilters } from '@/components/ui/toolbar';
+import { PageHeader } from '@/components/ui/page-header';
 import { formatDate, getPriorityTone, getStatusTone, getRoleLabel } from '@/lib/utils';
 import type { Task, Project, Client } from '@/types/database';
 import { useToast } from '@/components/ui/toast';
@@ -283,82 +283,77 @@ export default function TasksPage() {
 
   return (
     <div className="space-y-6 animate-slide-up">
-      <Toolbar>
-        <ToolbarHeader
-          title={
-            <h1 className="text-2xl font-bold text-pw-text font-[var(--font-syne)]">
-              {assigneeFilter === 'me'
-                ? 'I miei Task'
-                : assigneeFilter === 'all'
-                  ? 'Tutti i Task'
-                  : `Task di ${teamMembers.find(m => m.id === assigneeFilter)?.full_name || 'Dipendente'}`
-              }
-            </h1>
-          }
-          subtitle={`${tasks.length} task ${assigneeFilter === 'me' ? 'assegnati a te' : assigneeFilter === 'all' ? 'totali' : 'assegnati'}`}
-          actions={
-            <Button onClick={() => { setParsedTasks(null); setTasksSaved(false); setAiInput(''); setAiClientId(''); setShowAiModal(true); }}>
-              <Sparkles size={16} />
-              Crea Task con AI
-            </Button>
-          }
-        />
-        <ToolbarFilters>
-          <div className="w-52">
-            <Select
-              value={assigneeFilter}
-              onChange={(e) => setAssigneeFilter(e.target.value)}
-              options={[
-                { value: 'me', label: 'I miei Task' },
-                { value: 'all', label: 'Tutti i Task' },
-                ...teamMembers.filter(m => m.id !== profile?.id).map(m => ({
-                  value: m.id,
-                  label: m.full_name,
-                })),
-              ]}
-            />
-          </div>
-          <div className="w-44">
-            <Select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              options={[
-                { value: 'todo', label: 'Da fare' },
-                { value: 'in_progress', label: 'In corso' },
-                { value: 'done', label: 'Fatto' },
-                { value: 'archived', label: 'Archiviato' },
-              ]}
-              placeholder="Tutti gli stati"
-            />
-          </div>
-          <div className="w-44">
-            <Select
-              value={priorityFilter}
-              onChange={(e) => setPriorityFilter(e.target.value)}
-              options={[
-                { value: 'low', label: 'Bassa' },
-                { value: 'medium', label: 'Media' },
-                { value: 'high', label: 'Alta' },
-                { value: 'urgent', label: 'Urgente' },
-              ]}
-              placeholder="Tutte le priorità"
-            />
-          </div>
-          <div className="w-48">
-            <Select
-              value={deadlineFilter}
-              onChange={(e) => setDeadlineFilter(e.target.value)}
-              options={[
-                { value: 'overdue', label: 'Scadute' },
-                { value: 'today', label: 'Scadenza oggi' },
-                { value: 'week', label: 'Prossimi 7 giorni' },
-                { value: 'month', label: 'Prossimi 30 giorni' },
-              ]}
-              placeholder="Tutte le scadenze"
-            />
-          </div>
-        </ToolbarFilters>
-      </Toolbar>
+      <PageHeader
+        title={
+          assigneeFilter === 'me'
+            ? 'I miei Task'
+            : assigneeFilter === 'all'
+              ? 'Tutti i Task'
+              : `Task di ${teamMembers.find(m => m.id === assigneeFilter)?.full_name || 'Dipendente'}`
+        }
+        subtitle={`${tasks.length} task ${assigneeFilter === 'me' ? 'assegnati a te' : assigneeFilter === 'all' ? 'totali' : 'assegnati'}`}
+        actions={
+          <Button variant="primary" onClick={() => { setParsedTasks(null); setTasksSaved(false); setAiInput(''); setAiClientId(''); setShowAiModal(true); }}>
+            <Sparkles size={14} />
+            Crea Task con AI
+          </Button>
+        }
+      />
+      <div className="flex flex-wrap items-end gap-3 mb-6">
+        <div className="w-52">
+          <Select
+            value={assigneeFilter}
+            onChange={(e) => setAssigneeFilter(e.target.value)}
+            options={[
+              { value: 'me', label: 'I miei Task' },
+              { value: 'all', label: 'Tutti i Task' },
+              ...teamMembers.filter(m => m.id !== profile?.id).map(m => ({
+                value: m.id,
+                label: m.full_name,
+              })),
+            ]}
+          />
+        </div>
+        <div className="w-44">
+          <Select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            options={[
+              { value: 'todo', label: 'Da fare' },
+              { value: 'in_progress', label: 'In corso' },
+              { value: 'done', label: 'Fatto' },
+              { value: 'archived', label: 'Archiviato' },
+            ]}
+            placeholder="Tutti gli stati"
+          />
+        </div>
+        <div className="w-44">
+          <Select
+            value={priorityFilter}
+            onChange={(e) => setPriorityFilter(e.target.value)}
+            options={[
+              { value: 'low', label: 'Bassa' },
+              { value: 'medium', label: 'Media' },
+              { value: 'high', label: 'Alta' },
+              { value: 'urgent', label: 'Urgente' },
+            ]}
+            placeholder="Tutte le priorità"
+          />
+        </div>
+        <div className="w-48">
+          <Select
+            value={deadlineFilter}
+            onChange={(e) => setDeadlineFilter(e.target.value)}
+            options={[
+              { value: 'overdue', label: 'Scadute' },
+              { value: 'today', label: 'Scadenza oggi' },
+              { value: 'week', label: 'Prossimi 7 giorni' },
+              { value: 'month', label: 'Prossimi 30 giorni' },
+            ]}
+            placeholder="Tutte le scadenze"
+          />
+        </div>
+      </div>
 
       {tasks.length === 0 ? (
         <EmptyState
@@ -376,7 +371,7 @@ export default function TasksPage() {
             const project = task.project as { id: string; name: string; color: string } | undefined;
             const assignee = task.assignee as { id: string; full_name: string } | undefined;
             return (
-              <Card key={task.id} className="hover:shadow-md transition-shadow">
+              <Card key={task.id} hover>
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1 min-w-0">

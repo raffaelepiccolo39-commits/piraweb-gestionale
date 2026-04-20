@@ -14,28 +14,28 @@ interface BadgeProps {
 }
 
 const TONE_CLASSES: Record<BadgeTone, string> = {
-  neutral: 'bg-pw-surface-3 text-pw-text-muted ring-1 ring-pw-border/40',
-  brand: 'bg-[#FFD108]/12 text-[#FFD108] ring-1 ring-[#FFD108]/25',
-  success: 'bg-emerald-500/12 text-emerald-400 ring-1 ring-emerald-500/25',
-  warning: 'bg-amber-500/12 text-amber-400 ring-1 ring-amber-500/25',
-  danger: 'bg-red-500/12 text-red-400 ring-1 ring-red-500/25',
-  info: 'bg-cyan-500/12 text-cyan-400 ring-1 ring-cyan-500/25',
-  accent: 'bg-[#FF4D1C]/12 text-[#FF4D1C] ring-1 ring-[#FF4D1C]/25',
+  neutral: 'bg-pw-surface-hi text-pw-text-muted border border-pw-border',
+  brand:   'bg-[var(--pw-gold-soft)] text-[var(--pw-gold-soft-fg)] border border-[rgba(212,168,0,0.25)]',
+  success: 'bg-[var(--pw-success-soft)] text-[var(--pw-success)] border border-[rgba(5,150,105,0.25)]',
+  warning: 'bg-[var(--pw-warning-soft)] text-[var(--pw-warning)] border border-[rgba(212,168,0,0.25)]',
+  danger:  'bg-[var(--pw-danger-soft)] text-[var(--pw-danger)] border border-[rgba(224,67,26,0.25)]',
+  info:    'bg-[var(--pw-info-soft)] text-[var(--pw-info)] border border-[rgba(37,99,235,0.25)]',
+  accent:  'bg-[rgba(224,67,26,0.08)] text-[var(--pw-danger)] border border-[rgba(224,67,26,0.25)]',
 };
 
 const DOT_CLASSES: Record<BadgeTone, string> = {
   neutral: 'bg-pw-text-muted',
-  brand: 'bg-[#FFD108]',
-  success: 'bg-emerald-400',
-  warning: 'bg-amber-400',
-  danger: 'bg-red-400',
-  info: 'bg-cyan-400',
-  accent: 'bg-[#FF4D1C]',
+  brand:   'bg-[var(--pw-gold)]',
+  success: 'bg-[var(--pw-success)]',
+  warning: 'bg-[var(--pw-warning)]',
+  danger:  'bg-[var(--pw-danger)]',
+  info:    'bg-[var(--pw-info)]',
+  accent:  'bg-[var(--pw-danger)]',
 };
 
 const SIZE_CLASSES: Record<BadgeSize, string> = {
-  sm: 'px-2 py-0.5 text-[10px]',
-  md: 'px-2.5 py-0.5 text-[11px]',
+  sm: 'px-1.5 py-[1px] text-[10px] rounded-[5px]',
+  md: 'px-2 py-[2px] text-[11px] rounded-[6px]',
 };
 
 export function Badge({
@@ -49,12 +49,13 @@ export function Badge({
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1.5 rounded-full font-medium tracking-wide whitespace-nowrap',
+        'inline-flex items-center gap-1.5 font-medium tracking-[0.01em] whitespace-nowrap',
         SIZE_CLASSES[size],
         tone && TONE_CLASSES[tone],
-        !tone && variant === 'outline' && 'border border-pw-border/60 bg-transparent',
+        !tone && variant === 'default' && 'bg-pw-surface-hi text-pw-text-muted border border-pw-border',
+        !tone && variant === 'outline' && 'border border-pw-border bg-transparent',
         !tone && variant === 'glow' && 'shadow-[0_0_8px_-2px_currentColor]',
-        !tone && variant === 'brand' && 'bg-[#FFD108]/15 text-[#FFD108]',
+        !tone && variant === 'brand' && 'bg-[var(--pw-gold-soft)] text-[var(--pw-gold-soft-fg)]',
         className,
       )}
     >

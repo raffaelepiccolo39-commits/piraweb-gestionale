@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/components/ui/toast';
 import { Button } from '@/components/ui/button';
+import { PageHeader } from '@/components/ui/page-header';
 import { Modal } from '@/components/ui/modal';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { CalendarMonthView } from '@/components/calendar/calendar-month-view';
@@ -14,7 +15,7 @@ import { EventForm, type EventFormData } from '@/components/calendar/event-form'
 import { DayEvents } from '@/components/calendar/day-events';
 import { SyncSettings } from '@/components/calendar/sync-settings';
 import type { CalendarEvent } from '@/types/database';
-import { ChevronLeft, ChevronRight, Plus, CalendarDays, AlertTriangle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, AlertTriangle } from 'lucide-react';
 
 export default function CalendarioPage() {
   const { profile } = useAuth();
@@ -167,40 +168,41 @@ export default function CalendarioPage() {
 
   return (
     <div className="space-y-6 animate-slide-up">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-pw-text font-[var(--font-syne)]">Calendario</h1>
-          <p className="text-sm text-pw-text-muted">Appuntamenti e eventi del team</p>
-        </div>
-        <div className="flex items-center gap-3">
-          {isAdmin && (
-            <div className="relative">
+      <PageHeader
+        title="Calendario"
+        subtitle={
+          <span className="capitalize">
+            {format(currentMonth, 'MMMM yyyy', { locale: it })} · Appuntamenti e eventi del team
+          </span>
+        }
+        actions={
+          <>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
+              aria-label="Mese precedente"
+            >
+              <ChevronLeft size={14} />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
+              aria-label="Mese successivo"
+            >
+              <ChevronRight size={14} />
+            </Button>
+            {isAdmin && (
               <SyncSettings onSync={handleSync} syncing={syncing} />
-            </div>
-          )}
-          <Button onClick={() => setShowEventForm(true)}>
-            <Plus size={16} />
-            Nuovo evento
-          </Button>
-        </div>
-      </div>
-
-      {/* Month navigation */}
-      <div className="flex items-center justify-between">
-        <Button variant="ghost" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}>
-          <ChevronLeft size={18} />
-        </Button>
-        <div className="flex items-center gap-2">
-          <CalendarDays size={18} className="text-pw-accent" />
-          <h2 className="text-lg font-semibold text-pw-text font-[var(--font-syne)] capitalize">
-            {format(currentMonth, 'MMMM yyyy', { locale: it })}
-          </h2>
-        </div>
-        <Button variant="ghost" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}>
-          <ChevronRight size={18} />
-        </Button>
-      </div>
+            )}
+            <Button variant="primary" onClick={() => setShowEventForm(true)}>
+              <Plus size={14} />
+              Nuovo evento
+            </Button>
+          </>
+        }
+      />
 
       {/* Calendar + Day events */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

@@ -71,17 +71,17 @@ export function Modal({ open, onClose, title, children, size = 'md' }: ModalProp
   if (!open) return null;
 
   const sizes = {
-    sm: 'max-w-md',
-    md: 'max-w-lg',
-    lg: 'max-w-2xl',
+    sm: 'max-w-[400px]',
+    md: 'max-w-[560px]',
+    lg: 'max-w-[760px]',
     xl: 'max-w-4xl',
   };
 
   const modalContent = (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
-      {/* Backdrop */}
+      {/* Backdrop — Clarity softer */}
       <div
-        className="fixed inset-0 bg-black/70 backdrop-blur-sm"
+        className="fixed inset-0 bg-[rgba(10,20,35,0.48)] backdrop-blur-[4px]"
         onClick={onClose}
         aria-hidden="true"
       />
@@ -94,26 +94,26 @@ export function Modal({ open, onClose, title, children, size = 'md' }: ModalProp
         aria-labelledby={title ? titleId : undefined}
         tabIndex={-1}
         className={cn(
-          'relative w-full rounded-2xl shadow-2xl shadow-black/40 max-h-[90vh] overflow-y-auto overscroll-contain',
+          'relative w-full rounded-[12px] shadow-[var(--pw-shadow-xl)] max-h-[90vh] overflow-y-auto overscroll-contain',
           'bg-pw-surface border border-pw-border',
           sizes[size]
         )}
       >
         {title && (
-          <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-pw-border/40">
-            <h2 id={titleId} className="text-lg font-[var(--font-syne)] font-semibold text-pw-text">
+          <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-pw-border">
+            <h2 id={titleId} className="text-[18px] font-[var(--font-syne)] font-semibold text-pw-text tracking-[-0.015em]">
               {title}
             </h2>
             <button
               onClick={onClose}
-              className="p-2 min-h-[40px] min-w-[40px] flex items-center justify-center rounded-xl text-pw-text-dim hover:text-pw-text hover:bg-white/[0.05] transition-all duration-200"
+              className="w-8 h-8 flex items-center justify-center rounded-md text-pw-text-dim hover:text-pw-text hover:bg-pw-surface-soft transition-colors duration-150"
               aria-label="Chiudi"
             >
-              <X size={18} />
+              <X size={16} />
             </button>
           </div>
         )}
-        <div className="p-4 sm:p-6">{children}</div>
+        <div className="p-5 sm:p-6">{children}</div>
       </div>
     </div>
   );

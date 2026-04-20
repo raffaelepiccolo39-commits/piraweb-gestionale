@@ -1,12 +1,24 @@
 import type { Metadata, Viewport } from 'next';
-import { Syne, Bebas_Neue, DM_Serif_Display } from 'next/font/google';
+import { Inter, Syne, JetBrains_Mono, Bebas_Neue, DM_Serif_Display } from 'next/font/google';
 import { ThemeProvider } from '@/components/theme-provider';
 import './globals.css';
+
+const inter = Inter({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-inter',
+});
 
 const syne = Syne({
   subsets: ['latin'],
   weight: ['400', '500', '600', '700', '800'],
   variable: '--font-syne',
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ['latin'],
+  weight: ['400', '500', '600'],
+  variable: '--font-jetbrains',
 });
 
 const bebasNeue = Bebas_Neue({
@@ -52,8 +64,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="it" className={`${syne.variable} ${bebasNeue.variable} ${dmSerif.variable} h-full`} suppressHydrationWarning>
-      <body className={`${syne.className} min-h-full bg-pw-bg text-pw-text antialiased`}>
+    <html lang="it" className={`${inter.variable} ${syne.variable} ${jetbrainsMono.variable} ${bebasNeue.variable} ${dmSerif.variable} h-full`} suppressHydrationWarning>
+      <body className={`${inter.className} min-h-full bg-pw-bg text-pw-text antialiased`}>
         <ThemeProvider>
           {children}
         </ThemeProvider>

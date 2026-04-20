@@ -13,7 +13,6 @@ import { STATUS_LABELS, PRIORITY_LABELS } from '@/lib/constants';
 import type { AttendanceRecord } from '@/types/database';
 
 // Dashboard components
-import { Greeting } from '@/components/dashboard/greeting';
 import { AttendanceWidget } from '@/components/dashboard/attendance-widget';
 import { QuickActions } from '@/components/dashboard/quick-actions';
 import { UrgentTasks } from '@/components/dashboard/urgent-tasks';
@@ -23,6 +22,9 @@ import { CashflowSnapshot } from '@/components/dashboard/cashflow-snapshot';
 import { ActivityFeed } from '@/components/dashboard/activity-feed';
 import { MessagesPreview } from '@/components/dashboard/messages-preview';
 import { TeamAttendance } from '@/components/dashboard/team-attendance';
+import { PageHeader } from '@/components/ui/page-header';
+import { Button } from '@/components/ui/button';
+import { Filter, Plus } from 'lucide-react';
 
 interface DashboardStats {
   totalClients: number;
@@ -342,41 +344,57 @@ export default function DashboardPage() {
     );
   }
 
-  return (
-    <div className="space-y-6 animate-slide-up">
-      {/* Row 1: Greeting hero + Attendance */}
-      <div className="flex flex-col lg:flex-row lg:items-stretch gap-4">
-        <div className="relative flex-1 overflow-hidden rounded-3xl border border-pw-border/40 bg-gradient-to-br from-pw-surface-2/70 via-pw-surface/40 to-pw-surface-2/30 px-6 py-5">
-          <div aria-hidden="true" className="pointer-events-none absolute -top-16 -right-16 w-60 h-60 rounded-full bg-[#FFD108]/10 blur-3xl" />
-          <div aria-hidden="true" className="pointer-events-none absolute -bottom-20 -left-10 w-56 h-56 rounded-full bg-cyan-500/5 blur-3xl" />
-          <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#FFD108]/40 to-transparent" />
-          <div className="relative">
-            <Greeting
-              profile={profile}
-              overdueTasks={stats.overdueTasks}
-              dueTodayCount={dueTodayCount}
-              inProgressTasks={stats.inProgressTasks}
-            />
-          </div>
-        </div>
-        <div className="lg:w-[360px] shrink-0">
-          <AttendanceWidget
-            record={attendance}
-            loading={attendanceLoading}
-            onClockIn={() => handleAttendanceAction('clock_in')}
-            onLunchBreak={() => handleAttendanceAction('lunch_break')}
-            onClockOut={() => handleAttendanceAction('clock_out')}
-          />
-        </div>
-      </div>
+  const firstName = profile.full_name.split(' ')[0];
+  const hour = new Date().getHours();
+  const greeting = hour < 13 ? 'Buongiorno' : hour < 18 ? 'Buon pomeriggio' : 'Buonasera';
+  const dateLabel = new Date().toLocaleDateString('it-IT', {
+    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+  });
 
-      {/* Row 2: Quick Actions */}
+  const subtitleParts: React.ReactNode[] = [];
+  if (stats.overdueTasks > 0) subtitleParts.push(<><strong className="text-pw-text font-semibold">{stats.overdueTasks}</strong> in ritardo</>);
+  if (dueTodayCount > 0) subtitleParts.push(<><strong className="text-pw-text font-semibold">{dueTodayCount}</strong> in scadenza oggi</>);
+  if (stats.inProgressTasks > 0) subtitleParts.push(<><strong className="text-pw-text font-semibold">{stats.inProgressTasks}</strong> in corso</>);
+  const subtitle = subtitleParts.length > 0 ? (
+    <>{subtitleParts.map((p, i) => <span key={i}>{i > 0 && ' · '}{p}</span>)}</>
+  ) : 'Tutto sotto controllo';
+
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        eyebrow={dateLabel.charAt(0).toUpperCase() + dateLabel.slice(1)}
+        title={`${greeting}, ${firstName}`}
+        subtitle={subtitle}
+        actions={
+          <>
+            <Button variant="ghost" size="md">
+              <Filter size={14} />
+              Questa settimana
+            </Button>
+            <Button variant="primary" size="md">
+              <Plus size={14} />
+              Nuovo progetto
+            </Button>
+          </>
+        }
+      />
+
+      {/* Attendance widget (PiraWeb-specific, non in prototipo Clarity) */}
+      <AttendanceWidget
+        record={attendance}
+        loading={attendanceLoading}
+        onClockIn={() => handleAttendanceAction('clock_in')}
+        onLunchBreak={() => handleAttendanceAction('lunch_break')}
+        onClockOut={() => handleAttendanceAction('clock_out')}
+      />
+
+      {/* Quick Actions */}
       <QuickActions role={profile.role} />
 
-      {/* Row 3: Urgent Tasks */}
+      {/* Urgent Tasks */}
       <UrgentTasks tasks={urgentTasks} isAdmin={isAdmin} />
 
-      {/* Row 4: Stat Cards */}
+      {/* Stat Cards */}
       <StatCards stats={stats} isAdmin={isAdmin} />
 
       {/* Row 5: Main content + Sidebar */}

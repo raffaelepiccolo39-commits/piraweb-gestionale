@@ -6,15 +6,13 @@ import { useAuth } from '@/hooks/use-auth';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { PageHeader } from '@/components/ui/page-header';
 import { getInitials, getUserColor, formatCurrency } from '@/lib/utils';
 import type { Profile, TimeEntry } from '@/types/database';
 import {
-  Clock,
   ChevronLeft,
   ChevronRight,
-  Users,
-  TrendingUp,
-  BarChart3,
 } from 'lucide-react';
 
 interface DayHours {
@@ -152,46 +150,52 @@ export default function TimesheetPage() {
 
   return (
     <div className="space-y-6 animate-slide-up">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-pw-text font-[var(--font-syne)] flex items-center gap-2">
-            <Clock size={24} className="text-pw-accent" />
-            Timesheet
-          </h1>
-          <p className="text-sm text-pw-text-muted mt-1">Ore lavorate per membro del team</p>
-        </div>
-      </div>
+      <PageHeader
+        title="Timesheet"
+        subtitle={`${weekLabel} · Ore lavorate per membro del team`}
+        actions={
+          <>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setWeekOffset((w) => w - 1)}
+              aria-label="Settimana precedente"
+            >
+              <ChevronLeft size={14} />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setWeekOffset((w) => w + 1)}
+              disabled={weekOffset >= 0}
+              aria-label="Settimana successiva"
+            >
+              <ChevronRight size={14} />
+            </Button>
+            {weekOffset !== 0 && (
+              <Button variant="soft" size="sm" onClick={() => setWeekOffset(0)}>
+                Oggi
+              </Button>
+            )}
+          </>
+        }
+      />
 
-      {/* Week navigation + filter */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <button onClick={() => setWeekOffset((w) => w - 1)} className="p-2 rounded-lg hover:bg-pw-surface-2 text-pw-text-muted">
-            <ChevronLeft size={18} />
-          </button>
-          <span className="text-sm font-semibold text-pw-text min-w-[200px] text-center">{weekLabel}</span>
-          <button onClick={() => setWeekOffset((w) => w + 1)} className="p-2 rounded-lg hover:bg-pw-surface-2 text-pw-text-muted" disabled={weekOffset >= 0}>
-            <ChevronRight size={18} />
-          </button>
-          {weekOffset !== 0 && (
-            <button onClick={() => setWeekOffset(0)} className="text-xs text-pw-accent hover:underline">
-              Questa settimana
-            </button>
-          )}
-        </div>
-        {isAdmin && (
+      {/* Filter */}
+      {isAdmin && (
+        <div className="flex items-center justify-end">
           <select
             value={filterMember}
             onChange={(e) => setFilterMember(e.target.value)}
-            className="px-3 py-1.5 rounded-lg border border-pw-border bg-pw-surface-2 text-pw-text text-xs"
+            className="px-3 py-1.5 rounded-md border border-pw-border bg-pw-surface text-pw-text text-xs"
           >
             <option value="">Tutto il team</option>
             {allProfiles.map((p) => (
               <option key={p.id} value={p.id}>{p.full_name}</option>
             ))}
           </select>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Summary cards */}
       {isAdmin && (

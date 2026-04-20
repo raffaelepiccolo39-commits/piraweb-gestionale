@@ -1,0 +1,104 @@
+/* ===================================================================
+   PiraWeb · Clarity Workspace — Design Tokens
+   Pronti per Tailwind (tailwind.config.js) o come CSS variables.
+   =================================================================== */
+
+:root {
+  /* Brand */
+  --pw-navy:         #0A263A;
+  --pw-navy-deep:    #061722;
+  --pw-gold:         #D4A800;
+  --pw-gold-hover:   #B8930A;
+  --pw-gold-soft:    #FDF7D8;
+  --pw-gold-soft-fg: #8A6D00;
+  --pw-red:          #E0431A;
+
+  /* Surfaces — light */
+  --pw-bg:           #F6F7F9;
+  --pw-surface:      #FFFFFF;
+  --pw-surface-soft: #FAFBFC;
+  --pw-surface-hi:   #F0F2F5;
+
+  /* Borders */
+  --pw-border:        #E5E7EB;
+  --pw-border-strong: #D1D5DB;
+
+  /* Text */
+  --pw-text:        #0B1F2F;
+  --pw-text-muted:  #4B5563;
+  --pw-text-dim:    #6B7280;
+  --pw-text-faint:  #9CA3AF;
+
+  /* Semantic */
+  --pw-success:      #059669;
+  --pw-success-soft: #ECFDF5;
+  --pw-info:         #2563EB;
+  --pw-info-soft:    #EFF6FF;
+  --pw-warning:      #D4A800;
+  --pw-warning-soft: #FDF7D8;
+  --pw-danger:       #E0431A;
+  --pw-danger-soft:  #FEF2F2;
+
+  /* Typography */
+  --pw-font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --pw-font-head: "Syne", "Inter", sans-serif;
+  --pw-font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  /* Radii */
+  --pw-radius-sm:  6px;
+  --pw-radius-md:  8px;
+  --pw-radius-lg:  10px;
+  --pw-radius-xl:  12px;
+
+  /* Spacing scale (4-based) */
+  --pw-space-1:  4px;
+  --pw-space-2:  8px;
+  --pw-space-3:  12px;
+  --pw-space-4:  16px;
+  --pw-space-5:  20px;
+  --pw-space-6:  24px;
+  --pw-space-8:  32px;
+  --pw-space-10: 40px;
+  --pw-space-12: 48px;
+
+  /* Shadows */
+  --pw-shadow-sm: 0 1px 2px rgba(10,31,47,0.05);
+  --pw-shadow-md: 0 4px 12px rgba(10,31,47,0.08);
+  --pw-shadow-lg: 0 12px 40px rgba(10,31,47,0.12);
+  --pw-shadow-xl: 0 20px 60px rgba(10,31,47,0.18);
+
+  /* Layout */
+  --pw-sidebar-width: 240px;
+  --pw-header-height: 56px;
+
+  /* Motion */
+  --pw-ease-out:    cubic-bezier(0.2, 0.9, 0.3, 1);
+  --pw-duration-fast: 160ms;
+  --pw-duration-med:  220ms;
+}
+
+[data-theme="dark"],
+.dark {
+  --pw-bg:           #0B1220;
+  --pw-surface:      #111A2C;
+  --pw-surface-soft: #0E1728;
+  --pw-surface-hi:   #162238;
+
+  --pw-border:        #1F2E48;
+  --pw-border-strong: #2A3D5E;
+
+  --pw-text:        #E8ECF4;
+  --pw-text-muted:  #9AA6B8;
+  --pw-text-dim:    #6B7890;
+  --pw-text-faint:  #4A5568;
+
+  --pw-gold-soft:    rgba(212,168,0,0.12);
+  --pw-gold-soft-fg: #D4A800;
+
+  --pw-success:      #34D399;
+  --pw-success-soft: rgba(52,211,153,0.12);
+  --pw-info:         #60A5FA;
+  --pw-info-soft:    rgba(96,165,250,0.12);
+  --pw-danger:       #F87171;
+  --pw-danger-soft:  rgba(248,113,113,0.12);
+}

@@ -49,7 +49,7 @@ export default function DashboardLayout({
       <div
         className={cn(
           'sidebar-transition',
-          sidebarCollapsed ? 'lg:ml-[68px]' : 'lg:ml-[260px]'
+          sidebarCollapsed ? 'lg:ml-[68px]' : 'lg:ml-[240px]'
         )}
       >
         <Header
