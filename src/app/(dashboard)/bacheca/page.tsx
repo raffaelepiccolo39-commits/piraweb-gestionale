@@ -19,7 +19,7 @@ import { Select } from '@/components/ui/select';
 import { EmptyState } from '@/components/ui/empty-state';
 import { TaskDetailModal } from '@/components/bacheca/task-detail-modal';
 import { TaskForm } from '@/components/tasks/task-form';
-import { formatDate, getPriorityColor, getInitials } from '@/lib/utils';
+import { formatDate, getInitials } from '@/lib/utils';
 import type { Task, Profile, Client } from '@/types/database';
 import {
   LayoutGrid,

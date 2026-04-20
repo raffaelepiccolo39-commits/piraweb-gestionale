@@ -2,7 +2,6 @@
 // Import from here instead of duplicating in each component.
 
 export const STATUS_LABELS: Record<string, string> = {
-  backlog: 'Backlog',
   todo: 'Da fare',
   in_progress: 'In corso',
   review: 'Review',
@@ -25,14 +24,13 @@ export const ROLE_LABELS: Record<string, string> = {
   graphic_brand: 'Graphic Brand',
 };
 
-export const TASK_STATUSES = ['backlog', 'todo', 'in_progress', 'review', 'done', 'archived'] as const;
+export const TASK_STATUSES = ['todo', 'in_progress', 'review', 'done', 'archived'] as const;
 export type TaskStatus = (typeof TASK_STATUSES)[number];
 
 export const TASK_PRIORITIES = ['low', 'medium', 'high', 'urgent'] as const;
 export type TaskPriority = (typeof TASK_PRIORITIES)[number];
 
 export const KANBAN_COLUMNS: { id: TaskStatus; label: string; color: string }[] = [
-  { id: 'backlog', label: 'Backlog', color: 'bg-gray-400' },
   { id: 'todo', label: 'Da fare', color: 'bg-blue-500' },
   { id: 'in_progress', label: 'In corso', color: 'bg-yellow-500' },
   { id: 'review', label: 'Review', color: 'bg-purple-500' },

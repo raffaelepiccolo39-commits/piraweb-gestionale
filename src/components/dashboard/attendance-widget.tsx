@@ -4,7 +4,7 @@ import { memo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { getAttendanceStatusLabel, getAttendanceStatusColor, formatTime } from '@/lib/utils';
+import { getAttendanceStatusLabel, getAttendanceStatusTone, formatTime } from '@/lib/utils';
 import { LogIn, LogOut, Coffee } from 'lucide-react';
 import type { AttendanceRecord } from '@/types/database';
 
@@ -26,7 +26,7 @@ export const AttendanceWidget = memo(function AttendanceWidget({ record, loading
           <div>
             <p className="text-[11px] text-pw-text-dim uppercase tracking-wider mb-1">Il tuo stato</p>
             <div className="flex items-center gap-2">
-              <Badge className={getAttendanceStatusColor(status)}>
+              <Badge tone={getAttendanceStatusTone(status)} dot>
                 {status === 'absent' ? 'Non registrato' : getAttendanceStatusLabel(status)}
               </Badge>
               {status === 'working' && (

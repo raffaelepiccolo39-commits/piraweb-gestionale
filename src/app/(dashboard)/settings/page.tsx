@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Modal } from '@/components/ui/modal';
-import { getRoleLabel, getRoleColor, getInitials, formatCurrency } from '@/lib/utils';
+import { getRoleLabel, getRoleTone, getInitials, formatCurrency } from '@/lib/utils';
 import type { Profile } from '@/types/database';
 import { Settings, Users, Shield, ShieldCheck, ShieldOff, Save, UserPlus, Eye, EyeOff, Pencil, Lock, ArrowRightLeft, AlertTriangle, Loader2, Copy, Check } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
@@ -436,7 +436,7 @@ export default function SettingsPage() {
             />
           </div>
           <div className="flex items-center gap-3">
-            <Badge className={getRoleColor(profile?.role || '')}>
+            <Badge tone={getRoleTone(profile?.role || '')}>
               {getRoleLabel(profile?.role || '')}
             </Badge>
           </div>
@@ -893,7 +893,7 @@ export default function SettingsPage() {
               </div>
               <div>
                 <p className="text-base font-semibold text-pw-text">{viewingMember.full_name}</p>
-                <Badge className={getRoleColor(viewingMember.role)}>{getRoleLabel(viewingMember.role)}</Badge>
+                <Badge tone={getRoleTone(viewingMember.role)}>{getRoleLabel(viewingMember.role)}</Badge>
               </div>
             </div>
 

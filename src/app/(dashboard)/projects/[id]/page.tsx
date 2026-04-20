@@ -12,7 +12,7 @@ import { Modal } from '@/components/ui/modal';
 import { KanbanBoard } from '@/components/kanban/kanban-board';
 import { TaskForm, type TaskFormData } from '@/components/tasks/task-form';
 import { ProjectForm, type ProjectFormData } from '@/components/projects/project-form';
-import { formatDate, getStatusColor, getInitials, getRoleLabel } from '@/lib/utils';
+import { formatDate, getStatusTone, getInitials } from '@/lib/utils';
 import type { Project, Task } from '@/types/database';
 import {
   ArrowLeft,
@@ -204,7 +204,7 @@ export default function ProjectDetailPage({
                 {project.name}
               </h1>
               <div className="flex items-center gap-3 mt-1">
-                <Badge className={getStatusColor(project.status)}>
+                <Badge tone={getStatusTone(project.status)} dot>
                   {statusLabels[project.status]}
                 </Badge>
                 {project.deadline && (

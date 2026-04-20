@@ -14,8 +14,8 @@ import { TimeTracker } from '@/components/tasks/time-tracker';
 import {
   formatDate,
   formatDateTime,
-  getStatusColor,
-  getPriorityColor,
+  getStatusTone,
+  getPriorityTone,
   getInitials,
   getRoleLabel,
   getUserColor,
@@ -247,10 +247,10 @@ export default function TaskDetailPage({
               <div className="flex items-start justify-between gap-4 mb-4">
                 <h1 className="text-xl font-bold text-pw-text">{task.title}</h1>
                 <div className="flex gap-2 shrink-0">
-                  <Badge className={getStatusColor(task.status)}>
+                  <Badge tone={getStatusTone(task.status)} dot>
                     {STATUS_LABELS[task.status]}
                   </Badge>
-                  <Badge className={getPriorityColor(task.priority)}>
+                  <Badge tone={getPriorityTone(task.priority)}>
                     {PRIORITY_LABELS[task.priority]}
                   </Badge>
                 </div>
@@ -267,7 +267,7 @@ export default function TaskDetailPage({
                 <div className="mt-4 pt-4 border-t border-pw-border">
                   <p className="text-xs text-pw-text-dim mb-2">Cambia stato:</p>
                   <div className="flex flex-wrap gap-2">
-                    {['backlog', 'todo', 'in_progress', 'review', 'done'].map((s) => (
+                    {['todo', 'in_progress', 'review', 'done'].map((s) => (
                       <button
                         key={s}
                         onClick={() => handleStatusChange(s)}

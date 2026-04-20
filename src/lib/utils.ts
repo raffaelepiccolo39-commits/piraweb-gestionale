@@ -70,7 +70,6 @@ export function getPriorityColor(priority: string): string {
 
 export function getStatusColor(status: string): string {
   const colors: Record<string, string> = {
-    backlog: 'bg-pw-surface-3 text-pw-text-muted',
     todo: 'bg-[#FFD108]/10 text-[#FFD108]',
     in_progress: 'bg-[#ff4d1c]/10 text-[#ff6633]',
     review: 'bg-[#22d3ee]/10 text-[#22d3ee]',
@@ -78,6 +77,50 @@ export function getStatusColor(status: string): string {
     archived: 'bg-white/5 text-pw-text-dim',
   };
   return colors[status] || '';
+}
+
+export type BadgeTone = 'neutral' | 'brand' | 'success' | 'warning' | 'danger' | 'info' | 'accent';
+
+export function getStatusTone(status: string): BadgeTone {
+  const tones: Record<string, BadgeTone> = {
+    todo: 'brand',
+    in_progress: 'accent',
+    review: 'info',
+    done: 'success',
+    archived: 'neutral',
+  };
+  return tones[status] || 'neutral';
+}
+
+export function getPriorityTone(priority: string): BadgeTone {
+  const tones: Record<string, BadgeTone> = {
+    low: 'neutral',
+    medium: 'brand',
+    high: 'accent',
+    urgent: 'danger',
+  };
+  return tones[priority] || 'neutral';
+}
+
+export function getAttendanceStatusTone(status: string): BadgeTone {
+  const tones: Record<string, BadgeTone> = {
+    working: 'success',
+    lunch_break: 'warning',
+    completed: 'info',
+    absent: 'neutral',
+  };
+  return tones[status] || 'neutral';
+}
+
+export function getRoleTone(role: string): BadgeTone {
+  const tones: Record<string, BadgeTone> = {
+    admin: 'accent',
+    social_media_manager: 'info',
+    content_creator: 'success',
+    graphic_social: 'warning',
+    graphic_brand: 'brand',
+  };
+  return tones[role] || 'neutral';
 }
 
 export function formatCurrency(amount: number | string): string {

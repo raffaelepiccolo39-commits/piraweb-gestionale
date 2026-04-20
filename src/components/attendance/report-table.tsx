@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { formatTime, formatHours, getInitials, getRoleLabel, getRoleColor } from '@/lib/utils';
+import { formatTime, formatHours, getInitials, getRoleLabel, getRoleTone } from '@/lib/utils';
 import type { AttendanceWeeklyRow, AttendanceMonthlyReport } from '@/types/database';
 
 const DAY_LABELS = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'];
@@ -143,7 +143,7 @@ export function ReportTable({ mode, weeklyData, monthlyData }: ReportTableProps)
                       </div>
                     </td>
                     <td className="text-center px-3 py-3">
-                      <Badge className={`${getRoleColor(row.role)} text-[10px]`}>
+                      <Badge tone={getRoleTone(row.role)} size="sm">
                         {getRoleLabel(row.role)}
                       </Badge>
                     </td>

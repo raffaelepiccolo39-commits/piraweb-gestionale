@@ -7,7 +7,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/ui/empty-state';
-import { getRoleLabel, getRoleColor, getInitials } from '@/lib/utils';
+import { getRoleLabel, getRoleTone, getInitials } from '@/lib/utils';
 import type { TeamEfficiency, ProductivityTrend, TeamOverviewStats } from '@/types/database';
 import {
   BarChart3,
@@ -301,7 +301,7 @@ export default function AnalyticsPage() {
                             <p className="text-sm font-medium text-pw-text truncate">
                               {member.full_name}
                             </p>
-                            <Badge className={`${getRoleColor(member.role)} text-[10px]`}>
+                            <Badge tone={getRoleTone(member.role)} size="sm">
                               {getRoleLabel(member.role)}
                             </Badge>
                           </div>

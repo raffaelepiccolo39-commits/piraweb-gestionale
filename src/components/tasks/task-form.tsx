@@ -56,7 +56,6 @@ const priorityOptions = [
 ];
 
 const statusOptions = [
-  { value: 'backlog', label: 'Backlog' },
   { value: 'todo', label: 'Da fare' },
   { value: 'in_progress', label: 'In corso' },
   { value: 'review', label: 'Review' },

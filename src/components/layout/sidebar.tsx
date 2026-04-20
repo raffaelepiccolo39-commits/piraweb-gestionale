@@ -141,16 +141,16 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         aria-current={isActive ? 'page' : undefined}
         aria-label={item.label}
         className={cn(
-          'group relative flex items-center gap-3 px-3 py-2.5 my-0.5 rounded-xl text-[13px] font-medium transition-all duration-200 ease-out',
+          'group relative flex items-center gap-3 px-3 py-2.5 my-0.5 rounded-xl text-[13px] font-medium transition-all duration-200 ease-out overflow-hidden',
           isActive
-            ? 'bg-pw-accent/[0.08] text-pw-text'
+            ? 'bg-gradient-to-r from-pw-accent/[0.14] via-pw-accent/[0.06] to-transparent text-pw-text shadow-[inset_0_1px_0_rgba(255,209,8,0.08)]'
             : 'text-pw-text-muted hover:text-pw-text hover:bg-pw-surface-2/60',
           collapsed && 'justify-center px-0'
         )}
       >
-        {/* Active indicator — gold left bar */}
+        {/* Active indicator — gold left bar with glow */}
         {isActive && (
-          <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-pw-accent transition-all duration-300 ease-out" />
+          <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 rounded-r-full bg-pw-accent shadow-[0_0_10px_rgba(255,209,8,0.5)] transition-all duration-300 ease-out" />
         )}
 
         <div className="relative shrink-0">
@@ -158,7 +158,9 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
             size={18}
             className={cn(
               'transition-all duration-200 ease-out',
-              isActive ? 'text-pw-accent' : 'text-pw-text-dim group-hover:text-pw-text-muted'
+              isActive
+                ? 'text-pw-accent drop-shadow-[0_0_6px_rgba(255,209,8,0.35)]'
+                : 'text-pw-text-dim group-hover:text-pw-text-muted group-hover:scale-110'
             )}
           />
           {/* Live notification dot */}

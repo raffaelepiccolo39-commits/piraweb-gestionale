@@ -7,7 +7,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/components/ui/toast';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { formatDate, getStatusColor, getPriorityColor, getRoleLabel, getRoleColor, getInitials } from '@/lib/utils';
+import { formatDate, getStatusTone, getPriorityTone, getRoleLabel, getRoleTone, getInitials } from '@/lib/utils';
 import { AlertTriangle, Calendar, ChevronRight } from 'lucide-react';
 import { STATUS_LABELS, PRIORITY_LABELS } from '@/lib/constants';
 import type { AttendanceRecord } from '@/types/database';
@@ -344,21 +344,30 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6 animate-slide-up">
-      {/* Row 1: Greeting + Attendance */}
-      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-        <Greeting
-          profile={profile}
-          overdueTasks={stats.overdueTasks}
-          dueTodayCount={dueTodayCount}
-          inProgressTasks={stats.inProgressTasks}
-        />
-        <AttendanceWidget
-          record={attendance}
-          loading={attendanceLoading}
-          onClockIn={() => handleAttendanceAction('clock_in')}
-          onLunchBreak={() => handleAttendanceAction('lunch_break')}
-          onClockOut={() => handleAttendanceAction('clock_out')}
-        />
+      {/* Row 1: Greeting hero + Attendance */}
+      <div className="flex flex-col lg:flex-row lg:items-stretch gap-4">
+        <div className="relative flex-1 overflow-hidden rounded-3xl border border-pw-border/40 bg-gradient-to-br from-pw-surface-2/70 via-pw-surface/40 to-pw-surface-2/30 px-6 py-5">
+          <div aria-hidden="true" className="pointer-events-none absolute -top-16 -right-16 w-60 h-60 rounded-full bg-[#FFD108]/10 blur-3xl" />
+          <div aria-hidden="true" className="pointer-events-none absolute -bottom-20 -left-10 w-56 h-56 rounded-full bg-cyan-500/5 blur-3xl" />
+          <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#FFD108]/40 to-transparent" />
+          <div className="relative">
+            <Greeting
+              profile={profile}
+              overdueTasks={stats.overdueTasks}
+              dueTodayCount={dueTodayCount}
+              inProgressTasks={stats.inProgressTasks}
+            />
+          </div>
+        </div>
+        <div className="lg:w-[360px] shrink-0">
+          <AttendanceWidget
+            record={attendance}
+            loading={attendanceLoading}
+            onClockIn={() => handleAttendanceAction('clock_in')}
+            onLunchBreak={() => handleAttendanceAction('lunch_break')}
+            onClockOut={() => handleAttendanceAction('clock_out')}
+          />
+        </div>
       </div>
 
       {/* Row 2: Quick Actions */}
@@ -408,8 +417,8 @@ export default function DashboardPage() {
                         </p>
                       </div>
                       <div className="flex items-center gap-2 shrink-0 flex-wrap">
-                        <Badge className={getStatusColor(task.status)}>{STATUS_LABELS[task.status]}</Badge>
-                        <Badge className={getPriorityColor(task.priority)}>{PRIORITY_LABELS[task.priority]}</Badge>
+                        <Badge tone={getStatusTone(task.status)} dot size="sm">{STATUS_LABELS[task.status]}</Badge>
+                        <Badge tone={getPriorityTone(task.priority)} size="sm">{PRIORITY_LABELS[task.priority]}</Badge>
                         {task.deadline && (
                           <span className="text-xs text-pw-text-dim flex items-center gap-1">
                             <Calendar size={11} />
@@ -455,7 +464,7 @@ export default function DashboardPage() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-pw-text truncate">{member.full_name}</p>
-                        <Badge className={`${getRoleColor(member.role)} text-[10px]`}>{getRoleLabel(member.role)}</Badge>
+                        <Badge tone={getRoleTone(member.role)} size="sm">{getRoleLabel(member.role)}</Badge>
                       </div>
                     </div>
                     <div className="flex items-center gap-4 text-xs text-pw-text-muted ml-11">

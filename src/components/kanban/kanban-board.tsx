@@ -8,7 +8,7 @@ import {
   type DropResult,
 } from '@hello-pangea/dnd';
 import { createClient } from '@/lib/supabase/client';
-import { cn, getPriorityColor, getInitials, formatDate } from '@/lib/utils';
+import { cn, getPriorityTone, getInitials, formatDate } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import type { Task, TaskStatus } from '@/types/database';
 import { KANBAN_COLUMNS, PRIORITY_LABELS } from '@/lib/constants';
@@ -123,7 +123,7 @@ export function KanbanBoard({ tasks, onTaskClick, onTasksUpdate }: KanbanBoardPr
                             </div>
 
                             <div className="flex flex-wrap gap-1.5 mb-2">
-                              <Badge className={getPriorityColor(task.priority)}>
+                              <Badge tone={getPriorityTone(task.priority)}>
                                 {PRIORITY_LABELS[task.priority]}
                               </Badge>
                             </div>

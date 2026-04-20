@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { formatDate, formatDateTime, getInitials, getPriorityColor, getRoleLabel } from '@/lib/utils';
+import { formatDateTime, getInitials } from '@/lib/utils';
 import type { Task, Profile, TaskComment, TaskAttachment, Client } from '@/types/database';
 import {
   Calendar,
@@ -38,7 +38,6 @@ interface TaskDetailModalProps {
 }
 
 const statusOptions = [
-  { value: 'backlog', label: 'Backlog' },
   { value: 'todo', label: 'Da fare' },
   { value: 'in_progress', label: 'In corso' },
   { value: 'review', label: 'Review' },

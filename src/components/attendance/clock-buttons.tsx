@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Modal } from '@/components/ui/modal';
-import { formatTime, getAttendanceStatusLabel, getAttendanceStatusColor } from '@/lib/utils';
+import { formatTime, getAttendanceStatusLabel, getAttendanceStatusTone } from '@/lib/utils';
 import type { AttendanceRecord } from '@/types/database';
 import { LogIn, LogOut, Coffee, UtensilsCrossed, Clock, CheckCircle2 } from 'lucide-react';
 
@@ -48,7 +48,7 @@ export function ClockButtons({ record, onAction, loading }: ClockButtonsProps) {
             {currentTime.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
           </p>
           <div className="mt-3">
-            <Badge className={getAttendanceStatusColor(status)}>
+            <Badge tone={getAttendanceStatusTone(status)} dot>
               {getAttendanceStatusLabel(status)}
             </Badge>
           </div>

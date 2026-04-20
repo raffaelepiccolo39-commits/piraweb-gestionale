@@ -19,7 +19,7 @@ import {
   getDevNoteCategoryLabel,
   getDevNoteStatusColor,
   getDevNoteStatusLabel,
-  getPriorityColor,
+  getPriorityTone,
   getInitials,
 } from '@/lib/utils';
 import {
@@ -363,7 +363,7 @@ export default function NoteDevPage() {
                       <Badge className={getDevNoteCategoryColor(note.category)}>
                         {getDevNoteCategoryLabel(note.category)}
                       </Badge>
-                      <Badge className={getPriorityColor(note.priority)}>
+                      <Badge tone={getPriorityTone(note.priority)}>
                         {PRIORITY_LABELS[note.priority]}
                       </Badge>
                       <Badge className={getDevNoteStatusColor(note.status)}>

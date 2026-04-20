@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { formatTime, getInitials, getRoleLabel, getRoleColor, getAttendanceStatusLabel, getAttendanceStatusColor } from '@/lib/utils';
+import { formatTime, getInitials, getRoleLabel, getRoleTone, getAttendanceStatusLabel, getAttendanceStatusTone } from '@/lib/utils';
 import type { TeamAttendanceToday } from '@/types/database';
 import { Users } from 'lucide-react';
 
@@ -65,7 +65,7 @@ export function TeamStatus({ teamData, loading }: TeamStatusProps) {
                   <p className="text-sm font-medium text-pw-text truncate">
                     {member.full_name}
                   </p>
-                  <Badge className={`${getRoleColor(member.role)} text-[10px]`}>
+                  <Badge tone={getRoleTone(member.role)} size="sm">
                     {getRoleLabel(member.role)}
                   </Badge>
                 </div>
@@ -78,7 +78,7 @@ export function TeamStatus({ teamData, loading }: TeamStatusProps) {
                   </p>
                 )}
               </div>
-              <Badge className={getAttendanceStatusColor(member.status)}>
+              <Badge tone={getAttendanceStatusTone(member.status)} dot>
                 {getAttendanceStatusLabel(member.status)}
               </Badge>
             </div>
