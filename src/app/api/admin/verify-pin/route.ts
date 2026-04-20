@@ -1,6 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createHash } from 'crypto';
+import { cookies } from 'next/headers';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+
+const PIN_COOKIE_NAME = 'admin_pin_verified';
+const PIN_COOKIE_MAX_AGE = 60 * 60 * 8; // 8 ore (giornata lavorativa)
+
+// GET: controlla se la verifica PIN e' ancora valida per l'utente corrente
+export async function GET() {
+  const supabase = await createServerSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return NextResponse.json({ valid: false }, { status: 401 });
+  }
+
+  const cookieStore = await cookies();
+  const pinCookie = cookieStore.get(PIN_COOKIE_NAME);
+  const valid = pinCookie?.value === user.id;
+
+  return NextResponse.json({ valid });
+}
 
 export async function POST(request: NextRequest) {
   const supabase = await createServerSupabaseClient();
@@ -37,6 +57,17 @@ export async function POST(request: NextRequest) {
   if (pinHash !== storedHash) {
     return NextResponse.json({ valid: false, error: 'Codice errato' }, { status: 401 });
   }
+
+  // Persisti la verifica in un cookie httpOnly legato all'user.id:
+  // l'utente non si vede piu' richiedere il PIN finche' il cookie non scade.
+  const cookieStore = await cookies();
+  cookieStore.set(PIN_COOKIE_NAME, user.id, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/',
+    maxAge: PIN_COOKIE_MAX_AGE,
+  });
 
   return NextResponse.json({ valid: true });
 }

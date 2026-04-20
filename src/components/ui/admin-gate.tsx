@@ -9,15 +9,29 @@ interface AdminGateProps {
 
 export function AdminGate({ children }: AdminGateProps) {
   const [verified, setVerified] = useState(false);
+  const [checking, setChecking] = useState(true);
   const [pin, setPin] = useState(['', '', '', '', '', '']);
   const [error, setError] = useState('');
   const [verifying, setVerifying] = useState(false);
   const [shake, setShake] = useState(false);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
+  // Al mount: controlla se l'utente ha gia' verificato il PIN (cookie valido)
   useEffect(() => {
-    inputRefs.current[0]?.focus();
+    fetch('/api/admin/verify-pin')
+      .then(res => res.json())
+      .then(data => {
+        if (data.valid) setVerified(true);
+      })
+      .catch(() => {})
+      .finally(() => setChecking(false));
   }, []);
+
+  useEffect(() => {
+    if (!checking && !verified) {
+      inputRefs.current[0]?.focus();
+    }
+  }, [checking, verified]);
 
   const handleChange = (index: number, value: string) => {
     if (!/^\d*$/.test(value)) return;
@@ -92,6 +106,15 @@ export function AdminGate({ children }: AdminGateProps) {
 
   if (verified) {
     return <>{children}</>;
+  }
+
+  // Evita il flash del form PIN durante il controllo del cookie
+  if (checking) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 size={24} className="animate-spin text-pw-text-dim" />
+      </div>
+    );
   }
 
   return (
