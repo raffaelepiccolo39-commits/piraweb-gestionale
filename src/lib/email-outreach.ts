@@ -1,6 +1,12 @@
 import { Resend } from 'resend';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Inizializzazione lazy: istanziare a module-top rompe il build di Next quando
+// RESEND_API_KEY non e' disponibile durante la page-data collection.
+function getResend(): Resend {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) throw new Error('RESEND_API_KEY non configurata');
+  return new Resend(apiKey);
+}
 
 function escapeHtml(str: string): string {
   return str
@@ -336,7 +342,7 @@ export async function sendOutreachEmail({ to, businessName, messageBody, subject
 </body>
 </html>`;
 
-  await resend.emails.send({
+  await getResend().emails.send({
     from: process.env.RESEND_FROM || 'PiraWeb <info@piraweb.it>',
     to,
     subject: emailSubject,

@@ -68,23 +68,37 @@ export default function InvoicesPage() {
   const [itemForm, setItemForm] = useState({ description: '', quantity: '1', unit_price: '' });
   const [sdiLoading, setSdiLoading] = useState(false);
 
+  const [fetchError, setFetchError] = useState<string | null>(null);
+
   const fetchInvoices = useCallback(async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('invoices')
       .select('*, client:clients(id, name, company, ragione_sociale, partita_iva)')
       .order('issue_date', { ascending: false });
+    if (error) {
+      setFetchError(error.message);
+      return;
+    }
+    setFetchError(null);
     setInvoices((data as Invoice[]) || []);
   }, [supabase]);
 
   const fetchItems = useCallback(async (invoiceId: string) => {
-    const { data } = await supabase.from('invoice_items').select('*').eq('invoice_id', invoiceId).order('created_at');
+    const { data, error } = await supabase.from('invoice_items').select('*').eq('invoice_id', invoiceId).order('created_at');
+    if (error) {
+      toast.error(`Errore caricamento voci: ${error.message}`);
+      return;
+    }
     setItems((data as InvoiceItem[]) || []);
-  }, [supabase]);
+  }, [supabase, toast]);
 
   useEffect(() => {
     Promise.all([
       fetchInvoices(),
-      supabase.from('clients').select('id, name, company, ragione_sociale, partita_iva').eq('is_active', true).order('company').then((r) => setClients((r.data as Client[]) || [])),
+      supabase.from('clients').select('id, name, company, ragione_sociale, partita_iva').eq('is_active', true).order('company').then((r) => {
+        if (r.error) setFetchError(r.error.message);
+        else setClients((r.data as Client[]) || []);
+      }),
     ]).finally(() => setLoading(false));
   }, [fetchInvoices, supabase]);
 
@@ -93,6 +107,7 @@ export default function InvoicesPage() {
   }, [selectedInvoice, fetchItems]);
 
   const handleCreate = async () => {
+    if (!profile) { toast.error('Profilo utente non disponibile'); return; }
     if (!form.client_id || !form.due_date) { toast.error('Cliente e scadenza obbligatori'); return; }
     setCreateLoading(true);
     try {
@@ -104,15 +119,17 @@ export default function InvoicesPage() {
         period_start: form.period_start || null,
         period_end: form.period_end || null,
         notes: form.notes || null,
-        created_by: profile!.id,
+        created_by: profile.id,
       }).select().single();
-      if (!error && data) {
-        toast.success(`Fattura ${(data as Invoice).invoice_number} creata`);
-        setShowForm(false);
-        setForm({ client_id: '', description: '', vat_rate: '22', due_date: '', period_start: '', period_end: '', notes: '' });
-        fetchInvoices();
-        setSelectedInvoice(data as Invoice);
+      if (error || !data) {
+        toast.error(error?.message || 'Errore creazione fattura');
+        return;
       }
+      toast.success(`Fattura ${(data as Invoice).invoice_number} creata`);
+      setShowForm(false);
+      setForm({ client_id: '', description: '', vat_rate: '22', due_date: '', period_start: '', period_end: '', notes: '' });
+      fetchInvoices();
+      setSelectedInvoice(data as Invoice);
     } finally {
       setCreateLoading(false);
     }
@@ -122,13 +139,18 @@ export default function InvoicesPage() {
     if (!itemForm.description || !itemForm.unit_price || !selectedInvoice) return;
     const qty = parseFloat(itemForm.quantity) || 1;
     const price = parseFloat(itemForm.unit_price) || 0;
-    await supabase.from('invoice_items').insert({
+    const { error } = await supabase.from('invoice_items').insert({
       invoice_id: selectedInvoice.id,
       description: itemForm.description,
       quantity: qty,
       unit_price: price,
       total: qty * price,
     });
+    if (error) {
+      toast.error(`Errore aggiunta voce: ${error.message}`);
+      return;
+    }
+    toast.success('Voce aggiunta');
     setShowAddItem(false);
     setItemForm({ description: '', quantity: '1', unit_price: '' });
     fetchItems(selectedInvoice.id);
@@ -136,14 +158,22 @@ export default function InvoicesPage() {
   };
 
   const handleDeleteItem = async (itemId: string) => {
-    await supabase.from('invoice_items').delete().eq('id', itemId);
+    const { error } = await supabase.from('invoice_items').delete().eq('id', itemId);
+    if (error) {
+      toast.error(`Errore eliminazione: ${error.message}`);
+      return;
+    }
     if (selectedInvoice) { fetchItems(selectedInvoice.id); fetchInvoices(); }
   };
 
   const handleStatusChange = async (invoiceId: string, status: InvoiceStatus) => {
     const updates: Record<string, unknown> = { status };
     if (status === 'paid') updates.paid_at = new Date().toISOString();
-    await supabase.from('invoices').update(updates).eq('id', invoiceId);
+    const { error } = await supabase.from('invoices').update(updates).eq('id', invoiceId);
+    if (error) {
+      toast.error(`Errore aggiornamento: ${error.message}`);
+      return;
+    }
     toast.success(`Fattura ${status === 'paid' ? 'segnata come pagata' : status === 'sent' ? 'inviata' : 'aggiornata'}`);
     fetchInvoices();
     if (selectedInvoice?.id === invoiceId) setSelectedInvoice((i) => i ? { ...i, status } : null);
@@ -233,6 +263,19 @@ export default function InvoicesPage() {
         </div>
         <Button onClick={() => setShowForm(true)}><Plus size={16} />Nuova Fattura</Button>
       </div>
+
+      {fetchError && (
+        <div className="flex items-start gap-3 p-4 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900/40">
+          <AlertTriangle size={18} className="text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
+          <div className="flex-1 text-sm">
+            <p className="font-medium text-red-800 dark:text-red-300">Errore nel caricamento dei dati</p>
+            <p className="text-red-700 dark:text-red-400 mt-0.5">{fetchError}</p>
+          </div>
+          <Button size="sm" variant="ghost" onClick={() => { setLoading(true); fetchInvoices().finally(() => setLoading(false)); }}>
+            <RefreshCw size={14} /> Riprova
+          </Button>
+        </div>
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 stagger-children">
