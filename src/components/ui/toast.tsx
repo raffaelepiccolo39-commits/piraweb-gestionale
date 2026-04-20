@@ -56,39 +56,51 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   };
 
   const styles = {
-    success: 'border-green-500/30 bg-green-500/10 text-green-400',
-    error: 'border-red-500/30 bg-red-500/10 text-red-400',
-    info: 'border-blue-500/30 bg-blue-500/10 text-blue-400',
+    success: {
+      bar: 'border-l-[var(--pw-success)]',
+      iconBg: 'bg-[var(--pw-success-soft)] text-[var(--pw-success)]',
+    },
+    error: {
+      bar: 'border-l-[var(--pw-danger)]',
+      iconBg: 'bg-[var(--pw-danger-soft)] text-[var(--pw-danger)]',
+    },
+    info: {
+      bar: 'border-l-[var(--pw-info)]',
+      iconBg: 'bg-[var(--pw-info-soft)] text-[var(--pw-info)]',
+    },
   };
 
   return (
     <ToastContext.Provider value={{ toast }}>
       {children}
-      {/* Toast container */}
+      {/* Toast container — Clarity style */}
       <div
         aria-live="polite"
         aria-atomic="true"
-        className="fixed bottom-4 right-4 z-[60] flex flex-col gap-2 max-w-sm"
+        className="fixed bottom-6 left-6 z-[60] flex flex-col gap-2 max-w-[400px]"
       >
         {toasts.map((t) => {
           const Icon = icons[t.type];
+          const s = styles[t.type];
           return (
             <div
               key={t.id}
               role="alert"
               className={cn(
-                'flex items-center gap-3 px-4 py-3 rounded-xl border shadow-lg backdrop-blur-sm animate-slide-up animate-in slide-in-from-right fade-in duration-200',
-                styles[t.type]
+                'flex items-start gap-3 px-4 py-3 rounded-md border border-pw-border bg-pw-surface shadow-[var(--pw-shadow-lg)] border-l-[3px] min-w-[280px]',
+                s.bar
               )}
             >
-              <Icon size={18} className="shrink-0" />
-              <p className="text-sm font-medium flex-1">{t.message}</p>
+              <div className={cn('shrink-0 w-[22px] h-[22px] rounded-full flex items-center justify-center', s.iconBg)}>
+                <Icon size={12} strokeWidth={2.5} aria-hidden="true" />
+              </div>
+              <p className="text-[13px] font-medium text-pw-text leading-tight flex-1 pt-[2px]">{t.message}</p>
               <button
                 onClick={() => removeToast(t.id)}
-                className="shrink-0 p-1 rounded-lg hover:bg-white/10 transition-colors"
+                className="shrink-0 p-0.5 text-pw-text-dim hover:text-pw-text transition-colors"
                 aria-label="Chiudi notifica"
               >
-                <X size={14} />
+                <X size={12} />
               </button>
             </div>
           );

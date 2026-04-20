@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { PageHeader } from '@/components/ui/page-header';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
@@ -404,11 +405,10 @@ export default function SettingsPage() {
 
   return (
     <div className="space-y-6 max-w-4xl animate-slide-up">
-      <div>
-        <h1 className="text-2xl font-bold text-pw-text font-[var(--font-syne)]">
-          Impostazioni
-        </h1>
-      </div>
+      <PageHeader
+        title="Impostazioni"
+        subtitle="Gestisci profilo e preferenze"
+      />
 
       {/* Profile settings */}
       <Card>

@@ -388,7 +388,7 @@ export default function ChatPage() {
           <div>
             <p className="text-sm font-semibold text-pw-text">{channelDisplayName}</p>
             {(selectedChannel?.type === 'team' || selectedChannel?.type === 'project' || selectedChannel?.type === 'group') && (
-              <p className="text-[10px] text-pw-text-dim">
+              <p className="text-xs text-pw-text-dim">
                 {selectedChannel.members?.length || 0} membri
                 {selectedChannel.type === 'project' && ' · Progetto'}
                 {selectedChannel.type === 'group' && ' · Gruppo'}
@@ -509,12 +509,13 @@ export default function ChatPage() {
               Annulla
             </Button>
             <Button
+              variant="primary"
               onClick={handleCreateGroup}
               loading={creatingGroup}
               disabled={!groupName.trim() || groupMembers.length === 0}
               className="flex-1"
             >
-              <Users size={16} />
+              <Users size={14} />
               Crea Gruppo
             </Button>
           </div>
