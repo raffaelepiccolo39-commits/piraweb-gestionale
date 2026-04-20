@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Modal } from '@/components/ui/modal';
 import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/ui/empty-state';
-import { Toolbar, ToolbarHeader, ToolbarFilters } from '@/components/ui/toolbar';
+import { PageHeader } from '@/components/ui/page-header';
 import { ClientForm, type ClientFormData } from '@/components/clients/client-form';
 import type { Client } from '@/types/database';
 import { useToast } from '@/components/ui/toast';
@@ -436,56 +436,54 @@ export default function ClientsPage() {
 
   return (
     <div className="space-y-6 animate-slide-up">
-      <Toolbar>
-        <ToolbarHeader
-          title={<h1 className="text-2xl font-bold text-pw-text font-[var(--font-syne)]">Clienti</h1>}
-          subtitle={`${clients.length} clienti ${isAdmin ? 'totali' : 'attivi'}`}
-          actions={
-            isAdmin && (
-              <Button onClick={() => setShowForm(true)}>
-                <Plus size={18} />
-                Nuovo Cliente
-              </Button>
-            )
-          }
-        />
-        <ToolbarFilters>
-          <div className="relative max-w-md flex-1 min-w-[220px]">
-            <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-pw-text-dim" />
-            <input
-              type="text"
-              placeholder="Cerca clienti..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-pw-border/60 bg-pw-surface-2/80 text-pw-text focus:ring-2 focus:ring-pw-accent/20 focus:border-pw-accent/40 focus:bg-pw-surface-2 outline-none transition-all duration-200 text-sm hover:border-pw-border-hover"
-            />
+      <PageHeader
+        title="Clienti"
+        subtitle={`${clients.length} clienti ${isAdmin ? 'totali' : 'attivi'}`}
+        actions={
+          isAdmin && (
+            <Button variant="primary" onClick={() => setShowForm(true)}>
+              <Plus size={14} />
+              Nuovo Cliente
+            </Button>
+          )
+        }
+      />
+      <div className="flex flex-wrap items-end gap-3 mb-6">
+        <div className="relative max-w-md flex-1 min-w-[220px]">
+          <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-pw-text-dim" />
+          <input
+            type="text"
+            placeholder="Cerca clienti..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-pw-border/60 bg-pw-surface-2/80 text-pw-text focus:ring-2 focus:ring-pw-accent/20 focus:border-pw-accent/40 focus:bg-pw-surface-2 outline-none transition-all duration-200 text-sm hover:border-pw-border-hover"
+          />
+        </div>
+        {sectors.length > 0 && (
+          <div className="relative">
+            <Filter size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-pw-text-dim pointer-events-none" />
+            <select
+              value={sectorFilter}
+              onChange={(e) => setSectorFilter(e.target.value)}
+              className="pl-9 pr-4 py-2.5 rounded-xl border border-pw-border/60 bg-pw-surface-2/80 text-pw-text text-sm outline-none appearance-none cursor-pointer focus:ring-2 focus:ring-pw-accent/20 focus:border-pw-accent/40 hover:border-pw-border-hover transition-all duration-200"
+            >
+              <option value="">Tutti i settori</option>
+              {sectors.sort().map((s) => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
           </div>
-          {sectors.length > 0 && (
-            <div className="relative">
-              <Filter size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-pw-text-dim pointer-events-none" />
-              <select
-                value={sectorFilter}
-                onChange={(e) => setSectorFilter(e.target.value)}
-                className="pl-9 pr-4 py-2.5 rounded-xl border border-pw-border/60 bg-pw-surface-2/80 text-pw-text text-sm outline-none appearance-none cursor-pointer focus:ring-2 focus:ring-pw-accent/20 focus:border-pw-accent/40 hover:border-pw-border-hover transition-all duration-200"
-              >
-                <option value="">Tutti i settori</option>
-                {sectors.sort().map((s) => (
-                  <option key={s} value={s}>{s}</option>
-                ))}
-              </select>
-            </div>
-          )}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'))}
-            title={sortOrder === 'asc' ? 'Ordine A-Z' : 'Ordine Z-A'}
-          >
-            {sortOrder === 'asc' ? <ArrowDownAZ size={18} /> : <ArrowUpAZ size={18} />}
-            {sortOrder === 'asc' ? 'A-Z' : 'Z-A'}
-          </Button>
-        </ToolbarFilters>
-      </Toolbar>
+        )}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'))}
+          title={sortOrder === 'asc' ? 'Ordine A-Z' : 'Ordine Z-A'}
+        >
+          {sortOrder === 'asc' ? <ArrowDownAZ size={14} /> : <ArrowUpAZ size={14} />}
+          {sortOrder === 'asc' ? 'A-Z' : 'Z-A'}
+        </Button>
+      </div>
 
       {/* Client grid */}
       {filteredClients.length === 0 ? (
@@ -495,8 +493,8 @@ export default function ClientsPage() {
           description={search ? 'Nessun risultato per la ricerca' : 'Nessun cliente disponibile'}
           action={
             isAdmin && !search ? (
-              <Button onClick={() => setShowForm(true)}>
-                <Plus size={18} />
+              <Button variant="primary" onClick={() => setShowForm(true)}>
+                <Plus size={14} />
                 Nuovo Cliente
               </Button>
             ) : undefined
@@ -506,7 +504,7 @@ export default function ClientsPage() {
         /* ===== VISTA ADMIN: card completa ===== */
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 stagger-children">
           {filteredClients.map((client) => (
-            <Card key={client.id} className="hover:shadow-md transition-shadow">
+            <Card key={client.id} hover>
               <CardContent className="p-5">
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center gap-3">
@@ -651,7 +649,7 @@ export default function ClientsPage() {
         /* ===== VISTA DIPENDENTE: solo azienda e referente ===== */
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 stagger-children">
           {filteredClients.map((client) => (
-            <Card key={client.id} className="hover:shadow-md transition-shadow">
+            <Card key={client.id} hover>
               <CardContent className="p-5">
                 <div className="flex items-center gap-3">
                   {client.logo_url ? (

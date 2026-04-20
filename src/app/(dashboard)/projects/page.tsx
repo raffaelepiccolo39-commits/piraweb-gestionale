@@ -10,12 +10,12 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Modal } from '@/components/ui/modal';
 import { EmptyState } from '@/components/ui/empty-state';
-import { Toolbar, ToolbarHeader, ToolbarFilters } from '@/components/ui/toolbar';
+import { PageHeader } from '@/components/ui/page-header';
 import { ProjectForm, type ProjectFormData } from '@/components/projects/project-form';
 import { formatDate, getStatusTone } from '@/lib/utils';
 import type { Project, Profile } from '@/types/database';
 import { useToast } from '@/components/ui/toast';
-import { Plus, FolderKanban, Calendar, Users, ArrowRight, AlertTriangle, Filter } from 'lucide-react';
+import { Plus, FolderKanban, Calendar, Users, ArrowRight, AlertTriangle } from 'lucide-react';
 
 const statusLabels: Record<string, string> = {
   draft: 'Bozza',
@@ -150,52 +150,45 @@ export default function ProjectsPage() {
 
   return (
     <div className="space-y-6 animate-slide-up">
-      <Toolbar>
-        <ToolbarHeader
-          title={<h1 className="text-2xl font-bold text-pw-text font-[var(--font-syne)]">Progetti</h1>}
-          subtitle={
-            <p className="text-sm text-pw-text-muted mt-0.5">
-              {filteredProjects.length} progett{filteredProjects.length === 1 ? 'o' : 'i'}
-              {filterMember && ` per ${members.find((m) => m.id === filterMember)?.full_name}`}
-            </p>
-          }
-          actions={
-            isAdmin && (
-              <Button onClick={() => setShowForm(true)}>
-                <Plus size={18} />
-                Nuovo Progetto
-              </Button>
-            )
-          }
-        />
-        {members.length > 0 && (
-          <ToolbarFilters className="gap-2">
+      <PageHeader
+        title="Progetti"
+        subtitle={`${filteredProjects.length} progett${filteredProjects.length === 1 ? 'o' : 'i'}${filterMember ? ` per ${members.find((m) => m.id === filterMember)?.full_name}` : ''}`}
+        actions={
+          isAdmin && (
+            <Button variant="primary" onClick={() => setShowForm(true)}>
+              <Plus size={14} />
+              Nuovo Progetto
+            </Button>
+          )
+        }
+      />
+      {members.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 mb-6">
+          <button
+            onClick={() => setFilterMember('')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors duration-150 ease-out ring-1 ${
+              !filterMember
+                ? 'bg-pw-surface-hi text-pw-text ring-pw-border-strong'
+                : 'bg-pw-surface text-pw-text-muted hover:bg-pw-surface-soft ring-pw-border'
+            }`}
+          >
+            Tutti
+          </button>
+          {members.map((m) => (
             <button
-              onClick={() => setFilterMember('')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors duration-200 ease-out ${
-                !filterMember
-                  ? 'bg-pw-accent text-[#0A263A] ring-1 ring-pw-accent/40'
-                  : 'bg-pw-surface-2 text-pw-text-muted hover:bg-pw-surface-3 ring-1 ring-pw-border/40'
+              key={m.id}
+              onClick={() => setFilterMember(filterMember === m.id ? '' : m.id)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors duration-150 ease-out ring-1 ${
+                filterMember === m.id
+                  ? 'bg-pw-surface-hi text-pw-text ring-pw-border-strong'
+                  : 'bg-pw-surface text-pw-text-muted hover:bg-pw-surface-soft ring-pw-border'
               }`}
             >
-              Tutti
+              {m.full_name}
             </button>
-            {members.map((m) => (
-              <button
-                key={m.id}
-                onClick={() => setFilterMember(filterMember === m.id ? '' : m.id)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors duration-200 ease-out ${
-                  filterMember === m.id
-                    ? 'bg-pw-accent text-[#0A263A] ring-1 ring-pw-accent/40'
-                    : 'bg-pw-surface-2 text-pw-text-muted hover:bg-pw-surface-3 ring-1 ring-pw-border/40'
-                }`}
-              >
-                {m.full_name}
-              </button>
-            ))}
-          </ToolbarFilters>
-        )}
-      </Toolbar>
+          ))}
+        </div>
+      )}
 
       {filteredProjects.length === 0 ? (
         <EmptyState
@@ -204,8 +197,8 @@ export default function ProjectsPage() {
           description="Crea il tuo primo progetto per iniziare"
           action={
             isAdmin ? (
-              <Button onClick={() => setShowForm(true)}>
-                <Plus size={18} />
+              <Button variant="primary" onClick={() => setShowForm(true)}>
+                <Plus size={14} />
                 Nuovo Progetto
               </Button>
             ) : undefined
@@ -216,7 +209,8 @@ export default function ProjectsPage() {
           {filteredProjects.map((project) => (
             <Card
               key={project.id}
-              className="hover:shadow-md transition-shadow cursor-pointer group"
+              hover
+              className="group"
               onClick={() => router.push(`/projects/${project.id}`)}
             >
               <CardContent className="p-5">

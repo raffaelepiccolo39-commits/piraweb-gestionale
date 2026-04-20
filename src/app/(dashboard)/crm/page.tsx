@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import { PageHeader } from '@/components/ui/page-header';
 import { formatCurrency, formatDate, formatDateTime, getInitials, getUserColor } from '@/lib/utils';
 import type { Deal, DealStage, DealActivity, Profile } from '@/types/database';
 import {
@@ -250,26 +251,22 @@ export default function CRMPage() {
 
   return (
     <div className="space-y-6 animate-slide-up">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-pw-text font-[var(--font-syne)] flex items-center gap-2">
-            <Target size={24} className="text-pw-accent" />
-            CRM Pipeline
-          </h1>
-          <p className="text-sm text-pw-text-muted mt-1">Traccia lead, opportunita' e converti in clienti</p>
-        </div>
-        <div className="flex gap-2">
-          <div className="flex rounded-lg border border-pw-border overflow-hidden">
-            <button onClick={() => setView('pipeline')} className={`px-3 py-1.5 text-xs font-medium transition-all duration-200 ${view === 'pipeline' ? 'bg-pw-accent text-[#0A263A]' : 'text-pw-text-muted hover:bg-pw-surface-2 hover:text-pw-text'}`}>Pipeline</button>
-            <button onClick={() => setView('list')} className={`px-3 py-1.5 text-xs font-medium transition-all duration-200 ${view === 'list' ? 'bg-pw-accent text-[#0A263A]' : 'text-pw-text-muted hover:bg-pw-surface-2 hover:text-pw-text'}`}>Lista</button>
-          </div>
-          <Button onClick={() => setShowForm(true)}>
-            <Plus size={16} />
-            Nuovo Deal
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        title="CRM Pipeline"
+        subtitle={`${activeDeals.length} deal attivi · ${formatCurrency(totalPipelineValue)} potenziale`}
+        actions={
+          <>
+            <div className="flex rounded-lg border border-pw-border overflow-hidden">
+              <button onClick={() => setView('pipeline')} className={`px-3 py-1.5 text-xs font-medium transition-all duration-200 ${view === 'pipeline' ? 'bg-pw-accent text-[#0A263A]' : 'text-pw-text-muted hover:bg-pw-surface-2 hover:text-pw-text'}`}>Pipeline</button>
+              <button onClick={() => setView('list')} className={`px-3 py-1.5 text-xs font-medium transition-all duration-200 ${view === 'list' ? 'bg-pw-accent text-[#0A263A]' : 'text-pw-text-muted hover:bg-pw-surface-2 hover:text-pw-text'}`}>Lista</button>
+            </div>
+            <Button variant="primary" onClick={() => setShowForm(true)}>
+              <Plus size={14} />
+              Nuovo Deal
+            </Button>
+          </>
+        }
+      />
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4 stagger-children">
@@ -605,7 +602,7 @@ export default function CRMPage() {
           />
           <div className="flex gap-2 pt-2">
             <Button
-              variant="outline"
+              variant="ghost"
               onClick={() => { setShowLostReasonModal(false); setPendingLostDealId(null); }}
               className="flex-1"
             >
