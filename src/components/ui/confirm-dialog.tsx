@@ -40,10 +40,10 @@ export function ConfirmDialog({
     <Modal open={open} onClose={onClose} title={title} size="sm">
       <div className="space-y-4">
         <div className="flex items-start gap-3">
-          <div className="w-10 h-10 rounded-xl bg-red-500/15 flex items-center justify-center shrink-0">
-            <AlertTriangle size={20} className="text-red-400" />
+          <div className="w-10 h-10 rounded-md bg-[var(--pw-danger-soft)] border border-[rgba(224,67,26,0.25)] flex items-center justify-center shrink-0">
+            <AlertTriangle size={18} className="text-[var(--pw-danger)]" />
           </div>
-          <p className="text-sm text-pw-text-muted leading-relaxed">
+          <p className="text-[13px] text-pw-text-muted leading-relaxed pt-0.5">
             {description}
           </p>
         </div>
