@@ -2,8 +2,8 @@
 
 import { memo, useMemo } from 'react';
 import Link from 'next/link';
-import { Card, CardContent } from '@/components/ui/card';
-import { Users, FolderKanban, ListTodo, CheckCircle2, Clock, AlertTriangle, type LucideIcon } from 'lucide-react';
+import { Card } from '@/components/ui/card';
+import { Users, FolderKanban, ListTodo, CheckCircle2, Clock, AlertTriangle, MoreHorizontal, ArrowUp, ArrowDown, type LucideIcon } from 'lucide-react';
 
 interface DashboardStats {
   totalClients: number;
@@ -19,81 +19,91 @@ interface StatCardsProps {
   isAdmin: boolean;
 }
 
-type Tone = 'brand' | 'info' | 'neutral' | 'danger' | 'success' | 'warning';
-
-const TONE_STYLES: Record<Tone, { icon: string; glow: string }> = {
-  brand: {
-    icon: 'text-[#FFD108] bg-[#FFD108]/10 ring-1 ring-[#FFD108]/20',
-    glow: 'group-hover:stat-glow-yellow',
-  },
-  info: {
-    icon: 'text-cyan-400 bg-cyan-500/10 ring-1 ring-cyan-500/20',
-    glow: 'group-hover:stat-glow-cyan',
-  },
-  neutral: {
-    icon: 'text-pw-text-muted bg-pw-surface-3 ring-1 ring-pw-border/40',
-    glow: '',
-  },
-  danger: {
-    icon: 'text-red-400 bg-red-500/10 ring-1 ring-red-500/20',
-    glow: 'group-hover:stat-glow-red',
-  },
-  success: {
-    icon: 'text-emerald-400 bg-emerald-500/10 ring-1 ring-emerald-500/20',
-    glow: 'group-hover:stat-glow-green',
-  },
-  warning: {
-    icon: 'text-[#FFD108] bg-[#FFD108]/10 ring-1 ring-[#FFD108]/20',
-    glow: 'group-hover:stat-glow-yellow',
-  },
-};
+type Accent = 'gold' | 'blue' | 'neutral';
 
 interface StatDef {
   label: string;
   value: number;
   icon: LucideIcon;
-  tone: Tone;
+  accent: Accent;
   href: string;
+  delta?: string;
 }
+
+const ACCENT_STYLES: Record<Accent, { iconBg: string; iconFg: string; sparkStroke: string; sparkFill: string }> = {
+  gold: {
+    iconBg: 'bg-[var(--pw-gold-soft)]',
+    iconFg: 'text-[var(--pw-gold-soft-fg)]',
+    sparkStroke: 'var(--pw-gold)',
+    sparkFill: 'var(--pw-gold-soft)',
+  },
+  blue: {
+    iconBg: 'bg-[var(--pw-info-soft)]',
+    iconFg: 'text-[var(--pw-info)]',
+    sparkStroke: 'var(--pw-info)',
+    sparkFill: 'var(--pw-info-soft)',
+  },
+  neutral: {
+    iconBg: 'bg-pw-surface-hi',
+    iconFg: 'text-pw-text-muted',
+    sparkStroke: 'var(--pw-text-muted)',
+    sparkFill: 'transparent',
+  },
+};
 
 export const StatCards = memo(function StatCards({ stats, isAdmin }: StatCardsProps) {
   const cards: StatDef[] = useMemo(() => [
     ...(isAdmin
-      ? [{ label: 'Clienti', value: stats.totalClients, icon: Users, tone: 'info' as const, href: '/clients' }]
+      ? [{ label: 'Clienti', value: stats.totalClients, icon: Users, accent: 'blue' as const, href: '/clients' }]
       : []),
-    { label: 'Progetti Attivi', value: stats.activeProjects, icon: FolderKanban, tone: 'brand', href: '/projects' },
-    { label: 'Task totali', value: stats.totalTasks, icon: ListTodo, tone: 'neutral', href: '/tasks' },
-    { label: 'Da fare', value: stats.totalTasks - stats.completedTasks - stats.inProgressTasks, icon: ListTodo, tone: 'danger', href: '/tasks' },
-    { label: 'Completate', value: stats.completedTasks, icon: CheckCircle2, tone: 'success', href: '/tasks' },
-    { label: 'In corso', value: stats.inProgressTasks, icon: Clock, tone: 'warning', href: '/tasks' },
-    { label: 'In ritardo', value: stats.overdueTasks, icon: AlertTriangle, tone: 'danger', href: '/tasks' },
+    { label: 'Progetti Attivi', value: stats.activeProjects, icon: FolderKanban, accent: 'gold', href: '/projects' },
+    { label: 'Task totali', value: stats.totalTasks, icon: ListTodo, accent: 'neutral', href: '/tasks' },
+    { label: 'Da fare', value: stats.totalTasks - stats.completedTasks - stats.inProgressTasks, icon: ListTodo, accent: 'blue', href: '/tasks' },
+    { label: 'Completate', value: stats.completedTasks, icon: CheckCircle2, accent: 'gold', href: '/tasks' },
+    { label: 'In corso', value: stats.inProgressTasks, icon: Clock, accent: 'gold', href: '/tasks' },
+    { label: 'In ritardo', value: stats.overdueTasks, icon: AlertTriangle, accent: 'blue', href: '/tasks' },
   ], [stats, isAdmin]);
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 stagger-children">
-      {cards.map((stat, i) => {
-        const styles = TONE_STYLES[stat.tone];
-        return (
-          <Link key={stat.label} href={stat.href} className="group block">
-            <Card hover className={`card-accent-top hover-glow h-full ${styles.glow}`}>
-              <CardContent className="p-4">
-                <div
-                  className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 transition-all duration-300 group-hover:scale-110 group-hover:rotate-[-4deg] ${styles.icon}`}
-                >
-                  <stat.icon size={20} />
-                </div>
-                <p
-                  className="text-2xl font-bold text-pw-text font-[var(--font-bebas)] animate-count tabular-nums"
-                  style={{ animationDelay: `${i * 80}ms` }}
-                >
-                  {stat.value}
-                </p>
-                <p className="text-[11px] text-pw-text-muted mt-1 uppercase tracking-wide">{stat.label}</p>
-              </CardContent>
-            </Card>
-          </Link>
-        );
-      })}
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+      {cards.map((stat) => (
+        <StatCard key={stat.label} {...stat} />
+      ))}
     </div>
   );
 });
+
+interface StatCardProps extends StatDef {}
+
+export function StatCard({ label, value, icon: Icon, accent, href, delta }: StatCardProps) {
+  const styles = ACCENT_STYLES[accent];
+  const isPositive = delta?.startsWith('+');
+
+  return (
+    <Link href={href} className="block">
+      <Card padding="md" hover className="h-full">
+        <div className="flex items-start justify-between mb-3.5">
+          <div className={`w-8 h-8 rounded-md ${styles.iconBg} ${styles.iconFg} flex items-center justify-center`}>
+            <Icon size={16} strokeWidth={2} aria-hidden="true" />
+          </div>
+          <MoreHorizontal size={14} className="text-pw-text-faint" aria-hidden="true" />
+        </div>
+        <div className="text-xs text-pw-text-muted font-medium mb-1">{label}</div>
+        <div className="font-[var(--font-syne)] text-[26px] font-semibold text-pw-text tracking-[-0.02em] leading-none tabular-nums">
+          {value}
+        </div>
+        {delta && (
+          <div
+            className={`flex items-center gap-1.5 mt-2.5 text-[11px] font-semibold ${
+              isPositive ? 'text-[var(--pw-success)]' : 'text-[var(--pw-danger)]'
+            }`}
+          >
+            {isPositive ? <ArrowUp size={11} /> : <ArrowDown size={11} />}
+            <span>{delta}</span>
+            <span className="text-pw-text-faint font-normal">vs scorso mese</span>
+          </div>
+        )}
+      </Card>
+    </Link>
+  );
+}
