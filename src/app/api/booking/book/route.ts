@@ -174,6 +174,55 @@ export async function POST(request: NextRequest) {
     // Email di conferma non critica
   }
 
+  // Notifica admin: avviso interno con dettagli della prenotazione
+  try {
+    const { Resend } = await import('resend');
+    const resend = new Resend(process.env.RESEND_API_KEY);
+    const adminEmail = process.env.BOOKING_NOTIFY_TO || 'info@piraweb.it';
+    const calendarUrl = 'https://gestionale.piraweb.it/calendario';
+
+    await resend.emails.send({
+      from: process.env.RESEND_FROM || 'PiraWeb <info@piraweb.it>',
+      to: adminEmail,
+      replyTo: email,
+      subject: `Nuova prenotazione consulenza - ${dateStr} ore ${timeStr}`,
+      html: `
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background:#F5F5F5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#F5F5F5;padding:30px 20px;"><tr><td align="center">
+<table width="600" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:8px;border:1px solid #E5E5E5;">
+  <tr><td style="padding:24px 32px;border-bottom:3px solid #FFD700;">
+    <p style="margin:0;color:#888;font-size:11px;text-transform:uppercase;letter-spacing:1px;font-weight:600;">Notifica interna</p>
+    <h2 style="margin:6px 0 0;color:#1A1A2E;font-size:20px;">Nuova prenotazione consulenza</h2>
+  </td></tr>
+  <tr><td style="padding:24px 32px;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="background:#FAFAFA;border:1px solid #EAEAEA;border-radius:6px;margin-bottom:18px;">
+      <tr><td style="padding:14px 18px;">
+        <p style="margin:0 0 4px;color:#333;font-size:15px;font-weight:600;">${dateStr}</p>
+        <p style="margin:0;color:#555;font-size:14px;">Ore ${timeStr} &mdash; Durata 30 min &mdash; Videochiamata</p>
+      </td></tr>
+    </table>
+    <table width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;color:#333;">
+      <tr><td style="padding:6px 0;width:90px;color:#888;">Nome</td><td style="padding:6px 0;font-weight:500;">${name}</td></tr>
+      <tr><td style="padding:6px 0;color:#888;">Email</td><td style="padding:6px 0;"><a href="mailto:${email}" style="color:#1A1A2E;text-decoration:none;font-weight:500;">${email}</a></td></tr>
+      ${phone ? `<tr><td style="padding:6px 0;color:#888;">Telefono</td><td style="padding:6px 0;"><a href="tel:${phone}" style="color:#1A1A2E;text-decoration:none;font-weight:500;">${phone}</a></td></tr>` : ''}
+      ${company ? `<tr><td style="padding:6px 0;color:#888;">Azienda</td><td style="padding:6px 0;font-weight:500;">${company}</td></tr>` : ''}
+      ${notes ? `<tr><td style="padding:6px 0;color:#888;vertical-align:top;">Note</td><td style="padding:6px 0;color:#555;">${notes}</td></tr>` : ''}
+    </table>
+    <p style="margin:24px 0 0;" align="center">
+      <a href="${calendarUrl}" style="display:inline-block;padding:12px 28px;background:#1A1A2E;color:#FFD700;font-size:14px;font-weight:600;text-decoration:none;border-radius:6px;">Apri il calendario</a>
+    </p>
+  </td></tr>
+</table>
+</td></tr></table>
+</body></html>`,
+      text: `Nuova prenotazione consulenza\n\nQuando: ${dateStr} alle ore ${timeStr} (30 min, videochiamata)\n\nNome: ${name}\nEmail: ${email}${phone ? '\nTelefono: ' + phone : ''}${company ? '\nAzienda: ' + company : ''}${notes ? '\nNote: ' + notes : ''}\n\nApri il calendario: ${calendarUrl}`,
+    });
+  } catch {
+    // Notifica admin non critica
+  }
+
   return NextResponse.json({
     success: true,
     booking: {
