@@ -38,6 +38,19 @@ async function handleCron(request: NextRequest) {
   const supabase = await createServiceRoleClient();
   const runId = crypto.randomUUID();
 
+  // Auto-cleanup: marca come 'failed' i run abbandonati da piu' di 10 min
+  const tenMinAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+  await supabase
+    .from('agent_runs')
+    .update({
+      status: 'failed',
+      completed_at: new Date().toISOString(),
+      error_message: 'Auto-cleanup: run abbandonato (>10 min)',
+    })
+    .eq('agent', 'lead_scout')
+    .eq('status', 'running')
+    .lt('started_at', tenMinAgo);
+
   // Check budget API Google Places (limite 100€/mese)
   try {
     const budget = await checkApiBudget(supabase);
@@ -107,99 +120,23 @@ async function handleCron(request: NextRequest) {
           continue;
         }
 
-        for (const place of places) {
-          const placeId = place.id as string;
-          const name = (place.displayName as Record<string, string>)?.text || '';
-          const website = (place.websiteUri as string) || null;
-          const rating = (place.rating as number) || null;
-          const reviews = (place.userRatingCount as number) || null;
-
-          if (!name) continue;
-
-          // Controlla duplicati
-          const { data: existing } = await supabase
-            .from('lead_prospects')
-            .select('id')
-            .eq('google_place_id', placeId)
-            .limit(1);
-
-          if (existing && existing.length > 0) {
-            totalSkipped++;
-            continue;
-          }
-
-          const { data: existingByName } = await supabase
-            .from('lead_prospects')
-            .select('id')
-            .eq('business_name', name)
-            .eq('city', comune)
-            .limit(1);
-
-          if (existingByName && existingByName.length > 0) {
-            totalSkipped++;
-            continue;
-          }
-
-          // Quick scan del sito
-          const quickScore = await quickWebsiteScan(website);
-
-          // Cerca social dal sito (reuse HTML from scan to avoid double fetch)
-          const social = await extractSocialFromWebsite(website, quickScore?.html);
-
-          // Score preliminare
-          let scoreWebsite = quickScore?.score ?? 0;
-          let scoreSocial = 0;
-          let scoreAdv = 0;
-          let scoreSeo = 10;
-
-          let socialCount = 0;
-          if (social.instagram) socialCount++;
-          if (social.facebook) socialCount++;
-          if (social.tiktok) socialCount++;
-          if (socialCount >= 3) scoreSocial = 70;
-          else if (socialCount === 2) scoreSocial = 50;
-          else if (socialCount === 1) scoreSocial = 25;
-
-          if (quickScore?.hasAds) scoreAdv = 35;
-
-          if (rating && rating >= 4.0 && reviews && reviews > 20) scoreSeo = 70;
-          else if (rating && rating >= 3.5) scoreSeo = 40;
-          else if (rating) scoreSeo = 25;
-
-          const scoreTotal = Math.round(
-            scoreWebsite * 0.3 +
-            scoreSocial * 0.25 +
-            scoreAdv * 0.25 +
-            scoreSeo * 0.2
+        // Processa i places in batch da 5 in parallelo per evitare timeout
+        const BATCH_SIZE = 5;
+        for (let i = 0; i < places.length; i += BATCH_SIZE) {
+          const batch = places.slice(i, i + BATCH_SIZE);
+          const results = await Promise.allSettled(
+            batch.map(place => processPlace(place, comune, settore, query, createdBy, supabase)),
           );
 
-          const { error: insertError } = await supabase.from('lead_prospects').insert({
-            business_name: name,
-            address: (place.formattedAddress as string) || null,
-            city: comune,
-            sector: settore,
-            phone: (place.nationalPhoneNumber as string) || null,
-            website,
-            google_maps_url: (place.googleMapsUri as string) || null,
-            google_place_id: placeId,
-            google_rating: rating,
-            google_reviews_count: reviews,
-            instagram_url: social.instagram,
-            facebook_url: social.facebook,
-            tiktok_url: social.tiktok,
-            score_website: scoreWebsite,
-            score_social: scoreSocial,
-            score_advertising: scoreAdv,
-            score_seo: scoreSeo,
-            score_total: scoreTotal,
-            outreach_status: 'new',
-            search_query: query,
-            created_by: createdBy,
-          });
-
-          if (!insertError) {
-            totalFound++;
-            allNewLeads.push(`${name} (${comune})`);
+          for (const r of results) {
+            if (r.status === 'fulfilled' && r.value) {
+              if (r.value.kind === 'inserted') {
+                totalFound++;
+                allNewLeads.push(r.value.label);
+              } else if (r.value.kind === 'skipped') {
+                totalSkipped++;
+              }
+            }
           }
         }
       }
@@ -246,6 +183,98 @@ async function handleCron(request: NextRequest) {
 }
 
 // ═══════ Helpers ═══════
+
+type ProcessResult = { kind: 'inserted'; label: string } | { kind: 'skipped' } | { kind: 'failed' };
+
+async function processPlace(
+  place: Record<string, unknown>,
+  comune: string,
+  settore: string,
+  query: string,
+  createdBy: string,
+  supabase: Awaited<ReturnType<typeof createServiceRoleClient>>,
+): Promise<ProcessResult> {
+  const placeId = place.id as string;
+  const name = (place.displayName as Record<string, string>)?.text || '';
+  const website = (place.websiteUri as string) || null;
+  const rating = (place.rating as number) || null;
+  const reviews = (place.userRatingCount as number) || null;
+
+  if (!name) return { kind: 'failed' };
+
+  const { data: existing } = await supabase
+    .from('lead_prospects')
+    .select('id')
+    .eq('google_place_id', placeId)
+    .limit(1);
+
+  if (existing && existing.length > 0) return { kind: 'skipped' };
+
+  const { data: existingByName } = await supabase
+    .from('lead_prospects')
+    .select('id')
+    .eq('business_name', name)
+    .eq('city', comune)
+    .limit(1);
+
+  if (existingByName && existingByName.length > 0) return { kind: 'skipped' };
+
+  const quickScore = await quickWebsiteScan(website);
+  const social = await extractSocialFromWebsite(website, quickScore?.html);
+
+  const scoreWebsite = quickScore?.score ?? 0;
+  let scoreSocial = 0;
+  let scoreAdv = 0;
+  let scoreSeo = 10;
+
+  let socialCount = 0;
+  if (social.instagram) socialCount++;
+  if (social.facebook) socialCount++;
+  if (social.tiktok) socialCount++;
+  if (socialCount >= 3) scoreSocial = 70;
+  else if (socialCount === 2) scoreSocial = 50;
+  else if (socialCount === 1) scoreSocial = 25;
+
+  if (quickScore?.hasAds) scoreAdv = 35;
+
+  if (rating && rating >= 4.0 && reviews && reviews > 20) scoreSeo = 70;
+  else if (rating && rating >= 3.5) scoreSeo = 40;
+  else if (rating) scoreSeo = 25;
+
+  const scoreTotal = Math.round(
+    scoreWebsite * 0.3 +
+    scoreSocial * 0.25 +
+    scoreAdv * 0.25 +
+    scoreSeo * 0.2,
+  );
+
+  const { error: insertError } = await supabase.from('lead_prospects').insert({
+    business_name: name,
+    address: (place.formattedAddress as string) || null,
+    city: comune,
+    sector: settore,
+    phone: (place.nationalPhoneNumber as string) || null,
+    website,
+    google_maps_url: (place.googleMapsUri as string) || null,
+    google_place_id: placeId,
+    google_rating: rating,
+    google_reviews_count: reviews,
+    instagram_url: social.instagram,
+    facebook_url: social.facebook,
+    tiktok_url: social.tiktok,
+    score_website: scoreWebsite,
+    score_social: scoreSocial,
+    score_advertising: scoreAdv,
+    score_seo: scoreSeo,
+    score_total: scoreTotal,
+    outreach_status: 'new',
+    search_query: query,
+    created_by: createdBy,
+  });
+
+  if (insertError) return { kind: 'failed' };
+  return { kind: 'inserted', label: `${name} (${comune})` };
+}
 
 async function quickWebsiteScan(website: string | null): Promise<{
   score: number;
