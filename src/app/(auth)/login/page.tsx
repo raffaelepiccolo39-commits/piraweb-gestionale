@@ -133,7 +133,11 @@ function LoginContent() {
         return;
       }
 
-      router.push('/dashboard');
+      const redirectParam = searchParams.get('redirect');
+      const redirectTo = redirectParam && redirectParam.startsWith('/') && !redirectParam.startsWith('//')
+        ? redirectParam
+        : '/dashboard';
+      router.push(redirectTo);
       router.refresh();
     } catch {
       setError('Errore di connessione');
