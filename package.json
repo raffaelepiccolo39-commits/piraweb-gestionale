@@ -5,7 +5,9 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "build:sg": "next build && cp -r public .next/standalone/ && cp -r .next/static .next/standalone/.next/",
     "start": "next start",
+    "start:sg": "node .next/standalone/server.js",
     "lint": "eslint"
   },
   "dependencies": {

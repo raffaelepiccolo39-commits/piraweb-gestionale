@@ -1,0 +1,40 @@
+# Crontab per piraweb-gestionale su SiteGround Cloud
+# ====================================================
+#
+# COME INSTALLARE:
+#   1. SSH su SiteGround
+#   2. `crontab -e`
+#   3. Sostituisci __CRON_SECRET__ (sotto) col valore reale (lo trovi in
+#      .env.production.local, chiave CRON_SECRET)
+#   4. Sostituisci __DOMAIN__ con: gestionale-staging.piraweb.it (per staging)
+#      oppure gestionale.piraweb.it (per prod)
+#   5. Copia-incolla TUTTE le righe sotto, salva, esci
+#   6. Verifica con `crontab -l`
+#
+# Equivalente al vercel.json originale (6 cron job).
+# Schedule riferito al timezone del server (UTC su SG Cloud di default).
+# Vercel cron usa UTC, quindi gli orari sono gli stessi.
+#
+# ====================================================
+
+# Variabili ad uso dei job sotto
+CRON_SECRET=__CRON_SECRET__
+DOMAIN=__DOMAIN__
+
+# Job giornaliero generico — ogni giorno alle 08:00 UTC
+0 8 * * *      curl -fsS -H "Authorization: Bearer $CRON_SECRET" "https://$DOMAIN/api/cron" > /dev/null
+
+# Lead scout — ogni giorno alle 06:00 UTC
+0 6 * * *      curl -fsS -H "Authorization: Bearer $CRON_SECRET" "https://$DOMAIN/api/cron/lead-scout" > /dev/null
+
+# Lead analyzer — ogni giorno alle 07:00 UTC
+0 7 * * *      curl -fsS -H "Authorization: Bearer $CRON_SECRET" "https://$DOMAIN/api/cron/lead-analyzer" > /dev/null
+
+# Lead outreach — lun-ven alle 09:00 UTC
+0 9 * * 1-5    curl -fsS -H "Authorization: Bearer $CRON_SECRET" "https://$DOMAIN/api/cron/lead-outreach" > /dev/null
+
+# Lead sender — lun-ven alle 10:00 UTC
+0 10 * * 1-5   curl -fsS -H "Authorization: Bearer $CRON_SECRET" "https://$DOMAIN/api/cron/lead-sender" > /dev/null
+
+# Invoice reminder — lun-ven alle 09:00 UTC
+0 9 * * 1-5    curl -fsS -H "Authorization: Bearer $CRON_SECRET" "https://$DOMAIN/api/cron/invoice-reminder" > /dev/null
