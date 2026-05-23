@@ -73,8 +73,13 @@ export async function updateSession(request: NextRequest) {
         if (totp) {
           // 2FA abilitata ma non verificata → redirect a login con parametro verify
           const url = request.nextUrl.clone();
+          const originalPath = request.nextUrl.pathname + request.nextUrl.search;
           url.pathname = '/login';
+          url.search = '';
           url.searchParams.set('verify', '2fa');
+          if (originalPath && originalPath !== '/' && !originalPath.startsWith('/dashboard')) {
+            url.searchParams.set('redirect', originalPath);
+          }
           const redirectResponse = NextResponse.redirect(url);
           supabaseResponse.cookies.getAll().forEach((cookie) => {
             redirectResponse.cookies.set(cookie.name, cookie.value);
