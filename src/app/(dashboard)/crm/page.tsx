@@ -6,12 +6,11 @@ import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/components/ui/toast';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Modal } from '@/components/ui/modal';
-import { Input } from '@/components/ui/input';
-import { Select } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { PageHeader } from '@/components/ui/page-header';
+import { DealForm, type DealFormValues } from '@/components/crm/deal-form';
+import { ActivityForm, type ActivityFormValues } from '@/components/crm/activity-form';
+import { LostReasonForm } from '@/components/crm/lost-reason-form';
 import { formatCurrency, formatDate, formatDateTime, getInitials, getUserColor } from '@/lib/utils';
 import type { Deal, DealStage, DealActivity, Profile } from '@/types/database';
 import {
@@ -25,7 +24,6 @@ import {
   Building2,
   ArrowRight,
   CheckCircle,
-  XCircle,
   MessageSquare,
   PhoneCall,
   Video,
@@ -81,20 +79,9 @@ export default function CRMPage() {
 
   // Lost reason modal (replaces prompt())
   const [showLostReasonModal, setShowLostReasonModal] = useState(false);
-  const [lostReason, setLostReason] = useState('');
   const [pendingLostDealId, setPendingLostDealId] = useState<string | null>(null);
 
   const isAdmin = profile?.role === 'admin';
-
-  const [form, setForm] = useState({
-    title: '', company_name: '', contact_name: '', contact_email: '', contact_phone: '',
-    value: '', monthly_value: '', source: 'other', services: '', notes: '',
-    expected_close_date: '', owner_id: '',
-  });
-
-  const [activityForm, setActivityForm] = useState({
-    type: 'note' as string, title: '', description: '', scheduled_at: '',
-  });
 
   const fetchDeals = useCallback(async () => {
     const { data } = await supabase
@@ -125,28 +112,27 @@ export default function CRMPage() {
     if (selectedDeal) fetchActivities(selectedDeal.id);
   }, [selectedDeal, fetchActivities]);
 
-  const handleCreate = async () => {
+  const handleCreate = async (values: DealFormValues) => {
     if (!profile) return;
-    if (!form.title) { toast.error('Titolo obbligatorio'); return; }
+    if (!values.title) { toast.error('Titolo obbligatorio'); return; }
     const { error } = await supabase.from('deals').insert({
-      title: form.title,
-      company_name: form.company_name || null,
-      contact_name: form.contact_name || null,
-      contact_email: form.contact_email || null,
-      contact_phone: form.contact_phone || null,
-      value: parseFloat(form.value) || 0,
-      monthly_value: form.monthly_value ? parseFloat(form.monthly_value) : null,
-      source: form.source,
-      services: form.services || null,
-      notes: form.notes || null,
-      expected_close_date: form.expected_close_date || null,
-      owner_id: form.owner_id || profile.id,
+      title: values.title,
+      company_name: values.company_name || null,
+      contact_name: values.contact_name || null,
+      contact_email: values.contact_email || null,
+      contact_phone: values.contact_phone || null,
+      value: parseFloat(values.value) || 0,
+      monthly_value: values.monthly_value ? parseFloat(values.monthly_value) : null,
+      source: values.source,
+      services: values.services || null,
+      notes: values.notes || null,
+      expected_close_date: values.expected_close_date || null,
+      owner_id: values.owner_id || profile.id,
       created_by: profile.id,
     });
     if (!error) {
       toast.success('Deal creato');
       setShowForm(false);
-      setForm({ title: '', company_name: '', contact_name: '', contact_email: '', contact_phone: '', value: '', monthly_value: '', source: 'other', services: '', notes: '', expected_close_date: '', owner_id: '' });
       fetchDeals();
     }
   };
@@ -154,7 +140,6 @@ export default function CRMPage() {
   const handleStageChange = async (dealId: string, newStage: DealStage) => {
     if (newStage === 'closed_lost') {
       setPendingLostDealId(dealId);
-      setLostReason('');
       setShowLostReasonModal(true);
       return;
     }
@@ -168,17 +153,16 @@ export default function CRMPage() {
     }
   };
 
-  const handleConfirmLostDeal = async () => {
+  const handleConfirmLostDeal = async (reason: string) => {
     if (!pendingLostDealId) return;
     const updates: Record<string, unknown> = {
       stage: 'closed_lost',
-      lost_reason: lostReason.trim() || null,
+      lost_reason: reason.trim() || null,
     };
     await supabase.from('deals').update(updates).eq('id', pendingLostDealId);
     toast.success(`Deal spostato a: ${STAGES.find((s) => s.id === 'closed_lost')?.label}`);
     setShowLostReasonModal(false);
     setPendingLostDealId(null);
-    setLostReason('');
     fetchDeals();
     if (selectedDeal?.id === pendingLostDealId) {
       setSelectedDeal((d) => d ? { ...d, stage: 'closed_lost' as DealStage } : null);
@@ -186,18 +170,17 @@ export default function CRMPage() {
     }
   };
 
-  const handleAddActivity = async () => {
-    if (!profile || !activityForm.title || !selectedDeal) return;
+  const handleAddActivity = async (values: ActivityFormValues) => {
+    if (!profile || !values.title || !selectedDeal) return;
     await supabase.from('deal_activities').insert({
       deal_id: selectedDeal.id,
-      type: activityForm.type,
-      title: activityForm.title,
-      description: activityForm.description || null,
-      scheduled_at: activityForm.scheduled_at || null,
+      type: values.type,
+      title: values.title,
+      description: values.description || null,
+      scheduled_at: values.scheduled_at || null,
       created_by: profile.id,
     });
     setShowActivity(false);
-    setActivityForm({ type: 'note', title: '', description: '', scheduled_at: '' });
     fetchActivities(selectedDeal.id);
   };
 
@@ -535,91 +518,26 @@ export default function CRMPage() {
         </>
       )}
 
-      {/* Create deal modal */}
-      <Modal open={showForm} onClose={() => setShowForm(false)} title="Nuovo Deal">
-        <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
-          <Input label="Titolo deal" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Es: Gestione social per Acme Corp" required />
-          <div className="grid grid-cols-2 gap-4">
-            <Input label="Azienda" value={form.company_name} onChange={(e) => setForm({ ...form, company_name: e.target.value })} placeholder="Acme Corp" />
-            <Input label="Nome contatto" value={form.contact_name} onChange={(e) => setForm({ ...form, contact_name: e.target.value })} placeholder="Mario Rossi" />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <Input label="Email" type="email" value={form.contact_email} onChange={(e) => setForm({ ...form, contact_email: e.target.value })} placeholder="mario@acme.com" />
-            <Input label="Telefono" value={form.contact_phone} onChange={(e) => setForm({ ...form, contact_phone: e.target.value })} placeholder="+39 333..." />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <Input label="Valore deal (€)" type="number" value={form.value} onChange={(e) => setForm({ ...form, value: e.target.value })} placeholder="5000" />
-            <Input label="Valore mensile (€)" type="number" value={form.monthly_value} onChange={(e) => setForm({ ...form, monthly_value: e.target.value })} placeholder="500" />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <Select label="Fonte" value={form.source} onChange={(e) => setForm({ ...form, source: e.target.value })} options={Object.entries(SOURCE_LABELS).map(([v, l]) => ({ value: v, label: l }))} />
-            <Input label="Chiusura prevista" type="date" value={form.expected_close_date} onChange={(e) => setForm({ ...form, expected_close_date: e.target.value })} />
-          </div>
-          <Select label="Assegnato a" value={form.owner_id} onChange={(e) => setForm({ ...form, owner_id: e.target.value })} options={[{ value: '', label: 'Me stesso' }, ...members.map((m) => ({ value: m.id, label: m.full_name }))]} />
-          <Textarea label="Servizi richiesti" value={form.services} onChange={(e) => setForm({ ...form, services: e.target.value })} placeholder="Social media management, branding, sito web..." rows={2} />
-          <Textarea label="Note" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={2} />
-          <div className="flex justify-end gap-2 pt-2">
-            <Button variant="ghost" onClick={() => setShowForm(false)}>Annulla</Button>
-            <Button onClick={handleCreate}>Crea Deal</Button>
-          </div>
-        </div>
-      </Modal>
+      {/* Create deal modal — state isolato per evitare re-mount dagli effetti della page */}
+      <DealForm
+        open={showForm}
+        onClose={() => setShowForm(false)}
+        onSubmit={handleCreate}
+        members={members}
+      />
 
       {/* Add activity modal */}
-      <Modal open={showActivity} onClose={() => setShowActivity(false)} title="Nuova Attivita'">
-        <div className="space-y-4">
-          <Select label="Tipo" value={activityForm.type} onChange={(e) => setActivityForm({ ...activityForm, type: e.target.value })} options={[
-            { value: 'call', label: 'Chiamata' },
-            { value: 'email', label: 'Email' },
-            { value: 'meeting', label: 'Meeting' },
-            { value: 'note', label: 'Nota' },
-            { value: 'proposal_sent', label: 'Proposta inviata' },
-            { value: 'follow_up', label: 'Follow-up' },
-          ]} />
-          <Input label="Titolo" value={activityForm.title} onChange={(e) => setActivityForm({ ...activityForm, title: e.target.value })} placeholder="Es: Call conoscitiva" required />
-          <Textarea label="Dettagli" value={activityForm.description} onChange={(e) => setActivityForm({ ...activityForm, description: e.target.value })} rows={2} />
-          <Input label="Data/ora (opzionale)" type="datetime-local" value={activityForm.scheduled_at} onChange={(e) => setActivityForm({ ...activityForm, scheduled_at: e.target.value })} />
-          <div className="flex justify-end gap-2 pt-2">
-            <Button variant="ghost" onClick={() => setShowActivity(false)}>Annulla</Button>
-            <Button onClick={handleAddActivity}>Salva</Button>
-          </div>
-        </div>
-      </Modal>
+      <ActivityForm
+        open={showActivity}
+        onClose={() => setShowActivity(false)}
+        onSubmit={handleAddActivity}
+      />
 
-      {/* Lost Reason Modal */}
-      <Modal
+      <LostReasonForm
         open={showLostReasonModal}
         onClose={() => { setShowLostReasonModal(false); setPendingLostDealId(null); }}
-        title="Deal perso"
-        size="sm"
-      >
-        <div className="space-y-4">
-          <Textarea
-            id="lost-reason"
-            label="Motivo della perdita (opzionale)"
-            value={lostReason}
-            onChange={(e) => setLostReason(e.target.value)}
-            placeholder="Es: Budget insufficiente, scelto competitor..."
-            rows={3}
-          />
-          <div className="flex gap-2 pt-2">
-            <Button
-              variant="ghost"
-              onClick={() => { setShowLostReasonModal(false); setPendingLostDealId(null); }}
-              className="flex-1"
-            >
-              Annulla
-            </Button>
-            <Button
-              onClick={handleConfirmLostDeal}
-              className="flex-1"
-            >
-              <XCircle size={14} />
-              Conferma
-            </Button>
-          </div>
-        </div>
-      </Modal>
+        onConfirm={handleConfirmLostDeal}
+      />
     </div>
   );
 }
