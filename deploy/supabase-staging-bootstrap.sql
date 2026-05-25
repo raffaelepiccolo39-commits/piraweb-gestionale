@@ -1,16 +1,43 @@
 -- ============================================
 -- PiraWeb Gestionale - Bootstrap Supabase STAGING
--- Concatenazione automatica di tutte le 59 migration
--- Generato da: scripts shell, ordinato alfabeticamente
--- Data generazione: 2026-05-23 08:01:23
+-- Generato: 2026-05-25 15:23:16
+-- Bugfix applicati:
+--   00030/00036/00039: DROP FUNCTION prima di CREATE OR REPLACE con return type diverso
+--   00038: activity_logs -> activity_log
+--   00040: rimosso CREATE TYPE IF NOT EXISTS invalido
+--   00043: seed templates wrappato in DO con check admin
+--   00052: aggiunti ALTER per colonne SDI + DROP TRIGGER/POLICY IF EXISTS (conflitti con 00045)
 -- ============================================
 
--- Come usare:
---   1. Crea progetto Supabase staging dal dashboard
---   2. Vai a SQL Editor del progetto staging
---   3. Copia-incolla TUTTO questo file
---   4. Run
---   5. Verifica che le tabelle siano create (Database → Tables)
+DROP SCHEMA IF EXISTS public CASCADE;
+CREATE SCHEMA public;
+GRANT ALL ON SCHEMA public TO postgres, anon, authenticated, service_role;
+
+DO $reset$
+DECLARE pol RECORD;
+BEGIN
+  FOR pol IN
+    SELECT policyname FROM pg_policies
+    WHERE schemaname = 'storage' AND tablename = 'objects'
+      AND policyname IN (
+        'Avatar images are publicly accessible',
+        'Users can upload own avatar',
+        'Users can update own avatar',
+        'Attachments accessible by authenticated',
+        'Authenticated users can upload attachments',
+        'Client logos are publicly accessible',
+        'Admins can upload client logos',
+        'Admins can view contracts files',
+        'Admins can upload contracts files',
+        'Admins can delete contracts files',
+        'Authenticated can view dev screenshots',
+        'Authenticated can upload dev screenshots',
+        'Admin can delete dev screenshots'
+      )
+  LOOP
+    EXECUTE format('DROP POLICY IF EXISTS %I ON storage.objects', pol.policyname);
+  END LOOP;
+END $reset$;
 
 
 -- ============================================
@@ -2497,6 +2524,7 @@ CREATE POLICY "Users can update own profile" ON profiles
 -- 5. SECURITY: Restrict SECURITY DEFINER functions
 --    Add role checks to cashflow functions
 -- ============================================
+DROP FUNCTION IF EXISTS get_cashflow_monthly(DATE, DATE);
 CREATE OR REPLACE FUNCTION get_cashflow_monthly(p_start_date DATE, p_end_date DATE)
 RETURNS TABLE(
   month TEXT,
@@ -2529,6 +2557,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+DROP FUNCTION IF EXISTS get_cashflow_summary(DATE, DATE);
 CREATE OR REPLACE FUNCTION get_cashflow_summary(p_start_date DATE, p_end_date DATE)
 RETURNS TABLE(
   total_expected NUMERIC,
@@ -2884,6 +2913,7 @@ ALTER TABLE clients ADD COLUMN IF NOT EXISTS sector text;
 -- ============================================
 -- Fix: get_cashflow_summary should always return active_contracts and active_clients
 -- even when there are no payments in the selected period
+DROP FUNCTION IF EXISTS get_cashflow_summary(DATE, DATE);
 CREATE OR REPLACE FUNCTION get_cashflow_summary(
   p_start_date DATE DEFAULT (date_trunc('year', now()))::DATE,
   p_end_date DATE DEFAULT (now())::DATE
@@ -2932,6 +2962,7 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Fix: get_cashflow_monthly should include all months even without active contract filter issue
+DROP FUNCTION IF EXISTS get_cashflow_monthly(DATE, DATE);
 CREATE OR REPLACE FUNCTION get_cashflow_monthly(
   p_start_date DATE DEFAULT (date_trunc('year', now()))::DATE,
   p_end_date DATE DEFAULT (now())::DATE
@@ -2976,7 +3007,7 @@ CREATE INDEX IF NOT EXISTS idx_tasks_updated_at ON tasks(updated_at DESC);
 CREATE INDEX IF NOT EXISTS idx_tasks_status_deadline ON tasks(status, deadline);
 CREATE INDEX IF NOT EXISTS idx_client_payments_due_date ON client_payments(due_date);
 CREATE INDEX IF NOT EXISTS idx_client_payments_contract_paid ON client_payments(contract_id, is_paid);
-CREATE INDEX IF NOT EXISTS idx_activity_logs_created_at ON activity_logs(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_activity_logs_created_at ON activity_log(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_chat_messages_created_at ON chat_messages(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_attendance_user_date ON attendance_records(user_id, date);
 
@@ -3048,6 +3079,8 @@ END $$;
 
 -- 5. FIX ANALYTICS FUNCTIONS: add admin authorization checks
 
+DROP FUNCTION IF EXISTS get_team_efficiency(DATE, DATE);
+DROP FUNCTION IF EXISTS get_team_efficiency(TIMESTAMPTZ, TIMESTAMPTZ);
 CREATE OR REPLACE FUNCTION get_team_efficiency(
   p_start_date DATE DEFAULT (now() - INTERVAL '30 days')::DATE,
   p_end_date DATE DEFAULT now()::DATE
@@ -3096,6 +3129,8 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+DROP FUNCTION IF EXISTS get_productivity_trend(INTEGER);
+DROP FUNCTION IF EXISTS get_productivity_trend(UUID, TIMESTAMPTZ, TIMESTAMPTZ, TEXT);
 CREATE OR REPLACE FUNCTION get_productivity_trend(
   p_days INTEGER DEFAULT 30
 )
@@ -3272,8 +3307,6 @@ CREATE POLICY "Users can delete own time entries or admin"
   );
 
 -- ==================== CONTENT APPROVAL ====================
-
-CREATE TYPE IF NOT EXISTS approval_status AS ENUM ('pending', 'approved', 'rejected', 'revision_requested');
 
 -- If type already exists, ignore error
 DO $$ BEGIN
@@ -3827,33 +3860,42 @@ CREATE POLICY "Admin can manage template tasks" ON template_tasks
   FOR ALL TO authenticated
   USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin'));
 
--- Seed common templates
-INSERT INTO project_templates (name, description, category, created_by) VALUES
-  ('Social Media Management', 'Setup completo per gestione social media di un nuovo cliente', 'social_media',
-   (SELECT id FROM profiles WHERE role = 'admin' LIMIT 1)),
-  ('Rebranding', 'Processo completo di rebranding aziendale', 'branding',
-   (SELECT id FROM profiles WHERE role = 'admin' LIMIT 1)),
-  ('Sito Web', 'Sviluppo sito web da zero', 'web',
-   (SELECT id FROM profiles WHERE role = 'admin' LIMIT 1))
-ON CONFLICT DO NOTHING;
+-- Seed common templates (solo se esiste già un admin — altrimenti skip su DB vuoto)
+DO $seed_templates$
+DECLARE
+  v_admin_id UUID;
+BEGIN
+  SELECT id INTO v_admin_id FROM profiles WHERE role = 'admin' LIMIT 1;
+  IF v_admin_id IS NULL THEN
+    RAISE NOTICE 'Nessun admin trovato: skip seed project_templates';
+    RETURN;
+  END IF;
 
--- Seed template tasks for Social Media Management
-INSERT INTO template_tasks (template_id, title, description, assigned_role, priority, estimated_hours, position, day_offset)
-SELECT t.id, v.title, v.description, v.assigned_role, v.priority::task_priority, v.estimated_hours, v.position, v.day_offset
-FROM project_templates t,
-(VALUES
-  ('Raccolta brief e brand guidelines', 'Raccogliere dal cliente: logo, font, colori, tone of voice, competitor', 'admin', 'high', 2, 0, 0),
-  ('Setup credenziali social', 'Ottenere accesso a tutti gli account social del cliente', 'social_media_manager', 'high', 1, 1, 1),
-  ('Analisi competitor', 'Analizzare i 3-5 competitor principali sui social', 'social_media_manager', 'medium', 4, 2, 3),
-  ('Definizione strategia editoriale', 'Creare strategia di contenuto per i prossimi 3 mesi', 'social_media_manager', 'high', 6, 3, 5),
-  ('Creazione piano editoriale mese 1', 'Pianificare i contenuti del primo mese', 'content_creator', 'high', 4, 4, 7),
-  ('Design template grafici', 'Creare template grafici per post, stories, reel', 'graphic_social', 'high', 8, 5, 7),
-  ('Produzione contenuti settimana 1', 'Creare i contenuti della prima settimana', 'content_creator', 'medium', 6, 6, 10),
-  ('Review e approvazione cliente', 'Presentare contenuti al cliente per approvazione', 'admin', 'high', 2, 7, 14),
-  ('Pubblicazione e monitoring', 'Pubblicare contenuti approvati e monitorare performance', 'social_media_manager', 'medium', 3, 8, 15),
-  ('Report primo mese', 'Creare report con KPI del primo mese di attivita', 'social_media_manager', 'medium', 3, 9, 30)
-) AS v(title, description, assigned_role, priority, estimated_hours, position, day_offset)
-WHERE t.name = 'Social Media Management';
+  INSERT INTO project_templates (name, description, category, created_by) VALUES
+    ('Social Media Management', 'Setup completo per gestione social media di un nuovo cliente', 'social_media', v_admin_id),
+    ('Rebranding', 'Processo completo di rebranding aziendale', 'branding', v_admin_id),
+    ('Sito Web', 'Sviluppo sito web da zero', 'web', v_admin_id)
+  ON CONFLICT DO NOTHING;
+
+  -- Seed template tasks for Social Media Management
+  INSERT INTO template_tasks (template_id, title, description, assigned_role, priority, estimated_hours, position, day_offset)
+  SELECT t.id, v.title, v.description, v.assigned_role, v.priority::task_priority, v.estimated_hours, v.position, v.day_offset
+  FROM project_templates t,
+  (VALUES
+    ('Raccolta brief e brand guidelines', 'Raccogliere dal cliente: logo, font, colori, tone of voice, competitor', 'admin', 'high', 2, 0, 0),
+    ('Setup credenziali social', 'Ottenere accesso a tutti gli account social del cliente', 'social_media_manager', 'high', 1, 1, 1),
+    ('Analisi competitor', 'Analizzare i 3-5 competitor principali sui social', 'social_media_manager', 'medium', 4, 2, 3),
+    ('Definizione strategia editoriale', 'Creare strategia di contenuto per i prossimi 3 mesi', 'social_media_manager', 'high', 6, 3, 5),
+    ('Creazione piano editoriale mese 1', 'Pianificare i contenuti del primo mese', 'content_creator', 'high', 4, 4, 7),
+    ('Design template grafici', 'Creare template grafici per post, stories, reel', 'graphic_social', 'high', 8, 5, 7),
+    ('Produzione contenuti settimana 1', 'Creare i contenuti della prima settimana', 'content_creator', 'medium', 6, 6, 10),
+    ('Review e approvazione cliente', 'Presentare contenuti al cliente per approvazione', 'admin', 'high', 2, 7, 14),
+    ('Pubblicazione e monitoring', 'Pubblicare contenuti approvati e monitorare performance', 'social_media_manager', 'medium', 3, 8, 15),
+    ('Report primo mese', 'Creare report con KPI del primo mese di attivita', 'social_media_manager', 'medium', 3, 9, 30)
+  ) AS v(title, description, assigned_role, priority, estimated_hours, position, day_offset)
+  WHERE t.name = 'Social Media Management'
+  ON CONFLICT DO NOTHING;
+END $seed_templates$;
 
 -- ==================== RECURRING TASKS ====================
 
@@ -4811,6 +4853,13 @@ CREATE TABLE IF NOT EXISTS invoices (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- Garantisce le colonne SDI anche se la tabella invoices è stata creata da 00045 senza
+ALTER TABLE invoices ADD COLUMN IF NOT EXISTS sdi_status TEXT DEFAULT NULL;
+ALTER TABLE invoices ADD COLUMN IF NOT EXISTS sdi_identifier TEXT DEFAULT NULL;
+ALTER TABLE invoices ADD COLUMN IF NOT EXISTS sdi_message TEXT DEFAULT NULL;
+ALTER TABLE invoices ADD COLUMN IF NOT EXISTS sdi_sent_at TIMESTAMPTZ DEFAULT NULL;
+ALTER TABLE invoices ADD COLUMN IF NOT EXISTS sdi_filename TEXT DEFAULT NULL;
+
 CREATE INDEX IF NOT EXISTS idx_invoices_client ON invoices(client_id);
 CREATE INDEX IF NOT EXISTS idx_invoices_status ON invoices(status);
 CREATE INDEX IF NOT EXISTS idx_invoices_date ON invoices(issue_date DESC);
@@ -4829,6 +4878,7 @@ CREATE TABLE IF NOT EXISTS invoice_items (
 CREATE INDEX IF NOT EXISTS idx_invoice_items_invoice ON invoice_items(invoice_id);
 
 -- Updated at trigger
+DROP TRIGGER IF EXISTS set_invoices_updated_at ON invoices;
 CREATE TRIGGER set_invoices_updated_at
   BEFORE UPDATE ON invoices
   FOR EACH ROW EXECUTE FUNCTION update_updated_at();
@@ -4855,6 +4905,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+DROP TRIGGER IF EXISTS trg_recalculate_invoice ON invoice_items;
 CREATE TRIGGER trg_recalculate_invoice
   AFTER INSERT OR UPDATE OR DELETE ON invoice_items
   FOR EACH ROW EXECUTE FUNCTION recalculate_invoice_totals();
@@ -4875,6 +4926,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS trg_generate_invoice_number ON invoices;
 CREATE TRIGGER trg_generate_invoice_number
   BEFORE INSERT ON invoices
   FOR EACH ROW EXECUTE FUNCTION generate_invoice_number();
@@ -4883,16 +4935,20 @@ CREATE TRIGGER trg_generate_invoice_number
 ALTER TABLE invoices ENABLE ROW LEVEL SECURITY;
 ALTER TABLE invoice_items ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Invoices viewable by admin" ON invoices;
 CREATE POLICY "Invoices viewable by admin" ON invoices
   FOR SELECT TO authenticated
   USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin'));
+DROP POLICY IF EXISTS "Admin can manage invoices" ON invoices;
 CREATE POLICY "Admin can manage invoices" ON invoices
   FOR ALL TO authenticated
   USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin'));
 
+DROP POLICY IF EXISTS "Invoice items viewable by admin" ON invoice_items;
 CREATE POLICY "Invoice items viewable by admin" ON invoice_items
   FOR SELECT TO authenticated
   USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin'));
+DROP POLICY IF EXISTS "Admin can manage invoice items" ON invoice_items;
 CREATE POLICY "Admin can manage invoice items" ON invoice_items
   FOR ALL TO authenticated
   USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin'));

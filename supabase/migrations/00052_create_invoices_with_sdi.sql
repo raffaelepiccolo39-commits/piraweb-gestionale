@@ -30,6 +30,13 @@ CREATE TABLE IF NOT EXISTS invoices (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- Garantisce le colonne SDI anche se la tabella invoices è stata creata da 00045 senza
+ALTER TABLE invoices ADD COLUMN IF NOT EXISTS sdi_status TEXT DEFAULT NULL;
+ALTER TABLE invoices ADD COLUMN IF NOT EXISTS sdi_identifier TEXT DEFAULT NULL;
+ALTER TABLE invoices ADD COLUMN IF NOT EXISTS sdi_message TEXT DEFAULT NULL;
+ALTER TABLE invoices ADD COLUMN IF NOT EXISTS sdi_sent_at TIMESTAMPTZ DEFAULT NULL;
+ALTER TABLE invoices ADD COLUMN IF NOT EXISTS sdi_filename TEXT DEFAULT NULL;
+
 CREATE INDEX IF NOT EXISTS idx_invoices_client ON invoices(client_id);
 CREATE INDEX IF NOT EXISTS idx_invoices_status ON invoices(status);
 CREATE INDEX IF NOT EXISTS idx_invoices_date ON invoices(issue_date DESC);
@@ -48,6 +55,7 @@ CREATE TABLE IF NOT EXISTS invoice_items (
 CREATE INDEX IF NOT EXISTS idx_invoice_items_invoice ON invoice_items(invoice_id);
 
 -- Updated at trigger
+DROP TRIGGER IF EXISTS set_invoices_updated_at ON invoices;
 CREATE TRIGGER set_invoices_updated_at
   BEFORE UPDATE ON invoices
   FOR EACH ROW EXECUTE FUNCTION update_updated_at();
@@ -74,6 +82,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+DROP TRIGGER IF EXISTS trg_recalculate_invoice ON invoice_items;
 CREATE TRIGGER trg_recalculate_invoice
   AFTER INSERT OR UPDATE OR DELETE ON invoice_items
   FOR EACH ROW EXECUTE FUNCTION recalculate_invoice_totals();
@@ -94,6 +103,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS trg_generate_invoice_number ON invoices;
 CREATE TRIGGER trg_generate_invoice_number
   BEFORE INSERT ON invoices
   FOR EACH ROW EXECUTE FUNCTION generate_invoice_number();
@@ -102,16 +112,20 @@ CREATE TRIGGER trg_generate_invoice_number
 ALTER TABLE invoices ENABLE ROW LEVEL SECURITY;
 ALTER TABLE invoice_items ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Invoices viewable by admin" ON invoices;
 CREATE POLICY "Invoices viewable by admin" ON invoices
   FOR SELECT TO authenticated
   USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin'));
+DROP POLICY IF EXISTS "Admin can manage invoices" ON invoices;
 CREATE POLICY "Admin can manage invoices" ON invoices
   FOR ALL TO authenticated
   USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin'));
 
+DROP POLICY IF EXISTS "Invoice items viewable by admin" ON invoice_items;
 CREATE POLICY "Invoice items viewable by admin" ON invoice_items
   FOR SELECT TO authenticated
   USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin'));
+DROP POLICY IF EXISTS "Admin can manage invoice items" ON invoice_items;
 CREATE POLICY "Admin can manage invoice items" ON invoice_items
   FOR ALL TO authenticated
   USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin'));

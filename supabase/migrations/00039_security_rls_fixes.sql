@@ -62,6 +62,8 @@ END $$;
 
 -- 5. FIX ANALYTICS FUNCTIONS: add admin authorization checks
 
+DROP FUNCTION IF EXISTS get_team_efficiency(DATE, DATE);
+DROP FUNCTION IF EXISTS get_team_efficiency(TIMESTAMPTZ, TIMESTAMPTZ);
 CREATE OR REPLACE FUNCTION get_team_efficiency(
   p_start_date DATE DEFAULT (now() - INTERVAL '30 days')::DATE,
   p_end_date DATE DEFAULT now()::DATE
@@ -110,6 +112,8 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+DROP FUNCTION IF EXISTS get_productivity_trend(INTEGER);
+DROP FUNCTION IF EXISTS get_productivity_trend(UUID, TIMESTAMPTZ, TIMESTAMPTZ, TEXT);
 CREATE OR REPLACE FUNCTION get_productivity_trend(
   p_days INTEGER DEFAULT 30
 )

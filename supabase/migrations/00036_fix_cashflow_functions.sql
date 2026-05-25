@@ -1,5 +1,6 @@
 -- Fix: get_cashflow_summary should always return active_contracts and active_clients
 -- even when there are no payments in the selected period
+DROP FUNCTION IF EXISTS get_cashflow_summary(DATE, DATE);
 CREATE OR REPLACE FUNCTION get_cashflow_summary(
   p_start_date DATE DEFAULT (date_trunc('year', now()))::DATE,
   p_end_date DATE DEFAULT (now())::DATE
@@ -48,6 +49,7 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Fix: get_cashflow_monthly should include all months even without active contract filter issue
+DROP FUNCTION IF EXISTS get_cashflow_monthly(DATE, DATE);
 CREATE OR REPLACE FUNCTION get_cashflow_monthly(
   p_start_date DATE DEFAULT (date_trunc('year', now()))::DATE,
   p_end_date DATE DEFAULT (now())::DATE

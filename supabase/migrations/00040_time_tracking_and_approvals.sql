@@ -100,8 +100,6 @@ CREATE POLICY "Users can delete own time entries or admin"
 
 -- ==================== CONTENT APPROVAL ====================
 
-CREATE TYPE IF NOT EXISTS approval_status AS ENUM ('pending', 'approved', 'rejected', 'revision_requested');
-
 -- If type already exists, ignore error
 DO $$ BEGIN
   CREATE TYPE approval_status AS ENUM ('pending', 'approved', 'rejected', 'revision_requested');

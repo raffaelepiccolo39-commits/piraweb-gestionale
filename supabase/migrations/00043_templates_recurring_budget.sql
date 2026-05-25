@@ -115,33 +115,42 @@ CREATE POLICY "Admin can manage template tasks" ON template_tasks
   FOR ALL TO authenticated
   USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin'));
 
--- Seed common templates
-INSERT INTO project_templates (name, description, category, created_by) VALUES
-  ('Social Media Management', 'Setup completo per gestione social media di un nuovo cliente', 'social_media',
-   (SELECT id FROM profiles WHERE role = 'admin' LIMIT 1)),
-  ('Rebranding', 'Processo completo di rebranding aziendale', 'branding',
-   (SELECT id FROM profiles WHERE role = 'admin' LIMIT 1)),
-  ('Sito Web', 'Sviluppo sito web da zero', 'web',
-   (SELECT id FROM profiles WHERE role = 'admin' LIMIT 1))
-ON CONFLICT DO NOTHING;
+-- Seed common templates (solo se esiste già un admin — altrimenti skip su DB vuoto)
+DO $seed_templates$
+DECLARE
+  v_admin_id UUID;
+BEGIN
+  SELECT id INTO v_admin_id FROM profiles WHERE role = 'admin' LIMIT 1;
+  IF v_admin_id IS NULL THEN
+    RAISE NOTICE 'Nessun admin trovato: skip seed project_templates';
+    RETURN;
+  END IF;
 
--- Seed template tasks for Social Media Management
-INSERT INTO template_tasks (template_id, title, description, assigned_role, priority, estimated_hours, position, day_offset)
-SELECT t.id, v.title, v.description, v.assigned_role, v.priority::task_priority, v.estimated_hours, v.position, v.day_offset
-FROM project_templates t,
-(VALUES
-  ('Raccolta brief e brand guidelines', 'Raccogliere dal cliente: logo, font, colori, tone of voice, competitor', 'admin', 'high', 2, 0, 0),
-  ('Setup credenziali social', 'Ottenere accesso a tutti gli account social del cliente', 'social_media_manager', 'high', 1, 1, 1),
-  ('Analisi competitor', 'Analizzare i 3-5 competitor principali sui social', 'social_media_manager', 'medium', 4, 2, 3),
-  ('Definizione strategia editoriale', 'Creare strategia di contenuto per i prossimi 3 mesi', 'social_media_manager', 'high', 6, 3, 5),
-  ('Creazione piano editoriale mese 1', 'Pianificare i contenuti del primo mese', 'content_creator', 'high', 4, 4, 7),
-  ('Design template grafici', 'Creare template grafici per post, stories, reel', 'graphic_social', 'high', 8, 5, 7),
-  ('Produzione contenuti settimana 1', 'Creare i contenuti della prima settimana', 'content_creator', 'medium', 6, 6, 10),
-  ('Review e approvazione cliente', 'Presentare contenuti al cliente per approvazione', 'admin', 'high', 2, 7, 14),
-  ('Pubblicazione e monitoring', 'Pubblicare contenuti approvati e monitorare performance', 'social_media_manager', 'medium', 3, 8, 15),
-  ('Report primo mese', 'Creare report con KPI del primo mese di attivita', 'social_media_manager', 'medium', 3, 9, 30)
-) AS v(title, description, assigned_role, priority, estimated_hours, position, day_offset)
-WHERE t.name = 'Social Media Management';
+  INSERT INTO project_templates (name, description, category, created_by) VALUES
+    ('Social Media Management', 'Setup completo per gestione social media di un nuovo cliente', 'social_media', v_admin_id),
+    ('Rebranding', 'Processo completo di rebranding aziendale', 'branding', v_admin_id),
+    ('Sito Web', 'Sviluppo sito web da zero', 'web', v_admin_id)
+  ON CONFLICT DO NOTHING;
+
+  -- Seed template tasks for Social Media Management
+  INSERT INTO template_tasks (template_id, title, description, assigned_role, priority, estimated_hours, position, day_offset)
+  SELECT t.id, v.title, v.description, v.assigned_role, v.priority::task_priority, v.estimated_hours, v.position, v.day_offset
+  FROM project_templates t,
+  (VALUES
+    ('Raccolta brief e brand guidelines', 'Raccogliere dal cliente: logo, font, colori, tone of voice, competitor', 'admin', 'high', 2, 0, 0),
+    ('Setup credenziali social', 'Ottenere accesso a tutti gli account social del cliente', 'social_media_manager', 'high', 1, 1, 1),
+    ('Analisi competitor', 'Analizzare i 3-5 competitor principali sui social', 'social_media_manager', 'medium', 4, 2, 3),
+    ('Definizione strategia editoriale', 'Creare strategia di contenuto per i prossimi 3 mesi', 'social_media_manager', 'high', 6, 3, 5),
+    ('Creazione piano editoriale mese 1', 'Pianificare i contenuti del primo mese', 'content_creator', 'high', 4, 4, 7),
+    ('Design template grafici', 'Creare template grafici per post, stories, reel', 'graphic_social', 'high', 8, 5, 7),
+    ('Produzione contenuti settimana 1', 'Creare i contenuti della prima settimana', 'content_creator', 'medium', 6, 6, 10),
+    ('Review e approvazione cliente', 'Presentare contenuti al cliente per approvazione', 'admin', 'high', 2, 7, 14),
+    ('Pubblicazione e monitoring', 'Pubblicare contenuti approvati e monitorare performance', 'social_media_manager', 'medium', 3, 8, 15),
+    ('Report primo mese', 'Creare report con KPI del primo mese di attivita', 'social_media_manager', 'medium', 3, 9, 30)
+  ) AS v(title, description, assigned_role, priority, estimated_hours, position, day_offset)
+  WHERE t.name = 'Social Media Management'
+  ON CONFLICT DO NOTHING;
+END $seed_templates$;
 
 -- ==================== RECURRING TASKS ====================
 

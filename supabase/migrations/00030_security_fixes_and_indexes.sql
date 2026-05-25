@@ -40,6 +40,7 @@ CREATE POLICY "Users can update own profile" ON profiles
 -- 5. SECURITY: Restrict SECURITY DEFINER functions
 --    Add role checks to cashflow functions
 -- ============================================
+DROP FUNCTION IF EXISTS get_cashflow_monthly(DATE, DATE);
 CREATE OR REPLACE FUNCTION get_cashflow_monthly(p_start_date DATE, p_end_date DATE)
 RETURNS TABLE(
   month TEXT,
@@ -72,6 +73,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+DROP FUNCTION IF EXISTS get_cashflow_summary(DATE, DATE);
 CREATE OR REPLACE FUNCTION get_cashflow_summary(p_start_date DATE, p_end_date DATE)
 RETURNS TABLE(
   total_expected NUMERIC,
