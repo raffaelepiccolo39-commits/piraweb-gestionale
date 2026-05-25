@@ -12,6 +12,8 @@ import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { PageHeader } from '@/components/ui/page-header';
+import { EmptyState } from '@/components/ui/empty-state';
 import { formatCurrency } from '@/lib/utils';
 import type { Freelancer, TaskFreelancerAssignment } from '@/types/database';
 import {
@@ -171,22 +173,18 @@ export default function FreelancersPage() {
 
   return (
     <div className="space-y-6 animate-slide-up">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-pw-text font-[var(--font-syne)] flex items-center gap-2">
-            <Briefcase size={24} className="text-pw-accent" />
-            Freelancer
-          </h1>
-          <p className="text-sm text-pw-text-muted mt-1">Gestisci collaboratori esterni e relativi costi</p>
-        </div>
-        {isAdmin && (
-          <Button onClick={() => { setEditingId(null); setForm({ full_name: '', email: '', phone: '', specialty: 'other', hourly_rate: '', portfolio_url: '', notes: '' }); setShowForm(true); }}>
-            <Plus size={16} />
-            Aggiungi Freelancer
-          </Button>
-        )}
-      </div>
+      <PageHeader
+        title="Freelancer"
+        subtitle="Gestisci collaboratori esterni e relativi costi"
+        actions={
+          isAdmin && (
+            <Button onClick={() => { setEditingId(null); setForm({ full_name: '', email: '', phone: '', specialty: 'other', hourly_rate: '', portfolio_url: '', notes: '' }); setShowForm(true); }}>
+              <Plus size={16} />
+              Aggiungi Freelancer
+            </Button>
+          )
+        }
+      />
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 stagger-children">
@@ -293,11 +291,19 @@ export default function FreelancersPage() {
       </div>
 
       {freelancers.length === 0 && (
-        <div className="text-center py-12">
-          <Briefcase size={48} className="text-pw-text-dim mx-auto mb-3" />
-          <p className="text-pw-text-muted">Nessun freelancer registrato</p>
-          <p className="text-xs text-pw-text-dim mt-1">Aggiungi collaboratori esterni per tracciare costi e assegnazioni</p>
-        </div>
+        <EmptyState
+          icon={Briefcase}
+          title="Nessun freelancer registrato"
+          description="Aggiungi collaboratori esterni per tracciare costi e assegnazioni."
+          action={
+            isAdmin && (
+              <Button onClick={() => { setEditingId(null); setForm({ full_name: '', email: '', phone: '', specialty: 'other', hourly_rate: '', portfolio_url: '', notes: '' }); setShowForm(true); }}>
+                <Plus size={14} />
+                Aggiungi Freelancer
+              </Button>
+            )
+          }
+        />
       )}
 
       {/* Create/Edit modal */}

@@ -12,6 +12,8 @@ import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { PageHeader } from '@/components/ui/page-header';
+import { EmptyState } from '@/components/ui/empty-state';
 import { formatDateTime } from '@/lib/utils';
 import type { Automation, AutomationLog } from '@/types/database';
 import { Zap, Plus, Play, Pause, Trash2, ArrowRight, CheckCircle, XCircle, Clock } from 'lucide-react';
@@ -109,16 +111,16 @@ export default function AutomationsPage() {
 
   return (
     <div className="space-y-6 animate-slide-up">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-pw-text font-[var(--font-syne)] flex items-center gap-2">
-            <Zap size={24} className="text-pw-accent" />
-            Automazioni
-          </h1>
-          <p className="text-sm text-pw-text-muted mt-1">Configura azioni automatiche: quando succede X → fai Y</p>
-        </div>
-        <Button onClick={() => setShowForm(true)}><Plus size={16} />Nuova Automazione</Button>
-      </div>
+      <PageHeader
+        title="Automazioni"
+        subtitle="Configura azioni automatiche: quando succede X → fai Y"
+        actions={
+          <Button onClick={() => setShowForm(true)}>
+            <Plus size={16} />
+            Nuova Automazione
+          </Button>
+        }
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 stagger-children">
         {automations.map((a) => (
@@ -179,11 +181,17 @@ export default function AutomationsPage() {
       </div>
 
       {automations.length === 0 && (
-        <div className="text-center py-12">
-          <Zap size={48} className="text-pw-text-dim mx-auto mb-3" />
-          <p className="text-pw-text-muted">Nessuna automazione configurata</p>
-          <p className="text-xs text-pw-text-dim mt-1">Crea regole per automatizzare il lavoro ripetitivo</p>
-        </div>
+        <EmptyState
+          icon={Zap}
+          title="Nessuna automazione configurata"
+          description="Crea regole per automatizzare il lavoro ripetitivo: notifiche, cambi di stato, generazione di task."
+          action={
+            <Button onClick={() => setShowForm(true)}>
+              <Plus size={14} />
+              Nuova Automazione
+            </Button>
+          }
+        />
       )}
 
       {/* Examples */}

@@ -12,6 +12,8 @@ import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { PageHeader } from '@/components/ui/page-header';
+import { EmptyState } from '@/components/ui/empty-state';
 import { formatDate } from '@/lib/utils';
 import { PRIORITY_LABELS } from '@/lib/constants';
 import type { RecurringTask, Project, Profile } from '@/types/database';
@@ -121,21 +123,18 @@ export default function RecurringTasksPage() {
 
   return (
     <div className="space-y-6 animate-slide-up">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-pw-text font-[var(--font-syne)] flex items-center gap-2">
-            <RefreshCw size={24} className="text-pw-accent" />
-            Task Ricorrenti
-          </h1>
-          <p className="text-sm text-pw-text-muted mt-1">Task che si generano automaticamente su base periodica</p>
-        </div>
-        {isAdmin && (
-          <Button onClick={() => setShowForm(true)}>
-            <Plus size={16} />
-            Nuova Ricorrente
-          </Button>
-        )}
-      </div>
+      <PageHeader
+        title="Task Ricorrenti"
+        subtitle="Task che si generano automaticamente su base periodica"
+        actions={
+          isAdmin && (
+            <Button onClick={() => setShowForm(true)}>
+              <Plus size={16} />
+              Nuova Ricorrente
+            </Button>
+          )
+        }
+      />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 stagger-children">
         {tasks.map((task) => {
@@ -195,17 +194,19 @@ export default function RecurringTasksPage() {
       </div>
 
       {tasks.length === 0 && (
-        <div className="text-center py-12">
-          <RefreshCw size={48} className="text-pw-text-dim mx-auto mb-3" />
-          <p className="text-pw-text-muted">Nessuna task ricorrente</p>
-          <p className="text-xs text-pw-text-dim mt-1">Crea task che si rigenerano automaticamente ogni settimana o mese</p>
-          {isAdmin && (
-            <Button className="mt-4" onClick={() => setShowForm(true)}>
-              <Plus size={14} />
-              Crea Task Ricorrente
-            </Button>
-          )}
-        </div>
+        <EmptyState
+          icon={RefreshCw}
+          title="Nessuna task ricorrente"
+          description="Crea task che si rigenerano automaticamente ogni settimana o mese."
+          action={
+            isAdmin && (
+              <Button onClick={() => setShowForm(true)}>
+                <Plus size={14} />
+                Crea Task Ricorrente
+              </Button>
+            )
+          }
+        />
       )}
 
       <Modal open={showForm} onClose={() => setShowForm(false)} title="Nuova Task Ricorrente">

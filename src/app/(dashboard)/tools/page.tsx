@@ -12,6 +12,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Modal } from '@/components/ui/modal';
 import { Badge } from '@/components/ui/badge';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { PageHeader } from '@/components/ui/page-header';
+import { EmptyState } from '@/components/ui/empty-state';
 import type { TeamTool } from '@/types/database';
 import {
   Wrench,
@@ -206,43 +208,43 @@ export default function ToolsPage() {
 
   return (
     <div className="space-y-6 animate-slide-up">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-pw-text font-[var(--font-syne)] flex items-center gap-2">
-            <Wrench size={24} className="text-pw-accent" />
-            Tools
-          </h1>
-          <p className="text-sm text-pw-text-muted mt-1">Accesso rapido a tutti gli strumenti del team</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <div className="w-44">
-            <Select
-              value={filterCategory}
-              onChange={(e) => setFilterCategory(e.target.value)}
-              options={CATEGORIES}
-              placeholder="Tutte le categorie"
-            />
-          </div>
-          {isAdmin && (
-            <Button onClick={openCreate}>
-              <Plus size={16} />
-              Aggiungi Tool
-            </Button>
-          )}
-        </div>
-      </div>
+      <PageHeader
+        title="Tools"
+        subtitle="Accesso rapido a tutti gli strumenti del team"
+        actions={
+          <>
+            <div className="w-44">
+              <Select
+                value={filterCategory}
+                onChange={(e) => setFilterCategory(e.target.value)}
+                options={CATEGORIES}
+                placeholder="Tutte le categorie"
+              />
+            </div>
+            {isAdmin && (
+              <Button onClick={openCreate}>
+                <Plus size={16} />
+                Aggiungi Tool
+              </Button>
+            )}
+          </>
+        }
+      />
 
       {tools.length === 0 ? (
-        <div className="text-center py-16">
-          <Wrench size={48} className="text-pw-text-dim mx-auto mb-3" />
-          <p className="text-pw-text-muted">Nessun tool configurato</p>
-          {isAdmin && (
-            <Button className="mt-4" onClick={openCreate}>
-              <Plus size={14} />
-              Aggiungi il primo tool
-            </Button>
-          )}
-        </div>
+        <EmptyState
+          icon={Wrench}
+          title="Nessun tool configurato"
+          description="Aggiungi link rapidi agli strumenti che il team usa più spesso: piattaforme, dashboard, account condivisi."
+          action={
+            isAdmin && (
+              <Button onClick={openCreate}>
+                <Plus size={14} />
+                Aggiungi il primo tool
+              </Button>
+            )
+          }
+        />
       ) : (
         <div className="space-y-8">
           {groupedTools.map(group => (
