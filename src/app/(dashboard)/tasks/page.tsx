@@ -17,6 +17,7 @@ import { PageHeader } from '@/components/ui/page-header';
 import { formatDate, getPriorityTone, getStatusTone, getRoleLabel } from '@/lib/utils';
 import type { Task, Project, Client } from '@/types/database';
 import { useToast } from '@/components/ui/toast';
+import { SkeletonList, SkeletonStats } from '@/components/ui/skeleton';
 import { ListTodo, Calendar, Clock, ArrowRight, Sparkles, Brain, Check, Send, AlertTriangle, Archive, ExternalLink } from 'lucide-react';
 import { STATUS_LABELS, PRIORITY_LABELS } from '@/lib/constants';
 
@@ -264,8 +265,9 @@ export default function TasksPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-4 border-pw-accent border-t-transparent rounded-full animate-spin" />
+      <div className="space-y-6 animate-slide-up">
+        <SkeletonStats count={4} />
+        <SkeletonList variant="row" count={8} />
       </div>
     );
   }

@@ -15,6 +15,7 @@ import { ProjectForm, type ProjectFormData } from '@/components/projects/project
 import { formatDate, getStatusTone } from '@/lib/utils';
 import type { Project, Profile } from '@/types/database';
 import { useToast } from '@/components/ui/toast';
+import { SkeletonList, SkeletonStats } from '@/components/ui/skeleton';
 import { Plus, FolderKanban, Calendar, Users, ArrowRight, AlertTriangle } from 'lucide-react';
 
 const statusLabels: Record<string, string> = {
@@ -127,8 +128,9 @@ export default function ProjectsPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-4 border-pw-accent border-t-transparent rounded-full animate-spin" />
+      <div className="space-y-6 animate-slide-up">
+        <SkeletonStats count={4} />
+        <SkeletonList variant="card" count={6} />
       </div>
     );
   }
