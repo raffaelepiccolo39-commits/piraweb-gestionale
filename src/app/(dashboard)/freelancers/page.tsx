@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { formatCurrency } from '@/lib/utils';
 import type { Freelancer, TaskFreelancerAssignment } from '@/types/database';
 import {
@@ -46,6 +47,7 @@ export default function FreelancersPage() {
   const toast = useToast();
 
   const [freelancers, setFreelancers] = useState<Freelancer[]>([]);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [assignments, setAssignments] = useState<TaskFreelancerAssignment[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -132,8 +134,6 @@ export default function FreelancersPage() {
   };
 
   const handleDelete = async (id: string) => {
-    // TODO: replace with ConfirmDialog component
-    if (!confirm('Eliminare questo freelancer?')) return;
     await supabase.from('freelancers').delete().eq('id', id);
     toast.success('Freelancer eliminato');
     fetchFreelancers();
@@ -240,7 +240,7 @@ export default function FreelancersPage() {
                       <button onClick={() => handleEdit(f)} className="p-1.5 rounded-lg text-pw-text-dim hover:text-pw-accent hover:bg-pw-surface-2">
                         <Pencil size={12} />
                       </button>
-                      <button onClick={() => handleDelete(f.id)} className="p-1.5 rounded-lg text-pw-text-dim hover:text-red-400 hover:bg-pw-surface-2">
+                      <button onClick={() => setDeletingId(f.id)} className="p-1.5 rounded-lg text-pw-text-dim hover:text-red-400 hover:bg-pw-surface-2">
                         <Trash2 size={12} />
                       </button>
                     </div>
@@ -320,6 +320,15 @@ export default function FreelancersPage() {
           </div>
         </div>
       </Modal>
+
+      <ConfirmDialog
+        open={!!deletingId}
+        onClose={() => setDeletingId(null)}
+        onConfirm={() => (deletingId ? handleDelete(deletingId) : Promise.resolve())}
+        title="Elimina freelancer"
+        description="Sei sicuro di voler eliminare questo freelancer dall'archivio? Gli assignment storici resteranno visibili."
+        confirmLabel="Elimina"
+      />
     </div>
   );
 }

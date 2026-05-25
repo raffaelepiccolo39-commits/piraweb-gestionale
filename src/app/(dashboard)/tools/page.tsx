@@ -11,6 +11,7 @@ import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Modal } from '@/components/ui/modal';
 import { Badge } from '@/components/ui/badge';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import type { TeamTool } from '@/types/database';
 import {
   Wrench,
@@ -54,6 +55,7 @@ export default function ToolsPage() {
   const toast = useToast();
 
   const [tools, setTools] = useState<TeamTool[]>([]);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingTool, setEditingTool] = useState<TeamTool | null>(null);
@@ -153,8 +155,6 @@ export default function ToolsPage() {
   };
 
   const handleDelete = async (toolId: string) => {
-    // TODO: replace with ConfirmDialog component
-    if (!confirm('Eliminare questo tool?')) return;
     await supabase.from('team_tools').update({ is_active: false }).eq('id', toolId);
     toast.success('Tool rimosso');
     fetchTools();
@@ -294,7 +294,7 @@ export default function ToolsPage() {
                             <button onClick={() => openEdit(tool)} className="p-1 rounded hover:bg-pw-surface-3 text-pw-text-dim hover:text-pw-accent">
                               <Pencil size={12} />
                             </button>
-                            <button onClick={() => handleDelete(tool.id)} className="p-1 rounded hover:bg-pw-surface-3 text-pw-text-dim hover:text-red-400">
+                            <button onClick={() => setDeletingId(tool.id)} className="p-1 rounded hover:bg-pw-surface-3 text-pw-text-dim hover:text-red-400">
                               <Trash2 size={12} />
                             </button>
                           </div>
@@ -470,6 +470,15 @@ export default function ToolsPage() {
           </div>
         </div>
       </Modal>
+
+      <ConfirmDialog
+        open={!!deletingId}
+        onClose={() => setDeletingId(null)}
+        onConfirm={() => (deletingId ? handleDelete(deletingId) : Promise.resolve())}
+        title="Elimina tool"
+        description="Sei sicuro di voler eliminare questo tool dalla lista? Potrai sempre riaggiungerlo manualmente."
+        confirmLabel="Elimina"
+      />
     </div>
   );
 }

@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { formatDateTime } from '@/lib/utils';
 import type { Automation, AutomationLog } from '@/types/database';
 import { Zap, Plus, Play, Pause, Trash2, ArrowRight, CheckCircle, XCircle, Clock } from 'lucide-react';
@@ -38,6 +39,7 @@ export default function AutomationsPage() {
   const toast = useToast();
 
   const [automations, setAutomations] = useState<Automation[]>([]);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [logs, setLogs] = useState<AutomationLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -97,8 +99,6 @@ export default function AutomationsPage() {
   };
 
   const handleDelete = async (id: string) => {
-    // TODO: replace with ConfirmDialog component
-    if (!confirm('Eliminare questa automazione?')) return;
     const { error } = await supabase.from('automations').delete().eq('id', id);
     if (!error) fetchAutomations();
   };
@@ -136,7 +136,7 @@ export default function AutomationsPage() {
                   <button onClick={() => handleToggle(a)} className="p-1.5 rounded-lg text-pw-text-dim hover:bg-pw-surface-2" title={a.is_active ? 'Disattiva' : 'Attiva'}>
                     {a.is_active ? <Pause size={12} /> : <Play size={12} />}
                   </button>
-                  <button onClick={() => handleDelete(a.id)} className="p-1.5 rounded-lg text-pw-text-dim hover:text-red-400 hover:bg-pw-surface-2">
+                  <button onClick={() => setDeletingId(a.id)} className="p-1.5 rounded-lg text-pw-text-dim hover:text-red-400 hover:bg-pw-surface-2">
                     <Trash2 size={12} />
                   </button>
                 </div>
@@ -208,6 +208,15 @@ export default function AutomationsPage() {
           <div className="flex justify-end gap-2 pt-2"><Button variant="ghost" onClick={() => setShowForm(false)}>Annulla</Button><Button onClick={handleCreate}>Crea</Button></div>
         </div>
       </Modal>
+
+      <ConfirmDialog
+        open={!!deletingId}
+        onClose={() => setDeletingId(null)}
+        onConfirm={() => (deletingId ? handleDelete(deletingId) : Promise.resolve())}
+        title="Elimina automazione"
+        description="Sei sicuro di voler eliminare questa automazione? Le esecuzioni future non verranno più scatenate."
+        confirmLabel="Elimina"
+      />
     </div>
   );
 }

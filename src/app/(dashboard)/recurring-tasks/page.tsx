@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { formatDate } from '@/lib/utils';
 import { PRIORITY_LABELS } from '@/lib/constants';
 import type { RecurringTask, Project, Profile } from '@/types/database';
@@ -37,6 +38,7 @@ export default function RecurringTasksPage() {
   const toast = useToast();
 
   const [tasks, setTasks] = useState<RecurringTask[]>([]);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
   const [members, setMembers] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -109,8 +111,6 @@ export default function RecurringTasksPage() {
   };
 
   const handleDelete = async (id: string) => {
-    // TODO: replace with ConfirmDialog component
-    if (!confirm('Eliminare questa task ricorrente?')) return;
     await supabase.from('recurring_tasks').delete().eq('id', id);
     fetchTasks();
   };
@@ -156,7 +156,7 @@ export default function RecurringTasksPage() {
                       {task.is_active ? <Pause size={12} /> : <Play size={12} />}
                     </button>
                     {isAdmin && (
-                      <button onClick={() => handleDelete(task.id)} className="p-1.5 rounded-lg text-pw-text-dim hover:text-red-400 hover:bg-pw-surface-2">
+                      <button onClick={() => setDeletingId(task.id)} className="p-1.5 rounded-lg text-pw-text-dim hover:text-red-400 hover:bg-pw-surface-2">
                         <Trash2 size={12} />
                       </button>
                     )}
@@ -227,6 +227,15 @@ export default function RecurringTasksPage() {
           </div>
         </div>
       </Modal>
+
+      <ConfirmDialog
+        open={!!deletingId}
+        onClose={() => setDeletingId(null)}
+        onConfirm={() => (deletingId ? handleDelete(deletingId) : Promise.resolve())}
+        title="Elimina task ricorrente"
+        description="Sei sicuro di voler eliminare questa task ricorrente? L'azione non può essere annullata."
+        confirmLabel="Elimina"
+      />
     </div>
   );
 }

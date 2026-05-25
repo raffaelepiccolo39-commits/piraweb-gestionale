@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Modal } from '@/components/ui/modal';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { formatCurrency } from '@/lib/utils';
 import type { Profile, OperatingExpense, Payslip, Invoice, Client } from '@/types/database';
 import { parsePayslipAction, savePayslipsAction } from './actions';
@@ -123,6 +124,8 @@ export default function CFOPage() {
 
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [deletingExpenseId, setDeletingExpenseId] = useState<string | null>(null);
+  const [deletingPayslipId, setDeletingPayslipId] = useState<string | null>(null);
   const [employees, setEmployees] = useState<(Profile & { costs: ReturnType<typeof calculateEmployeeCosts> })[]>([]);
   const [expenses, setExpenses] = useState<OperatingExpense[]>([]);
   const [clientProfitability, setClientProfitability] = useState<ClientProfitability[]>([]);
@@ -322,8 +325,6 @@ export default function CFOPage() {
   };
 
   const handleDeleteExpense = async (id: string) => {
-    // TODO: replace with ConfirmDialog component
-    if (!confirm('Eliminare questa spesa?')) return;
     const { error } = await supabase.from('operating_expenses').update({ is_active: false }).eq('id', id);
     if (error) {
       toast.error(`Errore eliminazione: ${error.message}`);
@@ -385,8 +386,6 @@ export default function CFOPage() {
   };
 
   const handleDeletePayslip = async (id: string) => {
-    // TODO: replace with ConfirmDialog component
-    if (!confirm('Eliminare questa busta paga?')) return;
     const { error } = await supabase.from('payslips').delete().eq('id', id);
     if (error) {
       toast.error(`Errore eliminazione: ${error.message}`);
@@ -810,7 +809,7 @@ export default function CFOPage() {
                       <button onClick={() => openEditExpense(exp)} className="p-1 rounded hover:bg-pw-surface text-pw-text-dim hover:text-pw-accent">
                         <Pencil size={12} />
                       </button>
-                      <button onClick={() => handleDeleteExpense(exp.id)} className="p-1 rounded hover:bg-pw-surface text-pw-text-dim hover:text-red-400">
+                      <button onClick={() => setDeletingExpenseId(exp.id)} className="p-1 rounded hover:bg-pw-surface text-pw-text-dim hover:text-red-400">
                         <Trash2 size={12} />
                       </button>
                     </div>
@@ -919,7 +918,7 @@ export default function CFOPage() {
                             <FileText size={12} />
                           </a>
                         )}
-                        <button onClick={() => handleDeletePayslip(ps.id)} className="p-1 rounded hover:bg-pw-surface-3 text-pw-text-dim hover:text-red-400">
+                        <button onClick={() => setDeletingPayslipId(ps.id)} className="p-1 rounded hover:bg-pw-surface-3 text-pw-text-dim hover:text-red-400">
                           <Trash2 size={12} />
                         </button>
                       </div>
@@ -1171,6 +1170,24 @@ export default function CFOPage() {
           </div>
         </div>
       </Modal>
+
+      <ConfirmDialog
+        open={!!deletingExpenseId}
+        onClose={() => setDeletingExpenseId(null)}
+        onConfirm={() => (deletingExpenseId ? handleDeleteExpense(deletingExpenseId) : Promise.resolve())}
+        title="Elimina spesa"
+        description="Sei sicuro di voler eliminare questa spesa operativa? Verrà rimossa dal calcolo del cashflow."
+        confirmLabel="Elimina"
+      />
+
+      <ConfirmDialog
+        open={!!deletingPayslipId}
+        onClose={() => setDeletingPayslipId(null)}
+        onConfirm={() => (deletingPayslipId ? handleDeletePayslip(deletingPayslipId) : Promise.resolve())}
+        title="Elimina busta paga"
+        description="Sei sicuro di voler eliminare questa busta paga? L'azione non può essere annullata."
+        confirmLabel="Elimina"
+      />
     </div>
   );
 }
