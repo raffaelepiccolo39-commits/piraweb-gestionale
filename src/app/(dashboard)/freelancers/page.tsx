@@ -13,7 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { PageHeader } from '@/components/ui/page-header';
-import { EmptyState } from '@/components/ui/empty-state';
+import { DataTable } from '@/components/ui/data-table';
 import { formatCurrency } from '@/lib/utils';
 import type { Freelancer, TaskFreelancerAssignment } from '@/types/database';
 import {
@@ -216,15 +216,33 @@ export default function FreelancersPage() {
         </Card>
       </div>
 
-      {/* Freelancer grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 stagger-children">
-        {freelancers.map((f) => {
+      <DataTable
+        data={freelancers}
+        rowKey={(f) => f.id}
+        columns={[]}
+        variant="card"
+        searchKeys={[
+          (f) => f.full_name,
+          (f) => f.email || '',
+          (f) => f.phone || '',
+          (f) => SPECIALTY_LABELS[f.specialty] || f.specialty,
+        ]}
+        searchPlaceholder="Cerca per nome, email, telefono o specialità…"
+        filters={[
+          {
+            key: 'specialty',
+            label: 'Tutte le specialità',
+            options: SPECIALTY_OPTIONS,
+            accessor: (f) => f.specialty,
+          },
+        ]}
+        cardRender={(f) => {
           const fAssignments = assignments.filter((a) => a.freelancer_id === f.id);
           const fCost = fAssignments.reduce((sum, a) => sum + (a.total_cost || 0), 0);
           const fActiveCount = fAssignments.filter((a) => a.status !== 'completed' && a.status !== 'cancelled').length;
 
           return (
-            <Card key={f.id} className={!f.is_active ? 'opacity-50' : ''}>
+            <Card className={!f.is_active ? 'opacity-50' : ''}>
               <CardContent className="p-4">
                 <div className="flex items-start justify-between mb-3">
                   <div>
@@ -287,24 +305,19 @@ export default function FreelancersPage() {
               </CardContent>
             </Card>
           );
-        })}
-      </div>
-
-      {freelancers.length === 0 && (
-        <EmptyState
-          icon={Briefcase}
-          title="Nessun freelancer registrato"
-          description="Aggiungi collaboratori esterni per tracciare costi e assegnazioni."
-          action={
-            isAdmin && (
-              <Button onClick={() => { setEditingId(null); setForm({ full_name: '', email: '', phone: '', specialty: 'other', hourly_rate: '', portfolio_url: '', notes: '' }); setShowForm(true); }}>
-                <Plus size={14} />
-                Aggiungi Freelancer
-              </Button>
-            )
-          }
-        />
-      )}
+        }}
+        emptyState={{
+          icon: Briefcase,
+          title: 'Nessun freelancer registrato',
+          description: 'Aggiungi collaboratori esterni per tracciare costi e assegnazioni.',
+          action: isAdmin ? (
+            <Button onClick={() => { setEditingId(null); setForm({ full_name: '', email: '', phone: '', specialty: 'other', hourly_rate: '', portfolio_url: '', notes: '' }); setShowForm(true); }}>
+              <Plus size={14} />
+              Aggiungi Freelancer
+            </Button>
+          ) : undefined,
+        }}
+      />
 
       {/* Create/Edit modal */}
       <Modal open={showForm} onClose={() => { setShowForm(false); setEditingId(null); }} title={editingId ? 'Modifica Freelancer' : 'Nuovo Freelancer'}>
