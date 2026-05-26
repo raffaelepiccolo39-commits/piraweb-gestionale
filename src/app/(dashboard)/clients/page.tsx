@@ -11,15 +11,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Modal } from '@/components/ui/modal';
 import { Badge } from '@/components/ui/badge';
-import { EmptyState } from '@/components/ui/empty-state';
 import { PageHeader } from '@/components/ui/page-header';
 import { ClientForm, type ClientFormData } from '@/components/clients/client-form';
 import type { Client } from '@/types/database';
 import { useToast } from '@/components/ui/toast';
 import { SkeletonList, SkeletonStats } from '@/components/ui/skeleton';
+import { DataTable } from '@/components/ui/data-table';
 import {
   Plus,
-  Search,
   Users,
   Pencil,
   Trash2,
@@ -29,11 +28,8 @@ import {
   Building2,
   Eye,
   AlertTriangle,
-  ArrowDownAZ,
-  ArrowUpAZ,
   Briefcase,
   CalendarDays,
-  Filter,
   Tag,
 } from 'lucide-react';
 
@@ -42,13 +38,10 @@ export default function ClientsPage() {
   const supabase = createClient();
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | undefined>();
   const [editingMonthlyFee, setEditingMonthlyFee] = useState<number | undefined>();
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
-  const [sectorFilter, setSectorFilter] = useState('');
   const [error, setError] = useState(false);
   const [paymentAlerts, setPaymentAlerts] = useState<Record<string, 'warning' | 'danger'>>({});
 
@@ -107,19 +100,12 @@ export default function ClientsPage() {
   // Extract unique sectors for filter dropdown
   const sectors = [...new Set(clients.map((c) => c.sector).filter(Boolean))] as string[];
 
-  const filteredClients = clients
-    .filter(
-      (c) =>
-        (c.name.toLowerCase().includes(search.toLowerCase()) ||
-        c.company?.toLowerCase().includes(search.toLowerCase()) ||
-        (isAdmin && c.email?.toLowerCase().includes(search.toLowerCase()))) &&
-        (!sectorFilter || c.sector === sectorFilter)
-    )
-    .sort((a, b) => {
-      const nameA = (a.company || a.name).toLowerCase();
-      const nameB = (b.company || b.name).toLowerCase();
-      return sortOrder === 'asc' ? nameA.localeCompare(nameB) : nameB.localeCompare(nameA);
-    });
+  // Default sort: alfabetico per ragione sociale o nome
+  const sortedClients = [...clients].sort((a, b) => {
+    const nameA = (a.company || a.name).toLowerCase();
+    const nameB = (b.company || b.name).toLowerCase();
+    return nameA.localeCompare(nameB);
+  });
 
   const uploadLogo = async (file: File, clientId: string): Promise<string | null> => {
     const ext = file.name.split('.').pop();
@@ -452,63 +438,43 @@ export default function ClientsPage() {
           )
         }
       />
-      <div className="flex flex-wrap items-end gap-3 mb-6">
-        <div className="relative max-w-md flex-1 min-w-[220px]">
-          <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-pw-text-dim" />
-          <input
-            type="text"
-            placeholder="Cerca clienti..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-pw-border/60 bg-pw-surface-2/80 text-pw-text focus:ring-2 focus:ring-pw-accent/20 focus:border-pw-accent/40 focus:bg-pw-surface-2 outline-none transition-all duration-200 text-sm hover:border-pw-border-hover"
-          />
-        </div>
-        {sectors.length > 0 && (
-          <div className="relative">
-            <Filter size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-pw-text-dim pointer-events-none" />
-            <select
-              value={sectorFilter}
-              onChange={(e) => setSectorFilter(e.target.value)}
-              className="pl-9 pr-4 py-2.5 rounded-xl border border-pw-border/60 bg-pw-surface-2/80 text-pw-text text-sm outline-none appearance-none cursor-pointer focus:ring-2 focus:ring-pw-accent/20 focus:border-pw-accent/40 hover:border-pw-border-hover transition-all duration-200"
-            >
-              <option value="">Tutti i settori</option>
-              {sectors.sort().map((s) => (
-                <option key={s} value={s}>{s}</option>
-              ))}
-            </select>
-          </div>
-        )}
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'))}
-          title={sortOrder === 'asc' ? 'Ordine A-Z' : 'Ordine Z-A'}
-        >
-          {sortOrder === 'asc' ? <ArrowDownAZ size={14} /> : <ArrowUpAZ size={14} />}
-          {sortOrder === 'asc' ? 'A-Z' : 'Z-A'}
-        </Button>
-      </div>
-
-      {/* Client grid */}
-      {filteredClients.length === 0 ? (
-        <EmptyState
-          icon={Users}
-          title="Nessun cliente"
-          description={search ? 'Nessun risultato per la ricerca' : 'Nessun cliente disponibile'}
-          action={
-            isAdmin && !search ? (
-              <Button variant="primary" onClick={() => setShowForm(true)}>
-                <Plus size={14} />
-                Nuovo Cliente
-              </Button>
-            ) : undefined
-          }
-        />
-      ) : isAdmin ? (
-        /* ===== VISTA ADMIN: card completa ===== */
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 stagger-children">
-          {filteredClients.map((client) => (
-            <Card key={client.id} hover>
+      <DataTable
+        data={sortedClients}
+        rowKey={(c) => c.id}
+        columns={[]}
+        variant="card"
+        searchKeys={[
+          (c) => c.name,
+          (c) => c.company || '',
+          (c) => (isAdmin && c.email) || '',
+        ]}
+        searchPlaceholder="Cerca clienti…"
+        filters={
+          sectors.length > 0
+            ? [
+                {
+                  key: 'sector',
+                  label: 'Tutti i settori',
+                  options: sectors.sort().map((s) => ({ value: s, label: s })),
+                  accessor: (c) => c.sector || '',
+                },
+              ]
+            : undefined
+        }
+        emptyState={{
+          icon: Users,
+          title: 'Nessun cliente',
+          description: 'Inizia aggiungendo il primo cliente per cominciare a tracciarne progetti e attività.',
+          action: isAdmin ? (
+            <Button variant="primary" onClick={() => setShowForm(true)}>
+              <Plus size={14} />
+              Nuovo Cliente
+            </Button>
+          ) : undefined,
+        }}
+        cardRender={(client) =>
+          isAdmin ? (
+            <Card hover>
               <CardContent className="p-5">
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center gap-3">
@@ -647,13 +613,9 @@ export default function ClientsPage() {
                 </div>
               </CardContent>
             </Card>
-          ))}
-        </div>
-      ) : (
-        /* ===== VISTA DIPENDENTE: solo azienda e referente ===== */
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 stagger-children">
-          {filteredClients.map((client) => (
-            <Card key={client.id} hover>
+          ) : (
+            /* ===== VISTA DIPENDENTE: solo azienda e referente ===== */
+            <Card hover>
               <CardContent className="p-5">
                 <div className="flex items-center gap-3">
                   {client.logo_url ? (
@@ -676,9 +638,9 @@ export default function ClientsPage() {
                 </div>
               </CardContent>
             </Card>
-          ))}
-        </div>
-      )}
+          )
+        }
+      />
 
       {/* Create modal (admin only) */}
       {isAdmin && (
