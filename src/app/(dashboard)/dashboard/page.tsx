@@ -445,26 +445,18 @@ export default function DashboardPage() {
       {/* Stat Cards */}
       <StatCards stats={stats} isAdmin={isAdmin} />
 
-      {/* Row 5: Main content + Sidebar */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left: Activity */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Activity Feed */}
-          <ActivityFeed activities={activities} />
+      {/* Activity Feed (full width) + chat badge a destra */}
+      <div className="space-y-6">
+        <div className="flex justify-end">
+          <MessagesPreview unreadCount={unreadCount} />
         </div>
-
-        {/* Right sidebar */}
-        <div className="space-y-6">
-          <ProjectProgress projects={projectProgress} />
-          <div className="flex justify-end">
-            <MessagesPreview unreadCount={unreadCount} />
-          </div>
-        </div>
+        <ActivityFeed activities={activities} />
       </div>
 
-      {/* Row 6: Admin section */}
-      {isAdmin && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 stagger-children">
+      {/* Row team — 3 colonne per admin (Carico, Team oggi, Progetti), 1 per non-admin (solo Progetti) */}
+      <div className={`grid grid-cols-1 gap-6 stagger-children ${isAdmin ? 'lg:grid-cols-3' : ''}`}>
+        {isAdmin && (
+          <>
           {/* Team Workload (collapsible) */}
           <Card>
             <CardHeader>
@@ -521,8 +513,12 @@ export default function DashboardPage() {
 
           {/* Team Attendance Today */}
           <TeamAttendance team={teamAttendance} />
-        </div>
-      )}
+          </>
+        )}
+
+        {/* Progetti — sempre visibile (anche a non-admin) */}
+        <ProjectProgress projects={projectProgress} />
+      </div>
     </div>
   );
 }
