@@ -13,7 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { PageHeader } from '@/components/ui/page-header';
-import { EmptyState } from '@/components/ui/empty-state';
+import { DataTable } from '@/components/ui/data-table';
 import { formatDateTime } from '@/lib/utils';
 import type { Automation, AutomationLog } from '@/types/database';
 import { Zap, Plus, Play, Pause, Trash2, ArrowRight, CheckCircle, XCircle, Clock } from 'lucide-react';
@@ -122,9 +122,35 @@ export default function AutomationsPage() {
         }
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 stagger-children">
-        {automations.map((a) => (
-          <Card key={a.id} className={!a.is_active ? 'opacity-50' : ''}>
+      <DataTable
+        data={automations}
+        rowKey={(a) => a.id}
+        columns={[]}
+        variant="card"
+        searchKeys={[
+          (a) => a.name,
+          (a) => a.description || '',
+        ]}
+        searchPlaceholder="Cerca per nome o descrizione…"
+        filters={[
+          {
+            key: 'trigger_type',
+            label: 'Tutti i trigger',
+            options: Object.entries(TRIGGER_LABELS).map(([v, l]) => ({ value: v, label: l })),
+            accessor: (a) => a.trigger_type,
+          },
+          {
+            key: 'is_active',
+            label: 'Tutti gli stati',
+            options: [
+              { value: 'active', label: 'Attive' },
+              { value: 'paused', label: 'Disattivate' },
+            ],
+            accessor: (a) => (a.is_active ? 'active' : 'paused'),
+          },
+        ]}
+        cardRender={(a) => (
+          <Card className={!a.is_active ? 'opacity-50' : ''}>
             <CardContent className="p-4">
               <div className="flex items-start justify-between mb-3">
                 <div>
@@ -177,22 +203,19 @@ export default function AutomationsPage() {
               )}
             </CardContent>
           </Card>
-        ))}
-      </div>
-
-      {automations.length === 0 && (
-        <EmptyState
-          icon={Zap}
-          title="Nessuna automazione configurata"
-          description="Crea regole per automatizzare il lavoro ripetitivo: notifiche, cambi di stato, generazione di task."
-          action={
+        )}
+        emptyState={{
+          icon: Zap,
+          title: 'Nessuna automazione configurata',
+          description: 'Crea regole per automatizzare il lavoro ripetitivo: notifiche, cambi di stato, generazione di task.',
+          action: (
             <Button onClick={() => setShowForm(true)}>
               <Plus size={14} />
               Nuova Automazione
             </Button>
-          }
-        />
-      )}
+          ),
+        }}
+      />
 
       {/* Examples */}
       <Card>

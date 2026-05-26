@@ -13,7 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { PageHeader } from '@/components/ui/page-header';
-import { EmptyState } from '@/components/ui/empty-state';
+import { DataTable } from '@/components/ui/data-table';
 import { formatDate } from '@/lib/utils';
 import { PRIORITY_LABELS } from '@/lib/constants';
 import type { RecurringTask, Project, Profile } from '@/types/database';
@@ -136,12 +136,39 @@ export default function RecurringTasksPage() {
         }
       />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 stagger-children">
-        {tasks.map((task) => {
+      <DataTable
+        data={tasks}
+        rowKey={(t) => t.id}
+        columns={[]}
+        variant="card"
+        searchKeys={[
+          (t) => t.title,
+          (t) => (t.project as Project | undefined)?.name || '',
+          (t) => (t.assignee as Profile | undefined)?.full_name || '',
+        ]}
+        searchPlaceholder="Cerca per titolo, progetto o assegnatario…"
+        filters={[
+          {
+            key: 'recurrence_type',
+            label: 'Tutte le frequenze',
+            options: Object.entries(RECURRENCE_LABELS).map(([v, l]) => ({ value: v, label: l })),
+            accessor: (t) => t.recurrence_type,
+          },
+          {
+            key: 'is_active',
+            label: 'Tutti gli stati',
+            options: [
+              { value: 'active', label: 'Attive' },
+              { value: 'paused', label: 'In pausa' },
+            ],
+            accessor: (t) => (t.is_active ? 'active' : 'paused'),
+          },
+        ]}
+        cardRender={(task) => {
           const project = task.project as Project | undefined;
           const assignee = task.assignee as Profile | undefined;
           return (
-            <Card key={task.id} className={!task.is_active ? 'opacity-50' : ''}>
+            <Card className={!task.is_active ? 'opacity-50' : ''}>
               <CardContent className="p-4">
                 <div className="flex items-start justify-between mb-2">
                   <div>
@@ -190,24 +217,19 @@ export default function RecurringTasksPage() {
               </CardContent>
             </Card>
           );
-        })}
-      </div>
-
-      {tasks.length === 0 && (
-        <EmptyState
-          icon={RefreshCw}
-          title="Nessuna task ricorrente"
-          description="Crea task che si rigenerano automaticamente ogni settimana o mese."
-          action={
-            isAdmin && (
-              <Button onClick={() => setShowForm(true)}>
-                <Plus size={14} />
-                Crea Task Ricorrente
-              </Button>
-            )
-          }
-        />
-      )}
+        }}
+        emptyState={{
+          icon: RefreshCw,
+          title: 'Nessuna task ricorrente',
+          description: 'Crea task che si rigenerano automaticamente ogni settimana o mese.',
+          action: isAdmin ? (
+            <Button onClick={() => setShowForm(true)}>
+              <Plus size={14} />
+              Crea Task Ricorrente
+            </Button>
+          ) : undefined,
+        }}
+      />
 
       <Modal open={showForm} onClose={() => setShowForm(false)} title="Nuova Task Ricorrente">
         <div className="space-y-4">
