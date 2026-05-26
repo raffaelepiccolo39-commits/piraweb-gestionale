@@ -10,7 +10,6 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select } from '@/components/ui/select';
-import { EmptyState } from '@/components/ui/empty-state';
 import { Modal } from '@/components/ui/modal';
 import { Input } from '@/components/ui/input';
 import { PageHeader } from '@/components/ui/page-header';
@@ -18,6 +17,7 @@ import { formatDate, getPriorityTone, getStatusTone, getRoleLabel } from '@/lib/
 import type { Task, Project, Client } from '@/types/database';
 import { useToast } from '@/components/ui/toast';
 import { SkeletonList, SkeletonStats } from '@/components/ui/skeleton';
+import { DataTable } from '@/components/ui/data-table';
 import { ListTodo, Calendar, Clock, ArrowRight, Sparkles, Brain, Check, Send, AlertTriangle, Archive, ExternalLink } from 'lucide-react';
 import { STATUS_LABELS, PRIORITY_LABELS } from '@/lib/constants';
 
@@ -38,10 +38,7 @@ export default function TasksPage() {
   const [clients, setClients] = useState<Client[]>([]);
   const [teamMembers, setTeamMembers] = useState<{ id: string; full_name: string; role: string; color: string | null }[]>([]);
   const [loading, setLoading] = useState(true);
-  const [statusFilter, setStatusFilter] = useState('');
-  const [priorityFilter, setPriorityFilter] = useState('');
   const [assigneeFilter, setAssigneeFilter] = useState<string>('me');
-  const [deadlineFilter, setDeadlineFilter] = useState('');
 
   // AI task creation
   const [showAiModal, setShowAiModal] = useState(false);
@@ -79,35 +76,8 @@ export default function TasksPage() {
         query = query.eq('assigned_to', assigneeFilter);
       }
 
-      query = query.order('updated_at', { ascending: false }).limit(200);
-
-      // Escludi archiviati di default, mostrali solo se filtro esplicito
-      if (statusFilter) {
-        query = query.eq('status', statusFilter);
-      } else {
-        query = query.neq('status', 'archived');
-      }
-      if (priorityFilter) query = query.eq('priority', priorityFilter);
-
-      // Deadline filter
-      if (deadlineFilter) {
-        const now = new Date();
-        const today = now.toISOString().split('T')[0];
-
-        if (deadlineFilter === 'overdue') {
-          query = query.not('deadline', 'is', null).lt('deadline', today);
-        } else if (deadlineFilter === 'today') {
-          query = query.eq('deadline', today);
-        } else if (deadlineFilter === 'week') {
-          const weekEnd = new Date(now);
-          weekEnd.setDate(weekEnd.getDate() + 7);
-          query = query.not('deadline', 'is', null).lte('deadline', weekEnd.toISOString().split('T')[0]).gte('deadline', today);
-        } else if (deadlineFilter === 'month') {
-          const monthEnd = new Date(now);
-          monthEnd.setDate(monthEnd.getDate() + 30);
-          query = query.not('deadline', 'is', null).lte('deadline', monthEnd.toISOString().split('T')[0]).gte('deadline', today);
-        }
-      }
+      // Escludi archiviati di default — l'utente può vederli col filtro client-side
+      query = query.neq('status', 'archived').order('updated_at', { ascending: false }).limit(500);
 
       const { data, error } = await query;
       if (error) throw error;
@@ -117,7 +87,7 @@ export default function TasksPage() {
     } finally {
       setLoading(false);
     }
-  }, [profile, isAdmin, statusFilter, priorityFilter, assigneeFilter, deadlineFilter]);
+  }, [profile, isAdmin, assigneeFilter]);
 
   const fetchClients = useCallback(async () => {
     const { data } = await supabase
@@ -316,64 +286,78 @@ export default function TasksPage() {
             ]}
           />
         </div>
-        <div className="w-44">
-          <Select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            options={[
+      </div>
+
+      <DataTable
+        data={tasks}
+        rowKey={(t) => t.id}
+        columns={[]}
+        variant="card"
+        cardGridClassName="space-y-3"
+        searchKeys={[
+          (t) => t.title,
+          (t) => t.description || '',
+          (t) => (t.project as { name?: string } | undefined)?.name || '',
+        ]}
+        searchPlaceholder="Cerca per titolo, descrizione o progetto…"
+        filters={[
+          {
+            key: 'status',
+            label: 'Tutti gli stati',
+            options: [
               { value: 'todo', label: 'Da fare' },
               { value: 'in_progress', label: 'In corso' },
               { value: 'done', label: 'Fatto' },
               { value: 'archived', label: 'Archiviato' },
-            ]}
-            placeholder="Tutti gli stati"
-          />
-        </div>
-        <div className="w-44">
-          <Select
-            value={priorityFilter}
-            onChange={(e) => setPriorityFilter(e.target.value)}
-            options={[
+            ],
+            accessor: (t) => t.status,
+          },
+          {
+            key: 'priority',
+            label: 'Tutte le priorità',
+            options: [
               { value: 'low', label: 'Bassa' },
               { value: 'medium', label: 'Media' },
               { value: 'high', label: 'Alta' },
               { value: 'urgent', label: 'Urgente' },
-            ]}
-            placeholder="Tutte le priorità"
-          />
-        </div>
-        <div className="w-48">
-          <Select
-            value={deadlineFilter}
-            onChange={(e) => setDeadlineFilter(e.target.value)}
-            options={[
+            ],
+            accessor: (t) => t.priority,
+          },
+          {
+            key: 'deadline',
+            label: 'Tutte le scadenze',
+            options: [
               { value: 'overdue', label: 'Scadute' },
               { value: 'today', label: 'Scadenza oggi' },
               { value: 'week', label: 'Prossimi 7 giorni' },
               { value: 'month', label: 'Prossimi 30 giorni' },
-            ]}
-            placeholder="Tutte le scadenze"
-          />
-        </div>
-      </div>
-
-      {tasks.length === 0 ? (
-        <EmptyState
-          icon={ListTodo}
-          title="Nessun task"
-          description={
-            statusFilter || priorityFilter
-              ? 'Nessun task corrisponde ai filtri selezionati'
-              : 'Non ci sono task al momento. Usa "Crea Task con AI" per iniziare.'
-          }
-        />
-      ) : (
-        <div className="space-y-3">
-          {tasks.map((task) => {
-            const project = task.project as { id: string; name: string; color: string } | undefined;
-            const assignee = task.assignee as { id: string; full_name: string } | undefined;
-            return (
-              <Card key={task.id} hover>
+            ],
+            accessor: (t) => {
+              if (!t.deadline) return '';
+              const today = new Date().toISOString().split('T')[0];
+              const d = (t.deadline as string).split('T')[0];
+              if (d < today) return 'overdue';
+              if (d === today) return 'today';
+              const week = new Date();
+              week.setDate(week.getDate() + 7);
+              if (d <= week.toISOString().split('T')[0]) return 'week';
+              const month = new Date();
+              month.setDate(month.getDate() + 30);
+              if (d <= month.toISOString().split('T')[0]) return 'month';
+              return '';
+            },
+          },
+        ]}
+        emptyState={{
+          icon: ListTodo,
+          title: 'Nessun task',
+          description: 'Non ci sono task al momento. Usa "Crea Task con AI" per iniziare.',
+        }}
+        cardRender={(task) => {
+          const project = task.project as { id: string; name: string; color: string } | undefined;
+          const assignee = task.assignee as { id: string; full_name: string } | undefined;
+          return (
+            <Card hover>
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1 min-w-0">
@@ -476,9 +460,8 @@ export default function TasksPage() {
                 </CardContent>
               </Card>
             );
-          })}
-        </div>
-      )}
+          }}
+      />
 
       {/* Delivery URL Modal */}
       <Modal
