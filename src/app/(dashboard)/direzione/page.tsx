@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { PageHeader } from '@/components/ui/page-header';
 import { formatCurrency, getInitials, getUserColor } from '@/lib/utils';
 import type { ClientHealth, Profile } from '@/types/database';
 import {
@@ -192,13 +193,10 @@ export default function DirectionPage() {
 
   return (
     <div className="space-y-6 animate-slide-up">
-      <div>
-        <h1 className="text-2xl font-bold text-pw-text font-[var(--font-syne)] flex items-center gap-2">
-          <Crown size={24} className="text-pw-accent" />
-          Dashboard Direzionale
-        </h1>
-        <p className="text-sm text-pw-text-muted mt-1">Vista strategica per la crescita dell'agenzia</p>
-      </div>
+      <PageHeader
+        title="Dashboard Direzionale"
+        subtitle="Vista strategica per la crescita dell'agenzia"
+      />
 
       {/* Top KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 stagger-children">

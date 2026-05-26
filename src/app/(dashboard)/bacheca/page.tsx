@@ -18,6 +18,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select } from '@/components/ui/select';
 import { EmptyState } from '@/components/ui/empty-state';
 import { SkeletonList } from '@/components/ui/skeleton';
+import { PageHeader } from '@/components/ui/page-header';
 import { TaskDetailModal } from '@/components/bacheca/task-detail-modal';
 import { TaskForm } from '@/components/tasks/task-form';
 import { formatDate, getInitials } from '@/lib/utils';
@@ -368,22 +369,18 @@ export default function BachecaPage() {
 
   return (
     <div className="space-y-4 animate-slide-up">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-pw-text font-[var(--font-syne)]">
-            Bacheca
-          </h1>
-          <p className="text-sm text-pw-text-muted">
-            {tasks.filter(t => t.status !== 'done').length} attivi · {totalDone} completati
-          </p>
-        </div>
-        {totalDone > 0 && (
-          <Button variant="outline" onClick={handleArchiveCompleted}>
-            <CheckCircle2 size={14} />
-            Archivia {totalDone} completat{totalDone === 1 ? 'o' : 'i'}
-          </Button>
-        )}
-      </div>
+      <PageHeader
+        title="Bacheca"
+        subtitle={`${tasks.filter(t => t.status !== 'done').length} attivi · ${totalDone} completati`}
+        actions={
+          totalDone > 0 && (
+            <Button variant="outline" onClick={handleArchiveCompleted}>
+              <CheckCircle2 size={14} />
+              Archivia {totalDone} completat{totalDone === 1 ? 'o' : 'i'}
+            </Button>
+          )
+        }
+      />
 
       <DragDropContext onDragEnd={handleDragEnd}>
         <div className="flex gap-4 overflow-x-auto pb-4 no-scrollbar">

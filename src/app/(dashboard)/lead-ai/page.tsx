@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { PageHeader } from '@/components/ui/page-header';
 import { createClient } from '@/lib/supabase/client';
 import {
   Sparkles,
@@ -172,15 +173,10 @@ export default function LeadAIPage() {
   return (
     <div className="space-y-6 animate-slide-up">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-pw-text font-[var(--font-syne)] flex items-center gap-2">
-          <Sparkles size={24} className="text-pw-accent" />
-          Lead AI
-        </h1>
-        <p className="text-sm text-pw-text-muted mt-1">
-          Ricerca intelligente di potenziali clienti per settore, provincia e regione
-        </p>
-      </div>
+      <PageHeader
+        title="Lead AI"
+        subtitle="Ricerca intelligente di potenziali clienti per settore, provincia e regione"
+      />
 
       {/* Search form */}
       <Card>

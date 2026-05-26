@@ -10,6 +10,7 @@ import { Select } from '@/components/ui/select';
 import { Modal } from '@/components/ui/modal';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { PageHeader } from '@/components/ui/page-header';
 import { NoteDevForm } from '@/components/note-dev/note-dev-form';
 import type { NoteFormData } from '@/components/note-dev/note-dev-form';
 import type { DeveloperNote, DevNoteStatus } from '@/types/database';
@@ -276,23 +277,18 @@ export default function NoteDevPage() {
 
   return (
     <div className="space-y-6 animate-slide-up">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-pw-text font-[var(--font-syne)]">
-            {isAdmin ? 'Note allo Sviluppatore' : 'Le mie Note'}
-          </h1>
-          <p className="text-sm text-pw-text-muted">
-            {isAdmin
-              ? `${notes.length} segnalazioni dal team`
-              : 'Segnala bug, richieste e miglioramenti'}
-          </p>
-        </div>
-        <Button onClick={() => setShowForm(true)}>
-          <Plus size={16} />
-          Nuova Nota
-        </Button>
-      </div>
+      <PageHeader
+        title={isAdmin ? 'Note allo Sviluppatore' : 'Le mie Note'}
+        subtitle={isAdmin
+          ? `${notes.length} segnalazioni dal team`
+          : 'Segnala bug, richieste e miglioramenti'}
+        actions={
+          <Button onClick={() => setShowForm(true)}>
+            <Plus size={16} />
+            Nuova Nota
+          </Button>
+        }
+      />
 
       {/* Filters */}
       <div className="flex flex-wrap gap-3">

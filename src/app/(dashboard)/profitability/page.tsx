@@ -7,6 +7,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { SkeletonStats, SkeletonList } from '@/components/ui/skeleton';
+import { PageHeader } from '@/components/ui/page-header';
 import { formatCurrency, getInitials, getUserColor, getRoleLabel } from '@/lib/utils';
 import type { Profile, Client } from '@/types/database';
 import {
@@ -293,16 +294,10 @@ export default function ProfitabilityPage() {
 
   return (
     <div className="space-y-6 animate-slide-up">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-pw-text font-[var(--font-syne)] flex items-center gap-2">
-          <Euro size={24} className="text-pw-accent" />
-          Profittabilita' Progetti
-        </h1>
-        <p className="text-sm text-pw-text-muted mt-1">
-          Analisi basata sul costo reale dei dipendenti (stipendio / {MONTHLY_WORK_HOURS}h mensili)
-        </p>
-      </div>
+      <PageHeader
+        title="Profittabilità Progetti"
+        subtitle={`Analisi basata sul costo reale dei dipendenti (stipendio / ${MONTHLY_WORK_HOURS}h mensili)`}
+      />
 
       {/* Agency Overview */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4 stagger-children">

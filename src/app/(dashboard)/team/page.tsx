@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
+import { PageHeader } from '@/components/ui/page-header';
 import { MessageSquare, Video, Clock, Network, Wrench, UserCog, BarChart3 } from 'lucide-react';
 
 // Import delle pagine esistenti
@@ -44,14 +45,10 @@ function TeamContent() {
   return (
     <div className="space-y-6 animate-slide-up">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-pw-text font-[var(--font-syne)]">
-          Team
-        </h1>
-        <p className="text-sm text-pw-text-muted mt-1">
-          Bacheca, meeting, presenze e strumenti di team
-        </p>
-      </div>
+      <PageHeader
+        title="Team"
+        subtitle="Bacheca, meeting, presenze e strumenti di team"
+      />
 
       {/* Tab bar */}
       <div className="flex gap-1 p-1 rounded-xl bg-pw-surface-2/50 border border-pw-border/40 overflow-x-auto no-scrollbar">

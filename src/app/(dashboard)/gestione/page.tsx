@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
+import { PageHeader } from '@/components/ui/page-header';
 import { Target, Crown, Calculator, Sparkles, Search, BarChart3, Euro, Receipt } from 'lucide-react';
 
 // Import delle pagine esistenti
@@ -55,14 +56,10 @@ function GestioneContent() {
   return (
     <div className="space-y-6 animate-slide-up">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-pw-text font-[var(--font-syne)]">
-          Gestione
-        </h1>
-        <p className="text-sm text-pw-text-muted mt-1">
-          CRM, direzione, finanze e lead generation
-        </p>
-      </div>
+      <PageHeader
+        title="Gestione"
+        subtitle="CRM, direzione, finanze e lead generation"
+      />
 
       {/* Tab bar — scrollable */}
       <div className="flex gap-1 p-1 rounded-xl bg-pw-surface-2/50 border border-pw-border/40 overflow-x-auto no-scrollbar">

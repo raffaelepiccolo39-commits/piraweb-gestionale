@@ -12,6 +12,7 @@ import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { SkeletonStats, SkeletonList } from '@/components/ui/skeleton';
+import { PageHeader } from '@/components/ui/page-header';
 import { formatDate, formatDateTime, getInitials, getUserColor } from '@/lib/utils';
 import type { Meeting, MeetingActionItem, Client, Profile, Project } from '@/types/database';
 import {
@@ -191,20 +192,16 @@ export default function MeetingsPage() {
 
   return (
     <div className="space-y-6 animate-slide-up">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-pw-text font-[var(--font-syne)] flex items-center gap-2">
-            <Video size={24} className="text-pw-accent" />
-            Meeting
-          </h1>
-          <p className="text-sm text-pw-text-muted mt-1">Gestisci meeting con clienti e team, con action items automatici</p>
-        </div>
-        <Button onClick={() => setShowForm(true)}>
-          <Plus size={16} />
-          Nuovo Meeting
-        </Button>
-      </div>
+      <PageHeader
+        title="Meeting"
+        subtitle="Gestisci meeting con clienti e team, con action items automatici"
+        actions={
+          <Button onClick={() => setShowForm(true)}>
+            <Plus size={16} />
+            Nuovo Meeting
+          </Button>
+        }
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Meeting list */}

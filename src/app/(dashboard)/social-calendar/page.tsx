@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { SkeletonStats, SkeletonList } from '@/components/ui/skeleton';
+import { PageHeader } from '@/components/ui/page-header';
 import type { SocialPost, Client, SocialPlatform, SocialPostStatus } from '@/types/database';
 import {
   ChevronLeft,
@@ -230,33 +231,29 @@ export default function SocialCalendarPage() {
 
   return (
     <div className="space-y-6 animate-slide-up">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-pw-text font-[var(--font-syne)] flex items-center gap-2">
-            <Calendar size={24} className="text-pw-accent" />
-            Piano Editoriale
-          </h1>
-          <p className="text-sm text-pw-text-muted mt-1">Pianifica e gestisci i contenuti social dei tuoi clienti</p>
-        </div>
-        <div className="flex gap-2">
-          {metaConnected ? (
-            <Badge className="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300 flex items-center gap-1">
-              <CheckCircle size={10} />
-              Meta: {metaUserName}
-            </Badge>
-          ) : isAdmin ? (
-            <Button variant="outline" size="sm" onClick={() => window.location.href = '/api/meta/auth'}>
-              <Link2 size={14} />
-              Collega Meta
+      <PageHeader
+        title="Piano Editoriale"
+        subtitle="Pianifica e gestisci i contenuti social dei tuoi clienti"
+        actions={
+          <>
+            {metaConnected ? (
+              <Badge className="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300 flex items-center gap-1">
+                <CheckCircle size={10} />
+                Meta: {metaUserName}
+              </Badge>
+            ) : isAdmin ? (
+              <Button variant="outline" size="sm" onClick={() => window.location.href = '/api/meta/auth'}>
+                <Link2 size={14} />
+                Collega Meta
+              </Button>
+            ) : null}
+            <Button onClick={() => { setShowForm(true); setForm((f) => ({ ...f, scheduled_at: selectedDate || '' })); }}>
+              <Plus size={16} />
+              Nuovo Post
             </Button>
-          ) : null}
-          <Button onClick={() => { setShowForm(true); setForm((f) => ({ ...f, scheduled_at: selectedDate || '' })); }}>
-            <Plus size={16} />
-            Nuovo Post
-          </Button>
-        </div>
-      </div>
+          </>
+        }
+      />
 
       {/* Filters */}
       <div className="flex flex-wrap gap-3 items-center">

@@ -12,6 +12,7 @@ import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { SkeletonList, SkeletonStats } from '@/components/ui/skeleton';
+import { PageHeader } from '@/components/ui/page-header';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import type { Invoice, InvoiceItem, Client, InvoiceStatus, SdiStatus } from '@/types/database';
 import {
@@ -259,16 +260,16 @@ export default function InvoicesPage() {
 
   return (
     <div className="space-y-6 animate-slide-up">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-pw-text font-[var(--font-syne)] flex items-center gap-2">
-            <Receipt size={24} className="text-pw-accent" />
-            Fatturazione
-          </h1>
-          <p className="text-sm text-pw-text-muted mt-1">Genera e gestisci le fatture per i tuoi clienti</p>
-        </div>
-        <Button onClick={() => setShowForm(true)}><Plus size={16} />Nuova Fattura</Button>
-      </div>
+      <PageHeader
+        title="Fatturazione"
+        subtitle="Genera e gestisci le fatture per i tuoi clienti"
+        actions={
+          <Button onClick={() => setShowForm(true)}>
+            <Plus size={16} />
+            Nuova Fattura
+          </Button>
+        }
+      />
 
       {fetchError && (
         <div className="flex items-start gap-3 p-4 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900/40">

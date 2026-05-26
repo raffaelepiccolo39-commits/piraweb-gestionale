@@ -7,6 +7,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/ui/empty-state';
+import { PageHeader } from '@/components/ui/page-header';
 import { getRoleLabel, getRoleTone, getInitials } from '@/lib/utils';
 import type { TeamEfficiency, ProductivityTrend, TeamOverviewStats } from '@/types/database';
 import {
@@ -178,34 +179,27 @@ export default function AnalyticsPage() {
 
   return (
     <div className="space-y-6 animate-slide-up">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-pw-text font-[var(--font-syne)]">
-            Efficienza Team
-          </h1>
-          <p className="text-sm text-pw-text-muted">
-            Monitora le performance del team
-          </p>
-        </div>
-
-        {/* Period selector */}
-        <div className="flex gap-1 bg-pw-surface-3 p-1 rounded-xl overflow-x-auto no-scrollbar">
-          {(Object.keys(periodLabels) as Period[]).map((p) => (
-            <button
-              key={p}
-              onClick={() => setPeriod(p)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 ease-out ${
-                period === p
-                  ? 'bg-pw-surface text-pw-text shadow-sm'
-                  : 'text-pw-text-muted hover:text-pw-text'
-              }`}
-            >
-              {periodLabels[p]}
-            </button>
-          ))}
-        </div>
-      </div>
+      <PageHeader
+        title="Efficienza Team"
+        subtitle="Monitora le performance del team"
+        actions={
+          <div className="flex gap-1 bg-pw-surface-3 p-1 rounded-xl overflow-x-auto no-scrollbar">
+            {(Object.keys(periodLabels) as Period[]).map((p) => (
+              <button
+                key={p}
+                onClick={() => setPeriod(p)}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 ease-out ${
+                  period === p
+                    ? 'bg-pw-surface text-pw-text shadow-sm'
+                    : 'text-pw-text-muted hover:text-pw-text'
+                }`}
+              >
+                {periodLabels[p]}
+              </button>
+            ))}
+          </div>
+        }
+      />
 
       {loading ? (
         <div className="flex items-center justify-center h-64">

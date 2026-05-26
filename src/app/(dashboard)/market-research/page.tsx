@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { PageHeader } from '@/components/ui/page-header';
 import {
   BarChart3,
   Search,
@@ -128,15 +129,10 @@ export default function MarketResearchPage() {
   return (
     <div className="space-y-6 animate-slide-up">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-pw-text font-[var(--font-syne)] flex items-center gap-2">
-          <BarChart3 size={24} className="text-pw-accent" />
-          Indagine di Mercato
-        </h1>
-        <p className="text-sm text-pw-text-muted mt-1">
-          Analizza un intero settore in una citta': quanti competitor ci sono, chi ha sito/social/ads, dove ci sono opportunita'
-        </p>
-      </div>
+      <PageHeader
+        title="Indagine di Mercato"
+        subtitle="Analizza un intero settore in una città: quanti competitor ci sono, chi ha sito/social/ads, dove ci sono opportunità"
+      />
 
       {/* Search */}
       <Card>

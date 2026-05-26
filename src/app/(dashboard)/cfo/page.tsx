@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Modal } from '@/components/ui/modal';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { PageHeader } from '@/components/ui/page-header';
 import { formatCurrency } from '@/lib/utils';
 import type { Profile, OperatingExpense, Payslip, Invoice, Client } from '@/types/database';
 import { parsePayslipAction, savePayslipsAction } from './actions';
@@ -477,15 +478,10 @@ export default function CFOPage() {
   return (
     <div className="space-y-8 max-w-7xl animate-slide-up">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-pw-text font-[var(--font-syne)] flex items-center gap-2">
-          <Calculator size={24} className="text-pw-accent" />
-          CFO Dashboard
-        </h1>
-        <p className="text-sm text-pw-text-muted mt-1">
-          Controllo finanziario completo - Costi, ricavi, margini, tasse
-        </p>
-      </div>
+      <PageHeader
+        title="CFO Dashboard"
+        subtitle="Controllo finanziario completo — Costi, ricavi, margini, tasse"
+      />
 
       {fetchError && (
         <div className="flex items-start gap-3 p-4 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900/40">

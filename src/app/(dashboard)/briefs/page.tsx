@@ -13,6 +13,7 @@ import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { SkeletonStats, SkeletonList } from '@/components/ui/skeleton';
+import { PageHeader } from '@/components/ui/page-header';
 import { formatDate } from '@/lib/utils';
 import type { CreativeBrief, Project, Client } from '@/types/database';
 import {
@@ -153,20 +154,16 @@ export default function BriefsPage() {
 
   return (
     <div className="space-y-6 animate-slide-up">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-pw-text font-[var(--font-syne)] flex items-center gap-2">
-            <FileEdit size={24} className="text-pw-accent" />
-            Brief Creativi
-          </h1>
-          <p className="text-sm text-pw-text-muted mt-1">Crea brief strutturati per guidare il lavoro creativo del team</p>
-        </div>
-        <Button onClick={() => setShowForm(true)}>
-          <Plus size={16} />
-          Nuovo Brief
-        </Button>
-      </div>
+      <PageHeader
+        title="Brief Creativi"
+        subtitle="Crea brief strutturati per guidare il lavoro creativo del team"
+        actions={
+          <Button onClick={() => setShowForm(true)}>
+            <Plus size={16} />
+            Nuovo Brief
+          </Button>
+        }
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Brief list */}

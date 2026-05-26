@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { PageHeader } from '@/components/ui/page-header';
 import { formatDate } from '@/lib/utils';
 import type { LeadProspect, OutreachStatus } from '@/types/database';
 import {
@@ -307,15 +308,10 @@ export default function LeadFinderPage() {
   return (
     <div className="space-y-6 animate-slide-up">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-pw-text font-[var(--font-syne)] flex items-center gap-2">
-          <Target size={24} className="text-pw-accent" />
-          Lead Finder
-        </h1>
-        <p className="text-sm text-pw-text-muted mt-1">
-          Cerca attivita' per citta' e settore, analizza la loro presenza digitale, genera messaggi di outreach
-        </p>
-      </div>
+      <PageHeader
+        title="Lead Finder"
+        subtitle="Cerca attività per città e settore, analizza la loro presenza digitale, genera messaggi di outreach"
+      />
 
       {/* Tabs */}
       <div className="flex gap-2">

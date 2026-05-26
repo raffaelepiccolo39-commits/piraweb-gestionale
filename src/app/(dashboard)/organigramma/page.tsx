@@ -1,12 +1,14 @@
 'use client';
 
+import { PageHeader } from '@/components/ui/page-header';
+
 export default function OrganigrammaPage() {
   return (
     <div className="space-y-6 animate-slide-up">
-      <div>
-        <h1 className="text-2xl font-bold text-pw-text font-[var(--font-syne)]">Organigramma</h1>
-        <p className="text-sm text-pw-text-muted">Struttura organizzativa PiraWeb Creative Agency</p>
-      </div>
+      <PageHeader
+        title="Organigramma"
+        subtitle="Struttura organizzativa PiraWeb Creative Agency"
+      />
 
       {/* Chart */}
       <div className="bg-pw-surface rounded-2xl border border-pw-border p-4 sm:p-6 overflow-x-auto">

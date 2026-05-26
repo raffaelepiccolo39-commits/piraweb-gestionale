@@ -12,6 +12,7 @@ import type { AttendanceRecord, TeamAttendanceToday } from '@/types/database';
 import { BarChart3, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
 import { SkeletonStats, SkeletonList } from '@/components/ui/skeleton';
+import { PageHeader } from '@/components/ui/page-header';
 
 function getTodayLocal(): string {
   const now = new Date();
@@ -129,22 +130,18 @@ export default function PresenzePage() {
 
   return (
     <div className="space-y-6 animate-slide-up">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-pw-text font-[var(--font-syne)]">
-            Presenze
-          </h1>
-          <p className="text-sm text-pw-text-muted">
-            Registra la tua presenza giornaliera
-          </p>
-        </div>
-        {isAdmin && (
-          <Button variant="outline" onClick={() => router.push('/presenze/report')}>
-            <BarChart3 size={16} />
-            Report
-          </Button>
-        )}
-      </div>
+      <PageHeader
+        title="Presenze"
+        subtitle="Registra la tua presenza giornaliera"
+        actions={
+          isAdmin && (
+            <Button variant="outline" onClick={() => router.push('/presenze/report')}>
+              <BarChart3 size={16} />
+              Report
+            </Button>
+          )
+        }
+      />
 
       <div className="max-w-xl mx-auto">
         <ClockButtons

@@ -6,6 +6,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { SkeletonStats, SkeletonList } from '@/components/ui/skeleton';
+import { PageHeader } from '@/components/ui/page-header';
 import { getInitials, getUserColor, getRoleLabel } from '@/lib/utils';
 import type { Profile } from '@/types/database';
 import { Users, AlertTriangle, CheckCircle, Clock, BarChart3, TrendingUp } from 'lucide-react';
@@ -116,13 +117,10 @@ export default function CapacityPage() {
 
   return (
     <div className="space-y-6 animate-slide-up">
-      <div>
-        <h1 className="text-2xl font-bold text-pw-text font-[var(--font-syne)] flex items-center gap-2">
-          <BarChart3 size={24} className="text-pw-accent" />
-          Capacity Planner
-        </h1>
-        <p className="text-sm text-pw-text-muted mt-1">Monitora il carico di lavoro e la capacita' disponibile del team</p>
-      </div>
+      <PageHeader
+        title="Capacity Planner"
+        subtitle="Monitora il carico di lavoro e la capacità disponibile del team"
+      />
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4 stagger-children">

@@ -12,6 +12,7 @@ import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Modal } from '@/components/ui/modal';
+import { PageHeader } from '@/components/ui/page-header';
 import { formatDateTime, getRoleLabel } from '@/lib/utils';
 import type { AiScript, Client, Project } from '@/types/database';
 import {
@@ -198,14 +199,10 @@ export default function AiPage() {
 
   return (
     <div className="space-y-6 animate-slide-up">
-      <div>
-        <h1 className="text-2xl font-bold text-pw-text font-[var(--font-syne)]">
-          AI Assistant
-        </h1>
-        <p className="text-sm text-pw-text-muted">
-          Genera contenuti e assegna task con l'intelligenza artificiale
-        </p>
-      </div>
+      <PageHeader
+        title="AI Assistant"
+        subtitle="Genera contenuti e assegna task con l'intelligenza artificiale"
+      />
 
       {/* Tabs */}
       <div className="flex gap-1 bg-pw-surface-3 p-1 rounded-xl overflow-x-auto no-scrollbar w-fit">

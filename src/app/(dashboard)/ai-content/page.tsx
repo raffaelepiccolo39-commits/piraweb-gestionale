@@ -11,6 +11,7 @@ import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/ui/empty-state';
+import { PageHeader } from '@/components/ui/page-header';
 import type { CreativeBrief } from '@/types/database';
 import {
   Sparkles,
@@ -277,14 +278,10 @@ export default function AiContentPage() {
 
   return (
     <div className="space-y-6 animate-slide-up">
-      <div>
-        <h1 className="text-2xl font-bold text-pw-text font-[var(--font-syne)]">
-          AI Content Generator
-        </h1>
-        <p className="text-sm text-pw-text-muted">
-          Genera un pacchetto completo di contenuti social da un brief o da input manuale
-        </p>
-      </div>
+      <PageHeader
+        title="AI Content Generator"
+        subtitle="Genera un pacchetto completo di contenuti social da un brief o da input manuale"
+      />
 
       {/* Input Section */}
       <Card>

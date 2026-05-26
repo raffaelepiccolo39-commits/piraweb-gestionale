@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
 import { cn } from '@/lib/utils';
+import { PageHeader } from '@/components/ui/page-header';
 import { Calendar, FileEdit, Sparkles, Layers, Zap, LayoutTemplate, Repeat } from 'lucide-react';
 
 // Lazy import delle pagine esistenti
@@ -33,14 +34,10 @@ function ContenutiContent() {
   return (
     <div className="space-y-6 animate-slide-up">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-pw-text font-[var(--font-syne)]">
-          Contenuti
-        </h1>
-        <p className="text-sm text-pw-text-muted mt-1">
-          Piano editoriale, brief creativi e assistente AI
-        </p>
-      </div>
+      <PageHeader
+        title="Contenuti"
+        subtitle="Piano editoriale, brief creativi e assistente AI"
+      />
 
       {/* Tab bar */}
       <div className="flex gap-1 p-1 rounded-xl bg-pw-surface-2/50 border border-pw-border/40 overflow-x-auto no-scrollbar">

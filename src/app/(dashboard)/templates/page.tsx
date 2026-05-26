@@ -13,6 +13,7 @@ import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { SkeletonList } from '@/components/ui/skeleton';
+import { PageHeader } from '@/components/ui/page-header';
 import { PRIORITY_LABELS, ROLE_LABELS } from '@/lib/constants';
 import type { ProjectTemplate, TemplateTask, Client } from '@/types/database';
 import {
@@ -147,21 +148,18 @@ export default function TemplatesPage() {
 
   return (
     <div className="space-y-6 animate-slide-up">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-pw-text font-[var(--font-syne)] flex items-center gap-2">
-            <LayoutTemplate size={24} className="text-pw-accent" />
-            Project Templates
-          </h1>
-          <p className="text-sm text-pw-text-muted mt-1">Template riutilizzabili per avviare progetti con task preconfigurate</p>
-        </div>
-        {isAdmin && (
-          <Button onClick={() => setShowCreate(true)}>
-            <Plus size={16} />
-            Nuovo Template
-          </Button>
-        )}
-      </div>
+      <PageHeader
+        title="Project Templates"
+        subtitle="Template riutilizzabili per avviare progetti con task preconfigurate"
+        actions={
+          isAdmin && (
+            <Button onClick={() => setShowCreate(true)}>
+              <Plus size={16} />
+              Nuovo Template
+            </Button>
+          )
+        }
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Template list */}
