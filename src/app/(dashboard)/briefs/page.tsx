@@ -14,6 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { SkeletonStats, SkeletonList } from '@/components/ui/skeleton';
 import { PageHeader } from '@/components/ui/page-header';
+import { DataTable } from '@/components/ui/data-table';
 import { formatDate } from '@/lib/utils';
 import type { CreativeBrief, Project, Client } from '@/types/database';
 import {
@@ -167,47 +168,67 @@ export default function BriefsPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Brief list */}
-        <div className="space-y-3">
-          {briefs.map((brief) => {
-            const project = brief.project as Project | undefined;
-            const client = brief.client as Client | undefined;
-            return (
-              <button
-                key={brief.id}
-                onClick={() => setSelectedBrief(brief)}
-                className={`w-full text-left p-4 rounded-xl transition-colors duration-200 ease-out border ${
-                  selectedBrief?.id === brief.id
-                    ? 'bg-pw-accent/10 border-pw-accent/30'
-                    : 'bg-pw-surface-2 border-transparent hover:bg-pw-surface-3'
-                }`}
-              >
-                <div className="flex items-start justify-between gap-2 mb-1">
-                  <h3 className="text-sm font-medium text-pw-text line-clamp-1">{brief.title}</h3>
-                  <Badge className={STATUS_COLORS[brief.status]}>{STATUS_LABELS[brief.status]}</Badge>
-                </div>
-                <p className="text-[10px] text-pw-text-dim">
-                  {project?.name}{client ? ` · ${client.company || client.name}` : ''}
-                </p>
-                {brief.deadline && (
-                  <p className="text-[10px] text-pw-text-dim mt-1 flex items-center gap-1">
-                    <Calendar size={8} />
-                    {formatDate(brief.deadline)}
+        <div>
+          <DataTable
+            data={briefs}
+            rowKey={(b) => b.id}
+            columns={[]}
+            variant="card"
+            cardGridClassName="space-y-3"
+            searchKeys={[
+              (b) => b.title,
+              (b) => (b.project as Project | undefined)?.name || '',
+              (b) => (b.client as Client | undefined)?.company || (b.client as Client | undefined)?.name || '',
+            ]}
+            searchPlaceholder="Cerca per titolo, progetto o cliente…"
+            filters={[
+              {
+                key: 'status',
+                label: 'Tutti gli stati',
+                options: Object.entries(STATUS_LABELS).map(([v, l]) => ({ value: v, label: l })),
+                accessor: (b) => b.status,
+              },
+            ]}
+            cardRender={(brief) => {
+              const project = brief.project as Project | undefined;
+              const client = brief.client as Client | undefined;
+              return (
+                <button
+                  onClick={() => setSelectedBrief(brief)}
+                  className={`w-full text-left p-4 rounded-xl transition-colors duration-200 ease-out border ${
+                    selectedBrief?.id === brief.id
+                      ? 'bg-pw-accent/10 border-pw-accent/30'
+                      : 'bg-pw-surface-2 border-transparent hover:bg-pw-surface-3'
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-2 mb-1">
+                    <h3 className="text-sm font-medium text-pw-text line-clamp-1">{brief.title}</h3>
+                    <Badge className={STATUS_COLORS[brief.status]}>{STATUS_LABELS[brief.status]}</Badge>
+                  </div>
+                  <p className="text-[10px] text-pw-text-dim">
+                    {project?.name}{client ? ` · ${client.company || client.name}` : ''}
                   </p>
-                )}
-              </button>
-            );
-          })}
-          {briefs.length === 0 && (
-            <div className="text-center py-12">
-              <FileEdit size={48} className="text-pw-text-dim mx-auto mb-3" />
-              <p className="text-pw-text-muted">Nessun brief ancora</p>
-              <p className="text-xs text-pw-text-dim mt-1">Crea brief strutturati per guidare il lavoro creativo</p>
-              <Button className="mt-4" onClick={() => setShowForm(true)}>
-                <Plus size={14} />
-                Crea Brief
-              </Button>
-            </div>
-          )}
+                  {brief.deadline && (
+                    <p className="text-[10px] text-pw-text-dim mt-1 flex items-center gap-1">
+                      <Calendar size={8} />
+                      {formatDate(brief.deadline)}
+                    </p>
+                  )}
+                </button>
+              );
+            }}
+            emptyState={{
+              icon: FileEdit,
+              title: 'Nessun brief ancora',
+              description: 'Crea brief strutturati per guidare il lavoro creativo.',
+              action: (
+                <Button onClick={() => setShowForm(true)}>
+                  <Plus size={14} />
+                  Crea Brief
+                </Button>
+              ),
+            }}
+          />
         </div>
 
         {/* Brief detail */}

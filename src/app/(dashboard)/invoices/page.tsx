@@ -13,6 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { SkeletonList, SkeletonStats } from '@/components/ui/skeleton';
 import { PageHeader } from '@/components/ui/page-header';
+import { DataTable } from '@/components/ui/data-table';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import type { Invoice, InvoiceItem, Client, InvoiceStatus, SdiStatus } from '@/types/database';
 import {
@@ -306,48 +307,67 @@ export default function InvoicesPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Invoice list */}
-        <div className="space-y-2">
-          {invoices.map((inv) => {
-            const client = inv.client as Client | undefined;
-            const cfg = STATUS_CONFIG[inv.status];
-            return (
-              <button
-                key={inv.id}
-                onClick={() => setSelectedInvoice(inv)}
-                className={`w-full text-left p-4 rounded-xl transition-colors duration-200 ease-out border ${
-                  selectedInvoice?.id === inv.id ? 'bg-pw-accent/10 border-pw-accent/30' : 'bg-pw-surface-2 border-transparent hover:bg-pw-surface-3'
-                }`}
-              >
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs font-mono text-pw-accent">{inv.invoice_number}</span>
-                  <div className="flex items-center gap-1">
-                    {inv.sdi_status && SDI_STATUS_CONFIG[inv.sdi_status] && (
-                      <Badge className={SDI_STATUS_CONFIG[inv.sdi_status].color + ' text-[9px] px-1.5 py-0'}>
-                        SDI
-                      </Badge>
-                    )}
-                    <Badge className={cfg.color}>{cfg.label}</Badge>
+        <div>
+          <DataTable
+            data={invoices}
+            rowKey={(inv) => inv.id}
+            columns={[]}
+            variant="card"
+            cardGridClassName="space-y-2"
+            searchKeys={[
+              (inv) => inv.invoice_number,
+              (inv) => (inv.client as Client | undefined)?.company || (inv.client as Client | undefined)?.name || '',
+            ]}
+            searchPlaceholder="Cerca per numero o cliente…"
+            filters={[
+              {
+                key: 'status',
+                label: 'Tutti gli stati',
+                options: Object.entries(STATUS_CONFIG).map(([v, c]) => ({ value: v, label: c.label })),
+                accessor: (inv) => inv.status,
+              },
+            ]}
+            cardRender={(inv) => {
+              const client = inv.client as Client | undefined;
+              const cfg = STATUS_CONFIG[inv.status];
+              return (
+                <button
+                  onClick={() => setSelectedInvoice(inv)}
+                  className={`w-full text-left p-4 rounded-xl transition-colors duration-200 ease-out border ${
+                    selectedInvoice?.id === inv.id ? 'bg-pw-accent/10 border-pw-accent/30' : 'bg-pw-surface-2 border-transparent hover:bg-pw-surface-3'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-mono text-pw-accent">{inv.invoice_number}</span>
+                    <div className="flex items-center gap-1">
+                      {inv.sdi_status && SDI_STATUS_CONFIG[inv.sdi_status] && (
+                        <Badge className={SDI_STATUS_CONFIG[inv.sdi_status].color + ' text-[9px] px-1.5 py-0'}>
+                          SDI
+                        </Badge>
+                      )}
+                      <Badge className={cfg.color}>{cfg.label}</Badge>
+                    </div>
                   </div>
-                </div>
-                <p className="text-sm font-medium text-pw-text">{client?.company || client?.name || '—'}</p>
-                <div className="flex items-center justify-between mt-1">
-                  <span className="text-lg font-bold text-pw-text">{formatCurrency(inv.total)}</span>
-                  <span className="text-[10px] text-pw-text-dim">{formatDate(inv.issue_date)}</span>
-                </div>
-              </button>
-            );
-          })}
-          {invoices.length === 0 && (
-            <div className="text-center py-12">
-              <Receipt size={48} className="text-pw-text-dim mx-auto mb-3" />
-              <p className="text-pw-text-muted">Nessuna fattura ancora</p>
-              <p className="text-xs text-pw-text-dim mt-1">Genera e gestisci le fatture per i tuoi clienti</p>
-              <Button className="mt-4" onClick={() => setShowForm(true)}>
-                <Plus size={14} />
-                Crea Fattura
-              </Button>
-            </div>
-          )}
+                  <p className="text-sm font-medium text-pw-text">{client?.company || client?.name || '—'}</p>
+                  <div className="flex items-center justify-between mt-1">
+                    <span className="text-lg font-bold text-pw-text">{formatCurrency(inv.total)}</span>
+                    <span className="text-[10px] text-pw-text-dim">{formatDate(inv.issue_date)}</span>
+                  </div>
+                </button>
+              );
+            }}
+            emptyState={{
+              icon: Receipt,
+              title: 'Nessuna fattura ancora',
+              description: 'Genera e gestisci le fatture per i tuoi clienti.',
+              action: (
+                <Button onClick={() => setShowForm(true)}>
+                  <Plus size={14} />
+                  Crea Fattura
+                </Button>
+              ),
+            }}
+          />
         </div>
 
         {/* Invoice detail */}

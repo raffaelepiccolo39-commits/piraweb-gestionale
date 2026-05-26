@@ -13,6 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { SkeletonStats, SkeletonList } from '@/components/ui/skeleton';
 import { PageHeader } from '@/components/ui/page-header';
+import { DataTable } from '@/components/ui/data-table';
 import { formatDate, formatDateTime, getInitials, getUserColor } from '@/lib/utils';
 import type { Meeting, MeetingActionItem, Client, Profile, Project } from '@/types/database';
 import {
@@ -167,8 +168,6 @@ export default function MeetingsPage() {
     toast.success('Note salvate');
   };
 
-  const upcomingMeetings = meetings.filter((m) => new Date(m.scheduled_at) >= new Date() && !m.completed);
-  const pastMeetings = meetings.filter((m) => new Date(m.scheduled_at) < new Date() || m.completed);
 
   if (loading) {
     return (
@@ -205,63 +204,67 @@ export default function MeetingsPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Meeting list */}
-        <div className="lg:col-span-1 space-y-4">
-          {/* Upcoming */}
-          <div>
-            <p className="text-xs font-medium text-pw-text-muted uppercase tracking-widest mb-2">
-              Prossimi ({upcomingMeetings.length})
-            </p>
-            {upcomingMeetings.map((meeting) => {
+        <div className="lg:col-span-1">
+          <DataTable
+            data={meetings}
+            rowKey={(m) => m.id}
+            columns={[]}
+            variant="card"
+            cardGridClassName="space-y-2"
+            searchKeys={[
+              (m) => m.title,
+              (m) => (m.client as Client | undefined)?.company || (m.client as Client | undefined)?.name || '',
+              (m) => m.description || '',
+            ]}
+            searchPlaceholder="Cerca per titolo, cliente o descrizione…"
+            filters={[
+              {
+                key: 'time',
+                label: 'Tutti',
+                options: [
+                  { value: 'upcoming', label: 'Prossimi' },
+                  { value: 'past', label: 'Passati' },
+                ],
+                accessor: (m) => (new Date(m.scheduled_at) >= new Date() && !m.completed ? 'upcoming' : 'past'),
+              },
+            ]}
+            cardRender={(meeting) => {
               const client = meeting.client as Client | undefined;
+              const isPast = new Date(meeting.scheduled_at) < new Date() || meeting.completed;
               return (
                 <button
-                  key={meeting.id}
                   onClick={() => setSelectedMeeting(meeting)}
-                  className={`w-full text-left p-3 rounded-xl mb-2 transition-colors duration-200 ease-out ${
+                  className={`w-full text-left p-3 rounded-xl transition-colors duration-200 ease-out ${
+                    isPast ? 'opacity-70' : ''
+                  } ${
                     selectedMeeting?.id === meeting.id
-                      ? 'bg-pw-accent/10 border border-pw-accent/30'
+                      ? 'bg-pw-accent/10 border border-pw-accent/30 opacity-100'
                       : 'bg-pw-surface-2 hover:bg-pw-surface-3 border border-transparent'
                   }`}
                 >
                   <p className="text-sm font-medium text-pw-text truncate">{meeting.title}</p>
                   <div className="flex items-center gap-2 mt-1 text-[10px] text-pw-text-dim">
                     <Calendar size={10} />
-                    {formatDateTime(meeting.scheduled_at)}
+                    {isPast ? formatDate(meeting.scheduled_at) : formatDateTime(meeting.scheduled_at)}
                   </div>
                   {client && (
                     <p className="text-[10px] text-pw-text-dim mt-0.5">{client.company || client.name}</p>
                   )}
                 </button>
               );
-            })}
-            {upcomingMeetings.length === 0 && (
-              <p className="text-xs text-pw-text-dim text-center py-4">Nessun meeting in programma</p>
-            )}
-          </div>
-
-          {/* Past */}
-          <div>
-            <p className="text-xs font-medium text-pw-text-muted uppercase tracking-widest mb-2">
-              Passati ({pastMeetings.length})
-            </p>
-            {pastMeetings.slice(0, 10).map((meeting) => (
-              <button
-                key={meeting.id}
-                onClick={() => setSelectedMeeting(meeting)}
-                className={`w-full text-left p-3 rounded-xl mb-2 transition-colors duration-200 ease-out opacity-70 ${
-                  selectedMeeting?.id === meeting.id
-                    ? 'bg-pw-accent/10 border border-pw-accent/30 opacity-100'
-                    : 'bg-pw-surface-2 hover:bg-pw-surface-3 border border-transparent'
-                }`}
-              >
-                <p className="text-sm font-medium text-pw-text truncate">{meeting.title}</p>
-                <div className="flex items-center gap-2 mt-1 text-[10px] text-pw-text-dim">
-                  <Calendar size={10} />
-                  {formatDate(meeting.scheduled_at)}
-                </div>
-              </button>
-            ))}
-          </div>
+            }}
+            emptyState={{
+              icon: Video,
+              title: 'Nessun meeting',
+              description: 'Inizia a programmare il primo meeting con clienti o team.',
+              action: (
+                <Button onClick={() => setShowForm(true)}>
+                  <Plus size={14} />
+                  Nuovo Meeting
+                </Button>
+              ),
+            }}
+          />
         </div>
 
         {/* Meeting detail */}

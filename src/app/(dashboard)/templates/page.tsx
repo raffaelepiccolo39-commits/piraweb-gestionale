@@ -14,6 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { SkeletonList } from '@/components/ui/skeleton';
 import { PageHeader } from '@/components/ui/page-header';
+import { DataTable } from '@/components/ui/data-table';
 import { PRIORITY_LABELS, ROLE_LABELS } from '@/lib/constants';
 import type { ProjectTemplate, TemplateTask, Client } from '@/types/database';
 import {
@@ -163,37 +164,54 @@ export default function TemplatesPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Template list */}
-        <div className="space-y-3">
-          {templates.map((tpl) => (
-            <button
-              key={tpl.id}
-              onClick={() => setSelectedTemplate(tpl)}
-              className={`w-full text-left p-4 rounded-xl transition-colors duration-200 ease-out border ${
-                selectedTemplate?.id === tpl.id
-                  ? 'bg-pw-accent/10 border-pw-accent/30'
-                  : 'bg-pw-surface-2 border-transparent hover:bg-pw-surface-3'
-              }`}
-            >
-              <div className="flex items-center justify-between mb-1">
-                <h3 className="text-sm font-medium text-pw-text">{tpl.name}</h3>
-                {tpl.category && <Badge>{CATEGORY_LABELS[tpl.category] || tpl.category}</Badge>}
-              </div>
-              {tpl.description && <p className="text-[10px] text-pw-text-dim line-clamp-2">{tpl.description}</p>}
-            </button>
-          ))}
-          {templates.length === 0 && (
-            <div className="text-center py-12">
-              <LayoutTemplate size={48} className="text-pw-text-dim mx-auto mb-3" />
-              <p className="text-pw-text-muted">Nessun template ancora</p>
-              <p className="text-xs text-pw-text-dim mt-1">Crea template riutilizzabili per avviare progetti rapidamente</p>
-              {isAdmin && (
-                <Button className="mt-4" onClick={() => setShowCreate(true)}>
+        <div>
+          <DataTable
+            data={templates}
+            rowKey={(t) => t.id}
+            columns={[]}
+            variant="card"
+            cardGridClassName="space-y-3"
+            searchKeys={[
+              (t) => t.name,
+              (t) => t.description || '',
+            ]}
+            searchPlaceholder="Cerca template…"
+            filters={[
+              {
+                key: 'category',
+                label: 'Tutte le categorie',
+                options: Object.entries(CATEGORY_LABELS).map(([v, l]) => ({ value: v, label: l })),
+                accessor: (t) => t.category || '',
+              },
+            ]}
+            cardRender={(tpl) => (
+              <button
+                onClick={() => setSelectedTemplate(tpl)}
+                className={`w-full text-left p-4 rounded-xl transition-colors duration-200 ease-out border ${
+                  selectedTemplate?.id === tpl.id
+                    ? 'bg-pw-accent/10 border-pw-accent/30'
+                    : 'bg-pw-surface-2 border-transparent hover:bg-pw-surface-3'
+                }`}
+              >
+                <div className="flex items-center justify-between mb-1">
+                  <h3 className="text-sm font-medium text-pw-text">{tpl.name}</h3>
+                  {tpl.category && <Badge>{CATEGORY_LABELS[tpl.category] || tpl.category}</Badge>}
+                </div>
+                {tpl.description && <p className="text-[10px] text-pw-text-dim line-clamp-2">{tpl.description}</p>}
+              </button>
+            )}
+            emptyState={{
+              icon: LayoutTemplate,
+              title: 'Nessun template ancora',
+              description: 'Crea template riutilizzabili per avviare progetti rapidamente.',
+              action: isAdmin ? (
+                <Button onClick={() => setShowCreate(true)}>
                   <Plus size={14} />
                   Crea Template
                 </Button>
-              )}
-            </div>
-          )}
+              ) : undefined,
+            }}
+          />
         </div>
 
         {/* Template detail */}

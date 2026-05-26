@@ -44,6 +44,7 @@ export interface DataTableProps<T> {
   noResultsState?: DataTableEmptyProps;
   variant?: 'table' | 'card';
   cardRender?: (item: T) => ReactNode;
+  cardGridClassName?: string;
   className?: string;
   defaultSortKey?: string;
   defaultSortDir?: 'asc' | 'desc';
@@ -61,6 +62,7 @@ export function DataTable<T>({
   noResultsState,
   variant = 'table',
   cardRender,
+  cardGridClassName,
   className,
   defaultSortKey,
   defaultSortDir = 'asc',
@@ -185,7 +187,9 @@ export function DataTable<T>({
       )}
 
       {!isEmpty && !isNoResults && variant === 'card' && cardRender && (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 stagger-children">
+        <div className={cn(
+          cardGridClassName ?? 'grid gap-4 md:grid-cols-2 lg:grid-cols-3 stagger-children',
+        )}>
           {sorted.map((item) => (
             <div
               key={rowKey(item)}
