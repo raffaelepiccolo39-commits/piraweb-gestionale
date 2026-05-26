@@ -31,18 +31,18 @@ import {
   AlertTriangle,
   UserMinus,
 } from 'lucide-react';
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Legend,
-  LineChart,
-  Line,
-} from 'recharts';
+import dynamic from 'next/dynamic';
+
+// Lazy load dei chart Recharts: la lib pesa ~250KB e viene caricata
+// solo quando questa pagina viene effettivamente visualizzata.
+const CashflowEntrateUscite = dynamic(
+  () => import('@/components/cashflow/cashflow-charts').then((m) => m.CashflowEntrateUscite),
+  { ssr: false, loading: () => <div className="flex items-center justify-center h-[380px] text-sm text-pw-text-dim">Caricamento grafico…</div> },
+);
+const CashflowMargine = dynamic(
+  () => import('@/components/cashflow/cashflow-charts').then((m) => m.CashflowMargine),
+  { ssr: false, loading: () => <div className="flex items-center justify-center h-[250px] text-sm text-pw-text-dim">Caricamento grafico…</div> },
+);
 
 type Period = 'month' | 'semester' | 'year' | 'custom';
 
@@ -431,30 +431,7 @@ export default function CashflowPage() {
             </CardHeader>
             <CardContent>
               {chartData.length > 0 ? (
-                <ResponsiveContainer width="100%" height={380}>
-                  <BarChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(240, 237, 230, 0.08)" />
-                    <XAxis dataKey="name" tick={{ fontSize: 12 }} stroke="rgba(240, 237, 230, 0.3)" />
-                    <YAxis
-                      tick={{ fontSize: 12 }}
-                      stroke="rgba(240, 237, 230, 0.3)"
-                      tickFormatter={(v) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : `${v}`}
-                    />
-                    <Tooltip
-                      formatter={(value) => [formatCurrency(Number(value)), undefined]}
-                      contentStyle={{
-                        backgroundColor: '#1a1a1a',
-                        border: '1px solid rgba(240, 237, 230, 0.12)',
-                        borderRadius: '12px',
-                        fontSize: '13px', color: '#f0ede6',
-                      }}
-                    />
-                    <Legend wrapperStyle={{ fontSize: '13px' }} />
-                    <Bar dataKey="Entrate" fill="#22c55e" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="Da incassare" fill="#f59e0b" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="Uscite" fill="#ef4444" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
+                <CashflowEntrateUscite data={chartData} />
               ) : (
                 <div className="flex items-center justify-center h-48 text-sm text-pw-text-dim">
                   Nessun dato disponibile per questo periodo
@@ -472,33 +449,7 @@ export default function CashflowPage() {
                 </h2>
               </CardHeader>
               <CardContent>
-                <ResponsiveContainer width="100%" height={250}>
-                  <LineChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(240, 237, 230, 0.08)" />
-                    <XAxis dataKey="name" tick={{ fontSize: 12 }} stroke="rgba(240, 237, 230, 0.3)" />
-                    <YAxis
-                      tick={{ fontSize: 12 }}
-                      stroke="rgba(240, 237, 230, 0.3)"
-                      tickFormatter={(v) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : `${v}`}
-                    />
-                    <Tooltip
-                      formatter={(value) => [formatCurrency(Number(value)), 'Margine']}
-                      contentStyle={{
-                        backgroundColor: '#1a1a1a',
-                        border: '1px solid rgba(240, 237, 230, 0.12)',
-                        borderRadius: '12px',
-                        fontSize: '13px', color: '#f0ede6',
-                      }}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="Margine"
-                      stroke="#6366f1"
-                      strokeWidth={3}
-                      dot={{ r: 5, fill: '#6366f1' }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
+                <CashflowMargine data={chartData} />
               </CardContent>
             </Card>
           )}

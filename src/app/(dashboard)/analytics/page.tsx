@@ -19,16 +19,21 @@ import {
   Users,
   Target,
 } from 'lucide-react';
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Legend,
-} from 'recharts';
+import dynamic from 'next/dynamic';
+
+// Lazy load del chart Recharts (~250KB di lib) — il chart viene
+// caricato solo quando la pagina è effettivamente renderizzata.
+const ProductivityTrendChart = dynamic(
+  () => import('@/components/analytics/productivity-trend-chart'),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex items-center justify-center h-[320px] text-sm text-pw-text-dim">
+        Caricamento grafico…
+      </div>
+    ),
+  },
+);
 
 type Period = 'day' | 'week' | 'month' | 'year';
 
@@ -238,24 +243,7 @@ export default function AnalyticsPage() {
             </CardHeader>
             <CardContent>
               {chartData.length > 0 ? (
-                <ResponsiveContainer width="100%" height={320}>
-                  <BarChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(240, 237, 230, 0.08)" />
-                    <XAxis dataKey="name" tick={{ fontSize: 12 }} stroke="rgba(240, 237, 230, 0.3)" />
-                    <YAxis tick={{ fontSize: 12 }} stroke="rgba(240, 237, 230, 0.3)" allowDecimals={false} />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: '#1a1a1a',
-                        border: '1px solid rgba(240, 237, 230, 0.12)',
-                        borderRadius: '12px',
-                        fontSize: '13px', color: '#f0ede6',
-                      }}
-                    />
-                    <Legend wrapperStyle={{ fontSize: '13px' }} />
-                    <Bar dataKey="Assegnati" fill="#c7d2fe" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="Completati" fill="#4f46e5" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
+                <ProductivityTrendChart data={chartData} />
               ) : (
                 <div className="flex items-center justify-center h-48 text-sm text-pw-text-dim">
                   Nessun dato disponibile per questo periodo
