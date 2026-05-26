@@ -3,7 +3,7 @@
 import { memo, useMemo } from 'react';
 import Link from 'next/link';
 import { Card } from '@/components/ui/card';
-import { Users, FolderKanban, ListTodo, CheckCircle2, Clock, AlertTriangle, MoreHorizontal, ArrowUp, ArrowDown, type LucideIcon } from 'lucide-react';
+import { ListTodo, CheckCircle2, AlertTriangle, MoreHorizontal, ArrowUp, ArrowDown, type LucideIcon } from 'lucide-react';
 
 interface DashboardStats {
   totalClients: number;
@@ -51,21 +51,16 @@ const ACCENT_STYLES: Record<Accent, { iconBg: string; iconFg: string; sparkStrok
   },
 };
 
-export const StatCards = memo(function StatCards({ stats, isAdmin }: StatCardsProps) {
+export const StatCards = memo(function StatCards({ stats }: StatCardsProps) {
   const cards: StatDef[] = useMemo(() => [
-    ...(isAdmin
-      ? [{ label: 'Clienti', value: stats.totalClients, icon: Users, accent: 'blue' as const, href: '/clients' }]
-      : []),
-    { label: 'Progetti Attivi', value: stats.activeProjects, icon: FolderKanban, accent: 'gold', href: '/projects' },
     { label: 'Task totali', value: stats.totalTasks, icon: ListTodo, accent: 'neutral', href: '/tasks' },
     { label: 'Da fare', value: stats.totalTasks - stats.completedTasks - stats.inProgressTasks, icon: ListTodo, accent: 'blue', href: '/tasks' },
     { label: 'Completate', value: stats.completedTasks, icon: CheckCircle2, accent: 'gold', href: '/tasks' },
-    { label: 'In corso', value: stats.inProgressTasks, icon: Clock, accent: 'gold', href: '/tasks' },
     { label: 'In ritardo', value: stats.overdueTasks, icon: AlertTriangle, accent: 'blue', href: '/tasks' },
-  ], [stats, isAdmin]);
+  ], [stats]);
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
       {cards.map((stat) => (
         <StatCard key={stat.label} {...stat} />
       ))}
