@@ -379,14 +379,19 @@ export default function DashboardPage() {
         }
       />
 
-      {/* Attendance widget (PiraWeb-specific, non in prototipo Clarity) */}
-      <AttendanceWidget
-        record={attendance}
-        loading={attendanceLoading}
-        onClockIn={() => handleAttendanceAction('clock_in')}
-        onLunchBreak={() => handleAttendanceAction('lunch_break')}
-        onClockOut={() => handleAttendanceAction('clock_out')}
-      />
+      {/* Attendance widget + chat badge a fianco */}
+      <div className="flex items-center gap-4">
+        <div className="flex-1 min-w-0">
+          <AttendanceWidget
+            record={attendance}
+            loading={attendanceLoading}
+            onClockIn={() => handleAttendanceAction('clock_in')}
+            onLunchBreak={() => handleAttendanceAction('lunch_break')}
+            onClockOut={() => handleAttendanceAction('clock_out')}
+          />
+        </div>
+        <MessagesPreview unreadCount={unreadCount} />
+      </div>
 
       {/* Recent tasks — subito sotto a "Il mio stato" per averle in primo piano */}
       <Card>
@@ -445,13 +450,8 @@ export default function DashboardPage() {
       {/* Stat Cards */}
       <StatCards stats={stats} isAdmin={isAdmin} />
 
-      {/* Activity Feed (full width) + chat badge a destra */}
-      <div className="space-y-6">
-        <div className="flex justify-end">
-          <MessagesPreview unreadCount={unreadCount} />
-        </div>
-        <ActivityFeed activities={activities} />
-      </div>
+      {/* Activity Feed full width */}
+      <ActivityFeed activities={activities} />
 
       {/* Row team — 3 colonne per admin (Carico, Team oggi, Progetti), 1 per non-admin (solo Progetti) */}
       <div className={`grid grid-cols-1 gap-6 stagger-children ${isAdmin ? 'lg:grid-cols-3' : ''}`}>
