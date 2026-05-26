@@ -153,8 +153,8 @@ export default function DashboardPage() {
         queries.push(
           // 10: team profiles
           supabase.from('profiles').select('id, full_name, role').eq('is_active', true),
-          // 11: all tasks for team stats
-          supabase.from('tasks').select('assigned_to, status').limit(300),
+          // 11: all tasks for team stats (esclude archived)
+          supabase.from('tasks').select('assigned_to, status').neq('status', 'archived').limit(300),
           // 12: cashflow this month - only active contracts
           (() => {
             const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();

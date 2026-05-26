@@ -63,13 +63,14 @@ export default function ClientReportPage({ params }: { params: Promise<{ id: str
       .eq('client_id', clientId);
     const projectIds = (projects || []).map((p) => p.id);
 
-    // Fetch tasks across all projects
+    // Fetch tasks across all projects (esclude archived dai report per non gonfiare le stat)
     let tasks: Task[] = [];
     if (projectIds.length > 0) {
       const { data } = await supabase
         .from('tasks')
         .select('*, assignee:profiles!tasks_assigned_to_fkey(id, full_name, role, color)')
-        .in('project_id', projectIds);
+        .in('project_id', projectIds)
+        .neq('status', 'archived');
       tasks = (data as Task[]) || [];
     }
 

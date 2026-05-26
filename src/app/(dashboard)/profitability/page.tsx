@@ -121,7 +121,7 @@ export default function ProfitabilityPage() {
 
     // Fetch ALL tasks, time entries, and freelancer assignments in 3 batch queries
     const [allTasksRes, allEntriesRes, allAssignmentsRes] = await Promise.all([
-      supabase.from('tasks').select('id, project_id, assigned_to').in('project_id', projectIds.length > 0 ? projectIds : ['']).limit(5000),
+      supabase.from('tasks').select('id, project_id, assigned_to').in('project_id', projectIds.length > 0 ? projectIds : ['']).neq('status', 'archived').limit(5000),
       supabase.from('time_entries').select('task_id, user_id, duration_minutes').gte('started_at', monthStart).not('duration_minutes', 'is', null).limit(10000),
       supabase.from('task_freelancer_assignments').select('task_id, total_cost').limit(5000),
     ]);

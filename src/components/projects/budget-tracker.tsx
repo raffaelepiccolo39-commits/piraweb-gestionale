@@ -50,11 +50,12 @@ export function BudgetTracker({ projectId, clientId }: BudgetTrackerProps) {
       monthlyRevenue = (contracts || []).reduce((sum, c) => sum + (c.monthly_fee || 0), 0);
     }
 
-    // Get tasks for this project
+    // Get tasks for this project (esclude archived: budget basato su task attive)
     const { data: tasks } = await supabase
       .from('tasks')
       .select('id, assigned_to')
-      .eq('project_id', projectId);
+      .eq('project_id', projectId)
+      .neq('status', 'archived');
     const taskIds = (tasks || []).map((t) => t.id);
 
     // Get time entries for these tasks
