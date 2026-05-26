@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
 import { createClient } from '@/lib/supabase/client';
 import { getInitials, cn } from '@/lib/utils';
+import { APP_VERSION } from '@/lib/version';
 
 const PAGE_TITLES: Record<string, string> = {
   '/dashboard': 'Dashboard',
@@ -187,10 +188,16 @@ export function Header({ onMobileMenuToggle, mobileMenuOpen }: HeaderProps) {
         {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
       </button>
 
-      {/* Page title on mobile */}
-      <div className="flex-1 flex items-center">
+      {/* Page title on mobile + version badge */}
+      <div className="flex-1 flex items-center gap-2">
         <span className="lg:hidden text-sm font-semibold text-pw-text font-[var(--font-syne)]">
           {PAGE_TITLES[pathname] || PAGE_TITLES[`/${pathname.split('/')[1]}`] || ''}
+        </span>
+        <span
+          className="hidden lg:inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-semibold tracking-wider uppercase bg-pw-accent/10 text-pw-accent border border-pw-accent/20 font-[var(--font-jetbrains)]"
+          title="Versione gestionale PiraWeb"
+        >
+          {APP_VERSION}
         </span>
       </div>
 
