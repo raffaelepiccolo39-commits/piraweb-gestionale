@@ -10,10 +10,9 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Modal } from '@/components/ui/modal';
-import { Badge } from '@/components/ui/badge';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { PageHeader } from '@/components/ui/page-header';
-import { EmptyState } from '@/components/ui/empty-state';
+import { DataTable } from '@/components/ui/data-table';
 import type { TeamTool } from '@/types/database';
 import {
   Wrench,
@@ -40,17 +39,6 @@ const CATEGORIES = [
   { value: 'altro', label: 'Altro' },
 ];
 
-const CATEGORY_COLORS: Record<string, string> = {
-  design: 'bg-pink-500/15 text-pink-400',
-  social: 'bg-blue-500/15 text-blue-400',
-  analytics: 'bg-green-500/15 text-green-400',
-  comunicazione: 'bg-yellow-500/15 text-yellow-400',
-  sviluppo: 'bg-purple-500/15 text-purple-400',
-  produttivita: 'bg-indigo-500/15 text-indigo-400',
-  fatturazione: 'bg-emerald-500/15 text-emerald-400',
-  altro: 'bg-pw-surface-2 text-pw-text-dim',
-};
-
 export default function ToolsPage() {
   const { profile } = useAuth();
   const supabase = createClient();
@@ -64,7 +52,6 @@ export default function ToolsPage() {
   const [saving, setSaving] = useState(false);
   const [visiblePasswords, setVisiblePasswords] = useState<Set<string>>(new Set());
   const [copiedId, setCopiedId] = useState<string | null>(null);
-  const [filterCategory, setFilterCategory] = useState('');
 
   const isAdmin = profile?.role === 'admin';
 
@@ -186,18 +173,6 @@ export default function ToolsPage() {
     }
   };
 
-  // Group tools by category
-  const categories = [...new Set(tools.map(t => t.category))];
-  const filteredTools = filterCategory ? tools.filter(t => t.category === filterCategory) : tools;
-  const groupedTools = categories
-    .filter(cat => !filterCategory || cat === filterCategory)
-    .map(cat => ({
-      category: cat,
-      label: CATEGORIES.find(c => c.value === cat)?.label || cat,
-      tools: filteredTools.filter(t => t.category === cat),
-    }))
-    .filter(g => g.tools.length > 0);
-
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -212,53 +187,51 @@ export default function ToolsPage() {
         title="Tools"
         subtitle="Accesso rapido a tutti gli strumenti del team"
         actions={
-          <>
-            <div className="w-44">
-              <Select
-                value={filterCategory}
-                onChange={(e) => setFilterCategory(e.target.value)}
-                options={CATEGORIES}
-                placeholder="Tutte le categorie"
-              />
-            </div>
-            {isAdmin && (
-              <Button onClick={openCreate}>
-                <Plus size={16} />
-                Aggiungi Tool
-              </Button>
-            )}
-          </>
+          isAdmin && (
+            <Button onClick={openCreate}>
+              <Plus size={16} />
+              Aggiungi Tool
+            </Button>
+          )
         }
       />
 
-      {tools.length === 0 ? (
-        <EmptyState
-          icon={Wrench}
-          title="Nessun tool configurato"
-          description="Aggiungi link rapidi agli strumenti che il team usa più spesso: piattaforme, dashboard, account condivisi."
-          action={
-            isAdmin && (
-              <Button onClick={openCreate}>
-                <Plus size={14} />
-                Aggiungi il primo tool
-              </Button>
-            )
-          }
-        />
-      ) : (
-        <div className="space-y-8">
-          {groupedTools.map(group => (
-            <div key={group.category}>
-              <div className="flex items-center gap-2 mb-4">
-                <Badge className={CATEGORY_COLORS[group.category] || CATEGORY_COLORS.altro}>
-                  {group.label}
-                </Badge>
-                <span className="text-xs text-pw-text-dim">{group.tools.length} tool</span>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 stagger-children">
-                {group.tools.map(tool => (
-                  <Card key={tool.id} className="group hover:shadow-lg transition-all duration-200 ease-out hover:border-pw-accent/30">
+      <DataTable
+        data={tools}
+        rowKey={(t) => t.id}
+        columns={[]}
+        variant="card"
+        cardGridClassName="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 stagger-children"
+        searchKeys={[
+          (t) => t.name,
+          (t) => t.description || '',
+          (t) => t.url,
+        ]}
+        searchPlaceholder="Cerca per nome, descrizione o URL…"
+        filters={[
+          {
+            key: 'category',
+            label: 'Tutte le categorie',
+            options: CATEGORIES,
+            accessor: (t) => t.category,
+          },
+        ]}
+        groupBy={(t) => t.category}
+        groupLabel={(cat) => CATEGORIES.find((c) => c.value === cat)?.label || cat}
+        groupOrder={CATEGORIES.map((c) => c.value)}
+        emptyState={{
+          icon: Wrench,
+          title: 'Nessun tool configurato',
+          description: 'Aggiungi link rapidi agli strumenti che il team usa più spesso: piattaforme, dashboard, account condivisi.',
+          action: isAdmin ? (
+            <Button onClick={openCreate}>
+              <Plus size={14} />
+              Aggiungi il primo tool
+            </Button>
+          ) : undefined,
+        }}
+        cardRender={(tool) => (
+          <Card className="group hover:shadow-lg transition-all duration-200 ease-out hover:border-pw-accent/30">
                     <CardContent className="p-5">
                       {/* Header con icona e nome */}
                       <div className="flex items-start justify-between mb-3">
@@ -366,12 +339,8 @@ export default function ToolsPage() {
                       )}
                     </CardContent>
                   </Card>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+        )}
+      />
 
       {/* Create/Edit Modal */}
       <Modal

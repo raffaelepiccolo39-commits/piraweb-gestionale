@@ -48,6 +48,9 @@ export interface DataTableProps<T> {
   className?: string;
   defaultSortKey?: string;
   defaultSortDir?: 'asc' | 'desc';
+  groupBy?: (item: T) => string;
+  groupLabel?: (key: string) => string;
+  groupOrder?: string[];
 }
 
 export function DataTable<T>({
@@ -66,6 +69,9 @@ export function DataTable<T>({
   className,
   defaultSortKey,
   defaultSortDir = 'asc',
+  groupBy,
+  groupLabel,
+  groupOrder,
 }: DataTableProps<T>) {
   const [search, setSearch] = useState('');
   const [filterValues, setFilterValues] = useState<Record<string, string>>({});
@@ -186,7 +192,7 @@ export function DataTable<T>({
         ) : null
       )}
 
-      {!isEmpty && !isNoResults && variant === 'card' && cardRender && (
+      {!isEmpty && !isNoResults && variant === 'card' && cardRender && !groupBy && (
         <div className={cn(
           cardGridClassName ?? 'grid gap-4 md:grid-cols-2 lg:grid-cols-3 stagger-children',
         )}>
@@ -201,6 +207,46 @@ export function DataTable<T>({
           ))}
         </div>
       )}
+
+      {!isEmpty && !isNoResults && variant === 'card' && cardRender && groupBy && (() => {
+        const groups = new Map<string, T[]>();
+        for (const item of sorted) {
+          const key = groupBy(item);
+          if (!groups.has(key)) groups.set(key, []);
+          groups.get(key)!.push(item);
+        }
+        const keys = Array.from(groups.keys());
+        const orderedKeys = groupOrder
+          ? [...groupOrder.filter((k) => groups.has(k)), ...keys.filter((k) => !groupOrder.includes(k))]
+          : keys.sort();
+        return (
+          <div className="space-y-8">
+            {orderedKeys.map((key) => (
+              <div key={key}>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-[11px] font-semibold uppercase tracking-wider text-pw-text-muted">
+                    {groupLabel ? groupLabel(key) : key}
+                  </h3>
+                  <span className="text-[11px] text-pw-text-dim">{groups.get(key)!.length}</span>
+                </div>
+                <div className={cn(
+                  cardGridClassName ?? 'grid gap-4 md:grid-cols-2 lg:grid-cols-3 stagger-children',
+                )}>
+                  {groups.get(key)!.map((item) => (
+                    <div
+                      key={rowKey(item)}
+                      onClick={onRowClick ? () => onRowClick(item) : undefined}
+                      className={onRowClick ? 'cursor-pointer' : undefined}
+                    >
+                      {cardRender(item)}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        );
+      })()}
 
       {!isEmpty && !isNoResults && variant === 'table' && (
         <div className="rounded-xl border border-pw-border overflow-hidden bg-pw-surface">
