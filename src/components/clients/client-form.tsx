@@ -279,12 +279,13 @@ export function ClientForm({ client, monthlyFee, onSubmit, onCancel }: ClientFor
             label="Canone Mensile (EUR)"
             type="number"
             min="0"
+            max="999999.99"
             step="0.01"
             value={fee}
             onChange={(e) => setFee(e.target.value)}
             placeholder="es. 800"
           />
-          {!monthlyFee && (
+          {(monthlyFee === null || monthlyFee === undefined) && (
             <p className="text-xs text-pw-text-dim">
               Nessun contratto attivo. Per creare un contratto completo, vai nella scheda dettaglio del cliente.
             </p>

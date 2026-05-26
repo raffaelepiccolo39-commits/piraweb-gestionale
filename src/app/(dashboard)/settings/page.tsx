@@ -1,7 +1,7 @@
 'use client';
 
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -97,6 +97,15 @@ export default function SettingsPage() {
   const [disableLoading, setDisableLoading] = useState(false);
   const [secretCopied, setSecretCopied] = useState(false);
 
+  // Timers tenuti in ref per cancellarli al unmount (evita setState su component unmounted)
+  const timersRef = useRef<NodeJS.Timeout[]>([]);
+  useEffect(() => {
+    return () => {
+      timersRef.current.forEach((t) => clearTimeout(t));
+      timersRef.current = [];
+    };
+  }, []);
+
   const toast = useToast();
 
   // Carica stato 2FA
@@ -191,7 +200,7 @@ export default function SettingsPage() {
   const copySecret = () => {
     navigator.clipboard.writeText(backupSecret);
     setSecretCopied(true);
-    setTimeout(() => setSecretCopied(false), 2000);
+    timersRef.current.push(setTimeout(() => setSecretCopied(false), 2000));
   };
 
   const handleChangePassword = async () => {
@@ -335,10 +344,10 @@ export default function SettingsPage() {
         setCreateSuccess(true);
         setCreateForm({ full_name: '', email: '', password: '', role: 'content_creator', salary: '', iban: '', contract_type: '', contract_start_date: new Date().toISOString().split('T')[0] });
         fetchTeam();
-        setTimeout(() => {
+        timersRef.current.push(setTimeout(() => {
           setShowCreateModal(false);
           setCreateSuccess(false);
-        }, 1500);
+        }, 1500));
       }
     } catch {
       setCreateError('Errore di connessione');

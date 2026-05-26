@@ -427,7 +427,7 @@ export default function InvoicesPage() {
                           <td className="py-2 text-right font-medium text-pw-text">{formatCurrency(item.total)}</td>
                           <td className="py-2">
                             {selectedInvoice.status === 'draft' && (
-                              <button onClick={() => handleDeleteItem(item.id)} className="text-pw-text-dim hover:text-red-400"><Trash2 size={10} /></button>
+                              <button type="button" onClick={() => handleDeleteItem(item.id)} aria-label="Rimuovi voce fattura" title="Rimuovi voce" className="text-pw-text-dim hover:text-red-400"><Trash2 size={10} /></button>
                             )}
                           </td>
                         </tr>
