@@ -1,11 +1,11 @@
 'use client';
 
-import { memo } from 'react';
+import { memo, useState } from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { getInitials, getAttendanceStatusLabel } from '@/lib/utils';
 import { cn } from '@/lib/utils';
-import { Clock } from 'lucide-react';
+import { Clock, ChevronDown } from 'lucide-react';
 
 interface TeamMember {
   user_id: string;
@@ -25,42 +25,61 @@ const statusColors: Record<string, string> = {
 };
 
 export const TeamAttendance = memo(function TeamAttendance({ team }: TeamAttendanceProps) {
+  const [open, setOpen] = useState(false);
+
   if (team.length === 0) return null;
 
   return (
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setOpen((v) => !v)}
+            className="flex items-center gap-2 group"
+            aria-expanded={open}
+            aria-controls="team-today-list"
+          >
             <Clock size={16} className="text-pw-accent" />
-            <h2 className="text-sm font-semibold text-pw-text">Team oggi</h2>
-          </div>
+            <h2 className="text-sm font-semibold text-pw-text group-hover:text-pw-accent transition-colors">
+              Team oggi
+            </h2>
+            <span className="text-[11px] text-pw-text-dim font-medium tabular-nums">
+              {team.length}
+            </span>
+            <ChevronDown
+              size={14}
+              className={`text-pw-text-dim transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+            />
+          </button>
           <Link href="/presenze" className="text-xs text-pw-accent hover:underline">Dettagli</Link>
         </div>
       </CardHeader>
-      <CardContent>
-        <div className="flex flex-wrap gap-3">
-          {team.map((member) => (
-            <div
-              key={member.user_id}
-              className="flex items-center gap-2"
-              title={`${member.full_name} — ${getAttendanceStatusLabel(member.status)}`}
-            >
-              <div className="relative">
-                <div className="w-8 h-8 rounded-full bg-pw-surface-2 flex items-center justify-center">
-                  <span className="text-[10px] font-bold text-pw-text-muted">
-                    {getInitials(member.full_name)}
-                  </span>
+      {open && (
+        <CardContent>
+          <div id="team-today-list" className="flex flex-wrap gap-3">
+            {team.map((member) => (
+              <div
+                key={member.user_id}
+                className="flex items-center gap-2"
+                title={`${member.full_name} — ${getAttendanceStatusLabel(member.status)}`}
+              >
+                <div className="relative">
+                  <div className="w-8 h-8 rounded-full bg-pw-surface-2 flex items-center justify-center">
+                    <span className="text-[10px] font-bold text-pw-text-muted">
+                      {getInitials(member.full_name)}
+                    </span>
+                  </div>
+                  <div className={cn(
+                    'absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-pw-surface',
+                    statusColors[member.status] || 'bg-gray-500'
+                  )} />
                 </div>
-                <div className={cn(
-                  'absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-pw-surface',
-                  statusColors[member.status] || 'bg-gray-500'
-                )} />
               </div>
-            </div>
-          ))}
-        </div>
-      </CardContent>
+            ))}
+          </div>
+        </CardContent>
+      )}
     </Card>
   );
 });

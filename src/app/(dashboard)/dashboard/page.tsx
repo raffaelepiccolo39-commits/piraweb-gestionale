@@ -8,7 +8,7 @@ import { useToast } from '@/components/ui/toast';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { formatDate, getStatusTone, getPriorityTone, getRoleLabel, getRoleTone, getInitials } from '@/lib/utils';
-import { AlertTriangle, Calendar, ChevronRight } from 'lucide-react';
+import { AlertTriangle, Calendar, ChevronRight, ChevronDown, Users } from 'lucide-react';
 import { STATUS_LABELS, PRIORITY_LABELS } from '@/lib/constants';
 import type { AttendanceRecord } from '@/types/database';
 
@@ -65,6 +65,7 @@ export default function DashboardPage() {
   }>>([]);
   const [attendance, setAttendance] = useState<AttendanceRecord | null>(null);
   const [attendanceLoading, setAttendanceLoading] = useState(false);
+  const [teamWorkloadOpen, setTeamWorkloadOpen] = useState(false);
   const [projectProgress, setProjectProgress] = useState<Array<{
     id: string; name: string; color: string;
     tasks: { id: string; status: string }[];
@@ -464,38 +465,58 @@ export default function DashboardPage() {
       {/* Row 6: Admin section */}
       {isAdmin && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 stagger-children">
-          {/* Team Workload */}
+          {/* Team Workload (collapsible) */}
           <Card>
             <CardHeader>
-              <h2 className="text-lg font-semibold text-pw-text font-[var(--font-syne)]">Carico del team</h2>
+              <button
+                type="button"
+                onClick={() => setTeamWorkloadOpen((v) => !v)}
+                className="flex items-center gap-2 group w-full text-left"
+                aria-expanded={teamWorkloadOpen}
+                aria-controls="team-workload-list"
+              >
+                <Users size={16} className="text-pw-accent" />
+                <h2 className="text-sm font-semibold text-pw-text group-hover:text-pw-accent transition-colors">
+                  Carico del team
+                </h2>
+                <span className="text-[11px] text-pw-text-dim font-medium tabular-nums">
+                  {teamStats.length}
+                </span>
+                <ChevronDown
+                  size={14}
+                  className={`text-pw-text-dim transition-transform duration-200 ${teamWorkloadOpen ? 'rotate-180' : ''}`}
+                />
+              </button>
             </CardHeader>
-            <CardContent className="p-0">
-              <div className="divide-y divide-pw-border">
-                {teamStats.map((member) => (
-                  <div key={member.id} className="px-6 py-3">
-                    <div className="flex items-center gap-3 mb-2">
-                      <div className="w-8 h-8 rounded-full bg-pw-accent flex items-center justify-center">
-                        <span className="text-[#0A263A] text-xs font-bold">{getInitials(member.full_name)}</span>
+            {teamWorkloadOpen && (
+              <CardContent className="p-0">
+                <div id="team-workload-list" className="divide-y divide-pw-border">
+                  {teamStats.map((member) => (
+                    <div key={member.id} className="px-6 py-3">
+                      <div className="flex items-center gap-3 mb-2">
+                        <div className="w-8 h-8 rounded-full bg-pw-accent flex items-center justify-center">
+                          <span className="text-[#0A263A] text-xs font-bold">{getInitials(member.full_name)}</span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-pw-text truncate">{member.full_name}</p>
+                          <Badge tone={getRoleTone(member.role)} size="sm">{getRoleLabel(member.role)}</Badge>
+                        </div>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-pw-text truncate">{member.full_name}</p>
-                        <Badge tone={getRoleTone(member.role)} size="sm">{getRoleLabel(member.role)}</Badge>
+                      <div className="flex items-center gap-4 text-xs text-pw-text-muted ml-11">
+                        <span>{member.total} assegnate</span>
+                        <span className="text-green-400">{member.completed} completate</span>
+                        <span className="text-yellow-400">{member.in_progress} in corso</span>
                       </div>
+                      {member.total > 0 && (
+                        <div className="ml-11 mt-1.5 h-1.5 bg-pw-surface-3 rounded-full overflow-hidden">
+                          <div className="h-full bg-green-500 rounded-full transition-all duration-200 ease-out progress-animated" style={{ width: `${(member.completed / member.total) * 100}%` }} />
+                        </div>
+                      )}
                     </div>
-                    <div className="flex items-center gap-4 text-xs text-pw-text-muted ml-11">
-                      <span>{member.total} assegnate</span>
-                      <span className="text-green-400">{member.completed} completate</span>
-                      <span className="text-yellow-400">{member.in_progress} in corso</span>
-                    </div>
-                    {member.total > 0 && (
-                      <div className="ml-11 mt-1.5 h-1.5 bg-pw-surface-3 rounded-full overflow-hidden">
-                        <div className="h-full bg-green-500 rounded-full transition-all duration-200 ease-out progress-animated" style={{ width: `${(member.completed / member.total) * 100}%` }} />
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </CardContent>
+                  ))}
+                </div>
+              </CardContent>
+            )}
           </Card>
 
           {/* Team Attendance Today */}
