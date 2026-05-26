@@ -115,7 +115,7 @@ export default function DashboardPage() {
           id, title, status, priority, deadline,
           project:projects(name, color),
           assignee:profiles!tasks_assigned_to_fkey(full_name)
-        `).eq('assigned_to', profile.id).neq('status', 'done').order('updated_at', { ascending: false }).limit(8),
+        `).eq('assigned_to', profile.id).not('status', 'in', '(done,archived)').order('updated_at', { ascending: false }).limit(8),
         // 4: urgent tasks (overdue + due today) — dipendenti vedono solo le proprie
         // Esclude task done E archived (le archiviate sono "messe via", non più urgenti)
         isAdmin
