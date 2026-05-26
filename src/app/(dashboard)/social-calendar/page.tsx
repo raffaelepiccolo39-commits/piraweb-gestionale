@@ -102,6 +102,7 @@ export default function SocialCalendarPage() {
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [editingPostId, setEditingPostId] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [filterClient, setFilterClient] = useState('');
   const [filterPlatform, setFilterPlatform] = useState('');
@@ -156,11 +157,25 @@ export default function SocialCalendarPage() {
   useEffect(() => {
     Promise.all([fetchPosts(), fetchClients()]).finally(() => setLoading(false));
     // Fetch Meta connection
-    fetch('/api/meta/pages').then((r) => r.json()).then((data) => {
-      setMetaConnected(data.connected || false);
-      setMetaPages(data.pages || []);
-      setMetaUserName(data.user_name || '');
-    }).catch(() => { /* Meta integration not configured - this is OK, just skip */ });
+    (async () => {
+      try {
+        const r = await fetch('/api/meta/pages');
+        if (!r.ok) {
+          // 401/403 = utente non ha mai collegato Meta — è OK, mostriamo "Collega Meta"
+          setMetaConnected(false);
+          return;
+        }
+        const data = await r.json();
+        setMetaConnected(Boolean(data.connected));
+        setMetaPages(data.pages || []);
+        setMetaUserName(data.user_name || '');
+      } catch (err) {
+        // Errore di rete: differente dal "non configurato". Logghiamo per debug ma
+        // non blocchiamo: mostriamo "Collega Meta" come fallback safe.
+        console.error('[social-calendar] fetch Meta pages failed:', err);
+        setMetaConnected(false);
+      }
+    })();
   }, [fetchPosts, fetchClients]);
 
   const handleCreate = async () => {
@@ -169,7 +184,7 @@ export default function SocialCalendarPage() {
       toast.error('Compila titolo, cliente e almeno una piattaforma');
       return;
     }
-    const { error } = await supabase.from('social_posts').insert({
+    const payload = {
       title: form.title,
       caption: form.caption || null,
       platforms: form.platforms,
@@ -178,16 +193,34 @@ export default function SocialCalendarPage() {
       client_id: form.client_id,
       hashtags: form.hashtags || null,
       notes: form.notes || null,
-      created_by: profile.id,
-    });
+    };
+    const { error } = editingPostId
+      ? await supabase.from('social_posts').update(payload).eq('id', editingPostId)
+      : await supabase.from('social_posts').insert({ ...payload, created_by: profile.id });
     if (error) {
-      toast.error('Errore nella creazione');
+      toast.error(editingPostId ? 'Errore nel salvataggio' : 'Errore nella creazione');
     } else {
-      toast.success('Post pianificato');
+      toast.success(editingPostId ? 'Post aggiornato' : 'Post pianificato');
       setShowForm(false);
+      setEditingPostId(null);
       setForm({ title: '', caption: '', platforms: [], status: 'draft', scheduled_at: '', client_id: '', hashtags: '', notes: '' });
       fetchPosts();
     }
+  };
+
+  const openEditPost = (post: SocialPost) => {
+    setEditingPostId(post.id);
+    setForm({
+      title: post.title || '',
+      caption: post.caption || '',
+      platforms: post.platforms || [],
+      status: post.status,
+      scheduled_at: post.scheduled_at ? post.scheduled_at.slice(0, 16) : '',
+      client_id: post.client_id || '',
+      hashtags: post.hashtags || '',
+      notes: post.notes || '',
+    });
+    setShowForm(true);
   };
 
   const handleStatusChange = async (postId: string, newStatus: SocialPostStatus) => {
@@ -341,7 +374,7 @@ export default function SocialCalendarPage() {
                       style={{ backgroundColor: post.color + '20', color: post.color, borderLeft: `2px solid ${post.color}` }}
                       onClick={(e) => {
                         e.stopPropagation();
-                        // TODO: open post detail modal
+                        openEditPost(post);
                       }}
                     >
                       <div className="flex items-center gap-1">
@@ -413,7 +446,7 @@ export default function SocialCalendarPage() {
       </div>
 
       {/* Create post modal */}
-      <Modal open={showForm} onClose={() => setShowForm(false)} title="Nuovo Post Social">
+      <Modal open={showForm} onClose={() => { setShowForm(false); setEditingPostId(null); }} title={editingPostId ? 'Modifica Post Social' : 'Nuovo Post Social'}>
         <div className="space-y-4">
           <Input
             label="Titolo"

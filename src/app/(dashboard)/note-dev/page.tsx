@@ -82,9 +82,18 @@ export default function NoteDevPage() {
       if (statusFilter) query = query.eq('status', statusFilter);
       if (priorityFilter) query = query.eq('priority', priorityFilter);
 
-      const { data } = await query;
-      setNotes((data as unknown as DeveloperNote[]) || []);
-    } catch {
+      const { data, error: queryError } = await query;
+      if (queryError) {
+        console.error('[note-dev] fetch query error:', queryError);
+        setError(true);
+        return;
+      }
+      // Supabase con join restituisce union types che TS non riesce a stringere:
+      // garantiamo a runtime che sia un array (defensive guard).
+      const rows = (Array.isArray(data) ? data : []) as DeveloperNote[];
+      setNotes(rows);
+    } catch (err) {
+      console.error('[note-dev] fetch failed:', err);
       setError(true);
     } finally {
       setLoading(false);

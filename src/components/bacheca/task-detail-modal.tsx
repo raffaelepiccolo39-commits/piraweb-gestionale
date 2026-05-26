@@ -5,6 +5,8 @@ import { createClient } from '@/lib/supabase/client';
 import { Modal } from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { useToast } from '@/components/ui/toast';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Select } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { formatDateTime, getInitials } from '@/lib/utils';
@@ -53,6 +55,8 @@ const priorityOptions = [
 
 export function TaskDetailModal({ task, members, clients, open, onClose, onUpdate }: TaskDetailModalProps) {
   const supabase = createClient();
+  const toast = useToast();
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [assignedTo, setAssignedTo] = useState('');
@@ -110,34 +114,53 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
     if (!user) { setUploadingFile(false); return; }
 
     const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+    let uploaded = 0;
+    let failed = 0;
+    let skippedSize = 0;
     for (const file of Array.from(files)) {
       if (file.size > MAX_FILE_SIZE) {
-        console.warn(`File "${file.name}" exceeds 10MB limit, skipping.`);
+        skippedSize++;
         continue;
       }
       const path = `${task.id}/${Date.now()}_${file.name}`;
       const { error: uploadError } = await supabase.storage.from('attachments').upload(path, file);
-      if (!uploadError) {
-        const { data: urlData } = supabase.storage.from('attachments').getPublicUrl(path);
-        const { error: insertError } = await supabase.from('task_attachments').insert({
-          task_id: task.id,
-          file_name: file.name,
-          file_url: urlData.publicUrl,
-          file_type: file.type,
-          file_size: file.size,
-          uploaded_by: user.id,
-        });
-        if (insertError) console.error('Error saving attachment:', insertError);
+      if (uploadError) {
+        console.error('[task-detail] upload failed:', file.name, uploadError);
+        failed++;
+        continue;
+      }
+      const { data: urlData } = supabase.storage.from('attachments').getPublicUrl(path);
+      const { error: insertError } = await supabase.from('task_attachments').insert({
+        task_id: task.id,
+        file_name: file.name,
+        file_url: urlData.publicUrl,
+        file_type: file.type,
+        file_size: file.size,
+        uploaded_by: user.id,
+      });
+      if (insertError) {
+        console.error('[task-detail] save attachment failed:', file.name, insertError);
+        failed++;
+      } else {
+        uploaded++;
       }
     }
     await fetchAttachments(task.id);
     setUploadingFile(false);
+    if (uploaded > 0) toast.success(`${uploaded} allegato${uploaded === 1 ? '' : 'i'} caricato${uploaded === 1 ? '' : 'i'}`);
+    if (failed > 0) toast.error(`${failed} allegato${failed === 1 ? '' : 'i'} non caricato${failed === 1 ? '' : 'i'}`);
+    if (skippedSize > 0) toast.error(`${skippedSize} file superano i 10MB e non sono stati caricati`);
   };
 
   const handleDeleteAttachment = async (att: TaskAttachment) => {
     const { error } = await supabase.from('task_attachments').delete().eq('id', att.id);
-    if (error) { console.error('Error deleting attachment:', error); return; }
+    if (error) {
+      console.error('[task-detail] delete attachment failed:', error);
+      toast.error('Errore nella rimozione dell\'allegato');
+      return;
+    }
     if (task) await fetchAttachments(task.id);
+    toast.success('Allegato rimosso');
   };
 
   const handleAiDescription = async () => {
@@ -163,7 +186,7 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
     if (!task) return;
     // Require delivery URL when marking as done
     if (status === 'done' && !deliveryUrl.trim() && !task.delivery_url) {
-      alert('Per segnare come "Fatto" inserisci il link al lavoro (Google Drive, Figma, ecc.)');
+      toast.error('Per segnare come "Fatto" inserisci il link al lavoro (Google Drive, Figma, ecc.)');
       return;
     }
     setSaving(true);
@@ -178,14 +201,24 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
       delivery_url: deliveryUrl.trim() || null,
     }).eq('id', task.id);
     setSaving(false);
-    if (error) { console.error('Error updating task:', error); return; }
+    if (error) {
+      console.error('[task-detail] update task failed:', error);
+      toast.error('Errore nel salvataggio della task');
+      return;
+    }
+    toast.success('Task aggiornata');
     onUpdate();
   };
 
   const handleDelete = async () => {
-    if (!task || !confirm('Eliminare questa task?')) return;
+    if (!task) return;
     const { error } = await supabase.from('tasks').delete().eq('id', task.id);
-    if (error) { console.error('Error deleting task:', error); return; }
+    if (error) {
+      console.error('[task-detail] delete task failed:', error);
+      toast.error('Errore nella rimozione della task');
+      return;
+    }
+    toast.success('Task eliminata');
     onClose();
     onUpdate();
   };
@@ -194,16 +227,24 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
     if (!task || !newComment.trim()) return;
     setSendingComment(true);
     const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      const { error } = await supabase.from('task_comments').insert({
-        task_id: task.id,
-        user_id: user.id,
-        content: newComment.trim(),
-      });
-      if (error) { console.error('Error adding comment:', error); setSendingComment(false); return; }
-      setNewComment('');
-      await fetchComments(task.id);
+    if (!user) {
+      toast.error('Devi essere autenticato per commentare');
+      setSendingComment(false);
+      return;
     }
+    const { error } = await supabase.from('task_comments').insert({
+      task_id: task.id,
+      user_id: user.id,
+      content: newComment.trim(),
+    });
+    if (error) {
+      console.error('[task-detail] add comment failed:', error);
+      toast.error('Errore nell\'invio del commento');
+      setSendingComment(false);
+      return;
+    }
+    setNewComment('');
+    await fetchComments(task.id);
     setSendingComment(false);
   };
 
@@ -402,7 +443,7 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
                 Annulla
               </Button>
               <div className="flex-1" />
-              <Button variant="danger" size="sm" onClick={handleDelete}>
+              <Button variant="danger" size="sm" onClick={() => setConfirmDelete(true)}>
                 <Trash2 size={14} />
               </Button>
             </div>
@@ -462,6 +503,14 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
           </div>
         </div>
       )}
+      <ConfirmDialog
+        open={confirmDelete}
+        onClose={() => setConfirmDelete(false)}
+        onConfirm={handleDelete}
+        title="Elimina task"
+        description="Sei sicuro di voler eliminare questa task? Verranno rimossi anche commenti e allegati associati."
+        confirmLabel="Elimina"
+      />
     </Modal>
   );
 }

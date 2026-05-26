@@ -164,6 +164,9 @@ export default function ProfitabilityPage() {
       const projectTasks = tasksByProject.get(project.id) || [];
       const taskIds = projectTasks.map((t) => t.id);
 
+      // IMPORTANTE: entriesByTask e assignmentsByTask sono Map pre-popolate da
+      // fetch in batch (vedi sopra). NON aggiungere chiamate supabase.from(...)
+      // dentro questi loop, altrimenti si trasforma in N+1 query.
       // Get time entries for tasks this month (from pre-fetched data)
       const employeeHoursMap = new Map<string, number>();
       for (const taskId of taskIds) {
@@ -173,7 +176,7 @@ export default function ProfitabilityPage() {
         }
       }
 
-      // Get freelancer costs (from pre-fetched data)
+      // Get freelancer costs (from pre-fetched data, vedi nota sopra su N+1)
       let freelancerCost = 0;
       for (const taskId of taskIds) {
         for (const a of (assignmentsByTask.get(taskId) || [])) {

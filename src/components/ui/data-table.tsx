@@ -109,9 +109,9 @@ export function DataTable<T>({
     return [...filtered].sort((a, b) => {
       const va = col.sortAccessor!(a);
       const vb = col.sortAccessor!(b);
-      if (va == null && vb == null) return 0;
-      if (va == null) return 1;
-      if (vb == null) return -1;
+      if ((va === null || va === undefined) && (vb === null || vb === undefined)) return 0;
+      if (va === null || va === undefined) return 1;
+      if (vb === null || vb === undefined) return -1;
       if (va < vb) return -1 * dir;
       if (va > vb) return 1 * dir;
       return 0;

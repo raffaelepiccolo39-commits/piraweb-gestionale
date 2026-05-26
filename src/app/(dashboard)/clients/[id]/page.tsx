@@ -663,7 +663,7 @@ export default function ClientDetailPage({
                             <span className="capitalize">{formatMonthLabel(log.due_date)}</span>
                           </p>
                           <p className="text-xs text-pw-text-muted">
-                            {(log.performer as unknown as { full_name: string })?.full_name || 'Admin'} &middot;{' '}
+                            {(log.performer as { full_name?: string } | null)?.full_name || 'Admin'} &middot;{' '}
                             {new Date(log.performed_at).toLocaleString('it-IT')}
                           </p>
                         </div>
