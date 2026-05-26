@@ -17,7 +17,6 @@ import { AttendanceWidget } from '@/components/dashboard/attendance-widget';
 import { UrgentTasks } from '@/components/dashboard/urgent-tasks';
 import { StatCards } from '@/components/dashboard/stat-cards';
 import { ProjectProgress } from '@/components/dashboard/project-progress';
-import { CashflowSnapshot } from '@/components/dashboard/cashflow-snapshot';
 import { ActivityFeed } from '@/components/dashboard/activity-feed';
 import { MessagesPreview } from '@/components/dashboard/messages-preview';
 import { TeamAttendance } from '@/components/dashboard/team-attendance';
@@ -456,8 +455,9 @@ export default function DashboardPage() {
         {/* Right sidebar */}
         <div className="space-y-6">
           <ProjectProgress projects={projectProgress} />
-          <MessagesPreview messages={recentMessages} unreadCount={unreadCount} />
-          {isAdmin && <CashflowSnapshot expected={cashflow.expected} received={cashflow.received} pending={cashflow.pending} />}
+          <div className="flex justify-end">
+            <MessagesPreview unreadCount={unreadCount} />
+          </div>
         </div>
       </div>
 
