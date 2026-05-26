@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import { SkeletonStats, SkeletonList } from '@/components/ui/skeleton';
 import { formatDate } from '@/lib/utils';
 import type { CreativeBrief, Project, Client } from '@/types/database';
 import {
@@ -143,8 +144,9 @@ export default function BriefsPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-3 border-pw-accent border-t-transparent rounded-full animate-spin" />
+      <div className="space-y-6 animate-slide-up">
+        <SkeletonStats count={4} />
+        <SkeletonList variant="card" count={6} />
       </div>
     );
   }

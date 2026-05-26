@@ -11,6 +11,7 @@ import { Modal } from '@/components/ui/modal';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { SkeletonStats, SkeletonList } from '@/components/ui/skeleton';
 import type { SocialPost, Client, SocialPlatform, SocialPostStatus } from '@/types/database';
 import {
   ChevronLeft,
@@ -220,8 +221,9 @@ export default function SocialCalendarPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-3 border-pw-accent border-t-transparent rounded-full animate-spin" />
+      <div className="space-y-6 animate-slide-up">
+        <SkeletonStats count={4} />
+        <SkeletonList variant="card" count={6} />
       </div>
     );
   }

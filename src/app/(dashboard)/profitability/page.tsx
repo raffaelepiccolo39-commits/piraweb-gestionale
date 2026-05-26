@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { SkeletonStats, SkeletonList } from '@/components/ui/skeleton';
 import { formatCurrency, getInitials, getUserColor, getRoleLabel } from '@/lib/utils';
 import type { Profile, Client } from '@/types/database';
 import {
@@ -276,7 +277,12 @@ export default function ProfitabilityPage() {
   }
 
   if (loading) {
-    return <div className="flex items-center justify-center h-64"><div className="w-8 h-8 border-3 border-pw-accent border-t-transparent rounded-full animate-spin" /></div>;
+    return (
+      <div className="space-y-6 animate-slide-up">
+        <SkeletonStats count={4} />
+        <SkeletonList variant="row" count={6} />
+      </div>
+    );
   }
 
   if (!data) return null;

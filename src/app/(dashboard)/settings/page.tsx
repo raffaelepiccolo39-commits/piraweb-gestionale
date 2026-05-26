@@ -15,6 +15,7 @@ import { getRoleLabel, getRoleTone, getInitials, formatCurrency } from '@/lib/ut
 import type { Profile } from '@/types/database';
 import { Settings, Users, Shield, ShieldCheck, ShieldOff, Save, UserPlus, Eye, EyeOff, Pencil, Lock, ArrowRightLeft, AlertTriangle, Loader2, Copy, Check } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
+import { SkeletonStats, SkeletonList } from '@/components/ui/skeleton';
 
 const roleOptions = [
   { value: 'admin', label: 'Admin' },
@@ -397,8 +398,9 @@ export default function SettingsPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-4 border-pw-accent border-t-transparent rounded-full animate-spin" />
+      <div className="space-y-6 animate-slide-up">
+        <SkeletonStats count={3} />
+        <SkeletonList variant="row" count={5} />
       </div>
     );
   }

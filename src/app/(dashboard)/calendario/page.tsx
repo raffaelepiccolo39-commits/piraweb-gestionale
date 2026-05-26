@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/ui/page-header';
 import { Modal } from '@/components/ui/modal';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { SkeletonStats, SkeletonList } from '@/components/ui/skeleton';
 import { CalendarMonthView } from '@/components/calendar/calendar-month-view';
 import { EventForm, type EventFormData } from '@/components/calendar/event-form';
 import { DayEvents } from '@/components/calendar/day-events';
@@ -149,8 +150,9 @@ export default function CalendarioPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-4 border-pw-accent border-t-transparent rounded-full animate-spin" />
+      <div className="space-y-6 animate-slide-up">
+        <SkeletonStats count={4} />
+        <SkeletonList variant="card" count={6} />
       </div>
     );
   }

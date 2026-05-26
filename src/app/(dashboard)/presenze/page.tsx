@@ -11,6 +11,7 @@ import { TeamStatus } from '@/components/attendance/team-status';
 import type { AttendanceRecord, TeamAttendanceToday } from '@/types/database';
 import { BarChart3, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
+import { SkeletonStats, SkeletonList } from '@/components/ui/skeleton';
 
 function getTodayLocal(): string {
   const now = new Date();
@@ -108,8 +109,9 @@ export default function PresenzePage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-4 border-pw-accent border-t-transparent rounded-full animate-spin" />
+      <div className="space-y-6 animate-slide-up">
+        <SkeletonStats count={4} />
+        <SkeletonList variant="row" count={6} />
       </div>
     );
   }

@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import { SkeletonList } from '@/components/ui/skeleton';
 import { PRIORITY_LABELS, ROLE_LABELS } from '@/lib/constants';
 import type { ProjectTemplate, TemplateTask, Client } from '@/types/database';
 import {
@@ -137,7 +138,11 @@ export default function TemplatesPage() {
   };
 
   if (loading) {
-    return <div className="flex items-center justify-center h-64"><div className="w-8 h-8 border-3 border-pw-accent border-t-transparent rounded-full animate-spin" /></div>;
+    return (
+      <div className="space-y-6 animate-slide-up">
+        <SkeletonList variant="card" count={6} />
+      </div>
+    );
   }
 
   return (
