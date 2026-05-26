@@ -14,7 +14,6 @@ import type { AttendanceRecord } from '@/types/database';
 
 // Dashboard components
 import { AttendanceWidget } from '@/components/dashboard/attendance-widget';
-import { QuickActions } from '@/components/dashboard/quick-actions';
 import { UrgentTasks } from '@/components/dashboard/urgent-tasks';
 import { StatCards } from '@/components/dashboard/stat-cards';
 import { ProjectProgress } from '@/components/dashboard/project-progress';
@@ -389,8 +388,56 @@ export default function DashboardPage() {
         onClockOut={() => handleAttendanceAction('clock_out')}
       />
 
-      {/* Quick Actions */}
-      <QuickActions role={profile.role} />
+      {/* Recent tasks — subito sotto a "Il mio stato" per averle in primo piano */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-pw-text font-[var(--font-syne)]">
+              Le mie task
+            </h2>
+            <Link href="/tasks" className="text-xs text-pw-accent hover:underline">Tutte</Link>
+          </div>
+        </CardHeader>
+        <CardContent className="p-0">
+          {recentTasks.length === 0 ? (
+            <p className="p-6 text-sm text-pw-text-muted text-center">Nessuna attività in sospeso</p>
+          ) : (
+            <div className="divide-y divide-pw-border">
+              {recentTasks.map((task) => (
+                <Link
+                  key={task.id}
+                  href="/tasks"
+                  className="px-6 py-3 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 hover:bg-pw-surface-2 transition-colors duration-200 ease-out group cursor-pointer"
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      {task.project && (
+                        <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: task.project.color }} />
+                      )}
+                      <p className="text-sm font-medium text-pw-text truncate">{task.title}</p>
+                    </div>
+                    <p className="text-xs text-pw-text-muted mt-0.5">
+                      {task.project?.name}
+                      {task.assignee && ` · ${task.assignee.full_name}`}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0 flex-wrap">
+                    <Badge tone={getStatusTone(task.status)} dot size="sm">{STATUS_LABELS[task.status]}</Badge>
+                    <Badge tone={getPriorityTone(task.priority)} size="sm">{PRIORITY_LABELS[task.priority]}</Badge>
+                    {task.deadline && (
+                      <span className="text-xs text-pw-text-dim flex items-center gap-1">
+                        <Calendar size={11} />
+                        {formatDate(task.deadline)}
+                      </span>
+                    )}
+                    <ChevronRight size={14} className="text-pw-text-dim opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Urgent Tasks */}
       <UrgentTasks tasks={urgentTasks} isAdmin={isAdmin} />
@@ -400,59 +447,8 @@ export default function DashboardPage() {
 
       {/* Row 5: Main content + Sidebar */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left: Tasks + Activity */}
+        {/* Left: Activity */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Recent tasks */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-pw-text font-[var(--font-syne)]">
-                  Le mie task
-                </h2>
-                <Link href="/tasks" className="text-xs text-pw-accent hover:underline">Tutte</Link>
-              </div>
-            </CardHeader>
-            <CardContent className="p-0">
-              {recentTasks.length === 0 ? (
-                <p className="p-6 text-sm text-pw-text-muted text-center">Nessuna attività in sospeso</p>
-              ) : (
-                <div className="divide-y divide-pw-border">
-                  {recentTasks.map((task) => (
-                    <Link
-                      key={task.id}
-                      href="/tasks"
-                      className="px-6 py-3 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 hover:bg-pw-surface-2 transition-colors duration-200 ease-out group cursor-pointer"
-                    >
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          {task.project && (
-                            <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: task.project.color }} />
-                          )}
-                          <p className="text-sm font-medium text-pw-text truncate">{task.title}</p>
-                        </div>
-                        <p className="text-xs text-pw-text-muted mt-0.5">
-                          {task.project?.name}
-                          {task.assignee && ` · ${task.assignee.full_name}`}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0 flex-wrap">
-                        <Badge tone={getStatusTone(task.status)} dot size="sm">{STATUS_LABELS[task.status]}</Badge>
-                        <Badge tone={getPriorityTone(task.priority)} size="sm">{PRIORITY_LABELS[task.priority]}</Badge>
-                        {task.deadline && (
-                          <span className="text-xs text-pw-text-dim flex items-center gap-1">
-                            <Calendar size={11} />
-                            {formatDate(task.deadline)}
-                          </span>
-                        )}
-                        <ChevronRight size={14} className="text-pw-text-dim opacity-0 group-hover:opacity-100 transition-opacity" />
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
           {/* Activity Feed */}
           <ActivityFeed activities={activities} />
         </div>
