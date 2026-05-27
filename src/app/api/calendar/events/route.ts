@@ -43,6 +43,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Titolo, data inizio e fine sono obbligatori' }, { status: 400 });
   }
 
+  // Validazione color: solo formato esadecimale #RRGGBB o #RGB
+  const HEX_COLOR_REGEX = /^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/;
+  const safeColor = typeof color === 'string' && HEX_COLOR_REGEX.test(color) ? color : '#FFD108';
+
   const { data, error } = await supabase
     .from('calendar_events')
     .insert({
@@ -52,7 +56,7 @@ export async function POST(request: NextRequest) {
       end_time,
       location: location || null,
       all_day: all_day || false,
-      color: color || '#FFD108',
+      color: safeColor,
       assigned_to: assigned_to || [],
       created_by: user.id,
     })

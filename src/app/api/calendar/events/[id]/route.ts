@@ -29,6 +29,10 @@ export async function PUT(
     return NextResponse.json({ error: 'Non autorizzato a modificare questo evento' }, { status: 403 });
   }
 
+  // Validazione color: solo formato esadecimale #RRGGBB o #RGB
+  const HEX_COLOR_REGEX = /^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/;
+  const safeColor = typeof color === 'string' && HEX_COLOR_REGEX.test(color) ? color : '#FFD108';
+
   const { data, error } = await supabase
     .from('calendar_events')
     .update({
@@ -38,7 +42,7 @@ export async function PUT(
       end_time,
       location: location || null,
       all_day: all_day || false,
-      color: color || '#FFD108',
+      color: safeColor,
       assigned_to: assigned_to || [],
     })
     .eq('id', id)

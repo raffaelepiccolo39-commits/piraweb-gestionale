@@ -44,7 +44,7 @@ export async function POST(request: Request) {
   cookieStore.set('2fa_verified', user.id, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
+    sameSite: 'strict',
     path: '/',
     maxAge: 60 * 60 * 24 * 365, // 1 anno
   });
