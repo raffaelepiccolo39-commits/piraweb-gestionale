@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from 'next';
 import { Inter, Syne, JetBrains_Mono, Bebas_Neue, DM_Serif_Display } from 'next/font/google';
 import { ThemeProvider } from '@/components/theme-provider';
+import { Analytics } from '@vercel/analytics/next';
+import { SpeedInsights } from '@vercel/speed-insights/next';
 import './globals.css';
 
 const inter = Inter({
@@ -69,6 +71,10 @@ export default function RootLayout({
         <ThemeProvider>
           {children}
         </ThemeProvider>
+        {/* Vercel Analytics: page views, top pages, referrer */}
+        <Analytics />
+        {/* Speed Insights: Web Vitals reali (LCP, INP, CLS, ecc.) */}
+        <SpeedInsights />
         <script dangerouslySetInnerHTML={{ __html: `
           if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
