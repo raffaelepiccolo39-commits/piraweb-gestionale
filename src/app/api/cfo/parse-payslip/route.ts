@@ -6,6 +6,7 @@ export const bodyParser = false;
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { applyRateLimit, AI_RATE_LIMIT } from '@/lib/rate-limit';
 
 /**
  * POST /api/cfo/parse-payslip
@@ -21,6 +22,11 @@ export async function POST(request: NextRequest) {
   if (!profile || profile.role !== 'admin') {
     return NextResponse.json({ error: 'Solo admin' }, { status: 403 });
   }
+
+  // Rate limit: ogni parsing busta paga costa $ a Google AI.
+  // 20 req/ora per admin sono più che sufficienti per uso reale.
+  const blocked = applyRateLimit(request, `cfo-payslip:${user.id}`, AI_RATE_LIMIT);
+  if (blocked) return blocked;
 
   const apiKey = process.env.GOOGLE_AI_API_KEY;
   if (!apiKey) {
