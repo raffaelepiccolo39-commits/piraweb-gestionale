@@ -8,6 +8,7 @@ import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/ui/page-header';
+import { SkeletonRow } from '@/components/ui/skeleton';
 import { getInitials, getUserColor, formatCurrency } from '@/lib/utils';
 import type { Profile, TimeEntry } from '@/types/database';
 import {
@@ -233,8 +234,10 @@ export default function TimesheetPage() {
       <Card>
         <CardContent className="p-0">
           {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="w-8 h-8 border-3 border-pw-accent border-t-transparent rounded-full animate-spin" />
+            <div className="space-y-1 py-2">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <SkeletonRow key={i} />
+              ))}
             </div>
           ) : (
             <div className="overflow-x-auto">

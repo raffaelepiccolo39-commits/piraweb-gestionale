@@ -10,6 +10,7 @@ import { MessageInput } from '@/components/chat/message-input';
 import { Modal } from '@/components/ui/modal';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 import { getInitials } from '@/lib/utils';
 import type { ChatChannel, ChatMessage, ChatChannelMember, Profile } from '@/types/database';
 import { ArrowLeft, MessageCircle, FolderKanban, Users, Check, AlertTriangle, Search, X } from 'lucide-react';
@@ -309,8 +310,16 @@ export default function ChatPage() {
 
   if (loading || !profile) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-4 border-pw-accent border-t-transparent rounded-full animate-spin" />
+      <div className="flex gap-4 h-[60vh] animate-slide-up">
+        <div className="w-64 space-y-2">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <Skeleton key={i} className="h-12 w-full" />
+          ))}
+        </div>
+        <div className="flex-1 space-y-3">
+          <Skeleton className="h-6 w-1/3" />
+          <Skeleton className="h-32 w-full" />
+        </div>
       </div>
     );
   }

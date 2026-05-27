@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/ui/empty-state';
 import { PageHeader } from '@/components/ui/page-header';
+import { SkeletonStats, SkeletonList } from '@/components/ui/skeleton';
 import { formatCurrency, getRoleLabel } from '@/lib/utils';
 import type { CashflowMonthly, CashflowSummary, RevenuePerClient, ProfitLossSummary, MonthlyExpenses } from '@/types/database';
 import { HealthIndicators } from '@/components/cashflow/health-indicators';
@@ -285,8 +286,9 @@ export default function CashflowPage() {
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center h-64">
-          <div className="w-8 h-8 border-4 border-pw-accent border-t-transparent rounded-full animate-spin" />
+        <div className="space-y-6 animate-slide-up">
+          <SkeletonStats count={4} />
+          <SkeletonList variant="row" count={6} />
         </div>
       ) : (
         <>
