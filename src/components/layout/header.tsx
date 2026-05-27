@@ -135,20 +135,44 @@ export function Header({ onMobileMenuToggle, mobileMenuOpen }: HeaderProps) {
 
     fetchNotifications();
 
-    // Chat unread count: messaggi delle ultime 24h non scritti dall'utente
+    // Chat unread count: messaggi non scritti dall'utente, arrivati dopo
+    // l'ultima volta che ha aperto /chat (timestamp salvato in localStorage).
+    // Fallback: 7 giorni fa per il primo accesso su un device nuovo.
     const fetchChatUnread = async () => {
       try {
+        const stored = typeof window !== 'undefined' ? localStorage.getItem('chat_last_seen') : null;
+        const lastSeen = stored || new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
         const { count } = await supabase
           .from('chat_messages')
           .select('id', { count: 'exact', head: true })
           .neq('sender_id', profile.id)
-          .gt('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
+          .gt('created_at', lastSeen);
         setUnreadChatCount(count || 0);
       } catch {
         // Table may not exist yet
       }
     };
     fetchChatUnread();
+
+    // Refresh quando la tab torna in foreground (es. switch tab → leggi chat → torna)
+    const onFocus = () => fetchChatUnread();
+    window.addEventListener('focus', onFocus);
+
+    // Realtime: incrementa il counter quando arriva un nuovo messaggio
+    // (chat_messages è già con realtime abilitato — vedi migration 00022)
+    const chatChannel = supabase
+      .channel('chat-header-badge')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'chat_messages' },
+        (payload) => {
+          const newMsg = payload.new as { sender_id?: string };
+          if (newMsg.sender_id && newMsg.sender_id !== profile.id) {
+            setUnreadChatCount((c) => c + 1);
+          }
+        },
+      )
+      .subscribe();
 
     // Realtime subscription (graceful if not enabled)
     let channel: ReturnType<typeof supabase.channel> | null = null;
@@ -174,6 +198,8 @@ export function Header({ onMobileMenuToggle, mobileMenuOpen }: HeaderProps) {
 
     return () => {
       if (channel) supabase.removeChannel(channel);
+      supabase.removeChannel(chatChannel);
+      window.removeEventListener('focus', onFocus);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile]);
@@ -289,6 +315,12 @@ export function Header({ onMobileMenuToggle, mobileMenuOpen }: HeaderProps) {
         {/* Chat shortcut */}
         <Link
           href="/chat"
+          onClick={() => {
+            // Marca tutto come letto: salva il timestamp e azzera counter.
+            // /chat/page.tsx aggiornerà di nuovo questo timestamp al fetch dei messaggi.
+            try { localStorage.setItem('chat_last_seen', new Date().toISOString()); } catch {}
+            setUnreadChatCount(0);
+          }}
           className="w-[34px] h-[34px] flex items-center justify-center rounded-md text-pw-text-muted hover:text-pw-text hover:bg-pw-surface-soft transition-colors duration-150 relative"
           aria-label={unreadChatCount > 0 ? `Chat — ${unreadChatCount} messaggi non letti` : 'Apri chat'}
           title={unreadChatCount > 0 ? `${unreadChatCount} messaggi non letti` : 'Chat'}

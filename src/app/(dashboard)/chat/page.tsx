@@ -173,6 +173,17 @@ export default function ChatPage() {
     fetchChannels();
   }, [fetchChannels]);
 
+  // Marca la chat come "letta" finché l'utente è su questa pagina: ogni 10s
+  // aggiorna il marker chat_last_seen (consumato dal badge nell'Header).
+  useEffect(() => {
+    const markSeen = () => {
+      try { localStorage.setItem('chat_last_seen', new Date().toISOString()); } catch {}
+    };
+    markSeen();
+    const interval = setInterval(markSeen, 10_000);
+    return () => clearInterval(interval);
+  }, []);
+
   // Fetch messages when channel changes
   const fetchMessages = useCallback(async (channelId: string) => {
     setMessagesLoading(true);
