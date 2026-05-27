@@ -29,7 +29,9 @@ import {
   X,
   Check,
   Search,
+  MessageCircle,
 } from 'lucide-react';
+import Link from 'next/link';
 
 const SEARCH_ITEMS = [
   { label: 'Dashboard', href: '/dashboard' },
@@ -62,6 +64,7 @@ export function Header({ onMobileMenuToggle, mobileMenuOpen }: HeaderProps) {
   const router = useRouter();
   const { profile, signOut } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [unreadChatCount, setUnreadChatCount] = useState(0);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
@@ -131,6 +134,21 @@ export function Header({ onMobileMenuToggle, mobileMenuOpen }: HeaderProps) {
     };
 
     fetchNotifications();
+
+    // Chat unread count: messaggi delle ultime 24h non scritti dall'utente
+    const fetchChatUnread = async () => {
+      try {
+        const { count } = await supabase
+          .from('chat_messages')
+          .select('id', { count: 'exact', head: true })
+          .neq('sender_id', profile.id)
+          .gt('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
+        setUnreadChatCount(count || 0);
+      } catch {
+        // Table may not exist yet
+      }
+    };
+    fetchChatUnread();
 
     // Realtime subscription (graceful if not enabled)
     let channel: ReturnType<typeof supabase.channel> | null = null;
@@ -267,6 +285,24 @@ export function Header({ onMobileMenuToggle, mobileMenuOpen }: HeaderProps) {
 
       {/* Right side actions */}
       <div className="flex items-center gap-1">
+
+        {/* Chat shortcut */}
+        <Link
+          href="/chat"
+          className="w-[34px] h-[34px] flex items-center justify-center rounded-md text-pw-text-muted hover:text-pw-text hover:bg-pw-surface-soft transition-colors duration-150 relative"
+          aria-label={unreadChatCount > 0 ? `Chat — ${unreadChatCount} messaggi non letti` : 'Apri chat'}
+          title={unreadChatCount > 0 ? `${unreadChatCount} messaggi non letti` : 'Chat'}
+        >
+          <MessageCircle size={17} />
+          {unreadChatCount > 0 && (
+            <span
+              className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-pw-accent text-[#0A263A] text-[9px] font-semibold flex items-center justify-center tabular-nums"
+              aria-hidden
+            >
+              {unreadChatCount > 99 ? '99+' : unreadChatCount}
+            </span>
+          )}
+        </Link>
 
         {/* Notifications */}
         <div className="relative">

@@ -18,7 +18,6 @@ import { UrgentTasks } from '@/components/dashboard/urgent-tasks';
 import { StatCards } from '@/components/dashboard/stat-cards';
 import { ProjectProgress } from '@/components/dashboard/project-progress';
 import { ActivityFeed } from '@/components/dashboard/activity-feed';
-import { MessagesPreview } from '@/components/dashboard/messages-preview';
 import { TeamAttendance } from '@/components/dashboard/team-attendance';
 import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
@@ -379,19 +378,14 @@ export default function DashboardPage() {
         }
       />
 
-      {/* Attendance widget + chat badge a fianco */}
-      <div className="flex items-center gap-4">
-        <div className="flex-1 min-w-0">
-          <AttendanceWidget
-            record={attendance}
-            loading={attendanceLoading}
-            onClockIn={() => handleAttendanceAction('clock_in')}
-            onLunchBreak={() => handleAttendanceAction('lunch_break')}
-            onClockOut={() => handleAttendanceAction('clock_out')}
-          />
-        </div>
-        <MessagesPreview unreadCount={unreadCount} />
-      </div>
+      {/* Attendance widget (il pulsante chat ora vive nell'Header globale) */}
+      <AttendanceWidget
+        record={attendance}
+        loading={attendanceLoading}
+        onClockIn={() => handleAttendanceAction('clock_in')}
+        onLunchBreak={() => handleAttendanceAction('lunch_break')}
+        onClockOut={() => handleAttendanceAction('clock_out')}
+      />
 
       {/* Recent tasks — subito sotto a "Il mio stato" per averle in primo piano */}
       <Card>
