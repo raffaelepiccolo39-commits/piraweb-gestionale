@@ -269,10 +269,10 @@ REGOLE FONDAMENTALI:
         const apiKey = process.env.GOOGLE_AI_API_KEY;
         if (!apiKey) throw new Error('No API key');
         const res = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent`,
           {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
             body: JSON.stringify({
               contents: [{ parts: [{ text: prompt }] }],
               generationConfig: { maxOutputTokens: 1000 },
