@@ -11,6 +11,7 @@ import { Modal } from '@/components/ui/modal';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { PageHeader } from '@/components/ui/page-header';
+import { SkeletonList } from '@/components/ui/skeleton';
 import { NoteDevForm } from '@/components/note-dev/note-dev-form';
 import type { NoteFormData } from '@/components/note-dev/note-dev-form';
 import type { DeveloperNote, DevNoteStatus } from '@/types/database';
@@ -267,8 +268,8 @@ export default function NoteDevPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-4 border-pw-accent border-t-transparent rounded-full animate-spin" />
+      <div className="space-y-6 animate-slide-up">
+        <SkeletonList variant="row" count={6} />
       </div>
     );
   }

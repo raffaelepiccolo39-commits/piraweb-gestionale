@@ -14,6 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { PageHeader } from '@/components/ui/page-header';
 import { DataTable } from '@/components/ui/data-table';
+import { SkeletonList } from '@/components/ui/skeleton';
 import { formatDateTime } from '@/lib/utils';
 import type { Automation, AutomationLog } from '@/types/database';
 import { Zap, Plus, Play, Pause, Trash2, ArrowRight, CheckCircle, XCircle, Clock } from 'lucide-react';
@@ -106,7 +107,11 @@ export default function AutomationsPage() {
   };
 
   if (loading) {
-    return <div className="flex items-center justify-center h-64"><div className="w-8 h-8 border-3 border-pw-accent border-t-transparent rounded-full animate-spin" /></div>;
+    return (
+      <div className="space-y-6 animate-slide-up">
+        <SkeletonList variant="card" count={4} />
+      </div>
+    );
   }
 
   return (

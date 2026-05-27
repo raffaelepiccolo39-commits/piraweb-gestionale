@@ -13,6 +13,7 @@ import { Modal } from '@/components/ui/modal';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { PageHeader } from '@/components/ui/page-header';
 import { DataTable } from '@/components/ui/data-table';
+import { SkeletonList } from '@/components/ui/skeleton';
 import type { TeamTool } from '@/types/database';
 import {
   Wrench,
@@ -175,8 +176,8 @@ export default function ToolsPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-4 border-pw-accent border-t-transparent rounded-full animate-spin" />
+      <div className="space-y-6 animate-slide-up">
+        <SkeletonList variant="card" count={8} />
       </div>
     );
   }

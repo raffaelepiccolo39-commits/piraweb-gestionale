@@ -12,6 +12,7 @@ import { Select } from '@/components/ui/select';
 import { Modal } from '@/components/ui/modal';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { PageHeader } from '@/components/ui/page-header';
+import { SkeletonStats, SkeletonList } from '@/components/ui/skeleton';
 import { formatCurrency } from '@/lib/utils';
 import type { Profile, OperatingExpense, Payslip, Invoice, Client } from '@/types/database';
 import { parsePayslipAction, savePayslipsAction } from './actions';
@@ -469,8 +470,9 @@ export default function CFOPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-4 border-pw-accent border-t-transparent rounded-full animate-spin" />
+      <div className="space-y-6 animate-slide-up">
+        <SkeletonStats count={4} />
+        <SkeletonList variant="row" count={6} />
       </div>
     );
   }
