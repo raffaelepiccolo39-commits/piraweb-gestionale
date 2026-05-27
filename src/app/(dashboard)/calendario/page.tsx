@@ -62,6 +62,22 @@ export default function CalendarioPage() {
     fetchEvents();
   }, [fetchEvents]);
 
+  // Tenta sempre il push CalDAV; true = sincronizzato, false = no config (silent).
+  const pushToCalDAV = async (eventId: string): Promise<boolean> => {
+    const res = await fetch('/api/calendar/push', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ event_id: eventId }),
+    });
+    if (res.ok) return true;
+    // 400 "Configurazione CalDAV non trovata" → utente senza sync, OK silente
+    if (res.status === 400) return false;
+    // Altri errori (auth iCloud, network, server CalDAV) → log ma non blocco UX
+    const body = await res.json().catch(() => ({}));
+    console.error('[calendario] push CalDAV failed:', res.status, body);
+    return false;
+  };
+
   const handleCreate = async (data: EventFormData) => {
     if (!profile) return;
     try {
@@ -73,22 +89,17 @@ export default function CalendarioPage() {
       if (!res.ok) throw new Error();
       const { event } = await res.json();
 
-      // Push to CalDAV if sync is configured
-      if (event?.id && (data as EventFormData & { sync_caldav?: boolean }).sync_caldav) {
+      // Push automatico a CalDAV (silente se l'utente non ha config)
+      let synced = false;
+      if (event?.id) {
         try {
-          await fetch('/api/calendar/push', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ event_id: event.id }),
-          });
-          toast.success('Evento creato e sincronizzato');
+          synced = await pushToCalDAV(event.id);
         } catch {
-          toast.success('Evento creato (sincronizzazione fallita)');
+          // Errore di rete, ma l'evento è salvato su DB
         }
-      } else {
-        toast.success('Evento creato');
       }
 
+      toast.success(synced ? 'Evento creato e sincronizzato' : 'Evento creato');
       setShowEventForm(false);
       fetchEvents();
     } catch {
@@ -105,8 +116,18 @@ export default function CalendarioPage() {
         body: JSON.stringify(data),
       });
       if (!res.ok) throw new Error();
+
+      // Push automatico anche su update: l'endpoint riconosce ical_uid esistente
+      // e fa updateCalendarObject CalDAV invece di crearne uno nuovo.
+      let synced = false;
+      try {
+        synced = await pushToCalDAV(editingEvent.id);
+      } catch {
+        // ignore
+      }
+
       setEditingEvent(null);
-      toast.success('Evento aggiornato');
+      toast.success(synced ? 'Evento aggiornato e sincronizzato' : 'Evento aggiornato');
       fetchEvents();
     } catch {
       toast.error('Errore nell\'aggiornamento');

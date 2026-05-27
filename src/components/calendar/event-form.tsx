@@ -183,18 +183,9 @@ export function EventForm({ event, defaultDate, onSubmit, onCancel }: EventFormP
         </div>
       </div>
 
-      {/* Sync to CalDAV */}
-      {!event && (
-        <label className="flex items-center gap-2 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={form.sync_caldav}
-            onChange={(e) => setForm((p) => ({ ...p, sync_caldav: e.target.checked }))}
-            className="w-4 h-4 rounded border-pw-border bg-pw-surface-2 accent-pw-accent"
-          />
-          <span className="text-sm text-pw-text">Sincronizza con calendario iCloud</span>
-        </label>
-      )}
+      {/* Nota: la sincronizzazione con CalDAV (iCloud/Apple Calendar) avviene
+          automaticamente per chi ha configurato le credenziali in /settings.
+          Niente checkbox: ogni create/update è propagato sempre. */}
 
       <div className="flex justify-end gap-3 pt-2">
         <Button type="button" variant="ghost" onClick={onCancel}>Annulla</Button>
