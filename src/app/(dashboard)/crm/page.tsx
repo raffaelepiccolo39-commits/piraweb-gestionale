@@ -11,6 +11,8 @@ import { PageHeader } from '@/components/ui/page-header';
 import { DealForm, type DealFormValues } from '@/components/crm/deal-form';
 import { ActivityForm, type ActivityFormValues } from '@/components/crm/activity-form';
 import { LostReasonForm } from '@/components/crm/lost-reason-form';
+import { DataTable } from '@/components/ui/data-table';
+import { SkeletonStats, SkeletonList } from '@/components/ui/skeleton';
 import { formatCurrency, formatDate, formatDateTime, getInitials, getUserColor } from '@/lib/utils';
 import type { Deal, DealStage, DealActivity, Profile } from '@/types/database';
 import {
@@ -231,7 +233,12 @@ export default function CRMPage() {
   }
 
   if (loading) {
-    return <div className="flex items-center justify-center h-64"><div className="w-8 h-8 border-3 border-pw-accent border-t-transparent rounded-full animate-spin" /></div>;
+    return (
+      <div className="space-y-6 animate-slide-up">
+        <SkeletonStats count={5} />
+        <SkeletonList variant="row" count={6} />
+      </div>
+    );
   }
 
   return (
@@ -345,43 +352,105 @@ export default function CRMPage() {
           })}
         </div>
       ) : (
-        /* List view */
-        <Card>
-          <CardContent className="p-0">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-pw-border">
-                  <th className="text-left px-4 py-3 text-xs text-pw-text-muted">Deal</th>
-                  <th className="text-left px-4 py-3 text-xs text-pw-text-muted">Azienda</th>
-                  <th className="text-left px-4 py-3 text-xs text-pw-text-muted">Stadio</th>
-                  <th className="text-right px-4 py-3 text-xs text-pw-text-muted">Valore</th>
-                  <th className="text-center px-4 py-3 text-xs text-pw-text-muted">Prob.</th>
-                  <th className="text-left px-4 py-3 text-xs text-pw-text-muted">Chiusura</th>
-                </tr>
-              </thead>
-              <tbody>
-                {deals.map((deal) => {
-                  const stage = STAGES.find((s) => s.id === deal.stage)!;
-                  return (
-                    <tr key={deal.id} onClick={() => setSelectedDeal(deal)} className="border-b border-pw-border/50 row-hover cursor-pointer">
-                      <td className="px-4 py-3">
-                        <p className="font-medium text-pw-text">{deal.title}</p>
-                        {deal.contact_name && <p className="text-[10px] text-pw-text-dim">{deal.contact_name}</p>}
-                      </td>
-                      <td className="px-4 py-3 text-pw-text-muted">{deal.company_name || '—'}</td>
-                      <td className="px-4 py-3">
-                        <Badge className={`${stage.color} bg-opacity-10`}>{stage.label}</Badge>
-                      </td>
-                      <td className="px-4 py-3 text-right font-medium text-pw-text">{formatCurrency(deal.value)}</td>
-                      <td className="px-4 py-3 text-center text-pw-text-muted">{deal.probability}%</td>
-                      <td className="px-4 py-3 text-pw-text-muted text-xs">{deal.expected_close_date ? formatDate(deal.expected_close_date) : '—'}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </CardContent>
-        </Card>
+        /* List view with search + filter via DataTable */
+        <DataTable
+          data={deals}
+          rowKey={(d) => d.id}
+          variant="table"
+          onRowClick={(d) => setSelectedDeal(d)}
+          searchKeys={[
+            (d) => d.title,
+            (d) => d.company_name || '',
+            (d) => d.contact_name || '',
+            (d) => d.contact_email || '',
+          ]}
+          searchPlaceholder="Cerca per titolo, azienda, contatto o email…"
+          filters={[
+            {
+              key: 'stage',
+              label: 'Tutti gli stadi',
+              options: STAGES.map((s) => ({ value: s.id, label: s.label })),
+              accessor: (d) => d.stage,
+            },
+            {
+              key: 'source',
+              label: 'Tutte le origini',
+              options: Object.entries(SOURCE_LABELS).map(([v, l]) => ({ value: v, label: l })),
+              accessor: (d) => d.source,
+            },
+          ]}
+          columns={[
+            {
+              key: 'deal',
+              label: 'Deal',
+              sortable: true,
+              sortAccessor: (d) => d.title.toLowerCase(),
+              render: (deal) => (
+                <div>
+                  <p className="font-medium text-pw-text">{deal.title}</p>
+                  {deal.contact_name && <p className="text-[10px] text-pw-text-dim">{deal.contact_name}</p>}
+                </div>
+              ),
+            },
+            {
+              key: 'company',
+              label: 'Azienda',
+              sortable: true,
+              sortAccessor: (d) => (d.company_name || '').toLowerCase(),
+              render: (deal) => <span className="text-pw-text-muted">{deal.company_name || '—'}</span>,
+            },
+            {
+              key: 'stage',
+              label: 'Stadio',
+              sortable: true,
+              sortAccessor: (d) => STAGES.findIndex((s) => s.id === d.stage),
+              render: (deal) => {
+                const stage = STAGES.find((s) => s.id === deal.stage)!;
+                return <Badge className={`${stage.color} bg-opacity-10`}>{stage.label}</Badge>;
+              },
+            },
+            {
+              key: 'value',
+              label: 'Valore',
+              sortable: true,
+              sortAccessor: (d) => d.value,
+              className: 'text-right',
+              headerClassName: 'text-right',
+              render: (deal) => <span className="font-medium text-pw-text">{formatCurrency(deal.value)}</span>,
+            },
+            {
+              key: 'probability',
+              label: 'Prob.',
+              sortable: true,
+              sortAccessor: (d) => d.probability,
+              className: 'text-center',
+              headerClassName: 'text-center',
+              render: (deal) => <span className="text-pw-text-muted">{deal.probability}%</span>,
+            },
+            {
+              key: 'close',
+              label: 'Chiusura',
+              sortable: true,
+              sortAccessor: (d) => d.expected_close_date || '',
+              render: (deal) => (
+                <span className="text-pw-text-muted text-xs">
+                  {deal.expected_close_date ? formatDate(deal.expected_close_date) : '—'}
+                </span>
+              ),
+            },
+          ]}
+          emptyState={{
+            icon: Target,
+            title: 'Nessun deal',
+            description: 'Inizia ad aggiungere opportunità alla pipeline per tracciarne il valore.',
+            action: (
+              <Button variant="primary" onClick={() => setShowForm(true)}>
+                <Plus size={14} />
+                Nuovo Deal
+              </Button>
+            ),
+          }}
+        />
       )}
 
       {/* Deal detail sidebar */}
