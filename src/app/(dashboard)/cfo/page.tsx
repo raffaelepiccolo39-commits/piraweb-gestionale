@@ -168,7 +168,7 @@ export default function CFOPage() {
     const responses = await Promise.all([
       supabase.from('profiles').select('*').eq('is_active', true).order('full_name'),
       supabase.from('client_contracts').select('client_id, monthly_fee, status, duration_months, start_date').eq('status', 'active'),
-      supabase.from('client_payments').select('contract_id, amount, is_paid, due_date, client_id:client_contracts(client_id)').limit(5000),
+      supabase.from('client_payments').select('contract_id, amount, is_paid, due_date, client_id:client_contracts(client_id, status)').limit(5000),
       supabase.from('operating_expenses').select('*').eq('is_active', true).order('category'),
       supabase.from('time_entries').select('user_id, task_id, duration_minutes, started_at').gte('started_at', yearStart).not('duration_minutes', 'is', null).limit(10000),
       supabase.from('task_freelancer_assignments').select('task_id, total_cost, status').limit(5000),
@@ -193,7 +193,11 @@ export default function CFOPage() {
 
     const profiles = (profilesRes.data || []) as Profile[];
     const contracts = contractsRes.data || [];
-    const payments = paymentsRes.data || [];
+    // Conta solo i pagamenti di contratti attivi (coerente con la dashboard):
+    // i pagamenti di contratti cancellati/completati non rientrano nel cashflow.
+    const payments = (paymentsRes.data || []).filter(
+      (p) => (p.client_id as { status?: string } | null)?.status === 'active'
+    );
     const expData = (expensesRes.data || []) as OperatingExpense[];
     const timeEntries = timeRes.data || [];
     const freelancerAssignments = freelancerRes.data || [];
