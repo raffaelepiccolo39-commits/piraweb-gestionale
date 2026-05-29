@@ -390,131 +390,133 @@ export default function DashboardPage() {
         onClockOut={() => handleAttendanceAction('clock_out')}
       />
 
-      {/* Recent tasks — subito sotto a "Il mio stato" per averle in primo piano */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-pw-text font-[var(--font-syne)]">
-              Le mie task
-            </h2>
-            <Link href="/tasks" className="text-xs text-pw-accent hover:underline">Tutte</Link>
-          </div>
-        </CardHeader>
-        <CardContent className="p-0">
-          {recentTasks.length === 0 ? (
-            <p className="p-6 text-sm text-pw-text-muted text-center">Nessuna attività in sospeso</p>
-          ) : (
-            <div className="divide-y divide-pw-border">
-              {recentTasks.map((task) => (
-                <Link
-                  key={task.id}
-                  href="/tasks"
-                  className="px-6 py-3 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 hover:bg-pw-surface-2 transition-colors duration-200 ease-out group cursor-pointer"
-                >
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      {task.project && (
-                        <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: task.project.color }} />
-                      )}
-                      <p className="text-sm font-medium text-pw-text truncate">{task.title}</p>
-                    </div>
-                    <p className="text-xs text-pw-text-muted mt-0.5">
-                      {task.project?.name}
-                      {task.assignee && ` · ${task.assignee.full_name}`}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0 flex-wrap">
-                    <Badge tone={getStatusTone(task.status)} dot size="sm">{STATUS_LABELS[task.status]}</Badge>
-                    <Badge tone={getPriorityTone(task.priority)} size="sm">{PRIORITY_LABELS[task.priority]}</Badge>
-                    {task.deadline && (
-                      <span className="text-xs text-pw-text-dim flex items-center gap-1">
-                        <Calendar size={11} />
-                        {formatDate(task.deadline)}
-                      </span>
-                    )}
-                    <ChevronRight size={14} className="text-pw-text-dim opacity-0 group-hover:opacity-100 transition-opacity" />
-                  </div>
-                </Link>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Urgent Tasks */}
-      <UrgentTasks tasks={urgentTasks} isAdmin={isAdmin} />
-
-      {/* Stat Cards */}
+      {/* KPI row */}
       <StatCards stats={stats} isAdmin={isAdmin} />
 
-      {/* Activity Feed full width */}
-      <ActivityFeed activities={activities} />
+      {/* Widget grid: 2 col main + 1 col side (stile Factorial) */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Main */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Urgent — in cima per visibilità */}
+          <UrgentTasks tasks={urgentTasks} isAdmin={isAdmin} />
 
-      {/* Row team — 3 colonne per admin (Carico, Team oggi, Progetti), 1 per non-admin (solo Progetti) */}
-      <div className={`grid grid-cols-1 gap-6 stagger-children ${isAdmin ? 'lg:grid-cols-3' : ''}`}>
-        {isAdmin && (
-          <>
-          {/* Team Workload (collapsible) */}
+          {/* Le mie task */}
           <Card>
             <CardHeader>
-              <button
-                type="button"
-                onClick={() => setTeamWorkloadOpen((v) => !v)}
-                className="flex items-center gap-2 group w-full text-left"
-                aria-expanded={teamWorkloadOpen}
-                aria-controls="team-workload-list"
-              >
-                <Users size={16} className="text-pw-accent" />
-                <h2 className="text-sm font-semibold text-pw-text group-hover:text-pw-accent transition-colors">
-                  Carico del team
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold text-pw-text font-[var(--font-syne)]">
+                  Le mie task
                 </h2>
-                <span className="text-[11px] text-pw-text-dim font-medium tabular-nums">
-                  {teamStats.length}
-                </span>
-                <ChevronDown
-                  size={14}
-                  className={`text-pw-text-dim transition-transform duration-200 ${teamWorkloadOpen ? 'rotate-180' : ''}`}
-                />
-              </button>
+                <Link href="/tasks" className="text-xs text-pw-accent hover:underline">Tutte</Link>
+              </div>
             </CardHeader>
-            {teamWorkloadOpen && (
-              <CardContent className="p-0">
-                <div id="team-workload-list" className="divide-y divide-pw-border">
-                  {teamStats.map((member) => (
-                    <div key={member.id} className="px-6 py-3">
-                      <div className="flex items-center gap-3 mb-2">
-                        <div className="w-8 h-8 rounded-full bg-pw-accent flex items-center justify-center">
-                          <span className="text-[#0A263A] text-xs font-bold">{getInitials(member.full_name)}</span>
+            <CardContent className="p-0">
+              {recentTasks.length === 0 ? (
+                <p className="p-6 text-sm text-pw-text-muted text-center">Nessuna attività in sospeso</p>
+              ) : (
+                <div className="divide-y divide-pw-border">
+                  {recentTasks.map((task) => (
+                    <Link
+                      key={task.id}
+                      href="/tasks"
+                      className="px-6 py-3 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 hover:bg-pw-surface-2 transition-colors duration-200 ease-out group cursor-pointer"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          {task.project && (
+                            <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: task.project.color }} />
+                          )}
+                          <p className="text-sm font-medium text-pw-text truncate">{task.title}</p>
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-pw-text truncate">{member.full_name}</p>
-                          <Badge tone={getRoleTone(member.role)} size="sm">{getRoleLabel(member.role)}</Badge>
-                        </div>
+                        <p className="text-xs text-pw-text-muted mt-0.5">
+                          {task.project?.name}
+                          {task.assignee && ` · ${task.assignee.full_name}`}
+                        </p>
                       </div>
-                      <div className="flex items-center gap-4 text-xs text-pw-text-muted ml-11">
-                        <span>{member.total} assegnate</span>
-                        <span className="text-green-400">{member.completed} completate</span>
-                        <span className="text-yellow-400">{member.in_progress} in corso</span>
+                      <div className="flex items-center gap-2 shrink-0 flex-wrap">
+                        <Badge tone={getStatusTone(task.status)} dot size="sm">{STATUS_LABELS[task.status]}</Badge>
+                        <Badge tone={getPriorityTone(task.priority)} size="sm">{PRIORITY_LABELS[task.priority]}</Badge>
+                        {task.deadline && (
+                          <span className="text-xs text-pw-text-dim flex items-center gap-1">
+                            <Calendar size={11} />
+                            {formatDate(task.deadline)}
+                          </span>
+                        )}
+                        <ChevronRight size={14} className="text-pw-text-dim opacity-0 group-hover:opacity-100 transition-opacity" />
                       </div>
-                      {member.total > 0 && (
-                        <div className="ml-11 mt-1.5 h-1.5 bg-pw-surface-3 rounded-full overflow-hidden">
-                          <div className="h-full bg-green-500 rounded-full transition-all duration-200 ease-out progress-animated" style={{ width: `${(member.completed / member.total) * 100}%` }} />
-                        </div>
-                      )}
-                    </div>
+                    </Link>
                   ))}
                 </div>
-              </CardContent>
-            )}
+              )}
+            </CardContent>
           </Card>
 
-          {/* Team Attendance Today */}
-          <TeamAttendance team={teamAttendance} />
-          </>
-        )}
+          {/* Progetti */}
+          <ProjectProgress projects={projectProgress} />
+        </div>
 
-        {/* Progetti — sempre visibile (anche a non-admin) */}
-        <ProjectProgress projects={projectProgress} />
+        {/* Side */}
+        <div className="space-y-6">
+          {isAdmin && <TeamAttendance team={teamAttendance} />}
+
+          {isAdmin && (
+            <Card>
+              <CardHeader>
+                <button
+                  type="button"
+                  onClick={() => setTeamWorkloadOpen((v) => !v)}
+                  className="flex items-center gap-2 group w-full text-left"
+                  aria-expanded={teamWorkloadOpen}
+                  aria-controls="team-workload-list"
+                >
+                  <Users size={16} className="text-pw-accent" />
+                  <h2 className="text-sm font-semibold text-pw-text group-hover:text-pw-accent transition-colors">
+                    Carico del team
+                  </h2>
+                  <span className="text-[11px] text-pw-text-dim font-medium tabular-nums">
+                    {teamStats.length}
+                  </span>
+                  <ChevronDown
+                    size={14}
+                    className={`text-pw-text-dim transition-transform duration-200 ${teamWorkloadOpen ? 'rotate-180' : ''}`}
+                  />
+                </button>
+              </CardHeader>
+              {teamWorkloadOpen && (
+                <CardContent className="p-0">
+                  <div id="team-workload-list" className="divide-y divide-pw-border">
+                    {teamStats.map((member) => (
+                      <div key={member.id} className="px-6 py-3">
+                        <div className="flex items-center gap-3 mb-2">
+                          <div className="w-8 h-8 rounded-full bg-pw-accent flex items-center justify-center">
+                            <span className="text-[#0A263A] text-xs font-bold">{getInitials(member.full_name)}</span>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-pw-text truncate">{member.full_name}</p>
+                            <Badge tone={getRoleTone(member.role)} size="sm">{getRoleLabel(member.role)}</Badge>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-4 text-xs text-pw-text-muted ml-11">
+                          <span>{member.total} assegnate</span>
+                          <span className="text-green-400">{member.completed} completate</span>
+                          <span className="text-yellow-400">{member.in_progress} in corso</span>
+                        </div>
+                        {member.total > 0 && (
+                          <div className="ml-11 mt-1.5 h-1.5 bg-pw-surface-3 rounded-full overflow-hidden">
+                            <div className="h-full bg-green-500 rounded-full transition-all duration-200 ease-out progress-animated" style={{ width: `${(member.completed / member.total) * 100}%` }} />
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              )}
+            </Card>
+          )}
+
+          {/* Activity Feed — sempre visibile */}
+          <ActivityFeed activities={activities} />
+        </div>
       </div>
     </div>
   );
