@@ -283,16 +283,20 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
       {/* User footer */}
       {profile && (
         <div className="p-3 border-t border-pw-border flex items-center gap-2.5 shrink-0">
-          <div
-            className="w-8 h-8 rounded-md flex items-center justify-center text-white text-xs font-bold shrink-0"
-            style={{
-              background: `linear-gradient(135deg, #E0431A, ${getUserColor(profile)})`,
-            }}
+          <Link
+            href="/profilo"
+            title="Profilo"
+            className={cn('flex items-center gap-2.5 min-w-0 rounded-md transition-opacity hover:opacity-80', collapsed ? '' : 'flex-1')}
           >
-            {getInitials(profile.full_name)}
-          </div>
-          {!collapsed && (
-            <>
+            <div
+              className="w-8 h-8 rounded-md flex items-center justify-center text-white text-xs font-bold shrink-0"
+              style={{
+                background: `linear-gradient(135deg, #E0431A, ${getUserColor(profile)})`,
+              }}
+            >
+              {getInitials(profile.full_name)}
+            </div>
+            {!collapsed && (
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-semibold text-pw-text truncate leading-tight">
                   {profile.full_name}
@@ -301,6 +305,10 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                   {getRoleLabel(profile.role)}
                 </p>
               </div>
+            )}
+          </Link>
+          {!collapsed && (
+            <>
               <div className="flex items-center gap-0.5 shrink-0">
                 <button
                   onClick={toggleTheme}
