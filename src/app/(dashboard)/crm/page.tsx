@@ -146,7 +146,12 @@ export default function CRMPage() {
       return;
     }
 
-    await supabase.from('deals').update({ stage: newStage }).eq('id', dealId);
+    const { error } = await supabase.from('deals').update({ stage: newStage }).eq('id', dealId);
+    if (error) {
+      console.error('[crm] update deal stage failed:', error);
+      toast.error('Errore nello spostamento del deal');
+      return;
+    }
     toast.success(`Deal spostato a: ${STAGES.find((s) => s.id === newStage)?.label}`);
     fetchDeals();
     if (selectedDeal?.id === dealId) {

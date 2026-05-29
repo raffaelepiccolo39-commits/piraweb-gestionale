@@ -13,6 +13,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Modal } from '@/components/ui/modal';
+import { useToast } from '@/components/ui/toast';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select } from '@/components/ui/select';
@@ -39,6 +40,7 @@ import { STATUS_LABELS, PRIORITY_LABELS } from '@/lib/constants';
 export default function BachecaPage() {
   const { profile } = useAuth();
   const supabase = createClient();
+  const toast = useToast();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [members, setMembers] = useState<Profile[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
@@ -110,7 +112,13 @@ export default function BachecaPage() {
 
     updates.position = destination.index;
 
-    await supabase.from('tasks').update(updates).eq('id', draggableId);
+    const { error } = await supabase.from('tasks').update(updates).eq('id', draggableId);
+    if (error) {
+      console.error('[bacheca] drag-drop update failed:', error);
+      toast.error('Errore nello spostamento della task');
+    }
+    // Refetch sempre: riallinea la UI allo stato reale del DB (anche in caso di errore
+    // la card torna al suo posto originale)
     fetchData();
   };
 

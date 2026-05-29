@@ -226,7 +226,13 @@ export default function SocialCalendarPage() {
   const handleStatusChange = async (postId: string, newStatus: SocialPostStatus) => {
     const updates: Record<string, unknown> = { status: newStatus };
     if (newStatus === 'published') updates.published_at = new Date().toISOString();
-    await supabase.from('social_posts').update(updates).eq('id', postId);
+    const { error } = await supabase.from('social_posts').update(updates).eq('id', postId);
+    if (error) {
+      console.error('[social-calendar] update status failed:', error);
+      toast.error('Errore nel cambio di stato del post');
+      return;
+    }
+    toast.success('Stato aggiornato');
     fetchPosts();
   };
 

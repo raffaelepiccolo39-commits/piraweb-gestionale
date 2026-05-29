@@ -282,7 +282,13 @@ export default function LeadFinderPage() {
   };
 
   const handleStatusChange = async (prospectId: string, status: OutreachStatus) => {
-    await supabase.from('lead_prospects').update({ outreach_status: status }).eq('id', prospectId);
+    const { error } = await supabase.from('lead_prospects').update({ outreach_status: status }).eq('id', prospectId);
+    if (error) {
+      console.error('[lead-finder] update outreach_status failed:', error);
+      toast.error('Errore nel cambio di stato del lead');
+      return;
+    }
+    toast.success('Stato aggiornato');
     fetchProspects();
   };
 
