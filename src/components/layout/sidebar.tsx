@@ -19,6 +19,7 @@ import {
   Briefcase,
   Wallet,
   Clock,
+  Plane,
   Settings,
   ChevronDown,
   LogOut,
@@ -59,6 +60,7 @@ const navSections: NavSection[] = [
     items: [
       { label: 'Bacheca Team', href: '/team', icon: MessageSquare },
       { label: 'Timesheet', href: '/timesheet', icon: Clock },
+      { label: 'Ferie & Permessi', href: '/ferie', icon: Plane },
     ],
   },
   {

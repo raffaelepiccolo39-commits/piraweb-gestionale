@@ -24,6 +24,19 @@ export const ROLE_LABELS: Record<string, string> = {
   graphic_brand: 'Graphic Brand',
 };
 
+export const TIME_OFF_TYPE_LABELS: Record<string, string> = {
+  ferie: 'Ferie',
+  permesso: 'Permesso / ROL',
+  malattia: 'Malattia',
+};
+
+export const TIME_OFF_STATUS_LABELS: Record<string, string> = {
+  pending: 'In attesa',
+  approved: 'Approvata',
+  rejected: 'Rifiutata',
+  cancelled: 'Annullata',
+};
+
 export const TASK_STATUSES = ['todo', 'in_progress', 'review', 'done', 'archived'] as const;
 export type TaskStatus = (typeof TASK_STATUSES)[number];
 

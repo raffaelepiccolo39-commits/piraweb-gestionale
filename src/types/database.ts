@@ -11,6 +11,50 @@ export type ActivityEntity = 'client' | 'project' | 'task' | 'post' | 'ai_script
 
 export type EmployeeContractType = '6_mesi' | '12_mesi' | 'indeterminato';
 
+export type TimeOffType = 'ferie' | 'permesso' | 'malattia';
+export type TimeOffStatus = 'pending' | 'approved' | 'rejected' | 'cancelled';
+
+export interface TimeOffRequest {
+  id: string;
+  user_id: string;
+  type: TimeOffType;
+  start_date: string;
+  end_date: string;
+  start_half: boolean;
+  end_half: boolean;
+  total_days: number;
+  reason: string | null;
+  status: TimeOffStatus;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  review_note: string | null;
+  created_at: string;
+  updated_at: string;
+  user?: Pick<Profile, 'id' | 'full_name' | 'color'>;
+}
+
+export interface TimeOffBalance {
+  id: string;
+  user_id: string;
+  year: number;
+  ferie_days: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TeamAbsence {
+  request_id: string;
+  user_id: string;
+  full_name: string;
+  color: string | null;
+  type: TimeOffType;
+  start_date: string;
+  end_date: string;
+  start_half: boolean;
+  end_half: boolean;
+  total_days: number;
+}
+
 export interface Profile {
   id: string;
   email: string;
