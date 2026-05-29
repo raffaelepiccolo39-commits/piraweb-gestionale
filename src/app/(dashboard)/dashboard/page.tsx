@@ -168,7 +168,6 @@ export default function DashboardPage() {
 
       // Process stats
       const allTasks = (results[2].data as Array<{ id: string; status: string; deadline: string | null }>) || [];
-      const nowIso = now.toISOString();
       const dueToday = allTasks.filter((t) => t.deadline && t.deadline >= todayStr && t.deadline < tomorrowStr && t.status !== 'done').length;
       setDueTodayCount(dueToday);
 
@@ -178,7 +177,11 @@ export default function DashboardPage() {
         totalTasks: allTasks.length,
         completedTasks: allTasks.filter((t) => t.status === 'done').length,
         inProgressTasks: allTasks.filter((t) => t.status === 'in_progress').length,
-        overdueTasks: allTasks.filter((t) => t.deadline && t.deadline < nowIso && t.status !== 'done').length,
+        // In ritardo = deadline STRETTAMENTE precedente a oggi (le scadenze di oggi
+        // contano in dueToday, non in overdue). Confronto date-only: t.deadline è
+        // 'YYYY-MM-DD', usare nowIso (timestamp) marcava per errore le scadenze di
+        // oggi come già scadute.
+        overdueTasks: allTasks.filter((t) => t.deadline && t.deadline < todayStr && t.status !== 'done').length,
       });
 
       setRecentTasks((results[3].data as typeof recentTasks) || []);
