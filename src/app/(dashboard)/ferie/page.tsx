@@ -82,6 +82,12 @@ export default function FeriePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
+  // Admin: monte ferie per dipendente
+  const [employees, setEmployees] = useState<{ id: string; full_name: string }[]>([]);
+  const [balanceEdits, setBalanceEdits] = useState<Record<string, number>>({});
+  const [usedByUser, setUsedByUser] = useState<Record<string, number>>({});
+  const [savingBalances, setSavingBalances] = useState(false);
+
   // New request modal
   const [showModal, setShowModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -114,12 +120,34 @@ export default function FeriePage() {
       setAbsences((absRes.data as TeamAbsence[]) || []);
 
       if (isAdmin) {
-        const { data } = await supabase
-          .from('time_off_requests')
-          .select('*, user:profiles!time_off_requests_user_id_fkey(id, full_name, color)')
-          .eq('status', 'pending')
-          .order('start_date', { ascending: true });
-        setPending((data as TimeOffRequest[]) || []);
+        const [pendRes, empRes, balAllRes, ferieAllRes] = await Promise.all([
+          supabase.from('time_off_requests')
+            .select('*, user:profiles!time_off_requests_user_id_fkey(id, full_name, color)')
+            .eq('status', 'pending')
+            .order('start_date', { ascending: true }),
+          supabase.from('profiles').select('id, full_name').eq('is_active', true).order('full_name'),
+          supabase.from('time_off_balances').select('user_id, ferie_days').eq('year', year),
+          supabase.from('time_off_requests')
+            .select('user_id, total_days, status')
+            .eq('type', 'ferie')
+            .in('status', ['approved', 'pending'])
+            .gte('start_date', `${year}-01-01`)
+            .lte('start_date', `${year}-12-31`),
+        ]);
+        setPending((pendRes.data as TimeOffRequest[]) || []);
+
+        const emps = (empRes.data as { id: string; full_name: string }[]) || [];
+        setEmployees(emps);
+        const balMap: Record<string, number> = {};
+        ((balAllRes.data as { user_id: string; ferie_days: number }[]) || []).forEach((b) => { balMap[b.user_id] = Number(b.ferie_days); });
+        const edits: Record<string, number> = {};
+        emps.forEach((e) => { edits[e.id] = balMap[e.id] ?? DEFAULT_FERIE; });
+        setBalanceEdits(edits);
+        const used: Record<string, number> = {};
+        ((ferieAllRes.data as { user_id: string; total_days: number }[]) || []).forEach((r) => {
+          used[r.user_id] = (used[r.user_id] || 0) + Number(r.total_days);
+        });
+        setUsedByUser(used);
       }
     } catch {
       setError(true);
@@ -227,6 +255,21 @@ export default function FeriePage() {
       fetchData();
     } catch {
       toast.error('Errore durante il rifiuto');
+    }
+  };
+
+  const handleSaveBalances = async () => {
+    setSavingBalances(true);
+    try {
+      const rows = employees.map((e) => ({ user_id: e.id, year, ferie_days: balanceEdits[e.id] ?? DEFAULT_FERIE }));
+      const { error } = await supabase.from('time_off_balances').upsert(rows, { onConflict: 'user_id,year' });
+      if (error) throw error;
+      toast.success('Monte ferie aggiornato');
+      fetchData();
+    } catch {
+      toast.error('Errore durante il salvataggio del monte ferie');
+    } finally {
+      setSavingBalances(false);
     }
   };
 
@@ -342,6 +385,48 @@ export default function FeriePage() {
               );
             })}
           </div>
+        </div>
+      )}
+
+      {/* Monte ferie dipendenti (admin) */}
+      {isAdmin && employees.length > 0 && (
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold text-pw-text flex items-center gap-2">
+              <Plane size={16} className="text-pw-text-muted" /> Monte ferie {year}
+            </h2>
+            <Button variant="outline" onClick={handleSaveBalances} loading={savingBalances}>
+              <Check size={14} /> Salva
+            </Button>
+          </div>
+          <Card>
+            <CardContent className="p-0 divide-y divide-pw-border">
+              {employees.map((e) => {
+                const used = usedByUser[e.id] || 0;
+                const allot = balanceEdits[e.id] ?? DEFAULT_FERIE;
+                const residual = allot - used;
+                return (
+                  <div key={e.id} className="flex items-center gap-4 px-4 py-2.5">
+                    <span className="text-sm text-pw-text flex-1 truncate">{e.full_name}</span>
+                    <div className="flex items-center gap-1.5">
+                      <input
+                        type="number"
+                        min={0}
+                        step={0.5}
+                        value={allot}
+                        onChange={(ev) => setBalanceEdits(m => ({ ...m, [e.id]: Number(ev.target.value) }))}
+                        className="w-20 px-2 py-1 rounded-lg border border-pw-border bg-pw-surface-2 text-pw-text text-sm text-right outline-none focus:border-pw-accent/50"
+                      />
+                      <span className="text-xs text-pw-text-dim">gg/anno</span>
+                    </div>
+                    <span className="text-xs text-pw-text-muted w-36 text-right tabular-nums">
+                      {fmtDays(used)} usate · <span className={residual < 0 ? 'text-red-400' : 'text-pw-text'}>{fmtDays(residual)} residue</span>
+                    </span>
+                  </div>
+                );
+              })}
+            </CardContent>
+          </Card>
         </div>
       )}
 
