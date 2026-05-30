@@ -190,7 +190,10 @@ export default function NoteSpesePage() {
         .eq('id', id);
       if (error) throw error;
       toast.success('Nota spese approvata');
-      if (exp) await notifyExpenseDecision(supabase, exp, 'approved');
+      if (exp) {
+        try { await notifyExpenseDecision(supabase, exp, 'approved'); }
+        catch (n) { toast.error('Notifica al dipendente fallita: ' + (n as { message?: string })?.message); }
+      }
       fetchData();
     } catch (e) {
       toast.error((e as { message?: string } | undefined)?.message || 'Errore');
@@ -207,7 +210,10 @@ export default function NoteSpesePage() {
         .eq('id', rejectId);
       if (error) throw error;
       toast.success('Nota spese rifiutata');
-      if (exp) await notifyExpenseDecision(supabase, exp, 'rejected', note);
+      if (exp) {
+        try { await notifyExpenseDecision(supabase, exp, 'rejected', note); }
+        catch (n) { toast.error('Notifica al dipendente fallita: ' + (n as { message?: string })?.message); }
+      }
       setRejectId(null);
       setRejectNote('');
       fetchData();
@@ -225,7 +231,10 @@ export default function NoteSpesePage() {
         .eq('id', id);
       if (error) throw error;
       toast.success('Rimborso segnato come pagato');
-      if (exp) await notifyExpenseDecision(supabase, exp, 'paid');
+      if (exp) {
+        try { await notifyExpenseDecision(supabase, exp, 'paid'); }
+        catch (n) { toast.error('Notifica al dipendente fallita: ' + (n as { message?: string })?.message); }
+      }
       fetchData();
     } catch (e) {
       toast.error((e as { message?: string } | undefined)?.message || 'Errore');

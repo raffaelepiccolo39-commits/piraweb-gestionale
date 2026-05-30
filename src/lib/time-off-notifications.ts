@@ -26,14 +26,15 @@ export async function notifyTimeOffDecision(
     decision === 'rejected' && note ? ` — ${note}` : ''
   }`;
 
-  const { error } = await supabase.from('notifications').insert({
-    user_id: req.user_id,
-    type: decision === 'approved' ? 'time_off_approved' : 'time_off_rejected',
-    title,
-    message,
-    link: '/ferie',
+  const { error } = await supabase.rpc('create_notification', {
+    p_user_id: req.user_id,
+    p_type: decision === 'approved' ? 'time_off_approved' : 'time_off_rejected',
+    p_title: title,
+    p_message: message,
+    p_link: '/ferie',
   });
   if (error) {
     console.error('[notifyTimeOffDecision]', error.message);
+    throw error;
   }
 }

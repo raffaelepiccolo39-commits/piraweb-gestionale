@@ -323,7 +323,10 @@ export default function DashboardPage() {
         .eq('id', id);
       if (error) throw error;
       toast.success('Richiesta approvata');
-      if (req) await notifyTimeOffDecision(supabase, req, 'approved');
+      if (req) {
+        try { await notifyTimeOffDecision(supabase, req, 'approved'); }
+        catch (n) { toast.error('Notifica al dipendente fallita: ' + (n as { message?: string })?.message); }
+      }
       fetchDashboardData();
     } catch (e) {
       toast.error((e as { message?: string } | undefined)?.message || 'Errore durante l\'approvazione');
@@ -339,7 +342,10 @@ export default function DashboardPage() {
         .eq('id', id);
       if (error) throw error;
       toast.success('Richiesta rifiutata');
-      if (req) await notifyTimeOffDecision(supabase, req, 'rejected');
+      if (req) {
+        try { await notifyTimeOffDecision(supabase, req, 'rejected'); }
+        catch (n) { toast.error('Notifica al dipendente fallita: ' + (n as { message?: string })?.message); }
+      }
       fetchDashboardData();
     } catch (e) {
       toast.error((e as { message?: string } | undefined)?.message || 'Errore durante il rifiuto');

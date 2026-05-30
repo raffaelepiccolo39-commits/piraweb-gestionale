@@ -30,14 +30,15 @@ export async function notifyExpenseDecision(
     decision === 'rejected' && note ? ` — ${note}` : ''
   }`;
 
-  const { error } = await supabase.from('notifications').insert({
-    user_id: exp.user_id,
-    type: typeMap[decision],
-    title: titleMap[decision],
-    message,
-    link: '/note-spese',
+  const { error } = await supabase.rpc('create_notification', {
+    p_user_id: exp.user_id,
+    p_type: typeMap[decision],
+    p_title: titleMap[decision],
+    p_message: message,
+    p_link: '/note-spese',
   });
   if (error) {
     console.error('[notifyExpenseDecision]', error.message);
+    throw error;
   }
 }
