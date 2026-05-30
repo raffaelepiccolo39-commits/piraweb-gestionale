@@ -7,6 +7,26 @@ export type NotificationType = 'task_assigned' | 'task_updated' | 'task_complete
 export type ExpenseCategory = 'trasferta' | 'pranzo_lavoro' | 'carburante' | 'materiali' | 'software_licenze' | 'altro';
 export type ExpenseStatus = 'pending' | 'approved' | 'rejected' | 'paid';
 
+export type EmployeeDocumentType = 'contratto' | 'ccnl' | 'busta_paga' | 'certificato_medico' | 'doc_fiscale' | 'formazione' | 'altro';
+
+export interface EmployeeDocument {
+  id: string;
+  user_id: string;
+  uploaded_by: string;
+  type: EmployeeDocumentType;
+  title: string;
+  description: string | null;
+  file_path: string;
+  file_name: string | null;
+  file_size: number | null;
+  mime_type: string | null;
+  issued_on: string | null;
+  expires_on: string | null;
+  created_at: string;
+  updated_at: string;
+  user?: Pick<Profile, 'id' | 'full_name' | 'color'>;
+}
+
 export interface EmployeeExpense {
   id: string;
   user_id: string;

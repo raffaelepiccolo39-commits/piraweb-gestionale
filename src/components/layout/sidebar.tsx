@@ -20,6 +20,7 @@ import {
   Clock,
   Plane,
   Receipt,
+  FileText,
   Settings,
   ChevronDown,
   LogOut,
@@ -62,6 +63,7 @@ const navSections: NavSection[] = [
       { label: 'Timesheet', href: '/timesheet', icon: Clock },
       { label: 'Ferie & Permessi', href: '/ferie', icon: Plane },
       { label: 'Note spese', href: '/note-spese', icon: Receipt },
+      { label: 'Documenti', href: '/documenti', icon: FileText },
     ],
   },
   {

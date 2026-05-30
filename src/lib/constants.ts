@@ -53,6 +53,16 @@ export const EXPENSE_STATUS_LABELS: Record<string, string> = {
   paid: 'Rimborsata',
 };
 
+export const EMPLOYEE_DOCUMENT_TYPE_LABELS: Record<string, string> = {
+  contratto: 'Contratto',
+  ccnl: 'CCNL',
+  busta_paga: 'Busta paga',
+  certificato_medico: 'Certificato medico',
+  doc_fiscale: 'Documento fiscale',
+  formazione: 'Formazione',
+  altro: 'Altro',
+};
+
 export const TASK_STATUSES = ['todo', 'in_progress', 'review', 'done', 'archived'] as const;
 export type TaskStatus = (typeof TASK_STATUSES)[number];
 
