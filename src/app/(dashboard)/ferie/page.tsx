@@ -165,19 +165,23 @@ export default function FeriePage() {
   );
 
   const ferieAllowance = balance?.ferie_days ?? DEFAULT_FERIE;
-  const ferieUsed = useMemo(
-    () => myRequests
-      .filter(r => r.type === 'ferie' && (r.status === 'approved' || r.status === 'pending') && r.start_date.slice(0, 4) === String(year))
-      .reduce((s, r) => s + Number(r.total_days), 0),
-    [myRequests, year]
-  );
-  const ferieResidual = ferieAllowance - ferieUsed;
+
+  const sumByTypeStatus = (t: TimeOffType, statuses: string[]) =>
+    myRequests
+      .filter(r => r.type === t && statuses.includes(r.status) && r.start_date.slice(0, 4) === String(year))
+      .reduce((s, r) => s + Number(r.total_days), 0);
+
+  // Saldo "residue" = quelle già APPROVATE (i giorni effettivamente persi).
+  // "in attesa" mostrato a parte. Per la validazione invece consideriamo
+  // approvate + pending (per evitare di prenotare sopra al monte).
+  const ferieApproved = sumByTypeStatus('ferie', ['approved']);
+  const feriePending = sumByTypeStatus('ferie', ['pending']);
+  const ferieResidual = ferieAllowance - ferieApproved;
+  const ferieBookable = ferieAllowance - ferieApproved - feriePending;
   const pendingMine = myRequests.filter(r => r.status === 'pending').length;
 
-  const usedByType = (t: TimeOffType) =>
-    myRequests
-      .filter(r => r.type === t && r.status === 'approved' && r.start_date.slice(0, 4) === String(year))
-      .reduce((s, r) => s + Number(r.total_days), 0);
+  const permessoApproved = sumByTypeStatus('permesso', ['approved']);
+  const permessoPending = sumByTypeStatus('permesso', ['pending']);
 
   const resetForm = () => setForm({
     type: 'ferie', start_date: todayLocal(), end_date: todayLocal(), start_half: false, end_half: false, reason: '',
@@ -187,9 +191,17 @@ export default function FeriePage() {
     if (!profile) return;
     if (!form.start_date || !form.end_date) { toast.error('Inserisci le date'); return; }
     if (form.end_date < form.start_date) { toast.error('La data di fine precede quella di inizio'); return; }
+    if (!isAdmin && form.start_date < todayLocal()) {
+      toast.error('Non puoi richiedere ferie per date passate');
+      return;
+    }
+    if (form.start_date.slice(0, 4) !== form.end_date.slice(0, 4)) {
+      toast.error('La richiesta non può attraversare il 31 dicembre. Crea due richieste separate.');
+      return;
+    }
     if (formTotal <= 0) { toast.error('Le date selezionate non includono giorni lavorativi'); return; }
-    if (form.type === 'ferie' && formTotal > ferieResidual) {
-      toast.error(`Saldo ferie insufficiente: residuo ${fmtDays(ferieResidual)} gg`);
+    if (form.type === 'ferie' && (ferieApproved + feriePending + formTotal) > ferieAllowance) {
+      toast.error(`Saldo ferie insufficiente: prenotabili ${fmtDays(Math.max(0, ferieBookable))} gg`);
       return;
     }
     setSubmitting(true);
@@ -210,8 +222,8 @@ export default function FeriePage() {
       setShowModal(false);
       resetForm();
       fetchData();
-    } catch {
-      toast.error('Errore durante l\'invio della richiesta');
+    } catch (e) {
+      toast.error((e as { message?: string } | undefined)?.message || 'Errore durante l\'invio della richiesta');
     } finally {
       setSubmitting(false);
     }
@@ -223,8 +235,8 @@ export default function FeriePage() {
       if (error) throw error;
       toast.success('Richiesta annullata');
       fetchData();
-    } catch {
-      toast.error('Errore durante l\'annullamento');
+    } catch (e) {
+      toast.error((e as { message?: string } | undefined)?.message || 'Errore durante l\'annullamento');
     }
   };
 
@@ -237,8 +249,8 @@ export default function FeriePage() {
       if (error) throw error;
       toast.success('Richiesta approvata');
       fetchData();
-    } catch {
-      toast.error('Errore durante l\'approvazione');
+    } catch (e) {
+      toast.error((e as { message?: string } | undefined)?.message || 'Errore durante l\'approvazione');
     }
   };
 
@@ -253,8 +265,8 @@ export default function FeriePage() {
       setRejectId(null);
       setRejectNote('');
       fetchData();
-    } catch {
-      toast.error('Errore durante il rifiuto');
+    } catch (e) {
+      toast.error((e as { message?: string } | undefined)?.message || 'Errore durante il rifiuto');
     }
   };
 
@@ -266,8 +278,8 @@ export default function FeriePage() {
       if (error) throw error;
       toast.success('Monte ferie aggiornato');
       fetchData();
-    } catch {
-      toast.error('Errore durante il salvataggio del monte ferie');
+    } catch (e) {
+      toast.error((e as { message?: string } | undefined)?.message || 'Errore durante il salvataggio del monte ferie');
     } finally {
       setSavingBalances(false);
     }
@@ -324,7 +336,9 @@ export default function FeriePage() {
               {fmtDays(ferieResidual)}
               <span className="text-base text-pw-text-dim font-normal"> / {fmtDays(ferieAllowance)} gg</span>
             </p>
-            <p className="text-xs text-pw-text-dim mt-1.5">{fmtDays(ferieUsed)} gg usati o in attesa</p>
+            <p className="text-xs text-pw-text-dim mt-1.5">
+              {fmtDays(ferieApproved)} approvati{feriePending > 0 ? ` · ${fmtDays(feriePending)} in attesa` : ''}
+            </p>
           </CardContent>
         </Card>
         <Card>
@@ -332,8 +346,10 @@ export default function FeriePage() {
             <div className="flex items-center gap-2 text-pw-text-muted text-xs mb-1">
               <Clock size={14} /> Permessi {year}
             </div>
-            <p className="text-3xl font-semibold text-pw-text leading-none">{fmtDays(usedByType('permesso'))}<span className="text-base text-pw-text-dim font-normal"> gg</span></p>
-            <p className="text-xs text-pw-text-dim mt-1.5">approvati quest&apos;anno</p>
+            <p className="text-3xl font-semibold text-pw-text leading-none">{fmtDays(permessoApproved)}<span className="text-base text-pw-text-dim font-normal"> gg</span></p>
+            <p className="text-xs text-pw-text-dim mt-1.5">
+              approvati{permessoPending > 0 ? ` · ${fmtDays(permessoPending)} in attesa` : ''}
+            </p>
           </CardContent>
         </Card>
         <Card>
@@ -516,10 +532,17 @@ export default function FeriePage() {
             ]}
           />
           <div className="grid grid-cols-2 gap-3">
-            <Input id="to-start" type="date" label="Dal" value={form.start_date}
-              onChange={(e) => setForm(f => ({ ...f, start_date: e.target.value, end_date: f.end_date < e.target.value ? e.target.value : f.end_date }))} />
-            <Input id="to-end" type="date" label="Al" value={form.end_date}
-              onChange={(e) => setForm(f => ({ ...f, end_date: e.target.value }))} />
+            <Input id="to-start" type="date" label="Dal" value={form.start_date} min={isAdmin ? undefined : todayLocal()}
+              onChange={(e) => setForm(f => {
+                const newStart = e.target.value;
+                const newEnd = f.end_date < newStart ? newStart : f.end_date;
+                return { ...f, start_date: newStart, end_date: newEnd, end_half: newStart === newEnd ? false : f.end_half };
+              })} />
+            <Input id="to-end" type="date" label="Al" value={form.end_date} min={form.start_date}
+              onChange={(e) => setForm(f => {
+                const newEnd = e.target.value;
+                return { ...f, end_date: newEnd, end_half: f.start_date === newEnd ? false : f.end_half };
+              })} />
           </div>
 
           {sameDay ? (
@@ -561,9 +584,9 @@ export default function FeriePage() {
             <span className="text-sm text-pw-text-muted">Totale</span>
             <span className="text-lg font-semibold text-pw-text">{fmtDays(formTotal)} gg</span>
           </div>
-          {form.type === 'ferie' && formTotal > ferieResidual && (
+          {form.type === 'ferie' && (ferieApproved + feriePending + formTotal) > ferieAllowance && (
             <p className="flex items-center gap-1.5 text-xs text-red-400">
-              <AlertTriangle size={14} /> Supera il saldo ferie residuo ({fmtDays(ferieResidual)} gg)
+              <AlertTriangle size={14} /> Supera il saldo prenotabile ({fmtDays(Math.max(0, ferieBookable))} gg disponibili)
             </p>
           )}
 
