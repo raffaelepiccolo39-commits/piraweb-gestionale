@@ -39,6 +39,7 @@ export default function TasksPage() {
   const [teamMembers, setTeamMembers] = useState<{ id: string; full_name: string; role: string; color: string | null }[]>([]);
   const [loading, setLoading] = useState(true);
   const [assigneeFilter, setAssigneeFilter] = useState<string>('me');
+  const [groupMode, setGroupMode] = useState<'none' | 'sector'>('none');
 
   // AI task creation
   const [showAiModal, setShowAiModal] = useState(false);
@@ -65,7 +66,7 @@ export default function TasksPage() {
         .from('tasks')
         .select(`
           *,
-          project:projects(id, name, color),
+          project:projects(id, name, color, client:clients(id, name, company, sector)),
           assignee:profiles!tasks_assigned_to_fkey(id, full_name, color)
         `);
 
@@ -286,6 +287,16 @@ export default function TasksPage() {
             ]}
           />
         </div>
+        <div className="w-52">
+          <Select
+            value={groupMode}
+            onChange={(e) => setGroupMode(e.target.value as 'none' | 'sector')}
+            options={[
+              { value: 'none', label: 'Nessun raggruppamento' },
+              { value: 'sector', label: 'Raggruppa per settore' },
+            ]}
+          />
+        </div>
       </div>
 
       <DataTable
@@ -294,12 +305,18 @@ export default function TasksPage() {
         columns={[]}
         variant="card"
         cardGridClassName="space-y-3"
+        groupBy={groupMode === 'sector' ? (t) => {
+          const client = (t.project as { client?: { sector?: string | null } } | undefined)?.client;
+          return client?.sector?.trim() || '__none__';
+        } : undefined}
+        groupLabel={(key) => (key === '__none__' ? 'Senza settore' : key)}
         searchKeys={[
           (t) => t.title,
           (t) => t.description || '',
           (t) => (t.project as { name?: string } | undefined)?.name || '',
+          (t) => (t.project as { client?: { company?: string; name?: string } } | undefined)?.client?.company || '',
         ]}
-        searchPlaceholder="Cerca per titolo, descrizione o progetto…"
+        searchPlaceholder="Cerca per titolo, descrizione, progetto o cliente…"
         filters={[
           {
             key: 'status',

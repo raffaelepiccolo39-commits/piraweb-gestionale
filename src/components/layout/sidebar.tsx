@@ -11,7 +11,6 @@ import { createClient } from '@/lib/supabase/client';
 import {
   LayoutDashboard,
   ListTodo,
-  List,
   FolderKanban,
   Calendar,
   MessageCircle,
@@ -51,7 +50,6 @@ const navSections: NavSection[] = [
     items: [
       { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
       { label: 'Task', href: '/tasks', icon: ListTodo, badgeKey: 'tasks' },
-      { label: 'Elenco', href: '/elenco', icon: List },
       { label: 'Progetti', href: '/projects', icon: FolderKanban },
       { label: 'Calendario', href: '/calendario', icon: Calendar },
       { label: 'Chat', href: '/chat', icon: MessageCircle, badgeKey: 'chat', dot: true },
