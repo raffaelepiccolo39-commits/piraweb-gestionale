@@ -138,7 +138,7 @@ function LoginContent() {
   }, [totpCode, step]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 bg-[#F7F4ED] text-[#0F172A]">
+    <div className="min-h-screen flex items-center justify-center px-4 bg-[#F5F5F4] text-[#0F172A]">
       <div className="w-full max-w-[400px]">
         <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-8">
           {/* Logo */}
