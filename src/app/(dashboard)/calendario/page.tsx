@@ -15,7 +15,8 @@ import { CalendarMonthView } from '@/components/calendar/calendar-month-view';
 import { EventForm, type EventFormData } from '@/components/calendar/event-form';
 import { DayEvents } from '@/components/calendar/day-events';
 import { SyncSettings } from '@/components/calendar/sync-settings';
-import type { CalendarEvent } from '@/types/database';
+import type { CalendarEvent, TeamAbsence } from '@/types/database';
+import { TIME_OFF_TYPE_LABELS } from '@/lib/constants';
 import { ChevronLeft, ChevronRight, Plus, AlertTriangle } from 'lucide-react';
 
 export default function CalendarioPage() {
@@ -40,17 +41,60 @@ export default function CalendarioPage() {
   const fetchEvents = useCallback(async () => {
     setError(false);
     try {
-      const start = startOfMonth(currentMonth).toISOString();
-      const end = endOfMonth(currentMonth).toISOString();
+      const start = startOfMonth(currentMonth);
+      const end = endOfMonth(currentMonth);
+      const startIso = start.toISOString();
+      const endIso = end.toISOString();
+      const startDate = format(start, 'yyyy-MM-dd');
+      const endDate = format(end, 'yyyy-MM-dd');
 
-      const { data } = await supabase
-        .from('calendar_events')
-        .select('*, creator:profiles!calendar_events_created_by_fkey(id, full_name)')
-        .gte('start_time', start)
-        .lte('start_time', end)
-        .order('start_time', { ascending: true });
+      const [eventsRes, absRes] = await Promise.all([
+        supabase
+          .from('calendar_events')
+          .select('*, creator:profiles!calendar_events_created_by_fkey(id, full_name)')
+          .gte('start_time', startIso)
+          .lte('start_time', endIso)
+          .order('start_time', { ascending: true }),
+        supabase.rpc('get_team_absences', { p_from: startDate, p_to: endDate }),
+      ]);
 
-      setEvents((data as CalendarEvent[]) || []);
+      const realEvents = (eventsRes.data as CalendarEvent[]) || [];
+
+      // Espande ogni assenza approvata in un evento per ciascun giorno del range,
+      // così il calendario mostra il blocco intero (CalendarMonthView matcha per data).
+      // Privacy: la RPC get_team_absences già esclude le malattie dei colleghi non-admin.
+      const absenceColor: Record<string, string> = {
+        ferie: '#10B981',     // verde
+        permesso: '#3B82F6',  // blu
+        malattia: '#A78BFA',  // viola
+      };
+      const absenceEvents: CalendarEvent[] = [];
+      const absences = (absRes.data as TeamAbsence[]) || [];
+      for (const a of absences) {
+        const cur = new Date(`${a.start_date}T00:00:00`);
+        const last = new Date(`${a.end_date}T00:00:00`);
+        while (cur <= last) {
+          const dayStr = format(cur, 'yyyy-MM-dd');
+          absenceEvents.push({
+            id: `absence-${a.request_id}-${dayStr}`,
+            title: `${a.full_name} · ${TIME_OFF_TYPE_LABELS[a.type]}`,
+            description: null,
+            start_time: `${dayStr}T00:00:00`,
+            end_time: `${dayStr}T23:59:59`,
+            location: null,
+            all_day: true,
+            color: a.color || absenceColor[a.type] || '#94A3B8',
+            ical_uid: null,
+            assigned_to: [a.user_id],
+            created_by: a.user_id,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          });
+          cur.setDate(cur.getDate() + 1);
+        }
+      }
+
+      setEvents([...realEvents, ...absenceEvents]);
     } catch {
       setError(true);
     } finally {
@@ -162,6 +206,8 @@ export default function CalendarioPage() {
   };
 
   const canManage = (event: CalendarEvent) => {
+    // Le assenze sintetizzate dalle ferie sono read-only: si gestiscono solo da /ferie.
+    if (event.id.startsWith('absence-')) return false;
     return isAdmin || event.created_by === profile?.id;
   };
 

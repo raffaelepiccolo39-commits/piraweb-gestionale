@@ -19,6 +19,9 @@ import { StatCards } from '@/components/dashboard/stat-cards';
 import { ProjectProgress } from '@/components/dashboard/project-progress';
 import { ActivityFeed } from '@/components/dashboard/activity-feed';
 import { TeamAttendance } from '@/components/dashboard/team-attendance';
+import { TimeOffInbox } from '@/components/dashboard/time-off-inbox';
+import { notifyTimeOffDecision } from '@/lib/time-off-notifications';
+import type { TimeOffRequest } from '@/types/database';
 import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
 import { Filter, Plus } from 'lucide-react';
@@ -84,6 +87,7 @@ export default function DashboardPage() {
     user_id: string; full_name: string; status: string;
   }>>([]);
   const [dueTodayCount, setDueTodayCount] = useState(0);
+  const [pendingTimeOff, setPendingTimeOff] = useState<TimeOffRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
@@ -161,6 +165,12 @@ export default function DashboardPage() {
           })(),
           // 13: team attendance
           supabase.rpc('get_team_attendance_today'),
+          // 14: pending time-off requests (per inbox dashboard)
+          supabase.from('time_off_requests')
+            .select('*, user:profiles!time_off_requests_user_id_fkey(id, full_name, color)')
+            .eq('status', 'pending')
+            .order('start_date', { ascending: true })
+            .limit(20),
         );
       }
 
@@ -220,6 +230,7 @@ export default function DashboardPage() {
         });
 
         setTeamAttendance((results[13].data as typeof teamAttendance) || []);
+        setPendingTimeOff((results[14]?.data as TimeOffRequest[]) || []);
       }
     } catch {
       setError(true);
@@ -300,6 +311,38 @@ export default function DashboardPage() {
       toast.error('Errore nella registrazione');
     } finally {
       setAttendanceLoading(false);
+    }
+  };
+
+  const handleApproveTimeOff = async (id: string) => {
+    if (!profile) return;
+    const req = pendingTimeOff.find(r => r.id === id);
+    try {
+      const { error } = await supabase.from('time_off_requests')
+        .update({ status: 'approved', reviewed_by: profile.id, reviewed_at: new Date().toISOString() })
+        .eq('id', id);
+      if (error) throw error;
+      toast.success('Richiesta approvata');
+      if (req) await notifyTimeOffDecision(supabase, req, 'approved');
+      fetchDashboardData();
+    } catch (e) {
+      toast.error((e as { message?: string } | undefined)?.message || 'Errore durante l\'approvazione');
+    }
+  };
+
+  const handleRejectTimeOff = async (id: string) => {
+    if (!profile) return;
+    const req = pendingTimeOff.find(r => r.id === id);
+    try {
+      const { error } = await supabase.from('time_off_requests')
+        .update({ status: 'rejected', reviewed_by: profile.id, reviewed_at: new Date().toISOString() })
+        .eq('id', id);
+      if (error) throw error;
+      toast.success('Richiesta rifiutata');
+      if (req) await notifyTimeOffDecision(supabase, req, 'rejected');
+      fetchDashboardData();
+    } catch (e) {
+      toast.error((e as { message?: string } | undefined)?.message || 'Errore durante il rifiuto');
     }
   };
 
@@ -457,6 +500,14 @@ export default function DashboardPage() {
 
         {/* Side */}
         <div className="space-y-6">
+          {isAdmin && (
+            <TimeOffInbox
+              requests={pendingTimeOff}
+              onApprove={handleApproveTimeOff}
+              onReject={handleRejectTimeOff}
+            />
+          )}
+
           {isAdmin && <TeamAttendance team={teamAttendance} />}
 
           {isAdmin && (

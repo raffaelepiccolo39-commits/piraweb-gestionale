@@ -14,6 +14,7 @@ import { useToast } from '@/components/ui/toast';
 import { SkeletonStats, SkeletonList } from '@/components/ui/skeleton';
 import { formatDate } from '@/lib/utils';
 import { TIME_OFF_TYPE_LABELS, TIME_OFF_STATUS_LABELS } from '@/lib/constants';
+import { notifyTimeOffDecision } from '@/lib/time-off-notifications';
 import type { TimeOffRequest, TimeOffBalance, TeamAbsence, TimeOffType } from '@/types/database';
 import { Plus, Check, X, Plane, Clock, Stethoscope, Users, CalendarDays, AlertTriangle, Hourglass } from 'lucide-react';
 
@@ -242,12 +243,14 @@ export default function FeriePage() {
 
   const handleApprove = async (id: string) => {
     if (!profile) return;
+    const req = pending.find(r => r.id === id);
     try {
       const { error } = await supabase.from('time_off_requests')
         .update({ status: 'approved', reviewed_by: profile.id, reviewed_at: new Date().toISOString() })
         .eq('id', id);
       if (error) throw error;
       toast.success('Richiesta approvata');
+      if (req) await notifyTimeOffDecision(supabase, req, 'approved');
       fetchData();
     } catch (e) {
       toast.error((e as { message?: string } | undefined)?.message || 'Errore durante l\'approvazione');
@@ -256,12 +259,15 @@ export default function FeriePage() {
 
   const handleReject = async () => {
     if (!profile || !rejectId) return;
+    const req = pending.find(r => r.id === rejectId);
+    const note = rejectNote.trim() || null;
     try {
       const { error } = await supabase.from('time_off_requests')
-        .update({ status: 'rejected', reviewed_by: profile.id, reviewed_at: new Date().toISOString(), review_note: rejectNote.trim() || null })
+        .update({ status: 'rejected', reviewed_by: profile.id, reviewed_at: new Date().toISOString(), review_note: note })
         .eq('id', rejectId);
       if (error) throw error;
       toast.success('Richiesta rifiutata');
+      if (req) await notifyTimeOffDecision(supabase, req, 'rejected', note);
       setRejectId(null);
       setRejectNote('');
       fetchData();
