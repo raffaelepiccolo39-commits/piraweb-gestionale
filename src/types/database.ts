@@ -2,7 +2,29 @@ export type UserRole = 'admin' | 'social_media_manager' | 'content_creator' | 'g
 export type ProjectStatus = 'draft' | 'active' | 'paused' | 'completed' | 'archived';
 export type TaskStatus = 'todo' | 'in_progress' | 'review' | 'done' | 'archived';
 export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent';
-export type NotificationType = 'task_assigned' | 'task_updated' | 'task_completed' | 'project_created' | 'post_created' | 'comment_added' | 'mention' | 'deadline_approaching' | 'ai_script_ready' | 'time_off_approved' | 'time_off_rejected';
+export type NotificationType = 'task_assigned' | 'task_updated' | 'task_completed' | 'project_created' | 'post_created' | 'comment_added' | 'mention' | 'deadline_approaching' | 'ai_script_ready' | 'time_off_approved' | 'time_off_rejected' | 'expense_approved' | 'expense_rejected' | 'expense_paid';
+
+export type ExpenseCategory = 'trasferta' | 'pranzo_lavoro' | 'carburante' | 'materiali' | 'software_licenze' | 'altro';
+export type ExpenseStatus = 'pending' | 'approved' | 'rejected' | 'paid';
+
+export interface EmployeeExpense {
+  id: string;
+  user_id: string;
+  category: ExpenseCategory;
+  amount: number;
+  description: string | null;
+  incurred_on: string;
+  receipt_path: string;
+  receipt_name: string | null;
+  status: ExpenseStatus;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  review_note: string | null;
+  paid_at: string | null;
+  created_at: string;
+  updated_at: string;
+  user?: Pick<Profile, 'id' | 'full_name' | 'color'>;
+}
 export type AiProvider = 'claude' | 'openai' | 'gemini';
 export type ScriptType = 'social_post' | 'blog_article' | 'email_campaign' | 'ad_copy' | 'video_script' | 'brand_guidelines' | 'other';
 export type PostCategory = 'announcement' | 'update' | 'idea' | 'question' | 'celebration';

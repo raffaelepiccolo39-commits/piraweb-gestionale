@@ -37,6 +37,22 @@ export const TIME_OFF_STATUS_LABELS: Record<string, string> = {
   cancelled: 'Annullata',
 };
 
+export const EXPENSE_CATEGORY_LABELS: Record<string, string> = {
+  trasferta: 'Trasferta',
+  pranzo_lavoro: 'Pranzo/cena di lavoro',
+  carburante: 'Carburante',
+  materiali: 'Materiali',
+  software_licenze: 'Software / Licenze',
+  altro: 'Altro',
+};
+
+export const EXPENSE_STATUS_LABELS: Record<string, string> = {
+  pending: 'In attesa',
+  approved: 'Approvata',
+  rejected: 'Rifiutata',
+  paid: 'Rimborsata',
+};
+
 export const TASK_STATUSES = ['todo', 'in_progress', 'review', 'done', 'archived'] as const;
 export type TaskStatus = (typeof TASK_STATUSES)[number];
 
