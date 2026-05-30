@@ -2,6 +2,28 @@ import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse, type NextRequest } from 'next/server';
 
+// Pagine accessibili SOLO agli admin. I non-admin che provano questi URL
+// vengono rimbalzati su /dashboard dal middleware.
+const ADMIN_ROUTES: readonly string[] = [
+  '/cashflow',
+  '/crm',
+  '/cfo',
+  '/direzione',
+  '/profitability',
+  '/lead-finder',
+  '/lead-ai',
+  '/market-research',
+  '/ai-content',
+  '/freelancers',
+  '/invoices',
+  '/capacity',
+  '/automations',
+  '/analytics',
+  '/gestione',
+  '/settings',
+  '/note-dev',
+];
+
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
@@ -88,6 +110,42 @@ export async function updateSession(request: NextRequest) {
         }
       } catch {
         // Se la tabella non esiste ancora o errore, lascia passare
+      }
+    }
+  }
+
+  // ── Guard URL admin-only ──
+  // I non-admin che provano ad aprire una pagina admin via URL diretto
+  // vengono rimbalzati su /dashboard. Eseguito solo se la rotta è davvero
+  // admin (evita una query profiles inutile su ogni navigazione).
+  if (user && !isAuthPage && !isApiRoute && !isPublicPage) {
+    const path = request.nextUrl.pathname;
+    const isAdminRoute = ADMIN_ROUTES.some(
+      (r) => path === r || path.startsWith(r + '/')
+    );
+    if (isAdminRoute) {
+      try {
+        const serviceClient = createClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.SUPABASE_SERVICE_ROLE_KEY!
+        );
+        const { data: profileRow } = await serviceClient
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .single();
+        if (profileRow?.role !== 'admin') {
+          const url = request.nextUrl.clone();
+          url.pathname = '/dashboard';
+          url.search = '';
+          const redirectResponse = NextResponse.redirect(url);
+          supabaseResponse.cookies.getAll().forEach((cookie) => {
+            redirectResponse.cookies.set(cookie.name, cookie.value);
+          });
+          return redirectResponse;
+        }
+      } catch {
+        // Se il profilo non è recuperabile non blocchiamo, log lato server
       }
     }
   }

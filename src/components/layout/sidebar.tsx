@@ -37,6 +37,7 @@ interface NavItem {
   icon: React.ElementType;
   badgeKey?: string;
   dot?: boolean;
+  adminOnly?: boolean;
 }
 
 interface NavSection {
@@ -75,8 +76,8 @@ const navSections: NavSection[] = [
     label: 'Business',
     items: [
       { label: 'Clienti', href: '/clients', icon: Users },
-      { label: 'CRM', href: '/crm', icon: Briefcase },
-      { label: 'Cashflow', href: '/cashflow', icon: Wallet },
+      { label: 'CRM', href: '/crm', icon: Briefcase, adminOnly: true },
+      { label: 'Cashflow', href: '/cashflow', icon: Wallet, adminOnly: true },
     ],
   },
   {
@@ -196,6 +197,9 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
       <nav aria-label="Navigazione principale" className="flex-1 py-1 px-3 overflow-y-auto no-scrollbar">
         {navSections.map((section, si) => {
           if (section.adminOnly && !isAdmin) return null;
+          // Filtra le voci admin-only e nascondi la sezione se diventa vuota
+          const visibleItems = section.items.filter((item) => !item.adminOnly || isAdmin);
+          if (visibleItems.length === 0) return null;
 
           return (
             <div key={section.label ?? `s-${si}`} className={cn(section.label && 'mt-[18px]')}>
@@ -209,7 +213,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
               )}
 
               <div className="flex flex-col gap-0.5">
-                {section.items.map((item) => {
+                {visibleItems.map((item) => {
                   const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
                   const Icon = item.icon;
                   const badgeCount = item.badgeKey ? badges[item.badgeKey] : undefined;
