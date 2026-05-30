@@ -22,6 +22,7 @@ import { SkeletonList } from '@/components/ui/skeleton';
 import { PageHeader } from '@/components/ui/page-header';
 import { TaskDetailModal } from '@/components/bacheca/task-detail-modal';
 import { TaskForm } from '@/components/tasks/task-form';
+import { TaskViewSwitcher } from '@/components/tasks/view-switcher';
 import { formatDate, getInitials } from '@/lib/utils';
 import type { Task, Profile, Client } from '@/types/database';
 import {
@@ -389,6 +390,8 @@ export default function BachecaPage() {
           )
         }
       />
+
+      <TaskViewSwitcher active="kanban" />
 
       <DragDropContext onDragEnd={handleDragEnd}>
         <div className="flex gap-4 overflow-x-auto pb-4 no-scrollbar">

@@ -2,7 +2,7 @@
 
 
 import { useEffect, useState, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
@@ -20,6 +20,7 @@ import { SkeletonList, SkeletonStats } from '@/components/ui/skeleton';
 import { DataTable } from '@/components/ui/data-table';
 import { ListTodo, Calendar, Clock, ArrowRight, Sparkles, Brain, Check, Send, AlertTriangle, Archive, ExternalLink } from 'lucide-react';
 import { STATUS_LABELS, PRIORITY_LABELS } from '@/lib/constants';
+import { TaskViewSwitcher } from '@/components/tasks/view-switcher';
 
 interface ParsedTask {
   title: string;
@@ -39,7 +40,8 @@ export default function TasksPage() {
   const [teamMembers, setTeamMembers] = useState<{ id: string; full_name: string; role: string; color: string | null }[]>([]);
   const [loading, setLoading] = useState(true);
   const [assigneeFilter, setAssigneeFilter] = useState<string>('me');
-  const [groupMode, setGroupMode] = useState<'none' | 'sector'>('none');
+  const searchParams = useSearchParams();
+  const groupMode: 'none' | 'sector' = searchParams.get('group') === 'sector' ? 'sector' : 'none';
 
   // AI task creation
   const [showAiModal, setShowAiModal] = useState(false);
@@ -272,7 +274,9 @@ export default function TasksPage() {
           </Button>
         }
       />
-      <div className="flex flex-wrap items-end gap-3 mb-6">
+      <TaskViewSwitcher active={groupMode === 'sector' ? 'raggruppata' : 'lista'} />
+
+      <div className="flex flex-wrap items-end gap-3 mb-6 mt-6">
         <div className="w-52">
           <Select
             value={assigneeFilter}
@@ -284,16 +288,6 @@ export default function TasksPage() {
                 value: m.id,
                 label: m.full_name,
               })),
-            ]}
-          />
-        </div>
-        <div className="w-52">
-          <Select
-            value={groupMode}
-            onChange={(e) => setGroupMode(e.target.value as 'none' | 'sector')}
-            options={[
-              { value: 'none', label: 'Nessun raggruppamento' },
-              { value: 'sector', label: 'Raggruppa per settore' },
             ]}
           />
         </div>
