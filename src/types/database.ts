@@ -2,7 +2,7 @@ export type UserRole = 'admin' | 'social_media_manager' | 'content_creator' | 'g
 export type ProjectStatus = 'draft' | 'active' | 'paused' | 'completed' | 'archived';
 export type TaskStatus = 'todo' | 'in_progress' | 'review' | 'done' | 'archived';
 export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent';
-export type NotificationType = 'task_assigned' | 'task_updated' | 'task_completed' | 'project_created' | 'post_created' | 'comment_added' | 'mention' | 'deadline_approaching' | 'ai_script_ready' | 'time_off_approved' | 'time_off_rejected' | 'expense_approved' | 'expense_rejected' | 'expense_paid';
+export type NotificationType = 'task_assigned' | 'task_updated' | 'task_completed' | 'project_created' | 'post_created' | 'comment_added' | 'mention' | 'deadline_approaching' | 'ai_script_ready' | 'time_off_approved' | 'time_off_rejected' | 'expense_approved' | 'expense_rejected' | 'expense_paid' | 'document_expiring';
 
 export type ExpenseCategory = 'trasferta' | 'pranzo_lavoro' | 'carburante' | 'materiali' | 'software_licenze' | 'altro';
 export type ExpenseStatus = 'pending' | 'approved' | 'rejected' | 'paid';
