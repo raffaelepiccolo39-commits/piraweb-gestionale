@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { cn, getRoleLabel, getInitials, getUserColor } from '@/lib/utils';
 import { useTheme } from '@/components/theme-provider';
 import { useAuth } from '@/hooks/use-auth';
@@ -94,7 +94,6 @@ interface SidebarProps {
 
 export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const pathname = usePathname();
-  const router = useRouter();
   const { profile } = useAuth();
   const [badges, setBadges] = useState<Record<string, number>>({});
   const [loggingOut, setLoggingOut] = useState(false);
@@ -139,8 +138,14 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const handleLogout = async () => {
     setLoggingOut(true);
     const supabase = createClient();
-    await supabase.auth.signOut();
-    router.push('/login');
+    try {
+      await supabase.auth.signOut();
+    } catch {
+      // procedi col redirect anche se signOut fallisce
+    }
+    // Hard navigation: forza il middleware a rivalutare i cookie di sessione.
+    // Un router.push lascerebbe i cookie stale e l'utente "intrappolato".
+    window.location.href = '/login';
   };
 
   return (
