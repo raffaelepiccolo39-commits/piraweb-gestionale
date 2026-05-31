@@ -12,6 +12,7 @@ import { Modal } from '@/components/ui/modal';
 import { PageHeader } from '@/components/ui/page-header';
 import { useToast } from '@/components/ui/toast';
 import { SkeletonStats, SkeletonList } from '@/components/ui/skeleton';
+import { EmptyState } from '@/components/ui/empty-state';
 import { formatDate } from '@/lib/utils';
 import { TIME_OFF_TYPE_LABELS, TIME_OFF_STATUS_LABELS } from '@/lib/constants';
 import { notifyTimeOffDecision } from '@/lib/time-off-notifications';
@@ -487,11 +488,16 @@ export default function FeriePage() {
           <CalendarDays size={16} className="text-pw-text-muted" /> Le mie richieste
         </h2>
         {myRequests.length === 0 ? (
-          <Card>
-            <CardContent className="p-8 text-center text-pw-text-muted text-sm">
-              Nessuna richiesta. Usa &quot;Nuova richiesta&quot; per chiedere ferie o permessi.
-            </CardContent>
-          </Card>
+          <EmptyState
+            icon={Plane}
+            title="Nessuna richiesta"
+            description="Quando chiederai ferie, un permesso o segnalerai una malattia, comparirà qui."
+            action={
+              <Button variant="primary" onClick={() => { resetForm(); setShowModal(true); }}>
+                <Plus size={14} /> Nuova richiesta
+              </Button>
+            }
+          />
         ) : (
           <div className="space-y-2">
             {myRequests.map((r) => {

@@ -12,6 +12,7 @@ import { Modal } from '@/components/ui/modal';
 import { PageHeader } from '@/components/ui/page-header';
 import { useToast } from '@/components/ui/toast';
 import { SkeletonStats, SkeletonList } from '@/components/ui/skeleton';
+import { EmptyState } from '@/components/ui/empty-state';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { EXPENSE_CATEGORY_LABELS, EXPENSE_STATUS_LABELS } from '@/lib/constants';
 import { notifyExpenseDecision } from '@/lib/expense-notifications';
@@ -392,11 +393,16 @@ export default function NoteSpesePage() {
           <Receipt size={16} className="text-pw-text-muted" /> Le mie spese
         </h2>
         {myExpenses.length === 0 ? (
-          <Card>
-            <CardContent className="p-8 text-center text-pw-text-muted text-sm">
-              Nessuna nota spese. Usa &quot;Nuova spesa&quot; per inviare la prima.
-            </CardContent>
-          </Card>
+          <EmptyState
+            icon={Receipt}
+            title="Nessuna nota spese"
+            description="Quando carichi una ricevuta per il rimborso, apparirà qui con il suo stato di approvazione."
+            action={
+              <Button variant="primary" onClick={() => { resetForm(); setShowModal(true); }}>
+                <Plus size={14} /> Nuova spesa
+              </Button>
+            }
+          />
         ) : (
           <div className="space-y-2">
             {myExpenses.map(exp => (

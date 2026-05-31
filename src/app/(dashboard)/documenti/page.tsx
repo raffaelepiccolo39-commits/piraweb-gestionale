@@ -12,6 +12,7 @@ import { Modal } from '@/components/ui/modal';
 import { PageHeader } from '@/components/ui/page-header';
 import { useToast } from '@/components/ui/toast';
 import { SkeletonStats, SkeletonList } from '@/components/ui/skeleton';
+import { EmptyState } from '@/components/ui/empty-state';
 import { formatDate } from '@/lib/utils';
 import { EMPLOYEE_DOCUMENT_TYPE_LABELS } from '@/lib/constants';
 import type { EmployeeDocument, EmployeeDocumentType } from '@/types/database';
@@ -305,11 +306,29 @@ export default function DocumentiPage() {
       {/* Lista */}
       <div>
         {filteredDocs.length === 0 ? (
-          <Card>
-            <CardContent className="p-8 text-center text-pw-text-muted text-sm">
-              Nessun documento{typeFilter !== 'all' || employeeFilter !== 'all' ? ' con questi filtri' : ''}.
-            </CardContent>
-          </Card>
+          (typeFilter !== 'all' || employeeFilter !== 'all') ? (
+            <EmptyState
+              icon={FileText}
+              title="Nessun documento con questi filtri"
+              description="Prova a cambiare tipo o dipendente, oppure azzera i filtri per vedere tutto l'archivio."
+              action={
+                <Button variant="outline" onClick={() => { setTypeFilter('all'); setEmployeeFilter('all'); }}>
+                  Azzera filtri
+                </Button>
+              }
+            />
+          ) : (
+            <EmptyState
+              icon={FileText}
+              title="Nessun documento"
+              description="Carica contratti, certificati, buste paga o altri documenti del personale. Quelli con scadenza riceveranno un avviso automatico a 30, 7 e 0 giorni."
+              action={
+                <Button variant="primary" onClick={openUploadModal}>
+                  <Plus size={14} /> Carica il primo documento
+                </Button>
+              }
+            />
+          )
         ) : (
           <div className="space-y-2">
             {filteredDocs.map((d) => {
