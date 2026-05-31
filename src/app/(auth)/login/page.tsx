@@ -49,11 +49,8 @@ function LoginContent() {
     }
 
     try {
-      const res = await fetch('/api/auth/2fa/check', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: data.user.id }),
-      });
+      // userId è dedotto server-side dalla sessione, non più dal body
+      const res = await fetch('/api/auth/2fa/check', { method: 'POST' });
       const result = await res.json();
 
       if (result.enabled) {
@@ -131,9 +128,15 @@ function LoginContent() {
     }
   };
 
+  // Guard ref sincrono per evitare doppio fire dell'autoVerify quando
+  // l'utente incolla il codice mentre verifying2FA è ancora false ma una
+  // request è già in flight. Senza, la seconda POST riceve 401 da sessione
+  // già consumata e mostra "codice non valido" fuorviante.
+  const verifyInFlightRef = useRef(false);
   useEffect(() => {
-    if (step === '2fa' && totpCode.every(d => d !== '') && !verifying2FA) {
-      handleVerify2FA();
+    if (step === '2fa' && totpCode.every(d => d !== '') && !verifying2FA && !verifyInFlightRef.current) {
+      verifyInFlightRef.current = true;
+      handleVerify2FA().finally(() => { verifyInFlightRef.current = false; });
     }
   }, [totpCode, step]);
 

@@ -276,7 +276,7 @@ export default function NoteSpesePage() {
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center h-64 text-center gap-4">
-        <AlertTriangle size={48} className="text-red-400" />
+        <AlertTriangle size={48} className="text-pw-danger" />
         <h2 className="text-xl font-semibold text-pw-text">Errore nel caricamento</h2>
         <button onClick={() => { setLoading(true); setError(false); fetchData(); }} className="px-4 py-2 rounded-xl bg-pw-accent text-[#0A263A] text-sm font-medium hover:bg-pw-accent-hover transition-colors">Riprova</button>
       </div>
@@ -442,7 +442,7 @@ export default function NoteSpesePage() {
                         {formatDate(exp.incurred_on)}{exp.description ? ` · ${exp.description}` : ''}
                       </p>
                       {exp.status === 'rejected' && exp.review_note && (
-                        <p className="text-xs text-red-400 mt-0.5">Motivo rifiuto: {exp.review_note}</p>
+                        <p className="text-xs text-pw-danger mt-0.5">Motivo rifiuto: {exp.review_note}</p>
                       )}
                     </div>
                   </div>
@@ -452,7 +452,7 @@ export default function NoteSpesePage() {
                     </button>
                     <Badge tone={STATUS_TONE[exp.status]} dot>{EXPENSE_STATUS_LABELS[exp.status]}</Badge>
                     {exp.status === 'pending' && (
-                      <button onClick={() => handleCancel(exp.id)} className="p-1.5 rounded-lg text-pw-text-dim hover:bg-pw-surface-2 hover:text-red-400" title="Annulla">
+                      <button onClick={() => handleCancel(exp.id)} className="p-1.5 rounded-lg text-pw-text-dim hover:bg-pw-surface-2 hover:text-pw-danger" title="Annulla">
                         <X size={16} />
                       </button>
                     )}

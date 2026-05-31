@@ -228,7 +228,7 @@ export default function DocumentiPage() {
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center h-64 text-center gap-4">
-        <AlertTriangle size={48} className="text-red-400" />
+        <AlertTriangle size={48} className="text-pw-danger" />
         <h2 className="text-xl font-semibold text-pw-text">Errore nel caricamento</h2>
         <button onClick={() => { setLoading(true); setError(false); fetchData(); }} className="px-4 py-2 rounded-xl bg-pw-accent text-[#0A263A] text-sm font-medium hover:bg-pw-accent-hover transition-colors">Riprova</button>
       </div>
@@ -264,7 +264,7 @@ export default function DocumentiPage() {
             <div className="flex items-center gap-2 text-pw-text-muted text-xs mb-1">
               <Hourglass size={14} /> In scadenza
             </div>
-            <p className={`text-3xl font-semibold leading-none ${stats.expiring > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-pw-text'}`}>{stats.expiring}</p>
+            <p className={`text-3xl font-semibold leading-none ${stats.expiring > 0 ? 'text-amber-600 dark:text-pw-warning' : 'text-pw-text'}`}>{stats.expiring}</p>
             <p className="text-xs text-pw-text-dim mt-1.5">entro 30 giorni</p>
           </CardContent>
         </Card>
@@ -371,7 +371,7 @@ export default function DocumentiPage() {
                       {isAdmin && (
                         <button
                           onClick={() => handleDelete(d)}
-                          className="p-1.5 rounded-lg text-pw-text-dim hover:bg-pw-surface-2 hover:text-red-400"
+                          className="p-1.5 rounded-lg text-pw-text-dim hover:bg-pw-surface-2 hover:text-pw-danger"
                           title="Elimina"
                         >
                           <Trash2 size={16} />

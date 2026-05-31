@@ -312,7 +312,7 @@ export default function FeriePage() {
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center h-64 text-center gap-4">
-        <AlertTriangle size={48} className="text-red-400" />
+        <AlertTriangle size={48} className="text-pw-danger" />
         <h2 className="text-xl font-semibold text-pw-text">Errore nel caricamento</h2>
         <p className="text-pw-text-muted max-w-md text-sm">Non è stato possibile caricare le richieste. Riprova.</p>
         <button onClick={() => { setLoading(true); setError(false); fetchData(); }} className="px-4 py-2 rounded-xl bg-pw-accent text-[#0A263A] text-sm font-medium hover:bg-pw-accent-hover transition-colors duration-200 ease-out">Riprova</button>
@@ -444,7 +444,7 @@ export default function FeriePage() {
                       <span className="text-xs text-pw-text-dim">gg/anno</span>
                     </div>
                     <span className="text-xs text-pw-text-muted w-36 text-right tabular-nums">
-                      {fmtDays(used)} usate · <span className={residual < 0 ? 'text-red-400' : 'text-pw-text'}>{fmtDays(residual)} residue</span>
+                      {fmtDays(used)} usate · <span className={residual < 0 ? 'text-pw-danger' : 'text-pw-text'}>{fmtDays(residual)} residue</span>
                     </span>
                   </div>
                 );
@@ -510,14 +510,14 @@ export default function FeriePage() {
                         </p>
                         <p className="text-xs text-pw-text-muted truncate">{dateRangeLabel(r)}</p>
                         {r.status === 'rejected' && r.review_note && (
-                          <p className="text-xs text-red-400 mt-0.5">Motivo rifiuto: {r.review_note}</p>
+                          <p className="text-xs text-pw-danger mt-0.5">Motivo rifiuto: {r.review_note}</p>
                         )}
                       </div>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       <Badge tone={STATUS_TONE[r.status]} dot>{TIME_OFF_STATUS_LABELS[r.status]}</Badge>
                       {r.status === 'pending' && (
-                        <button onClick={() => handleCancel(r.id)} className="p-1.5 rounded-lg text-pw-text-dim hover:bg-pw-surface-2 hover:text-red-400 transition-colors" title="Annulla richiesta">
+                        <button onClick={() => handleCancel(r.id)} className="p-1.5 rounded-lg text-pw-text-dim hover:bg-pw-surface-2 hover:text-pw-danger transition-colors" title="Annulla richiesta">
                           <X size={16} />
                         </button>
                       )}
@@ -598,7 +598,7 @@ export default function FeriePage() {
             <span className="text-lg font-semibold text-pw-text">{fmtDays(formTotal)} gg</span>
           </div>
           {form.type === 'ferie' && (ferieApproved + feriePending + formTotal) > ferieAllowance && (
-            <p className="flex items-center gap-1.5 text-xs text-red-400">
+            <p className="flex items-center gap-1.5 text-xs text-pw-danger">
               <AlertTriangle size={14} /> Supera il saldo prenotabile ({fmtDays(Math.max(0, ferieBookable))} gg disponibili)
             </p>
           )}

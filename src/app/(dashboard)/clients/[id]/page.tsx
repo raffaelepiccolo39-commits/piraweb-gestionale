@@ -393,8 +393,8 @@ export default function ClientDetailPage({
           <div className="flex-1">
             <p className={`text-sm font-semibold ${
               expiry.status === 'expired' || expiry.status === 'danger'
-                ? 'text-red-400'
-                : 'text-amber-400'
+                ? 'text-pw-danger'
+                : 'text-pw-warning'
             }`}>
               {expiry.label}
             </p>
@@ -538,9 +538,9 @@ export default function ClientDetailPage({
                 icon={FileText}
                 defaultOpen
                 badge={contract.duration_months === 0 ? (
-                  <Badge className="bg-amber-500/15 text-amber-400">Accordo verbale</Badge>
+                  <Badge className="bg-amber-500/15 text-pw-warning">Accordo verbale</Badge>
                 ) : expiry && expiry.status === 'ok' ? (
-                  <Badge className="bg-green-500/15 text-green-400">{expiry.label}</Badge>
+                  <Badge className="bg-green-500/15 text-pw-success">{expiry.label}</Badge>
                 ) : undefined}
                 action={
                   <Button variant="outline" size="sm" onClick={() => setShowRenewForm(true)}>
@@ -631,9 +631,9 @@ export default function ClientDetailPage({
                           log.action === 'paid' ? 'bg-green-500/15' : 'bg-red-500/15'
                         }`}>
                           {log.action === 'paid' ? (
-                            <Check size={14} className="text-green-400" />
+                            <Check size={14} className="text-pw-success" />
                           ) : (
-                            <X size={14} className="text-red-400" />
+                            <X size={14} className="text-pw-danger" />
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
@@ -647,7 +647,7 @@ export default function ClientDetailPage({
                           </p>
                         </div>
                         <p className={`text-sm font-semibold shrink-0 ${
-                          log.action === 'paid' ? 'text-green-400' : 'text-red-400'
+                          log.action === 'paid' ? 'text-pw-success' : 'text-pw-danger'
                         }`}>
                           {log.action === 'paid' ? '+' : '-'}{formatCurrency(log.amount)}
                         </p>
@@ -734,7 +734,7 @@ export default function ClientDetailPage({
         title="Nuovo Contratto"
       >
         {contractError && (
-          <div role="alert" className="mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+          <div role="alert" className="mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-pw-danger text-sm">
             {contractError}
           </div>
         )}

@@ -27,6 +27,14 @@ const ADMIN_ROUTES: readonly string[] = [
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
+  // Short-circuit /api: ogni route handler ha già il proprio createServerClient
+  // e gestisce l'auth in autonomia. Far passare TUTTE le /api da getUser() qui
+  // aggiunge una RPC sincrona ad auth.supabase.co per ogni chiamata interna,
+  // crea race nei refresh token e occasionalmente fa scattare redirect spurious.
+  if (request.nextUrl.pathname.startsWith('/api')) {
+    return supabaseResponse;
+  }
+
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,

@@ -376,7 +376,7 @@ export default function DashboardPage() {
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center h-64 text-center gap-4">
-        <AlertTriangle size={48} className="text-red-400" />
+        <AlertTriangle size={48} className="text-pw-danger" />
         <h2 className="text-xl font-semibold text-pw-text">Errore nel caricamento</h2>
         <p className="text-pw-text-muted max-w-md text-sm">Non è stato possibile caricare i dati. Riprova.</p>
         <button onClick={() => { setLoading(true); fetchDashboardData(); }} className="px-4 py-2 rounded-xl bg-pw-accent text-[#0A263A] text-sm font-medium hover:bg-pw-accent-hover transition-colors duration-200 ease-out">Riprova</button>
@@ -555,8 +555,8 @@ export default function DashboardPage() {
                         </div>
                         <div className="flex items-center gap-4 text-xs text-pw-text-muted ml-11">
                           <span>{member.total} assegnate</span>
-                          <span className="text-green-400">{member.completed} completate</span>
-                          <span className="text-yellow-400">{member.in_progress} in corso</span>
+                          <span className="text-pw-success">{member.completed} completate</span>
+                          <span className="text-pw-warning">{member.in_progress} in corso</span>
                         </div>
                         {member.total > 0 && (
                           <div className="ml-11 mt-1.5 h-1.5 bg-pw-surface-3 rounded-full overflow-hidden">

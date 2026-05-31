@@ -27,7 +27,16 @@
   --color-pw-gold: #D4A800;
   --color-pw-cyan: #0E9AB5;
 
-  /* Semantic */
+  /* Semantic — bridge ai token --pw-* per Tailwind utility (text-pw-success ecc.) */
+  --color-pw-success: var(--pw-success);
+  --color-pw-success-soft: var(--pw-success-soft);
+  --color-pw-warning: var(--pw-warning);
+  --color-pw-warning-soft: var(--pw-warning-soft);
+  --color-pw-danger: var(--pw-danger);
+  --color-pw-danger-soft: var(--pw-danger-soft);
+  --color-pw-info: var(--pw-info);
+  --color-pw-info-soft: var(--pw-info-soft);
+
   --color-primary: #D4A800;
   --color-primary-hover: #B8930A;
   --color-primary-light: var(--pw-accent-light);
