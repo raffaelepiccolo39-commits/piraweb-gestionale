@@ -9,6 +9,61 @@ export type ExpenseStatus = 'pending' | 'approved' | 'rejected' | 'paid';
 
 export type EmployeeDocumentType = 'contratto' | 'ccnl' | 'busta_paga' | 'certificato_medico' | 'doc_fiscale' | 'formazione' | 'altro';
 
+export type ObjectiveStatus = 'active' | 'completed' | 'dropped';
+export type ReviewStatus = 'draft' | 'finalized';
+export type FeedbackKind = 'kudos' | 'suggestion';
+
+export interface EmployeeObjective {
+  id: string;
+  user_id: string;
+  quarter: string;
+  title: string;
+  description: string | null;
+  progress: number;
+  status: ObjectiveStatus;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+  user?: Pick<Profile, 'id' | 'full_name' | 'color'>;
+}
+
+export interface PerformanceReview {
+  id: string;
+  user_id: string;
+  reviewer_id: string;
+  quarter: string;
+  what_works: string | null;
+  what_to_improve: string | null;
+  next_focus: string | null;
+  notes: string | null;
+  status: ReviewStatus;
+  conducted_on: string | null;
+  created_at: string;
+  updated_at: string;
+  user?: Pick<Profile, 'id' | 'full_name' | 'color'>;
+}
+
+export interface EmployeeSkill {
+  id: string;
+  user_id: string;
+  skill_name: string;
+  level: number;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PeerFeedback {
+  id: string;
+  from_user_id: string;
+  to_user_id: string;
+  kind: FeedbackKind;
+  message: string;
+  created_at: string;
+  from_user?: Pick<Profile, 'id' | 'full_name' | 'color'>;
+  to_user?: Pick<Profile, 'id' | 'full_name' | 'color'>;
+}
+
 export interface EmployeeDocument {
   id: string;
   user_id: string;

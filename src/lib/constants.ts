@@ -63,6 +63,30 @@ export const EMPLOYEE_DOCUMENT_TYPE_LABELS: Record<string, string> = {
   altro: 'Altro',
 };
 
+export const OBJECTIVE_STATUS_LABELS: Record<string, string> = {
+  active: 'In corso',
+  completed: 'Raggiunto',
+  dropped: 'Abbandonato',
+};
+
+export const REVIEW_STATUS_LABELS: Record<string, string> = {
+  draft: 'Bozza',
+  finalized: 'Finalizzata',
+};
+
+export const SKILL_LEVEL_LABELS: Record<number, string> = {
+  1: 'Principiante',
+  2: 'Base',
+  3: 'Intermedio',
+  4: 'Avanzato',
+  5: 'Esperto',
+};
+
+export const FEEDBACK_KIND_LABELS: Record<string, string> = {
+  kudos: 'Kudos',
+  suggestion: 'Suggerimento',
+};
+
 export const TASK_STATUSES = ['todo', 'in_progress', 'review', 'done', 'archived'] as const;
 export type TaskStatus = (typeof TASK_STATUSES)[number];
 

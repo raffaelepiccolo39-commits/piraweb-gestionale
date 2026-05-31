@@ -21,6 +21,7 @@ import {
   Plane,
   Receipt,
   FileText,
+  Target,
   Settings,
   ChevronDown,
   LogOut,
@@ -64,6 +65,7 @@ const navSections: NavSection[] = [
       { label: 'Ferie & Permessi', href: '/ferie', icon: Plane },
       { label: 'Note spese', href: '/note-spese', icon: Receipt },
       { label: 'Documenti', href: '/documenti', icon: FileText },
+      { label: 'Performance', href: '/performance', icon: Target },
     ],
   },
   {
