@@ -1,33 +1,58 @@
 export const dynamic = 'force-dynamic';
 import { NextResponse, type NextRequest } from 'next/server';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
 import type { EmailOtpType } from '@supabase/supabase-js';
 
 /**
- * Conferma magic link / invite / recovery / signup generati lato admin
- * (auth.admin.generateLink → properties.hashed_token).
+ * Conferma magic link / invite / recovery / signup generati lato admin via
+ * auth.admin.generateLink → properties.hashed_token.
  *
- * Atteso URL: /api/auth/confirm?token_hash=XXX&type=magiclink&next=/onboarding
+ * URL atteso: /api/auth/confirm?token_hash=XXX&type=magiclink&next=/onboarding
+ *
+ * Critico: i cookie di sessione vanno scritti ESPLICITAMENTE sulla redirect
+ * response, perché il cookieStore di next/headers in un route handler non
+ * propaga automaticamente i cookie a una redirect creata in seguito.
  */
 export async function GET(request: NextRequest) {
-  const { searchParams, origin } = new URL(request.url);
-  const token_hash = searchParams.get('token_hash');
-  const type = searchParams.get('type') as EmailOtpType | null;
-  let next = searchParams.get('next') ?? '/dashboard';
+  const url = new URL(request.url);
+  const token_hash = url.searchParams.get('token_hash');
+  const type = url.searchParams.get('type') as EmailOtpType | null;
+  let next = url.searchParams.get('next') ?? '/dashboard';
   if (!next.startsWith('/') || next.startsWith('//')) {
     next = '/dashboard';
   }
 
   if (!token_hash || !type) {
-    return NextResponse.redirect(`${origin}/login?error=invalid_link`);
+    return NextResponse.redirect(new URL('/login?error=invalid_link', url));
   }
 
-  const supabase = await createServerSupabaseClient();
+  const response = NextResponse.redirect(new URL(next, url));
+  const cookieStore = await cookies();
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            try { cookieStore.set(name, value, options); } catch { /* ignore */ }
+            response.cookies.set(name, value, options);
+          });
+        },
+      },
+    }
+  );
+
   const { error } = await supabase.auth.verifyOtp({ token_hash, type });
 
   if (error) {
-    return NextResponse.redirect(`${origin}/login?error=${encodeURIComponent(error.message)}`);
+    return NextResponse.redirect(new URL(`/login?error=${encodeURIComponent(error.message)}`, url));
   }
 
-  return NextResponse.redirect(`${origin}${next}`);
+  return response;
 }
