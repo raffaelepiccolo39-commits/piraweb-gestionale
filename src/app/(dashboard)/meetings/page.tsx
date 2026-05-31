@@ -123,49 +123,81 @@ export default function MeetingsPage() {
 
   const handleAddAction = async () => {
     if (!newAction.trim() || !selectedMeeting) return;
-    const { error } = await supabase.from('meeting_action_items').insert({
-      meeting_id: selectedMeeting.id,
-      content: newAction.trim(),
-    });
-    if (!error) {
+    try {
+      const { error } = await supabase.from('meeting_action_items').insert({
+        meeting_id: selectedMeeting.id,
+        content: newAction.trim(),
+      });
+      if (error) throw error;
       setNewAction('');
       fetchActionItems(selectedMeeting.id);
+    } catch (e) {
+      toast.error((e as { message?: string } | undefined)?.message || 'Errore');
     }
   };
 
   const handleToggleAction = async (item: MeetingActionItem) => {
-    await supabase.from('meeting_action_items')
-      .update({ completed: !item.completed })
-      .eq('id', item.id);
-    fetchActionItems(selectedMeeting!.id);
+    try {
+      const { error } = await supabase.from('meeting_action_items')
+        .update({ completed: !item.completed })
+        .eq('id', item.id);
+      if (error) throw error;
+      fetchActionItems(selectedMeeting!.id);
+    } catch (e) {
+      toast.error((e as { message?: string } | undefined)?.message || 'Errore');
+    }
   };
 
   const handleCreateTaskFromAction = async (item: MeetingActionItem) => {
     if (!profile || !selectedMeeting) return;
-    // Create task from action item
-    const { data: task, error } = await supabase.from('tasks').insert({
-      title: item.content,
-      description: `Azione dal meeting: "${selectedMeeting.title}"`,
-      project_id: selectedMeeting.project_id || (projects[0]?.id || null),
-      assigned_to: item.assigned_to,
-      status: 'todo',
-      priority: 'medium',
-      created_by: profile.id,
-    }).select('id').single();
+    // Idempotenza: se l'action item ha già task_id, non duplicare
+    if (item.task_id) {
+      toast.error('Questo action item ha già una task associata');
+      return;
+    }
+    // No fallback ai projects[0]: era un bug serio dell'audit (creava la task
+    // sul primo progetto in alfabetico, quasi sempre sbagliato). Se il meeting
+    // non ha project_id, blocchiamo con messaggio chiaro.
+    if (!selectedMeeting.project_id) {
+      toast.error('Il meeting non è collegato a un progetto. Associa prima un progetto al meeting.');
+      return;
+    }
+    try {
+      const { data: task, error } = await supabase.from('tasks').insert({
+        title: item.content,
+        description: `Azione dal meeting: "${selectedMeeting.title}"`,
+        project_id: selectedMeeting.project_id,
+        assigned_to: item.assigned_to,
+        status: 'todo',
+        priority: 'medium',
+        created_by: profile.id,
+      }).select('id').single();
+      if (error || !task) throw error || new Error('Creazione task fallita');
 
-    if (!error && task) {
-      await supabase.from('meeting_action_items')
+      const { error: linkErr } = await supabase.from('meeting_action_items')
         .update({ task_id: task.id, completed: true })
         .eq('id', item.id);
+      if (linkErr) {
+        // Cleanup: rimuoviamo la task creata per evitare orfani
+        await supabase.from('tasks').delete().eq('id', task.id);
+        throw linkErr;
+      }
       toast.success('Task creata dall\'action item');
       fetchActionItems(selectedMeeting.id);
+    } catch (e) {
+      toast.error((e as { message?: string } | undefined)?.message || 'Errore durante la creazione della task');
     }
   };
 
   const handleSaveNotes = async () => {
     if (!selectedMeeting) return;
-    await supabase.from('meetings').update({ notes: meetingNotes }).eq('id', selectedMeeting.id);
-    toast.success('Note salvate');
+    try {
+      const { error } = await supabase.from('meetings').update({ notes: meetingNotes }).eq('id', selectedMeeting.id);
+      if (error) throw error;
+      toast.success('Note salvate');
+    } catch (e) {
+      toast.error((e as { message?: string } | undefined)?.message || 'Errore durante il salvataggio');
+    }
   };
 
 

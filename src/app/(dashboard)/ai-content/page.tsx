@@ -203,30 +203,45 @@ export default function AiContentPage() {
     toast.success('Tutti i contenuti copiati!');
   };
 
+  // Idempotenza: una volta salvato un set, non ricreare al click successivo
+  const [savedResultId, setSavedResultId] = useState<string | null>(null);
+
   const handleSaveToPlan = async () => {
-    if (!result || !profile) return;
+    if (!result || !profile || saving) return;
+    // Guard idempotenza: se questo result è già stato salvato, blocca
+    const resultFingerprint = `${result.brief_input.client_name}|${result.brief_input.title}`;
+    if (savedResultId === resultFingerprint) {
+      toast.error('Questi post sono già stati salvati nel piano editoriale');
+      return;
+    }
     setSaving(true);
 
     try {
-      const clientName = result.brief_input.client_name;
-      // Find or skip client matching
+      // Match cliente per uguaglianza esatta case-insensitive (no ilike fuzzy).
+      // Prima `ilike '%Bar%'` matchava "Bar Centrale", "Barilla", "Barbera" e
+      // salvava i post al primo che capitava → attribuzione errata cliente.
+      const clientName = result.brief_input.client_name.trim();
       const { data: clients } = await supabase
         .from('clients')
-        .select('id')
-        .or(`name.ilike.%${clientName}%,company.ilike.%${clientName}%`)
-        .limit(1);
-      const clientId = clients?.[0]?.id || null;
+        .select('id, name, company')
+        .or(`name.eq.${clientName},company.eq.${clientName}`)
+        .limit(2);
 
-      if (!clientId) {
-        toast.error('Cliente non trovato. Crea prima il cliente nel CRM.');
+      if (!clients || clients.length === 0) {
+        toast.error(`Cliente "${clientName}" non trovato. Crea prima il cliente nel CRM (nome o ragione sociale esatti).`);
         setSaving(false);
         return;
       }
+      if (clients.length > 1) {
+        toast.error(`Ambiguità: più clienti con nome "${clientName}". Disambigua nel CRM prima di salvare.`);
+        setSaving(false);
+        return;
+      }
+      const clientId = clients[0].id;
 
       const { content } = result;
       const posts: Array<Record<string, unknown>> = [];
 
-      // Instagram posts
       content.instagram_posts.forEach((p) => {
         posts.push({
           title: `IG - ${STYLE_LABELS[p.style] || p.style}: ${result.brief_input.title}`,
@@ -239,7 +254,6 @@ export default function AiContentPage() {
         });
       });
 
-      // Facebook post
       posts.push({
         title: `FB: ${content.facebook_post.title}`,
         caption: content.facebook_post.content,
@@ -250,13 +264,11 @@ export default function AiContentPage() {
       });
 
       const { error } = await supabase.from('social_posts').insert(posts);
-      if (error) {
-        toast.error('Errore nel salvataggio');
-      } else {
-        toast.success(`${posts.length} post salvati nel piano editoriale!`);
-      }
-    } catch {
-      toast.error('Errore nel salvataggio');
+      if (error) throw error;
+      toast.success(`${posts.length} post salvati nel piano editoriale!`);
+      setSavedResultId(resultFingerprint);
+    } catch (e) {
+      toast.error((e as { message?: string } | undefined)?.message || 'Errore nel salvataggio');
     } finally {
       setSaving(false);
     }

@@ -132,15 +132,23 @@ export default function BriefsPage() {
 
   const handleApprove = async (briefId: string) => {
     if (!profile) return;
-    await supabase.from('creative_briefs').update({
-      status: 'approved',
-      approved_by: profile.id,
-      approved_at: new Date().toISOString(),
-    }).eq('id', briefId);
-    toast.success('Brief approvato');
-    fetchBriefs();
-    if (selectedBrief?.id === briefId) {
-      setSelectedBrief((b) => b ? { ...b, status: 'approved' } : null);
+    try {
+      const { error } = await supabase.from('creative_briefs').update({
+        status: 'approved',
+        approved_by: profile.id,
+        approved_at: new Date().toISOString(),
+      }).eq('id', briefId);
+      if (error) throw error;
+      toast.success('Brief approvato');
+      fetchBriefs();
+      if (selectedBrief?.id === briefId) {
+        setSelectedBrief((b) => b ? { ...b, status: 'approved' } : null);
+      }
+    } catch (e) {
+      // Prima: nessun check di error. Se RLS bloccava o vincolo falliva,
+      // toast.success e UI locale cambiavano stato a "approved" mentre il
+      // DB restava draft → divergenza permanente.
+      toast.error((e as { message?: string } | undefined)?.message || 'Errore durante l\'approvazione');
     }
   };
 

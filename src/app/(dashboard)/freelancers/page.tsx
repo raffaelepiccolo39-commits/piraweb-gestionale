@@ -137,14 +137,27 @@ export default function FreelancersPage() {
   };
 
   const handleDelete = async (id: string) => {
-    await supabase.from('freelancers').delete().eq('id', id);
-    toast.success('Freelancer eliminato');
-    fetchFreelancers();
+    try {
+      const { error } = await supabase.from('freelancers').delete().eq('id', id);
+      if (error) throw error;
+      toast.success('Freelancer eliminato');
+      fetchFreelancers();
+    } catch (e) {
+      // Prima toast.success appariva sempre — anche se DELETE bloccava per
+      // FK constraint (assignment storici) o RLS.
+      toast.error((e as { message?: string } | undefined)?.message || 'Errore durante l\'eliminazione');
+    }
   };
 
   const handleToggleActive = async (f: Freelancer) => {
-    await supabase.from('freelancers').update({ is_active: !f.is_active }).eq('id', f.id);
-    fetchFreelancers();
+    try {
+      const { error } = await supabase.from('freelancers').update({ is_active: !f.is_active }).eq('id', f.id);
+      if (error) throw error;
+      toast.success(f.is_active ? 'Freelancer disattivato' : 'Freelancer riattivato');
+      fetchFreelancers();
+    } catch (e) {
+      toast.error((e as { message?: string } | undefined)?.message || 'Errore');
+    }
   };
 
   // Stats

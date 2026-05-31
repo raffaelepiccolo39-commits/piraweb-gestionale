@@ -109,13 +109,25 @@ export default function RecurringTasksPage() {
   };
 
   const handleToggle = async (task: RecurringTask) => {
-    await supabase.from('recurring_tasks').update({ is_active: !task.is_active }).eq('id', task.id);
-    fetchTasks();
+    try {
+      const { error } = await supabase.from('recurring_tasks').update({ is_active: !task.is_active }).eq('id', task.id);
+      if (error) throw error;
+      toast.success(task.is_active ? 'Task ricorrente in pausa' : 'Task ricorrente attivato');
+      fetchTasks();
+    } catch (e) {
+      toast.error((e as { message?: string } | undefined)?.message || 'Errore');
+    }
   };
 
   const handleDelete = async (id: string) => {
-    await supabase.from('recurring_tasks').delete().eq('id', id);
-    fetchTasks();
+    try {
+      const { error } = await supabase.from('recurring_tasks').delete().eq('id', id);
+      if (error) throw error;
+      toast.success('Task ricorrente eliminato');
+      fetchTasks();
+    } catch (e) {
+      toast.error((e as { message?: string } | undefined)?.message || 'Errore durante l\'eliminazione');
+    }
   };
 
   if (loading) {
