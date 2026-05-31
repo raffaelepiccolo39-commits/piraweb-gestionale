@@ -49,6 +49,8 @@ export default function ProjectDetailPage({
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [showProjectEdit, setShowProjectEdit] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteImpact, setDeleteImpact] = useState<{ tasks: number; entries: number; hours: number } | null>(null);
+  const [deletingProject, setDeletingProject] = useState(false);
   const [filterMember, setFilterMember] = useState('');
 
   const isAdmin = profile?.role === 'admin';
@@ -171,9 +173,41 @@ export default function ProjectDetailPage({
     fetchProject();
   };
 
+  const openDeleteConfirm = async () => {
+    setShowDeleteConfirm(true);
+    setDeleteImpact(null);
+    // Misura l'impatto reale prima di lasciar premere "Elimina"
+    try {
+      const taskIds = tasks.map(t => t.id);
+      let entries = 0;
+      let totalMinutes = 0;
+      if (taskIds.length > 0) {
+        const { data } = await supabase
+          .from('time_entries')
+          .select('duration_minutes')
+          .in('task_id', taskIds);
+        entries = data?.length || 0;
+        totalMinutes = (data || []).reduce((s, e) => s + Number(e.duration_minutes || 0), 0);
+      }
+      setDeleteImpact({ tasks: tasks.length, entries, hours: totalMinutes / 60 });
+    } catch {
+      // Se il fetch fallisce, mostriamo comunque il modal con i soli task da state
+      setDeleteImpact({ tasks: tasks.length, entries: 0, hours: 0 });
+    }
+  };
+
   const handleDeleteProject = async () => {
-    await supabase.from('projects').delete().eq('id', id);
-    router.push('/projects');
+    if (deletingProject) return;
+    setDeletingProject(true);
+    try {
+      const { error } = await supabase.from('projects').delete().eq('id', id);
+      if (error) throw error;
+      toast.success('Progetto eliminato');
+      router.push('/projects');
+    } catch (e) {
+      toast.error((e as { message?: string } | undefined)?.message || 'Errore durante l\'eliminazione');
+      setDeletingProject(false);
+    }
   };
 
   if (loading) {
@@ -239,7 +273,7 @@ export default function ProjectDetailPage({
                 <Settings size={16} />
                 Modifica
               </Button>
-              <Button variant="outline" size="sm" onClick={() => setShowDeleteConfirm(true)} className="text-red-600 hover:text-red-700">
+              <Button variant="outline" size="sm" onClick={openDeleteConfirm} className="text-red-600 hover:text-red-700">
                 <Trash2 size={16} />
               </Button>
             </>
@@ -362,20 +396,33 @@ export default function ProjectDetailPage({
       {/* Delete project confirmation */}
       <Modal
         open={showDeleteConfirm}
-        onClose={() => setShowDeleteConfirm(false)}
-        title="Elimina Progetto"
+        onClose={() => { if (!deletingProject) { setShowDeleteConfirm(false); setDeleteImpact(null); } }}
+        title="Elimina progetto"
         size="sm"
       >
-        <p className="text-pw-text-muted mb-6">
-          Sei sicuro di voler eliminare questo progetto e tutti i suoi task?
-        </p>
-        <div className="flex justify-end gap-3">
-          <Button variant="outline" onClick={() => setShowDeleteConfirm(false)}>
-            Annulla
-          </Button>
-          <Button variant="danger" onClick={handleDeleteProject}>
-            Elimina
-          </Button>
+        <div className="space-y-4">
+          <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-500">
+            <p className="font-semibold mb-1">Operazione irreversibile</p>
+            <p className="text-red-400">
+              Eliminando &quot;{project.name}&quot; verranno cancellati a cascata anche tutti i suoi task e le ore registrate. I dati non sono recuperabili.
+            </p>
+          </div>
+          {deleteImpact ? (
+            <ul className="text-sm text-pw-text-muted space-y-1">
+              <li>• <strong className="text-pw-text">{deleteImpact.tasks}</strong> task</li>
+              <li>• <strong className="text-pw-text">{deleteImpact.entries}</strong> sessioni di lavoro registrate ({deleteImpact.hours.toFixed(1)} ore totali)</li>
+            </ul>
+          ) : (
+            <p className="text-sm text-pw-text-dim">Calcolo impatto…</p>
+          )}
+          <div className="flex justify-end gap-3 pt-2">
+            <Button variant="outline" onClick={() => { setShowDeleteConfirm(false); setDeleteImpact(null); }} disabled={deletingProject}>
+              Annulla
+            </Button>
+            <Button variant="danger" onClick={handleDeleteProject} loading={deletingProject}>
+              Elimina definitivamente
+            </Button>
+          </div>
         </div>
       </Modal>
     </div>
