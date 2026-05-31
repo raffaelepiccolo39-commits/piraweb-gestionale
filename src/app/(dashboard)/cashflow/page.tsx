@@ -47,6 +47,18 @@ const CashflowMargine = dynamic(
 
 type Period = 'month' | 'semester' | 'year' | 'custom';
 
+interface TeamForSalary {
+  id: string;
+  salary: number | null;
+  contract_start_date: string | null;
+  is_active: boolean;
+}
+interface PayslipForSalary {
+  employee_id: string;
+  month: string;
+  lordo_mensile: number | null;
+}
+
 const MONTHS_IT = ['Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno', 'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre'];
 
 export default function CashflowPage() {
@@ -66,6 +78,8 @@ export default function CashflowPage() {
   const [clients, setClients] = useState<RevenuePerClient[]>([]);
   const [prevSummary, setPrevSummary] = useState<CashflowSummary | null>(null);
   const [prevPnl, setPrevPnl] = useState<ProfitLossSummary | null>(null);
+  const [teamForSalaryCalc, setTeamForSalaryCalc] = useState<TeamForSalary[]>([]);
+  const [payslipsForSalaryCalc, setPayslipsForSalaryCalc] = useState<PayslipForSalary[]>([]);
   const [loading, setLoading] = useState(true);
 
   function getDateRange(): { start: string; end: string } {
@@ -99,12 +113,16 @@ export default function CashflowPage() {
     setLoading(true);
     const { start, end } = getDateRange();
 
-    const [monthlyRes, summaryRes, clientsRes, pnlRes, expensesRes] = await Promise.all([
+    const [monthlyRes, summaryRes, clientsRes, pnlRes, expensesRes, profilesRes, payslipsRes] = await Promise.all([
       supabase.rpc('get_cashflow_monthly', { p_start_date: start, p_end_date: end }),
       supabase.rpc('get_cashflow_summary', { p_start_date: start, p_end_date: end }),
       supabase.rpc('get_revenue_per_client', { p_start_date: start, p_end_date: end }),
       supabase.rpc('get_profit_loss_summary', { p_start_date: start, p_end_date: end }),
       supabase.rpc('get_monthly_expenses'),
+      // Per ricostruire la composizione team mese per mese: salary + contract_start_date
+      supabase.from('profiles').select('id, salary, contract_start_date, is_active').gt('salary', 0),
+      // Quando esistono payslip storici, usali (verità inattaccabile invece di stima da profile)
+      supabase.from('payslips').select('employee_id, month, lordo_mensile').gte('month', start).lte('month', end).limit(500),
     ]);
 
     if (monthlyRes.data) setMonthly(monthlyRes.data as CashflowMonthly[]);
@@ -115,6 +133,8 @@ export default function CashflowPage() {
     if (expensesRes.data?.[0]) setExpenses(expensesRes.data[0] as MonthlyExpenses);
     else setExpenses(null);
     if (clientsRes.data) setClients(clientsRes.data as RevenuePerClient[]);
+    setTeamForSalaryCalc((profilesRes.data as TeamForSalary[]) || []);
+    setPayslipsForSalaryCalc((payslipsRes.data as PayslipForSalary[]) || []);
 
     // Fetch previous period for comparison
     const startDate = new Date(start);
@@ -164,13 +184,36 @@ export default function CashflowPage() {
     ? String(selectedYear)
     : `${customStart || '...'} — ${customEnd || '...'}`;
 
-  const chartData = monthly.map((m) => ({
-    name: new Date(m.month_date).toLocaleDateString('it-IT', { month: 'short', year: '2-digit' }),
-    Entrate: Number(m.received),
-    'Da incassare': Number(m.pending),
-    Uscite: monthlySalary,
-    Margine: Number(m.received) - monthlySalary,
-  }));
+  // Costo stipendi del mese: prima fonte = payslips reali; fallback = somma
+  // profile.salary dei dipendenti il cui contract_start_date è ≤ fine mese.
+  // Senza questo, il grafico mostrava lo stipendio attuale di TUTTI per OGNI
+  // mese del periodo → un dipendente entrato 3 mesi fa "costava" anche per i
+  // 6 mesi precedenti, falsando margine e P&L storici.
+  const salaryForMonth = (monthDateStr: string): number => {
+    const ym = monthDateStr.slice(0, 7); // 'YYYY-MM'
+    const fromPayslips = payslipsForSalaryCalc
+      .filter(p => p.month.slice(0, 7) === ym)
+      .reduce((s, p) => s + Number(p.lordo_mensile || 0), 0);
+    if (fromPayslips > 0) return fromPayslips;
+    // Fallback: composizione team a quella data
+    const [y, m] = ym.split('-').map(Number);
+    const monthEnd = new Date(y, m, 0); // ultimo giorno del mese
+    const cutoff = `${monthEnd.getFullYear()}-${String(monthEnd.getMonth() + 1).padStart(2, '0')}-${String(monthEnd.getDate()).padStart(2, '0')}`;
+    return teamForSalaryCalc
+      .filter(p => p.is_active && (!p.contract_start_date || p.contract_start_date <= cutoff))
+      .reduce((s, p) => s + Number(p.salary || 0), 0);
+  };
+
+  const chartData = monthly.map((m) => {
+    const cost = salaryForMonth(m.month_date);
+    return {
+      name: new Date(m.month_date).toLocaleDateString('it-IT', { month: 'short', year: '2-digit' }),
+      Entrate: Number(m.received),
+      'Da incassare': Number(m.pending),
+      Uscite: cost,
+      Margine: Number(m.received) - cost,
+    };
+  });
 
   const grossMargin = Number(pnl?.gross_margin || 0);
   const grossMarginPct = Number(pnl?.gross_margin_pct || 0);
