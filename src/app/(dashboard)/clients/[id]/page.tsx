@@ -324,31 +324,17 @@ export default function ClientDetailPage({
   };
 
   const handleTogglePaid = async (payment: ClientPayment) => {
-    if (!profile || !contract) return;
-
-    const newPaidStatus = !payment.is_paid;
-
-    const { error: updateError } = await supabase
-      .from('client_payments')
-      .update({
-        is_paid: newPaidStatus,
-        paid_at: newPaidStatus ? new Date().toISOString() : null,
-      })
-      .eq('id', payment.id);
-
-    if (updateError) return; // Don't log if update failed
-
-    await supabase.from('payment_logs').insert({
-      payment_id: payment.id,
-      contract_id: contract.id,
-      client_id: id,
-      action: newPaidStatus ? 'paid' : 'unpaid',
-      amount: payment.amount,
-      month_index: payment.month_index,
-      due_date: payment.due_date,
-      performed_by: profile.id,
+    if (!profile) return;
+    // RPC atomica: update + log in una sola transazione. Niente più rischio
+    // di divergenza tra stato e audit log (migration 00066).
+    const { error } = await supabase.rpc('toggle_payment_paid', {
+      p_payment_id: payment.id,
+      p_performed_by: profile.id,
     });
-
+    if (error) {
+      toast.error(error.message || 'Errore durante l\'aggiornamento del pagamento');
+      return;
+    }
     fetchData();
   };
 
