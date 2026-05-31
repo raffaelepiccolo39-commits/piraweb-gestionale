@@ -1,7 +1,7 @@
 'use client';
 
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { createClient } from '@/lib/supabase/client';
@@ -119,21 +119,30 @@ export default function ClientsPage() {
     return data.publicUrl;
   };
 
+  // Guard sincrono via ref: blocca i doppi click < 16ms (prima del re-render
+  // che disabilita il bottone). Senza, due click rapidi creavano cliente
+  // duplicato + più set di progetti auto-generati.
+  const creatingRef = useRef(false);
   const handleCreate = async (data: ClientFormData) => {
-    if (!profile) return;
+    if (!profile || creatingRef.current) return;
+    creatingRef.current = true;
     try {
       const { logo, ...fields } = data;
       const { data: newClient, error } = await supabase.from('clients').insert({
         ...fields,
         created_by: profile.id,
       }).select().single();
-      if (!error && newClient && logo) {
+      if (error) throw error;
+
+      let logoFailed = false;
+      if (newClient && logo) {
         const logoUrl = await uploadLogo(logo, newClient.id);
         if (logoUrl) {
           await supabase.from('clients').update({ logo_url: logoUrl }).eq('id', newClient.id);
+        } else {
+          logoFailed = true;
         }
       }
-      if (error) throw error;
 
       // Auto-create projects based on selected services
       if (newClient && fields.service_types) {
@@ -142,10 +151,13 @@ export default function ClientsPage() {
       }
 
       setShowForm(false);
-      toast.success('Cliente creato con successo');
+      if (logoFailed) toast.error('Cliente creato, ma il logo non è stato caricato');
+      else toast.success('Cliente creato con successo');
       fetchClients();
-    } catch {
-      toast.error('Errore durante la creazione del cliente');
+    } catch (e) {
+      toast.error((e as { message?: string } | undefined)?.message || 'Errore durante la creazione del cliente');
+    } finally {
+      creatingRef.current = false;
     }
   };
 

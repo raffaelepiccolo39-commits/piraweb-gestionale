@@ -1,7 +1,7 @@
 'use client';
 
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
@@ -89,8 +89,10 @@ export default function ProjectsPage() {
     fetchProjects();
   }, [fetchProjects]);
 
+  const creatingRef = useRef(false);
   const handleCreate = async (data: ProjectFormData) => {
-    if (!profile) return;
+    if (!profile || creatingRef.current) return;
+    creatingRef.current = true;
     try {
       const { data: project, error } = await supabase
         .from('projects')
@@ -121,8 +123,10 @@ export default function ProjectsPage() {
       setShowForm(false);
       toast.success('Progetto creato con successo');
       fetchProjects();
-    } catch {
-      toast.error('Errore durante la creazione del progetto');
+    } catch (e) {
+      toast.error((e as { message?: string } | undefined)?.message || 'Errore durante la creazione del progetto');
+    } finally {
+      creatingRef.current = false;
     }
   };
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/components/ui/toast';
@@ -114,28 +114,36 @@ export default function CRMPage() {
     if (selectedDeal) fetchActivities(selectedDeal.id);
   }, [selectedDeal, fetchActivities]);
 
+  const creatingRef = useRef(false);
   const handleCreate = async (values: DealFormValues) => {
-    if (!profile) return;
+    if (!profile || creatingRef.current) return;
     if (!values.title) { toast.error('Titolo obbligatorio'); return; }
-    const { error } = await supabase.from('deals').insert({
-      title: values.title,
-      company_name: values.company_name || null,
-      contact_name: values.contact_name || null,
-      contact_email: values.contact_email || null,
-      contact_phone: values.contact_phone || null,
-      value: parseFloat(values.value) || 0,
-      monthly_value: values.monthly_value ? parseFloat(values.monthly_value) : null,
-      source: values.source,
-      services: values.services || null,
-      notes: values.notes || null,
-      expected_close_date: values.expected_close_date || null,
-      owner_id: values.owner_id || profile.id,
-      created_by: profile.id,
-    });
-    if (!error) {
+    creatingRef.current = true;
+    try {
+      const { error } = await supabase.from('deals').insert({
+        title: values.title,
+        company_name: values.company_name || null,
+        contact_name: values.contact_name || null,
+        contact_email: values.contact_email || null,
+        contact_phone: values.contact_phone || null,
+        value: parseFloat(values.value) || 0,
+        monthly_value: values.monthly_value ? parseFloat(values.monthly_value) : null,
+        source: values.source,
+        services: values.services || null,
+        notes: values.notes || null,
+        expected_close_date: values.expected_close_date || null,
+        owner_id: values.owner_id || profile.id,
+        created_by: profile.id,
+      });
+      if (error) throw error;
       toast.success('Deal creato');
       setShowForm(false);
       fetchDeals();
+    } catch (e) {
+      // Prima l'errore era ignorato silenziosamente (audit: "nessuna gestione errore visibile")
+      toast.error((e as { message?: string } | undefined)?.message || 'Errore durante la creazione del deal');
+    } finally {
+      creatingRef.current = false;
     }
   };
 
