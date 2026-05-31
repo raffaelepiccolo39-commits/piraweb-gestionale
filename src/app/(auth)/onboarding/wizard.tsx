@@ -302,7 +302,7 @@ export default function OnboardingWizard(props: Props) {
               {qr && !tfaEnabled && (
                 <div className="space-y-3">
                   <p className="text-sm text-pw-text">1. Scansiona il QR con Google Authenticator, 1Password, Authy o app simile.</p>
-                  <div className="flex justify-center bg-pw-bg rounded-lg p-4">
+                  <div className="flex justify-center bg-pw-navy rounded-lg p-4">
                     <Image src={qr} alt="QR code 2FA" width={200} height={200} unoptimized />
                   </div>
                   {secret && (
