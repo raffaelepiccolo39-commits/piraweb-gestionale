@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Breadcrumb } from '@/components/ui/breadcrumb';
 import { Badge } from '@/components/ui/badge';
 import { Modal } from '@/components/ui/modal';
+import { useToast } from '@/components/ui/toast';
 import { KanbanBoard } from '@/components/kanban/kanban-board';
 import { TaskForm, type TaskFormData } from '@/components/tasks/task-form';
 import { ProjectForm, type ProjectFormData } from '@/components/projects/project-form';
@@ -40,6 +41,7 @@ export default function ProjectDetailPage({
   const { profile } = useAuth();
   const supabase = createClient();
   const router = useRouter();
+  const toast = useToast();
   const [project, setProject] = useState<Project | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
@@ -132,28 +134,24 @@ export default function ProjectDetailPage({
   };
 
   const handleUpdateProject = async (data: ProjectFormData) => {
-    const { error } = await supabase
-      .from('projects')
-      .update({
-        name: data.name,
-        description: data.description || null,
-        client_id: data.client_id || null,
-        status: data.status,
-        color: data.color,
-        deadline: data.deadline || null,
-      })
-      .eq('id', id);
-
-    if (error) return;
-
-    // Update members
-    await supabase.from('project_members').delete().eq('project_id', id);
-    if (data.member_ids.length > 0) {
-      await supabase.from('project_members').insert(
-        data.member_ids.map((user_id) => ({ project_id: id, user_id }))
-      );
+    // RPC atomica: update progetto + sync membri in una sola transazione
+    // (migration 00067). Evita lo stato "progetto senza membri" se la
+    // INSERT post-DELETE falliva nel pattern precedente.
+    const { error } = await supabase.rpc('update_project_with_members', {
+      p_project_id: id,
+      p_name: data.name,
+      p_description: data.description || null,
+      p_client_id: data.client_id || null,
+      p_status: data.status,
+      p_color: data.color,
+      p_deadline: data.deadline || null,
+      p_member_ids: data.member_ids,
+    });
+    if (error) {
+      toast.error(error.message || 'Errore durante l\'aggiornamento del progetto');
+      return;
     }
-
+    toast.success('Progetto aggiornato');
     setShowProjectEdit(false);
     fetchProject();
   };
