@@ -67,8 +67,12 @@ export async function updateSession(request: NextRequest) {
     const url = request.nextUrl.clone();
     url.pathname = '/login';
     const redirectResponse = NextResponse.redirect(url);
+    // CRITICO: copia i cookie CON LE LORO OPTIONS (httpOnly/secure/sameSite/
+    // maxAge). Senza, il browser non riconosce i cookie auth refreshati da
+    // Supabase e la sessione si invalida alla request successiva → kick a
+    // /login a ogni navigazione. Vedi docs ufficiali Supabase SSR.
     supabaseResponse.cookies.getAll().forEach((cookie) => {
-      redirectResponse.cookies.set(cookie.name, cookie.value);
+      redirectResponse.cookies.set(cookie.name, cookie.value, cookie);
     });
     return redirectResponse;
   }
