@@ -13,6 +13,23 @@ export type ObjectiveStatus = 'active' | 'completed' | 'dropped';
 export type ReviewStatus = 'draft' | 'finalized';
 export type FeedbackKind = 'kudos' | 'suggestion';
 
+export type ShiftType = 'presidio' | 'cliente' | 'smart_working' | 'reperibilita' | 'altro';
+
+export interface Shift {
+  id: string;
+  user_id: string;
+  shift_date: string;
+  start_time: string;
+  end_time: string;
+  type: ShiftType;
+  location: string | null;
+  notes: string | null;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+  user?: Pick<Profile, 'id' | 'full_name' | 'color'>;
+}
+
 export interface EmployeeObjective {
   id: string;
   user_id: string;

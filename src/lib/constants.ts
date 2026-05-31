@@ -87,6 +87,22 @@ export const FEEDBACK_KIND_LABELS: Record<string, string> = {
   suggestion: 'Suggerimento',
 };
 
+export const SHIFT_TYPE_LABELS: Record<string, string> = {
+  presidio: 'Presidio PiraWeb',
+  cliente: 'Lavoro c/o cliente',
+  smart_working: 'Smart working',
+  reperibilita: 'Reperibilità',
+  altro: 'Altro',
+};
+
+export const SHIFT_TYPE_COLOR: Record<string, string> = {
+  presidio: '#3b82f6',      // blu
+  cliente: '#10b981',       // verde
+  smart_working: '#a855f7', // viola
+  reperibilita: '#f59e0b',  // ambra
+  altro: '#64748b',         // grigio
+};
+
 export const TASK_STATUSES = ['todo', 'in_progress', 'review', 'done', 'archived'] as const;
 export type TaskStatus = (typeof TASK_STATUSES)[number];
 

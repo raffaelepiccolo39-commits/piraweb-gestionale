@@ -22,6 +22,7 @@ import {
   Receipt,
   FileText,
   Target,
+  CalendarClock,
   Settings,
   ChevronDown,
   LogOut,
@@ -66,6 +67,7 @@ const navSections: NavSection[] = [
       { label: 'Note spese', href: '/note-spese', icon: Receipt },
       { label: 'Documenti', href: '/documenti', icon: FileText },
       { label: 'Performance', href: '/performance', icon: Target },
+      { label: 'Turni', href: '/turni', icon: CalendarClock },
     ],
   },
   {
