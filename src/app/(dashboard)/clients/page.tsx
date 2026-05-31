@@ -64,12 +64,14 @@ export default function ClientsPage() {
       if (profile?.role === 'admin') {
         const now = new Date();
         const currentMonth = now.toISOString().slice(0, 7);
+        // Ultimo giorno del mese reale (febbraio 28/29, mesi corti 30, ecc.)
+        const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
         const { data: unpaidPayments } = await supabase
           .from('client_payments')
           .select('id, contract_id, due_date, is_paid, contract:client_contracts!client_payments_contract_id_fkey(client_id)')
           .eq('is_paid', false)
           .gte('due_date', `${currentMonth}-01`)
-          .lte('due_date', `${currentMonth}-31`);
+          .lte('due_date', `${currentMonth}-${String(lastDay).padStart(2, '0')}`);
 
         if (unpaidPayments) {
           const dayOfMonth = now.getDate();

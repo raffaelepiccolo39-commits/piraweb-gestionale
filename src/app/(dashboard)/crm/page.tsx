@@ -193,23 +193,32 @@ export default function CRMPage() {
 
   const handleConvertToClient = async (deal: Deal) => {
     if (!profile) return;
-    // Create client from deal
-    const { data: client, error } = await supabase.from('clients').insert({
-      name: deal.contact_name || deal.title,
-      company: deal.company_name || null,
-      email: deal.contact_email || null,
-      phone: deal.contact_phone || null,
-      notes: `Convertito da deal: ${deal.title}\n${deal.notes || ''}`,
-      created_by: profile.id,
-    }).select('id').single();
+    // Idempotenza: deal già convertito → nessuna azione (evita clienti duplicati su doppio click)
+    if (deal.converted_client_id) {
+      toast.error('Deal già convertito in cliente');
+      return;
+    }
+    try {
+      const { data: client, error } = await supabase.from('clients').insert({
+        name: deal.contact_name || deal.title,
+        company: deal.company_name || null,
+        email: deal.contact_email || null,
+        phone: deal.contact_phone || null,
+        notes: `Convertito da deal: ${deal.title}\n${deal.notes || ''}`,
+        created_by: profile.id,
+      }).select('id').single();
+      if (error || !client) throw error || new Error('Creazione cliente fallita');
 
-    if (!error && client) {
-      await supabase.from('deals').update({
+      const { error: updErr } = await supabase.from('deals').update({
         converted_client_id: client.id,
         stage: 'closed_won',
-      }).eq('id', deal.id);
+      }).eq('id', deal.id).is('converted_client_id', null);
+      if (updErr) throw updErr;
+
       toast.success('Deal convertito in cliente!');
       fetchDeals();
+    } catch (e) {
+      toast.error((e as { message?: string } | undefined)?.message || 'Errore durante la conversione');
     }
   };
 

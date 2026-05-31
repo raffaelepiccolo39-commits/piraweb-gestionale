@@ -170,6 +170,14 @@ export default function InvoicesPage() {
   };
 
   const handleStatusChange = async (invoiceId: string, status: InvoiceStatus) => {
+    // Blocca "segna come pagata" su fatture vuote o senza importo
+    if (status === 'paid') {
+      const inv = invoices.find(i => i.id === invoiceId);
+      if (inv && (!inv.total || Number(inv.total) <= 0)) {
+        toast.error('Non puoi segnare come pagata una fattura senza importo. Aggiungi voci prima.');
+        return;
+      }
+    }
     const updates: Record<string, unknown> = { status };
     if (status === 'paid') updates.paid_at = new Date().toISOString();
     const { error } = await supabase.from('invoices').update(updates).eq('id', invoiceId);

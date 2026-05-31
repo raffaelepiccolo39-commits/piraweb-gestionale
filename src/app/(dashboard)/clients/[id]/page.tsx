@@ -10,6 +10,7 @@ import { Breadcrumb } from '@/components/ui/breadcrumb';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Modal } from '@/components/ui/modal';
+import { useToast } from '@/components/ui/toast';
 import { ContractForm, type ContractFormData } from '@/components/clients/contract-form';
 import { PaymentCalendar } from '@/components/clients/payment-calendar';
 import { FinancialSummary } from '@/components/clients/financial-summary';
@@ -109,6 +110,7 @@ export default function ClientDetailPage({
   const { profile } = useAuth();
   const supabase = createClient();
   const router = useRouter();
+  const toast = useToast();
   const [client, setClient] = useState<Client | null>(null);
   const [contract, setContract] = useState<ClientContract | null>(null);
   const [pastContracts, setPastContracts] = useState<ClientContract[]>([]);
@@ -190,25 +192,29 @@ export default function ClientDetailPage({
   }, [fetchData]);
 
   const handleSaveKnowledgeBase = async (data: Partial<ClientKnowledgeBase>) => {
-    if (knowledgeBase) {
-      const { error } = await supabase
+    try {
+      if (knowledgeBase) {
+        const { error } = await supabase
+          .from('client_knowledge_base')
+          .update(data)
+          .eq('id', knowledgeBase.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('client_knowledge_base')
+          .insert({ ...data, client_id: id });
+        if (error) throw error;
+      }
+      const { data: kbData } = await supabase
         .from('client_knowledge_base')
-        .update(data)
-        .eq('id', knowledgeBase.id);
-      if (error) return;
-    } else {
-      const { error } = await supabase
-        .from('client_knowledge_base')
-        .insert({ ...data, client_id: id });
-      if (error) return;
+        .select('*')
+        .eq('client_id', id)
+        .maybeSingle();
+      setKnowledgeBase(kbData as ClientKnowledgeBase | null);
+      toast.success('Knowledge base aggiornata');
+    } catch (e) {
+      toast.error((e as { message?: string } | undefined)?.message || 'Errore durante il salvataggio della knowledge base');
     }
-    // Refresh
-    const { data: kbData } = await supabase
-      .from('client_knowledge_base')
-      .select('*')
-      .eq('client_id', id)
-      .maybeSingle();
-    setKnowledgeBase(kbData as ClientKnowledgeBase | null);
   };
 
   const uploadAttachment = async (file: File): Promise<{ url: string; name: string } | null> => {

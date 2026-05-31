@@ -77,6 +77,26 @@ export default function PresenzePage() {
       const today = getTodayLocal();
       const now = new Date().toISOString();
 
+      // Validazione sequenza: ogni timbratura ha pre-condizioni precise.
+      // Senza questo, premere "Entrata" su una giornata già chiusa sovrascrive
+      // il clock_in originale → ore lavorate sballate (problema legale HR).
+      if (action === 'clock_in') {
+        if (todayRecord?.clock_in) {
+          toast.error('Hai già timbrato l\'entrata oggi');
+          setActionLoading(false);
+          return;
+        }
+      } else if (action === 'lunch_start') {
+        if (!todayRecord?.clock_in) { toast.error('Devi prima timbrare l\'entrata'); setActionLoading(false); return; }
+        if (todayRecord.lunch_start) { toast.error('Pausa pranzo già iniziata'); setActionLoading(false); return; }
+      } else if (action === 'lunch_end') {
+        if (!todayRecord?.lunch_start) { toast.error('Devi prima iniziare la pausa pranzo'); setActionLoading(false); return; }
+        if (todayRecord.lunch_end) { toast.error('Pausa pranzo già terminata'); setActionLoading(false); return; }
+      } else if (action === 'clock_out') {
+        if (!todayRecord?.clock_in) { toast.error('Devi prima timbrare l\'entrata'); setActionLoading(false); return; }
+        if (todayRecord.clock_out) { toast.error('Hai già timbrato l\'uscita oggi'); setActionLoading(false); return; }
+      }
+
       if (!todayRecord && action === 'clock_in') {
         const { error } = await supabase.from('attendance_records').insert({
           user_id: profile.id,
