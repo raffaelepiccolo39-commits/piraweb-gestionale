@@ -372,9 +372,11 @@ export function Header({ onMobileMenuToggle, mobileMenuOpen }: HeaderProps) {
             <Bell size={17} />
             {unreadCount > 0 && (
               <span
-                className="absolute top-[4px] right-[4px] w-2 h-2 rounded-full bg-[var(--pw-danger)] ring-2 ring-pw-surface"
+                className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-[var(--pw-danger)] text-white text-[9px] font-semibold flex items-center justify-center tabular-nums"
                 aria-label={`${unreadCount} nuove notifiche`}
-              />
+              >
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </span>
             )}
           </button>
 
