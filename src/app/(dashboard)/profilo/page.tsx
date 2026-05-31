@@ -6,11 +6,20 @@ import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { useToast } from '@/components/ui/toast';
 import { SkeletonStats } from '@/components/ui/skeleton';
 import { cn, getInitials, getUserColor, getRoleLabel, formatCurrency, formatDate } from '@/lib/utils';
 import { STATUS_LABELS } from '@/lib/constants';
 import type { EmployeeContractType } from '@/types/database';
-import { Clock, ListTodo, Plane, Wallet, Activity, Mail, Briefcase, Calendar, ChevronRight, AlertTriangle } from 'lucide-react';
+import { Clock, ListTodo, Plane, Wallet, Activity, Mail, Briefcase, Calendar, ChevronRight, AlertTriangle, Check } from 'lucide-react';
+
+const COLOR_PALETTE = [
+  '#ef4444', '#f97316', '#f59e0b', '#eab308',
+  '#84cc16', '#10b981', '#14b8a6', '#06b6d4',
+  '#3b82f6', '#6366f1', '#8b5cf6', '#ec4899',
+];
 
 const CONTRACT_LABELS: Record<string, string> = {
   '6_mesi': '6 mesi',
@@ -75,11 +84,52 @@ function WidgetHeader({ icon: Icon, title, href }: { icon: React.ElementType; ti
 }
 
 export default function ProfiloPage() {
-  const { profile } = useAuth();
+  const { profile, retryLoadProfile } = useAuth();
   const supabase = createClient();
+  const toast = useToast();
   const year = new Date().getFullYear();
 
   const [tab, setTab] = useState<'panoramica' | 'dati'>('panoramica');
+
+  // Edit profile state
+  const [editForm, setEditForm] = useState({ full_name: '', iban: '', color: '' });
+  const [saving, setSaving] = useState(false);
+  useEffect(() => {
+    if (profile) {
+      setEditForm({
+        full_name: profile.full_name || '',
+        iban: profile.iban || '',
+        color: profile.color || COLOR_PALETTE[8],
+      });
+    }
+  }, [profile]);
+  const editDirty = profile && (
+    editForm.full_name !== (profile.full_name || '')
+    || editForm.iban !== (profile.iban || '')
+    || editForm.color !== (profile.color || '')
+  );
+
+  const handleSaveProfile = async () => {
+    if (!profile || !editDirty || saving) return;
+    if (!editForm.full_name.trim()) { toast.error('Il nome è obbligatorio'); return; }
+    setSaving(true);
+    try {
+      const { error } = await supabase.from('profiles')
+        .update({
+          full_name: editForm.full_name.trim(),
+          iban: editForm.iban.trim() || null,
+          color: editForm.color || null,
+        })
+        .eq('id', profile.id);
+      if (error) throw error;
+      toast.success('Profilo aggiornato');
+      retryLoadProfile();
+    } catch (e) {
+      toast.error((e as { message?: string } | undefined)?.message || 'Errore durante il salvataggio');
+    } finally {
+      setSaving(false);
+    }
+  };
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
@@ -295,16 +345,63 @@ export default function ProfiloPage() {
         </div>
       ) : (
         <Card>
-          <CardContent className="p-5">
-            <dl className="grid sm:grid-cols-2 gap-x-8 gap-y-4 max-w-2xl">
-              <DetailRow icon={Mail} label="Nome completo" value={profile.full_name} />
+          <CardContent className="p-5 space-y-5 max-w-2xl">
+            <div>
+              <h2 className="text-sm font-semibold text-pw-text mb-1">Dati personali</h2>
+              <p className="text-xs text-pw-text-dim">Aggiorna i tuoi dati. Email, ruolo e contratto sono gestiti dall&apos;amministrazione.</p>
+            </div>
+
+            <div className="grid sm:grid-cols-2 gap-4">
+              <Input
+                id="prof-name"
+                label="Nome completo"
+                value={editForm.full_name}
+                onChange={(e) => setEditForm(f => ({ ...f, full_name: e.target.value }))}
+              />
+              <Input
+                id="prof-iban"
+                label="IBAN"
+                value={editForm.iban}
+                onChange={(e) => setEditForm(f => ({ ...f, iban: e.target.value.toUpperCase() }))}
+                placeholder="IT60 X054 2811 1010 0000 0123 456"
+              />
+            </div>
+
+            <div>
+              <label className="block text-[11px] uppercase tracking-[0.08em] font-medium text-pw-text-muted mb-2">Colore personale</label>
+              <div className="flex flex-wrap gap-2">
+                {COLOR_PALETTE.map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => setEditForm(f => ({ ...f, color: c }))}
+                    aria-label={`Colore ${c}`}
+                    className={cn(
+                      'w-9 h-9 rounded-lg border-2 transition-all flex items-center justify-center',
+                      editForm.color === c ? 'border-pw-text scale-110' : 'border-transparent hover:border-pw-border'
+                    )}
+                    style={{ backgroundColor: c }}
+                  >
+                    {editForm.color === c && <Check size={14} className="text-white" />}
+                  </button>
+                ))}
+              </div>
+              <p className="text-xs text-pw-text-dim mt-2">Usato per la tua icona nell&apos;app e accanto alle tue card.</p>
+            </div>
+
+            {/* Read-only */}
+            <div className="grid sm:grid-cols-2 gap-x-8 gap-y-4 pt-4 border-t border-pw-border">
               <DetailRow icon={Mail} label="Email" value={profile.email} />
               <DetailRow icon={Briefcase} label="Ruolo" value={getRoleLabel(profile.role)} />
               <DetailRow icon={Briefcase} label="Tipo contratto" value={profile.contract_type ? CONTRACT_LABELS[profile.contract_type as EmployeeContractType] : '—'} />
               <DetailRow icon={Calendar} label="Data di inizio" value={profile.contract_start_date ? formatDate(profile.contract_start_date) : '—'} />
-              <DetailRow icon={Wallet} label="IBAN" value={profile.iban || '—'} />
-            </dl>
-            <p className="text-xs text-pw-text-dim mt-5">Per modificare questi dati contatta l&apos;amministrazione.</p>
+            </div>
+
+            <div className="flex justify-end pt-2">
+              <Button onClick={handleSaveProfile} loading={saving} disabled={!editDirty}>
+                <Check size={14} /> Salva modifiche
+              </Button>
+            </div>
           </CardContent>
         </Card>
       )}
