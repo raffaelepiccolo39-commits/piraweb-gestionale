@@ -145,13 +145,19 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const handleLogout = async () => {
     setLoggingOut(true);
     const supabase = createClient();
+    // Prima cancella il cookie 2fa_verified server-side (httpOnly, non eliminabile
+    // da JS). Senza, il prossimo login bypassa il prompt 2FA per lo stesso utente.
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } catch {
+      // continua comunque
+    }
     try {
       await supabase.auth.signOut();
     } catch {
       // procedi col redirect anche se signOut fallisce
     }
     // Hard navigation: forza il middleware a rivalutare i cookie di sessione.
-    // Un router.push lascerebbe i cookie stale e l'utente "intrappolato".
     window.location.href = '/login';
   };
 

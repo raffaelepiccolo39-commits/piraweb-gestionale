@@ -108,7 +108,7 @@ export async function updateSession(request: NextRequest) {
           }
           const redirectResponse = NextResponse.redirect(url);
           supabaseResponse.cookies.getAll().forEach((cookie) => {
-            redirectResponse.cookies.set(cookie.name, cookie.value);
+            redirectResponse.cookies.set(cookie.name, cookie.value, cookie);
           });
           return redirectResponse;
         }
@@ -144,7 +144,7 @@ export async function updateSession(request: NextRequest) {
           url.search = '';
           const redirectResponse = NextResponse.redirect(url);
           supabaseResponse.cookies.getAll().forEach((cookie) => {
-            redirectResponse.cookies.set(cookie.name, cookie.value);
+            redirectResponse.cookies.set(cookie.name, cookie.value, cookie);
           });
           return redirectResponse;
         }
@@ -162,7 +162,7 @@ export async function updateSession(request: NextRequest) {
       url.pathname = '/dashboard';
       const redirectResponse = NextResponse.redirect(url);
       supabaseResponse.cookies.getAll().forEach((cookie) => {
-        redirectResponse.cookies.set(cookie.name, cookie.value);
+        redirectResponse.cookies.set(cookie.name, cookie.value, cookie);
       });
       return redirectResponse;
     }
