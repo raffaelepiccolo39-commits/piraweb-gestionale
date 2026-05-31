@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 import { NextRequest, NextResponse } from 'next/server';
+import * as Sentry from '@sentry/nextjs';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 
 /**
@@ -37,6 +38,7 @@ async function handleCron(request: NextRequest) {
     const { data: recurringCount } = await supabase.rpc('generate_recurring_tasks');
     results.recurring_tasks_generated = recurringCount ?? 0;
   } catch (err) {
+    Sentry.captureException(err, { tags: { route: 'cron', stage: 'recurring_tasks' } });
     results.recurring_tasks_error = err instanceof Error ? err.message : 'unknown';
   }
 
@@ -45,6 +47,7 @@ async function handleCron(request: NextRequest) {
     const { data: alertCount } = await supabase.rpc('generate_deadline_alerts');
     results.deadline_alerts_generated = alertCount ?? 0;
   } catch (err) {
+    Sentry.captureException(err, { tags: { route: 'cron', stage: 'deadline_alerts' } });
     results.deadline_alerts_error = err instanceof Error ? err.message : 'unknown';
   }
 
@@ -53,6 +56,7 @@ async function handleCron(request: NextRequest) {
     const { data: archivedCount } = await supabase.rpc('archive_done_tasks');
     results.tasks_archived = archivedCount ?? 0;
   } catch (err) {
+    Sentry.captureException(err, { tags: { route: 'cron', stage: 'archive_done' } });
     results.tasks_archived_error = err instanceof Error ? err.message : 'unknown';
   }
 

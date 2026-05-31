@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic';
 export const maxDuration = 120;
 
 import { NextRequest, NextResponse } from 'next/server';
+import * as Sentry from '@sentry/nextjs';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { sendOutreachEmail } from '@/lib/email-outreach';
 
@@ -146,6 +147,10 @@ async function handleCron(request: NextRequest) {
 
       } catch (err) {
         failed++;
+        Sentry.captureException(err, {
+          tags: { route: 'cron/lead-sender', stage: 'send_email' },
+          extra: { leadId: lead.id, businessName, email },
+        });
         results.push({
           name: businessName,
           method: 'email',
@@ -173,6 +178,10 @@ async function handleCron(request: NextRequest) {
     });
 
   } catch (err) {
+    Sentry.captureException(err, {
+      tags: { route: 'cron/lead-sender', stage: 'fatal' },
+      extra: { runId },
+    });
     await supabase.from('agent_runs').update({
       status: 'failed',
       completed_at: new Date().toISOString(),

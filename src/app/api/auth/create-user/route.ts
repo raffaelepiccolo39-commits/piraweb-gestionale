@@ -1,5 +1,6 @@
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
+import * as Sentry from '@sentry/nextjs';
 import { randomBytes } from 'crypto';
 import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { sendInviteEmail } from '@/lib/email';
@@ -102,6 +103,10 @@ export async function POST(request: NextRequest) {
       inviteLink,
     });
   } catch (emailError) {
+    Sentry.captureException(emailError, {
+      tags: { route: 'auth/create-user', stage: 'send_invite_email' },
+      extra: { email, userId: newUser.user.id, role },
+    });
     console.error('Failed to send invite email:', emailError);
   }
 

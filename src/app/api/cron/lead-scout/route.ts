@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
 
 import { NextRequest, NextResponse } from 'next/server';
+import * as Sentry from '@sentry/nextjs';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { getRicercaDelGiorno } from '@/lib/lead-agents/config';
 import { checkApiBudget, trackApiUsage } from '@/lib/lead-agents/api-budget';
@@ -169,6 +170,7 @@ async function handleCron(request: NextRequest) {
     });
 
   } catch (err) {
+    Sentry.captureException(err, { tags: { route: 'cron/lead-scout', stage: 'fatal' }, extra: { runId } });
     await supabase.from('agent_runs').update({
       status: 'failed',
       completed_at: new Date().toISOString(),
