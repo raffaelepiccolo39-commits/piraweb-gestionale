@@ -114,7 +114,7 @@ export default function NoteSpesePage() {
   });
 
   const handleSubmit = async () => {
-    if (!profile) return;
+    if (!profile || submitting) return;
     const amount = parseFloat(form.amount.replace(',', '.'));
     if (!form.amount || isNaN(amount) || amount <= 0) { toast.error('Importo non valido'); return; }
     if (!form.incurred_on) { toast.error('Data spesa obbligatoria'); return; }
@@ -172,9 +172,14 @@ export default function NoteSpesePage() {
   };
 
   const handleCancel = async (id: string) => {
+    const exp = myExpenses.find(e => e.id === id);
     try {
-      const { error } = await supabase.from('employee_expenses').delete().eq('id', id);
+      const { error } = await supabase.from('employee_expenses').delete().eq('id', id).eq('status', 'pending');
       if (error) throw error;
+      // Best-effort: rimuovi anche il file in storage per non lasciare orfani
+      if (exp?.receipt_path) {
+        await supabase.storage.from('expense-receipts').remove([exp.receipt_path]).catch(() => {});
+      }
       toast.success('Nota spese annullata');
       fetchData();
     } catch (e) {
@@ -186,13 +191,20 @@ export default function NoteSpesePage() {
     if (!profile) return;
     const exp = pending.find(r => r.id === id);
     try {
-      const { error } = await supabase.from('employee_expenses')
+      const { data, error } = await supabase.from('employee_expenses')
         .update({ status: 'approved', reviewed_by: profile.id, reviewed_at: new Date().toISOString() })
-        .eq('id', id);
+        .eq('id', id)
+        .eq('status', 'pending')
+        .select('id');
       if (error) throw error;
+      if (!data || data.length === 0) {
+        toast.error('Spesa già evasa da un altro admin');
+        fetchData();
+        return;
+      }
       toast.success('Nota spese approvata');
       if (exp) {
-        try { await notifyExpenseDecision(supabase, exp, 'approved'); }
+        try { await notifyExpenseDecision(supabase, exp, 'approved', null, profile.id); }
         catch (n) { toast.error('Notifica al dipendente fallita: ' + (n as { message?: string })?.message); }
       }
       fetchData();
@@ -206,13 +218,21 @@ export default function NoteSpesePage() {
     const exp = pending.find(r => r.id === rejectId);
     const note = rejectNote.trim() || null;
     try {
-      const { error } = await supabase.from('employee_expenses')
+      const { data, error } = await supabase.from('employee_expenses')
         .update({ status: 'rejected', reviewed_by: profile.id, reviewed_at: new Date().toISOString(), review_note: note })
-        .eq('id', rejectId);
+        .eq('id', rejectId)
+        .eq('status', 'pending')
+        .select('id');
       if (error) throw error;
+      if (!data || data.length === 0) {
+        toast.error('Spesa già evasa da un altro admin');
+        setRejectId(null);
+        fetchData();
+        return;
+      }
       toast.success('Nota spese rifiutata');
       if (exp) {
-        try { await notifyExpenseDecision(supabase, exp, 'rejected', note); }
+        try { await notifyExpenseDecision(supabase, exp, 'rejected', note, profile.id); }
         catch (n) { toast.error('Notifica al dipendente fallita: ' + (n as { message?: string })?.message); }
       }
       setRejectId(null);
@@ -227,13 +247,20 @@ export default function NoteSpesePage() {
     if (!profile) return;
     const exp = approved.find(r => r.id === id);
     try {
-      const { error } = await supabase.from('employee_expenses')
+      const { data, error } = await supabase.from('employee_expenses')
         .update({ status: 'paid', paid_at: new Date().toISOString() })
-        .eq('id', id);
+        .eq('id', id)
+        .eq('status', 'approved')
+        .select('id');
       if (error) throw error;
+      if (!data || data.length === 0) {
+        toast.error('Rimborso già pagato o in stato non valido');
+        fetchData();
+        return;
+      }
       toast.success('Rimborso segnato come pagato');
       if (exp) {
-        try { await notifyExpenseDecision(supabase, exp, 'paid'); }
+        try { await notifyExpenseDecision(supabase, exp, 'paid', null, profile.id); }
         catch (n) { toast.error('Notifica al dipendente fallita: ' + (n as { message?: string })?.message); }
       }
       fetchData();

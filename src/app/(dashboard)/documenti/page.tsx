@@ -42,7 +42,7 @@ function daysUntil(date: string | null): number | null {
 }
 
 function formatBytes(n: number | null): string {
-  if (!n) return '—';
+  if (n === null || n === undefined) return '—';
   const units = ['B', 'KB', 'MB', 'GB'];
   let i = 0;
   let val = n;
@@ -140,8 +140,11 @@ export default function DocumentiPage() {
   };
 
   const handleSubmit = async () => {
-    if (!profile) return;
+    if (!profile || submitting) return;
     if (!form.title.trim()) { toast.error('Titolo obbligatorio'); return; }
+    if (form.issued_on && form.expires_on && form.expires_on < form.issued_on) {
+      toast.error('La data di scadenza precede quella di emissione'); return;
+    }
     if (!form.file) { toast.error('Allegato obbligatorio'); return; }
     if (!ACCEPTED_TYPES.includes(form.file.type)) {
       toast.error('Tipo file non supportato (PDF, DOC, immagini)'); return;
@@ -203,10 +206,14 @@ export default function DocumentiPage() {
   const handleDelete = async (doc: EmployeeDocument) => {
     if (!confirm(`Eliminare definitivamente "${doc.title}"?`)) return;
     try {
+      // Prima il file fisico: se questo fallisce, la row resta e l'utente può riprovare
+      // (evita di lasciare il file orfano in caso di errore policy storage)
+      const { error: storageErr } = await supabase.storage.from('employee-documents').remove([doc.file_path]);
+      if (storageErr) {
+        console.error('[documenti] storage remove failed:', storageErr.message);
+      }
       const { error } = await supabase.from('employee_documents').delete().eq('id', doc.id);
       if (error) throw error;
-      // Best-effort: rimuovi anche il file fisico
-      await supabase.storage.from('employee-documents').remove([doc.file_path]).catch(() => {});
       toast.success('Documento eliminato');
       fetchData();
     } catch (e) {

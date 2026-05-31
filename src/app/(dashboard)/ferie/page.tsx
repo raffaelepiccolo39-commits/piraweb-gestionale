@@ -252,7 +252,7 @@ export default function FeriePage() {
       if (error) throw error;
       toast.success('Richiesta approvata');
       if (req) {
-        try { await notifyTimeOffDecision(supabase, req, 'approved'); }
+        try { await notifyTimeOffDecision(supabase, req, 'approved', null, profile.id); }
         catch (n) { toast.error('Notifica al dipendente fallita: ' + (n as { message?: string })?.message); }
       }
       fetchData();
@@ -272,7 +272,7 @@ export default function FeriePage() {
       if (error) throw error;
       toast.success('Richiesta rifiutata');
       if (req) {
-        try { await notifyTimeOffDecision(supabase, req, 'rejected', note); }
+        try { await notifyTimeOffDecision(supabase, req, 'rejected', note, profile.id); }
         catch (n) { toast.error('Notifica al dipendente fallita: ' + (n as { message?: string })?.message); }
       }
       setRejectId(null);

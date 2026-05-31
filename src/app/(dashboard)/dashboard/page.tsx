@@ -324,7 +324,7 @@ export default function DashboardPage() {
       if (error) throw error;
       toast.success('Richiesta approvata');
       if (req) {
-        try { await notifyTimeOffDecision(supabase, req, 'approved'); }
+        try { await notifyTimeOffDecision(supabase, req, 'approved', null, profile.id); }
         catch (n) { toast.error('Notifica al dipendente fallita: ' + (n as { message?: string })?.message); }
       }
       fetchDashboardData();
@@ -343,7 +343,7 @@ export default function DashboardPage() {
       if (error) throw error;
       toast.success('Richiesta rifiutata');
       if (req) {
-        try { await notifyTimeOffDecision(supabase, req, 'rejected'); }
+        try { await notifyTimeOffDecision(supabase, req, 'rejected', null, profile.id); }
         catch (n) { toast.error('Notifica al dipendente fallita: ' + (n as { message?: string })?.message); }
       }
       fetchDashboardData();
