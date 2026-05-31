@@ -1,24 +1,50 @@
 export const dynamic = 'force-dynamic';
-import { NextRequest, NextResponse } from 'next/server';
-import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server';
+import { NextResponse, type NextRequest } from 'next/server';
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
+import { createServiceRoleClient } from '@/lib/supabase/server';
 
+/**
+ * Imposta la password dell'utente durante l'onboarding.
+ *
+ * Critico: auth.updateUser ruota i refresh token, quindi i cookie di
+ * sessione cambiano. Vanno propagati esplicitamente sulla response,
+ * altrimenti il browser resta coi vecchi token (invalidi) e le chiamate
+ * API successive ricevono 401.
+ */
 export async function POST(request: NextRequest) {
-  const supabase = await createServerSupabaseClient();
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user) {
-    return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 });
-  }
-
   const { password } = await request.json();
 
   if (!password || typeof password !== 'string' || password.length < 8) {
     return NextResponse.json({ error: 'La password deve avere almeno 8 caratteri' }, { status: 400 });
   }
 
-  // Usiamo updateUser sulla sessione corrente (NON admin.updateUserById) per
-  // evitare che Supabase invalidi la sessione attiva, cosa che farebbe perdere
-  // l'auth durante il wizard e bloccherebbe lo step 2FA successivo.
+  const response = NextResponse.json({ ok: true });
+  const cookieStore = await cookies();
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            try { cookieStore.set(name, value, options); } catch { /* ignore */ }
+            response.cookies.set(name, value, options);
+          });
+        },
+      },
+    }
+  );
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 });
+  }
+
   const { error: pwError } = await supabase.auth.updateUser({ password });
   if (pwError) {
     return NextResponse.json({ error: `Errore aggiornamento password: ${pwError.message}` }, { status: 400 });
@@ -33,5 +59,5 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: `Password aggiornata ma errore profilo: ${profError.message}` }, { status: 500 });
   }
 
-  return NextResponse.json({ ok: true });
+  return response;
 }
