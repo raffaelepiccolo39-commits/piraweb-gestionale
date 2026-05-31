@@ -252,7 +252,15 @@ export default function SocialCalendarPage() {
 
   const getPostsForDay = (day: number) => {
     const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    return posts.filter((p) => p.scheduled_at?.startsWith(dateStr));
+    // p.scheduled_at è UTC. Confrontare il prefisso con la data locale
+    // sbaglia per post pubblicati nelle prime ore (Italia +1/+2) o nelle
+    // ultime: appaiono nel giorno sbagliato. Conversione a fuso locale prima.
+    return posts.filter((p) => {
+      if (!p.scheduled_at) return false;
+      const d = new Date(p.scheduled_at);
+      const localStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      return localStr === dateStr;
+    });
   };
 
   const isToday = (day: number) => {

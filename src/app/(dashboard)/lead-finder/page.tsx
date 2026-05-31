@@ -88,10 +88,14 @@ export default function LeadFinderPage() {
   const [tab, setTab] = useState<'search' | 'saved'>('search');
 
   const fetchProspects = useCallback(async () => {
+    // Limit a 300 prospect: select('*') include analysis_notes/outreach_message
+    // che possono essere KB di markdown — senza limit la pagina diventava
+    // gonfia e lenta non appena si superavano qualche centinaio di righe.
     const { data } = await supabase
       .from('lead_prospects')
       .select('*')
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .limit(300);
     setProspects((data as LeadProspect[]) || []);
   }, [supabase]);
 

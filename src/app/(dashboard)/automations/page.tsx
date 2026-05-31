@@ -74,36 +74,63 @@ export default function AutomationsPage() {
   const handleCreate = async () => {
     if (!profile) return;
     if (!form.name) { toast.error('Nome obbligatorio'); return; }
-    let triggerConfig = {};
-    let actionConfig = {};
-    try { if (form.trigger_config) triggerConfig = JSON.parse(form.trigger_config); } catch { /* ignore */ }
-    try { if (form.action_config) actionConfig = JSON.parse(form.action_config); } catch { /* ignore */ }
+    // Validazione JSON: prima veniva accettato silenziosamente come {}, ora
+    // l'utente vede l'errore esatto e il bottone non parte
+    let triggerConfig: object;
+    let actionConfig: object;
+    try {
+      triggerConfig = form.trigger_config ? JSON.parse(form.trigger_config) : {};
+    } catch (e) {
+      toast.error('JSON di trigger non valido: ' + (e as Error).message);
+      return;
+    }
+    try {
+      actionConfig = form.action_config ? JSON.parse(form.action_config) : {};
+    } catch (e) {
+      toast.error('JSON di action non valido: ' + (e as Error).message);
+      return;
+    }
 
-    const { error } = await supabase.from('automations').insert({
-      name: form.name,
-      description: form.description || null,
-      trigger_type: form.trigger_type,
-      trigger_config: triggerConfig,
-      action_type: form.action_type,
-      action_config: actionConfig,
-      created_by: profile.id,
-    });
-    if (!error) {
+    try {
+      const { error } = await supabase.from('automations').insert({
+        name: form.name,
+        description: form.description || null,
+        trigger_type: form.trigger_type,
+        trigger_config: triggerConfig,
+        action_type: form.action_type,
+        action_config: actionConfig,
+        created_by: profile.id,
+      });
+      if (error) throw error;
       toast.success('Automazione creata');
       setShowForm(false);
       setForm({ name: '', description: '', trigger_type: 'deal_stage_changed', trigger_config: '', action_type: 'create_notification', action_config: '' });
       fetchAutomations();
+    } catch (e) {
+      toast.error((e as { message?: string } | undefined)?.message || 'Errore durante la creazione');
     }
   };
 
   const handleToggle = async (a: Automation) => {
-    const { error } = await supabase.from('automations').update({ is_active: !a.is_active }).eq('id', a.id);
-    if (!error) fetchAutomations();
+    try {
+      const { error } = await supabase.from('automations').update({ is_active: !a.is_active }).eq('id', a.id);
+      if (error) throw error;
+      toast.success(a.is_active ? 'Automazione disattivata' : 'Automazione attivata');
+      fetchAutomations();
+    } catch (e) {
+      toast.error((e as { message?: string } | undefined)?.message || 'Errore');
+    }
   };
 
   const handleDelete = async (id: string) => {
-    const { error } = await supabase.from('automations').delete().eq('id', id);
-    if (!error) fetchAutomations();
+    try {
+      const { error } = await supabase.from('automations').delete().eq('id', id);
+      if (error) throw error;
+      toast.success('Automazione eliminata');
+      fetchAutomations();
+    } catch (e) {
+      toast.error((e as { message?: string } | undefined)?.message || 'Errore durante l\'eliminazione');
+    }
   };
 
   if (loading) {
