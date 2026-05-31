@@ -1,7 +1,7 @@
 'use client';
 
 
-import { useEffect, useState, useCallback, use } from 'react';
+import { useEffect, useState, useCallback, use, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
@@ -87,49 +87,64 @@ export default function ProjectDetailPage({
     fetchTasks();
   }, [fetchProject, fetchTasks]);
 
+  const taskSubmittingRef = useRef(false);
+
   const handleCreateTask = async (data: TaskFormData) => {
-    const maxPosition = tasks
-      .filter((t) => t.status === data.status)
-      .reduce((max, t) => Math.max(max, t.position), -1);
+    if (!profile || taskSubmittingRef.current) return;
+    taskSubmittingRef.current = true;
+    try {
+      const maxPosition = tasks
+        .filter((t) => t.status === data.status)
+        .reduce((max, t) => Math.max(max, t.position), -1);
 
-    if (!profile) return;
-    const { error } = await supabase.from('tasks').insert({
-      title: data.title,
-      description: data.description || null,
-      project_id: id,
-      assigned_to: data.assigned_to || null,
-      priority: data.priority,
-      status: data.status,
-      deadline: data.deadline || null,
-      estimated_hours: data.estimated_hours ? parseFloat(data.estimated_hours) : null,
-      position: maxPosition + 1,
-      created_by: profile.id,
-    });
-
-    if (!error) {
-      setShowTaskForm(false);
-      fetchTasks();
-    }
-  };
-
-  const handleUpdateTask = async (data: TaskFormData) => {
-    if (!editingTask) return;
-    const { error } = await supabase
-      .from('tasks')
-      .update({
+      const { error } = await supabase.from('tasks').insert({
         title: data.title,
         description: data.description || null,
+        project_id: id,
         assigned_to: data.assigned_to || null,
         priority: data.priority,
         status: data.status,
         deadline: data.deadline || null,
         estimated_hours: data.estimated_hours ? parseFloat(data.estimated_hours) : null,
-      })
-      .eq('id', editingTask.id);
+        position: maxPosition + 1,
+        created_by: profile.id,
+      });
+      if (error) throw error;
+      toast.success('Task creato');
+      setShowTaskForm(false);
+      fetchTasks();
+    } catch (e) {
+      // Prima errori silenti: il modal restava aperto senza feedback → utente confuso
+      toast.error((e as { message?: string } | undefined)?.message || 'Errore durante la creazione del task');
+    } finally {
+      taskSubmittingRef.current = false;
+    }
+  };
 
-    if (!error) {
+  const handleUpdateTask = async (data: TaskFormData) => {
+    if (!editingTask || taskSubmittingRef.current) return;
+    taskSubmittingRef.current = true;
+    try {
+      const { error } = await supabase
+        .from('tasks')
+        .update({
+          title: data.title,
+          description: data.description || null,
+          assigned_to: data.assigned_to || null,
+          priority: data.priority,
+          status: data.status,
+          deadline: data.deadline || null,
+          estimated_hours: data.estimated_hours ? parseFloat(data.estimated_hours) : null,
+        })
+        .eq('id', editingTask.id);
+      if (error) throw error;
+      toast.success('Task aggiornato');
       setEditingTask(null);
       fetchTasks();
+    } catch (e) {
+      toast.error((e as { message?: string } | undefined)?.message || 'Errore durante l\'aggiornamento del task');
+    } finally {
+      taskSubmittingRef.current = false;
     }
   };
 
