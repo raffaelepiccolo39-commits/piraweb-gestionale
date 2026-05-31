@@ -269,7 +269,7 @@ export default function DocumentiPage() {
             <div className="flex items-center gap-2 text-pw-text-muted text-xs mb-1">
               <Hourglass size={14} /> In scadenza
             </div>
-            <p className={`text-3xl font-semibold leading-none ${stats.expiring > 0 ? 'text-yellow-500' : 'text-pw-text'}`}>{stats.expiring}</p>
+            <p className={`text-3xl font-semibold leading-none ${stats.expiring > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-pw-text'}`}>{stats.expiring}</p>
             <p className="text-xs text-pw-text-dim mt-1.5">entro 30 giorni</p>
           </CardContent>
         </Card>
