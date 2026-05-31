@@ -1,10 +1,15 @@
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
+import { randomBytes } from 'crypto';
 import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server';
-import { sendWelcomeEmail } from '@/lib/email';
+import { sendInviteEmail } from '@/lib/email';
 import type { UserRole } from '@/types/database';
 
 const VALID_ROLES: UserRole[] = ['admin', 'social_media_manager', 'content_creator', 'graphic_social', 'graphic_brand'];
+
+function generateRandomPassword(): string {
+  return randomBytes(24).toString('base64url');
+}
 
 export async function POST(request: NextRequest) {
   const supabase = await createServerSupabaseClient();
@@ -14,7 +19,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 });
   }
 
-  // Verify caller is admin
   const { data: callerProfile } = await supabase
     .from('profiles')
     .select('role')
@@ -25,14 +29,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Solo gli amministratori possono creare utenti' }, { status: 403 });
   }
 
-  const { email, password, full_name, role, salary, iban, contract_type, contract_start_date } = await request.json();
+  const { email, full_name, role, salary, iban, contract_type, contract_start_date } = await request.json();
 
-  if (!email || !password || !full_name || !role) {
-    return NextResponse.json({ error: 'Tutti i campi sono obbligatori' }, { status: 400 });
-  }
-
-  if (password.length < 8) {
-    return NextResponse.json({ error: 'La password deve avere almeno 8 caratteri' }, { status: 400 });
+  if (!email || !full_name || !role) {
+    return NextResponse.json({ error: 'Email, nome e ruolo sono obbligatori' }, { status: 400 });
   }
 
   if (!VALID_ROLES.includes(role)) {
@@ -41,10 +41,12 @@ export async function POST(request: NextRequest) {
 
   const serviceClient = await createServiceRoleClient();
 
-  // Create auth user without metadata to avoid trigger issues
+  // Random placeholder password — l'utente la sostituirà al primo accesso
+  const placeholderPassword = generateRandomPassword();
+
   const { data: newUser, error: authError } = await serviceClient.auth.admin.createUser({
     email,
-    password,
+    password: placeholderPassword,
     email_confirm: true,
   });
 
@@ -55,8 +57,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: message }, { status: 400 });
   }
 
-  // Insert profile manually using service role (bypasses RLS)
-  // The trigger may have created a default profile, so we upsert
   const { error: profileError } = await serviceClient
     .from('profiles')
     .upsert({
@@ -68,6 +68,8 @@ export async function POST(request: NextRequest) {
       iban: iban || null,
       contract_type: contract_type || null,
       contract_start_date: contract_start_date || null,
+      must_change_password: true,
+      onboarded_at: null,
     }, { onConflict: 'id' });
 
   if (profileError) {
@@ -77,35 +79,35 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Generate a password reset link so the user sets their own password
+  // Genera link invito Supabase che porta a /onboarding
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-  let resetLink = `${appUrl}/login`;
+  let inviteLink = `${appUrl}/login`;
   try {
     const { data: linkData, error: linkError } = await serviceClient.auth.admin.generateLink({
       type: 'magiclink',
       email,
-      options: { redirectTo: `${appUrl}/dashboard` },
+      options: { redirectTo: `${appUrl}/api/auth/callback?next=/onboarding` },
     });
     if (!linkError && linkData?.properties?.action_link) {
-      resetLink = linkData.properties.action_link;
+      inviteLink = linkData.properties.action_link;
     }
   } catch {
-    // If link generation fails, fall back to login URL
+    // fallback su /login se la generazione fallisce
   }
 
-  // Send welcome email with reset link (no password in email)
   try {
-    await sendWelcomeEmail({
+    await sendInviteEmail({
       to: email,
       fullName: full_name,
-      email,
       role,
-      resetLink,
+      inviteLink,
     });
   } catch (emailError) {
-    // User created successfully, email failed - don't block
-    console.error('Failed to send welcome email:', emailError);
+    console.error('Failed to send invite email:', emailError);
   }
 
-  return NextResponse.json({ user: newUser.user }, { status: 201 });
+  return NextResponse.json(
+    { user: newUser.user, inviteLink },
+    { status: 201 }
+  );
 }

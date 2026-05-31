@@ -12,7 +12,7 @@ import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Modal } from '@/components/ui/modal';
 import { getRoleLabel, getRoleTone, getInitials, formatCurrency, todayLocal } from '@/lib/utils';
-import type { Profile } from '@/types/database';
+import type { Profile, UserRole } from '@/types/database';
 import { Settings, Users, Shield, ShieldCheck, ShieldOff, Save, UserPlus, Eye, EyeOff, Pencil, Lock, ArrowRightLeft, AlertTriangle, Loader2, Copy, Check } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
 import { SkeletonStats, SkeletonList } from '@/components/ui/skeleton';
@@ -49,11 +49,17 @@ export default function SettingsPage() {
   const [createLoading, setCreateLoading] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [createSuccess, setCreateSuccess] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [createForm, setCreateForm] = useState({
+  const [createForm, setCreateForm] = useState<{
+    full_name: string;
+    email: string;
+    role: UserRole;
+    salary: string;
+    iban: string;
+    contract_type: string;
+    contract_start_date: string;
+  }>({
     full_name: '',
     email: '',
-    password: '',
     role: 'content_creator',
     salary: '',
     iban: '',
@@ -305,6 +311,24 @@ export default function SettingsPage() {
     fetchTeam();
   };
 
+  const handleResendInvite = async (userId: string) => {
+    try {
+      const res = await fetch('/api/admin/resend-invite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error || 'Errore reinvio invito');
+        return;
+      }
+      toast.success('Invito reinviato via email');
+    } catch {
+      toast.error('Errore di connessione');
+    }
+  };
+
   const handleToggleActive = async (userId: string, isActive: boolean) => {
     try {
       const res = await fetch('/api/admin/update-member', {
@@ -342,7 +366,7 @@ export default function SettingsPage() {
         setCreateError(data.error);
       } else {
         setCreateSuccess(true);
-        setCreateForm({ full_name: '', email: '', password: '', role: 'content_creator', salary: '', iban: '', contract_type: '', contract_start_date: todayLocal() });
+        setCreateForm({ full_name: '', email: '', role: 'content_creator', salary: '', iban: '', contract_type: '', contract_start_date: todayLocal() });
         fetchTeam();
         timersRef.current.push(setTimeout(() => {
           setShowCreateModal(false);
@@ -398,10 +422,9 @@ export default function SettingsPage() {
   };
 
   const openCreateModal = () => {
-    setCreateForm({ full_name: '', email: '', password: '', role: 'content_creator', salary: '', iban: '', contract_type: '', contract_start_date: todayLocal() });
+    setCreateForm({ full_name: '', email: '', role: 'content_creator', salary: '', iban: '', contract_type: '', contract_start_date: todayLocal() });
     setCreateError(null);
     setCreateSuccess(false);
-    setShowPassword(false);
     setShowCreateModal(true);
   };
 
@@ -734,6 +757,20 @@ export default function SettingsPage() {
                     </p>
                   </div>
                   <div className="flex items-center gap-3 shrink-0">
+                    {!member.onboarded_at && (
+                      <>
+                        <span className="px-2 py-0.5 rounded-md text-[11px] font-medium bg-amber-500/15 text-amber-500">
+                          In attesa
+                        </span>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleResendInvite(member.id); }}
+                          className="px-2.5 py-1.5 rounded-lg text-xs font-medium bg-pw-surface-3 text-pw-text-muted hover:bg-pw-surface-2 hover:text-pw-text"
+                          title="Reinvia email di invito"
+                        >
+                          Reinvia
+                        </button>
+                      </>
+                    )}
                     <button
                       onClick={(e) => { e.stopPropagation(); handleToggleActive(member.id, member.is_active); }}
                       disabled={member.id === profile.id}
@@ -785,33 +822,14 @@ export default function SettingsPage() {
             onChange={(e) => setCreateForm({ ...createForm, email: e.target.value })}
             placeholder="es. mario@piraweb.it"
           />
-          <div>
-            <label htmlFor="create-password" className="block text-sm font-medium text-pw-text-muted mb-1">
-              Password * <span className="text-xs text-pw-text-dim">(min. 8 caratteri)</span>
-            </label>
-            <div className="relative">
-              <input
-                id="create-password"
-                type={showPassword ? 'text' : 'password'}
-                value={createForm.password}
-                onChange={(e) => setCreateForm({ ...createForm, password: e.target.value })}
-                placeholder="Inserisci password"
-                className="w-full px-4 py-2.5 rounded-xl border border-pw-border bg-pw-surface-2 text-pw-text focus:ring-2 focus:ring-pw-accent/30 focus:border-pw-accent/50 outline-none text-sm pr-10"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-pw-text-dim hover:text-pw-text-muted"
-              >
-                {showPassword ? <EyeOff size={16} aria-hidden="true" /> : <Eye size={16} aria-hidden="true" />}
-              </button>
-            </div>
+          <div className="rounded-xl border border-pw-border bg-pw-surface-2 px-4 py-3 text-xs text-pw-text-muted">
+            L&apos;utente riceverà un&apos;email di invito e imposterà la propria password al primo accesso.
           </div>
           <Select
             id="create-role"
             label="Ruolo *"
             value={createForm.role}
-            onChange={(e) => setCreateForm({ ...createForm, role: e.target.value })}
+            onChange={(e) => setCreateForm({ ...createForm, role: e.target.value as UserRole })}
             options={createRoleOptions}
           />
 
@@ -880,7 +898,7 @@ export default function SettingsPage() {
             <Button
               onClick={handleCreateUser}
               loading={createLoading}
-              disabled={!createForm.full_name || !createForm.email || !createForm.password || createForm.password.length < 8}
+              disabled={!createForm.full_name || !createForm.email}
               className="flex-1"
             >
               <UserPlus size={16} />

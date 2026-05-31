@@ -181,6 +181,8 @@ export interface Profile {
   color: string | null;
   contract_type: EmployeeContractType | null;
   contract_start_date: string | null;
+  must_change_password: boolean;
+  onboarded_at: string | null;
   created_at: string;
   updated_at: string;
 }

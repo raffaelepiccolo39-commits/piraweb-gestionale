@@ -21,12 +21,11 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-interface WelcomeEmailParams {
+interface InviteEmailParams {
   to: string;
   fullName: string;
-  email: string;
   role: string;
-  resetLink: string;
+  inviteLink: string;
 }
 
 const roleLabels: Record<string, string> = {
@@ -37,10 +36,10 @@ const roleLabels: Record<string, string> = {
   graphic_brand: 'Graphic Brand',
 };
 
-export async function sendWelcomeEmail({ to, fullName, email, role, resetLink }: WelcomeEmailParams) {
+export async function sendInviteEmail({ to, fullName, role, inviteLink }: InviteEmailParams) {
   const roleLabel = escapeHtml(roleLabels[role] || role);
   const firstName = escapeHtml(fullName.split(' ')[0]);
-  const safeEmail = escapeHtml(email);
+  const safeEmail = escapeHtml(to);
 
   const html = `
 <!DOCTYPE html>
@@ -67,10 +66,10 @@ export async function sendWelcomeEmail({ to, fullName, email, role, resetLink }:
           <tr>
             <td style="padding:40px;">
               <h2 style="margin:0 0 8px;color:#111827;font-size:22px;font-weight:600;">
-                Benvenuto/a, ${firstName}!
+                Sei stato invitato/a, ${firstName}!
               </h2>
               <p style="margin:0 0 24px;color:#6b7280;font-size:15px;line-height:1.6;">
-                Il tuo account sul gestionale PiraWeb è stato creato con il ruolo di
+                L'amministratore ti ha invitato/a sul gestionale PiraWeb con il ruolo di
                 <span style="display:inline-block;background-color:#EEF2FF;color:#4F46E5;padding:2px 8px;border-radius:6px;font-size:13px;font-weight:600;">
                   ${roleLabel}
                 </span>.
@@ -88,7 +87,6 @@ export async function sendWelcomeEmail({ to, fullName, email, role, resetLink }:
                     </table>
                     <p style="margin:16px 0 0;color:#6b7280;font-size:13px;line-height:1.5;">
                       Clicca il pulsante qui sotto per impostare la tua password e accedere al gestionale.
-                      Il link scade tra 24 ore.
                     </p>
                   </td>
                 </tr>
@@ -98,7 +96,7 @@ export async function sendWelcomeEmail({ to, fullName, email, role, resetLink }:
               <table width="100%" cellpadding="0" cellspacing="0">
                 <tr>
                   <td align="center" style="padding-bottom:24px;">
-                    <a href="${resetLink}" style="display:inline-block;background:linear-gradient(135deg,#4F46E5,#7C3AED);color:#ffffff;text-decoration:none;padding:14px 32px;border-radius:12px;font-size:15px;font-weight:600;">
+                    <a href="${inviteLink}" style="display:inline-block;background:linear-gradient(135deg,#4F46E5,#7C3AED);color:#ffffff;text-decoration:none;padding:14px 32px;border-radius:12px;font-size:15px;font-weight:600;">
                       Imposta Password e Accedi
                     </a>
                   </td>
@@ -130,7 +128,7 @@ export async function sendWelcomeEmail({ to, fullName, email, role, resetLink }:
   await transporter.sendMail({
     from: process.env.SMTP_FROM,
     to,
-    subject: `Benvenuto/a in PiraWeb Gestionale, ${firstName}!`,
+    subject: `Sei stato invitato/a in PiraWeb Gestionale, ${firstName}`,
     html,
   });
 }

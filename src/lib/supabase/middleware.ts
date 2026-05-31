@@ -64,6 +64,7 @@ export async function updateSession(request: NextRequest) {
   const isApiRoute = request.nextUrl.pathname.startsWith('/api');
   const isCallbackRoute = request.nextUrl.pathname.startsWith('/api/auth/callback');
   const isPublicPage = request.nextUrl.pathname.startsWith('/consulenza') || request.nextUrl.pathname.startsWith('/review');
+  const isOnboardingPage = request.nextUrl.pathname.startsWith('/onboarding');
 
   // Allow callback route
   if (isCallbackRoute) {
@@ -85,8 +86,37 @@ export async function updateSession(request: NextRequest) {
     return redirectResponse;
   }
 
+  // Onboarding gate: utente autenticato che non ha completato il wizard primo
+  // accesso viene forzato su /onboarding. Eseguito prima di 2FA/admin guard
+  // perché il wizard stesso include lo step 2FA (impostarla è parte del flow).
+  if (user && !isAuthPage && !isApiRoute && !isPublicPage && !isOnboardingPage) {
+    try {
+      const serviceClient = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!
+      );
+      const { data: prof } = await serviceClient
+        .from('profiles')
+        .select('onboarded_at')
+        .eq('id', user.id)
+        .single();
+      if (prof && prof.onboarded_at === null) {
+        const url = request.nextUrl.clone();
+        url.pathname = '/onboarding';
+        url.search = '';
+        const redirectResponse = NextResponse.redirect(url);
+        supabaseResponse.cookies.getAll().forEach((cookie) => {
+          redirectResponse.cookies.set(cookie.name, cookie.value, cookie);
+        });
+        return redirectResponse;
+      }
+    } catch {
+      // Se la query fallisce, lascia passare (fail-open per non bloccare l'app)
+    }
+  }
+
   // 2FA check: utente autenticato che cerca di accedere alla dashboard
-  if (user && !isAuthPage && !isApiRoute && !isPublicPage) {
+  if (user && !isAuthPage && !isApiRoute && !isPublicPage && !isOnboardingPage) {
     const tfaCookie = request.cookies.get('2fa_verified');
     const isTfaVerified = tfaCookie?.value === user.id;
 
