@@ -16,13 +16,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'La password deve avere almeno 8 caratteri' }, { status: 400 });
   }
 
-  const service = await createServiceRoleClient();
-
-  const { error: pwError } = await service.auth.admin.updateUserById(user.id, { password });
+  // Usiamo updateUser sulla sessione corrente (NON admin.updateUserById) per
+  // evitare che Supabase invalidi la sessione attiva, cosa che farebbe perdere
+  // l'auth durante il wizard e bloccherebbe lo step 2FA successivo.
+  const { error: pwError } = await supabase.auth.updateUser({ password });
   if (pwError) {
     return NextResponse.json({ error: `Errore aggiornamento password: ${pwError.message}` }, { status: 400 });
   }
 
+  const service = await createServiceRoleClient();
   const { error: profError } = await service
     .from('profiles')
     .update({ must_change_password: false })
