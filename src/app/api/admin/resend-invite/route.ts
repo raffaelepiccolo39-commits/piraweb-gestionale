@@ -40,29 +40,30 @@ export async function POST(request: NextRequest) {
   const { data: linkData, error: linkError } = await service.auth.admin.generateLink({
     type: 'magiclink',
     email: target.email,
-    options: { redirectTo: `${appUrl}/api/auth/callback?next=/onboarding` },
   });
 
-  if (linkError || !linkData?.properties?.action_link) {
+  if (linkError || !linkData?.properties?.hashed_token) {
     return NextResponse.json(
       { error: `Errore generazione link: ${linkError?.message || 'sconosciuto'}` },
       { status: 500 }
     );
   }
 
+  const inviteLink = `${appUrl}/api/auth/confirm?token_hash=${linkData.properties.hashed_token}&type=magiclink&next=/onboarding`;
+
   try {
     await sendInviteEmail({
       to: target.email,
       fullName: target.full_name,
       role: target.role,
-      inviteLink: linkData.properties.action_link,
+      inviteLink,
     });
   } catch (emailErr) {
     return NextResponse.json(
-      { error: `Errore invio email: ${emailErr instanceof Error ? emailErr.message : 'sconosciuto'}`, inviteLink: linkData.properties.action_link },
+      { error: `Errore invio email: ${emailErr instanceof Error ? emailErr.message : 'sconosciuto'}`, inviteLink },
       { status: 500 }
     );
   }
 
-  return NextResponse.json({ ok: true, inviteLink: linkData.properties.action_link });
+  return NextResponse.json({ ok: true, inviteLink });
 }

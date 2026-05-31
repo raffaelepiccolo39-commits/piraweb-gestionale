@@ -79,17 +79,16 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Genera link invito Supabase che porta a /onboarding
+  // Genera link invito tramite token_hash → /api/auth/confirm (verifyOtp server-side)
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
   let inviteLink = `${appUrl}/login`;
   try {
     const { data: linkData, error: linkError } = await serviceClient.auth.admin.generateLink({
       type: 'magiclink',
       email,
-      options: { redirectTo: `${appUrl}/api/auth/callback?next=/onboarding` },
     });
-    if (!linkError && linkData?.properties?.action_link) {
-      inviteLink = linkData.properties.action_link;
+    if (!linkError && linkData?.properties?.hashed_token) {
+      inviteLink = `${appUrl}/api/auth/confirm?token_hash=${linkData.properties.hashed_token}&type=magiclink&next=/onboarding`;
     }
   } catch {
     // fallback su /login se la generazione fallisce
