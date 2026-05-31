@@ -64,6 +64,7 @@ export function Header({ onMobileMenuToggle, mobileMenuOpen }: HeaderProps) {
   const router = useRouter();
   const { profile, signOut } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
   const [unreadChatCount, setUnreadChatCount] = useState(0);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -98,8 +99,6 @@ export function Header({ onMobileMenuToggle, mobileMenuOpen }: HeaderProps) {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [searchFocused]);
 
-  const unreadCount = notifications.filter((n) => !n.is_read).length;
-
   useEffect(() => {
     const saved = localStorage.getItem('darkMode');
     if (saved === 'true' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
@@ -121,13 +120,21 @@ export function Header({ onMobileMenuToggle, mobileMenuOpen }: HeaderProps) {
 
     const fetchNotifications = async () => {
       try {
-        const { data } = await supabase
-          .from('notifications')
-          .select('*')
-          .eq('user_id', profile.id)
-          .order('created_at', { ascending: false })
-          .limit(20);
+        const [{ data }, { count }] = await Promise.all([
+          supabase
+            .from('notifications')
+            .select('*')
+            .eq('user_id', profile.id)
+            .order('created_at', { ascending: false })
+            .limit(20),
+          supabase
+            .from('notifications')
+            .select('id', { count: 'exact', head: true })
+            .eq('user_id', profile.id)
+            .eq('is_read', false),
+        ]);
         if (data) setNotifications(data as Notification[]);
+        setUnreadCount(count || 0);
       } catch {
         // Table may not exist yet
       }
@@ -189,6 +196,7 @@ export function Header({ onMobileMenuToggle, mobileMenuOpen }: HeaderProps) {
           },
           (payload) => {
             setNotifications((prev) => [payload.new as Notification, ...prev]);
+            setUnreadCount((c) => c + 1);
           }
         )
         .subscribe();
@@ -205,20 +213,33 @@ export function Header({ onMobileMenuToggle, mobileMenuOpen }: HeaderProps) {
   }, [profile]);
 
   const markAsRead = async (id: string) => {
-    await supabase.from('notifications').update({ is_read: true }).eq('id', id);
+    const target = notifications.find((n) => n.id === id);
+    if (target && !target.is_read) {
+      setUnreadCount((c) => Math.max(0, c - 1));
+    }
     setNotifications((prev) =>
       prev.map((n) => (n.id === id ? { ...n, is_read: true } : n))
     );
+    await supabase.from('notifications').update({ is_read: true }).eq('id', id);
   };
 
   const markAllRead = async () => {
     if (!profile) return;
+    setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+    setUnreadCount(0);
     await supabase
       .from('notifications')
       .update({ is_read: true })
       .eq('user_id', profile.id)
       .eq('is_read', false);
-    setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+  };
+
+  const handleNotificationClick = (notif: Notification) => {
+    markAsRead(notif.id);
+    if (notif.link && notif.link.startsWith('/')) {
+      setShowNotifications(false);
+      router.push(notif.link);
+    }
   };
 
   return (
@@ -386,7 +407,7 @@ export function Header({ onMobileMenuToggle, mobileMenuOpen }: HeaderProps) {
                           'w-full text-left p-3 border-b border-pw-border last:border-0 cursor-pointer hover:bg-pw-surface-3',
                           !notif.is_read && 'bg-pw-accent/5'
                         )}
-                        onClick={() => markAsRead(notif.id)}
+                        onClick={() => handleNotificationClick(notif)}
                       >
                         <p className="text-sm font-medium text-pw-text">
                           {notif.title}
