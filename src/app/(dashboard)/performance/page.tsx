@@ -13,7 +13,7 @@ import { PageHeader } from '@/components/ui/page-header';
 import { useToast } from '@/components/ui/toast';
 import { SkeletonStats, SkeletonList } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
-import { cn, formatDate } from '@/lib/utils';
+import { cn, formatDate, todayLocal } from '@/lib/utils';
 import { OBJECTIVE_STATUS_LABELS, REVIEW_STATUS_LABELS, SKILL_LEVEL_LABELS, FEEDBACK_KIND_LABELS } from '@/lib/constants';
 import type {
   EmployeeObjective, ObjectiveStatus,
@@ -75,7 +75,7 @@ export default function PerformancePage() {
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [reviewForm, setReviewForm] = useState({
     user_id: '', what_works: '', what_to_improve: '', next_focus: '', notes: '',
-    conducted_on: new Date().toISOString().slice(0, 10), finalize: false,
+    conducted_on: todayLocal(), finalize: false,
   });
 
   const [skillForm, setSkillForm] = useState({ skill_name: '', level: 3 });
@@ -188,7 +188,7 @@ export default function PerformancePage() {
       if (error) throw error;
       toast.success('Review salvata');
       setShowReviewModal(false);
-      setReviewForm({ user_id: '', what_works: '', what_to_improve: '', next_focus: '', notes: '', conducted_on: new Date().toISOString().slice(0, 10), finalize: false });
+      setReviewForm({ user_id: '', what_works: '', what_to_improve: '', next_focus: '', notes: '', conducted_on: todayLocal(), finalize: false });
       fetchAll();
     } catch (e) {
       toast.error((e as { message?: string } | undefined)?.message || 'Errore');

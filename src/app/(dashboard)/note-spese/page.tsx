@@ -13,7 +13,7 @@ import { PageHeader } from '@/components/ui/page-header';
 import { useToast } from '@/components/ui/toast';
 import { SkeletonStats, SkeletonList } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
-import { formatCurrency, formatDate } from '@/lib/utils';
+import { formatCurrency, formatDate, todayLocal } from '@/lib/utils';
 import { EXPENSE_CATEGORY_LABELS, EXPENSE_STATUS_LABELS } from '@/lib/constants';
 import { notifyExpenseDecision } from '@/lib/expense-notifications';
 import type { EmployeeExpense, ExpenseCategory } from '@/types/database';
@@ -31,11 +31,6 @@ const STATUS_TONE: Record<string, 'warning' | 'success' | 'danger' | 'info'> = {
 
 const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/heic', 'image/webp', 'application/pdf'];
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
-
-function todayLocal(): string {
-  const n = new Date();
-  return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}-${String(n.getDate()).padStart(2, '0')}`;
-}
 
 function sanitizeFilename(name: string): string {
   return name.normalize('NFKD').replace(/[^\w.-]+/g, '_').slice(-100);

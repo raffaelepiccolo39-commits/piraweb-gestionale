@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { FileText, Upload, X } from 'lucide-react';
+import { todayLocal } from '@/lib/utils';
 
 export interface ContractFormData {
   no_contract: boolean;
@@ -37,7 +38,7 @@ export function ContractForm({ onSubmit, onCancel }: ContractFormProps) {
   const [form, setForm] = useState({
     monthly_fee: '',
     duration_months: '12',
-    start_date: new Date().toISOString().split('T')[0],
+    start_date: todayLocal(),
     payment_timing: 'inizio_mese',
     notes: '',
   });
@@ -59,7 +60,7 @@ export function ContractForm({ onSubmit, onCancel }: ContractFormProps) {
         no_contract: noContract,
         monthly_fee: noContract ? 0 : Number(form.monthly_fee),
         duration_months: noContract ? 0 : Number(form.duration_months),
-        start_date: noContract ? new Date().toISOString().split('T')[0] : form.start_date,
+        start_date: noContract ? todayLocal() : form.start_date,
         payment_timing: noContract ? 'inizio_mese' : form.payment_timing,
         notes: noContract ? (form.notes || 'Cliente senza contratto scritto') : form.notes,
         attachment: attachment || undefined,

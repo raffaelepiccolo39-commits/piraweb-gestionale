@@ -13,7 +13,7 @@ import { PageHeader } from '@/components/ui/page-header';
 import { useToast } from '@/components/ui/toast';
 import { SkeletonStats, SkeletonList } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
-import { formatDate } from '@/lib/utils';
+import { formatDate, todayLocal } from '@/lib/utils';
 import { EMPLOYEE_DOCUMENT_TYPE_LABELS } from '@/lib/constants';
 import type { EmployeeDocument, EmployeeDocumentType } from '@/types/database';
 import {
@@ -28,11 +28,6 @@ const ACCEPTED_TYPES = [
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
 ];
 const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB
-
-function todayLocal(): string {
-  const n = new Date();
-  return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}-${String(n.getDate()).padStart(2, '0')}`;
-}
 
 function daysUntil(date: string | null): number | null {
   if (!date) return null;

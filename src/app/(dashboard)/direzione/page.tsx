@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { PageHeader } from '@/components/ui/page-header';
 import { SkeletonStats, SkeletonList } from '@/components/ui/skeleton';
-import { formatCurrency, getInitials, getUserColor } from '@/lib/utils';
+import { formatCurrency, getInitials, getUserColor, formatDateLocal } from '@/lib/utils';
 import type { ClientHealth, Profile } from '@/types/database';
 import {
   Crown,
@@ -95,8 +95,8 @@ export default function DirectionPage() {
     for (let i = 5; i >= 0; i--) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const label = d.toLocaleDateString('it-IT', { month: 'short' });
-      const mStart = d.toISOString().split('T')[0];
-      const mEnd = new Date(d.getFullYear(), d.getMonth() + 1, 0).toISOString().split('T')[0];
+      const mStart = formatDateLocal(d);
+      const mEnd = formatDateLocal(new Date(d.getFullYear(), d.getMonth() + 1, 0));
       const amount = payments
         .filter((p) => p.is_paid && p.due_date >= mStart && p.due_date <= mEnd)
         .reduce((s, p) => s + p.amount, 0);

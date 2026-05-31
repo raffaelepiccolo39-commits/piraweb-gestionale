@@ -4,7 +4,7 @@ import { memo } from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { formatDate } from '@/lib/utils';
+import { formatDate, todayLocal } from '@/lib/utils';
 import { AlertTriangle } from 'lucide-react';
 
 interface UrgentTask {
@@ -23,7 +23,7 @@ interface UrgentTasksProps {
 export const UrgentTasks = memo(function UrgentTasks({ tasks, isAdmin }: UrgentTasksProps) {
   if (tasks.length === 0) return null;
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = todayLocal();
 
   return (
     <Card className="border-red-500/20 bg-red-500/[0.03]">

@@ -7,7 +7,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/components/ui/toast';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { formatDate, getStatusTone, getPriorityTone, getRoleLabel, getRoleTone, getInitials } from '@/lib/utils';
+import { formatDate, getStatusTone, getPriorityTone, getRoleLabel, getRoleTone, getInitials, formatDateLocal, todayLocal } from '@/lib/utils';
 import { AlertTriangle, Calendar, ChevronRight, ChevronDown, Users } from 'lucide-react';
 import { STATUS_LABELS, PRIORITY_LABELS } from '@/lib/constants';
 import type { AttendanceRecord } from '@/types/database';
@@ -99,8 +99,8 @@ export default function DashboardPage() {
 
     try {
       const now = new Date();
-      const todayStr = now.toISOString().split('T')[0];
-      const tomorrowStr = new Date(now.getTime() + 86400000).toISOString().split('T')[0];
+      const todayStr = todayLocal();
+      const tomorrowStr = formatDateLocal(new Date(now.getTime() + 86400000));
       const currentMonth = todayStr.slice(0, 7);
 
       // Build all queries
@@ -271,7 +271,7 @@ export default function DashboardPage() {
     if (!profile) return;
     setAttendanceLoading(true);
     try {
-      const todayStr = new Date().toISOString().split('T')[0];
+      const todayStr = todayLocal();
       const nowTime = new Date().toISOString();
 
       if (action === 'clock_in') {

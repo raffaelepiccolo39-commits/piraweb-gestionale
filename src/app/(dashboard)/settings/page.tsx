@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Modal } from '@/components/ui/modal';
-import { getRoleLabel, getRoleTone, getInitials, formatCurrency } from '@/lib/utils';
+import { getRoleLabel, getRoleTone, getInitials, formatCurrency, todayLocal } from '@/lib/utils';
 import type { Profile } from '@/types/database';
 import { Settings, Users, Shield, ShieldCheck, ShieldOff, Save, UserPlus, Eye, EyeOff, Pencil, Lock, ArrowRightLeft, AlertTriangle, Loader2, Copy, Check } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
@@ -58,7 +58,7 @@ export default function SettingsPage() {
     salary: '',
     iban: '',
     contract_type: '',
-    contract_start_date: new Date().toISOString().split('T')[0],
+    contract_start_date: todayLocal(),
   });
 
   // View/Edit employee modal state
@@ -342,7 +342,7 @@ export default function SettingsPage() {
         setCreateError(data.error);
       } else {
         setCreateSuccess(true);
-        setCreateForm({ full_name: '', email: '', password: '', role: 'content_creator', salary: '', iban: '', contract_type: '', contract_start_date: new Date().toISOString().split('T')[0] });
+        setCreateForm({ full_name: '', email: '', password: '', role: 'content_creator', salary: '', iban: '', contract_type: '', contract_start_date: todayLocal() });
         fetchTeam();
         timersRef.current.push(setTimeout(() => {
           setShowCreateModal(false);
@@ -398,7 +398,7 @@ export default function SettingsPage() {
   };
 
   const openCreateModal = () => {
-    setCreateForm({ full_name: '', email: '', password: '', role: 'content_creator', salary: '', iban: '', contract_type: '', contract_start_date: new Date().toISOString().split('T')[0] });
+    setCreateForm({ full_name: '', email: '', password: '', role: 'content_creator', salary: '', iban: '', contract_type: '', contract_start_date: todayLocal() });
     setCreateError(null);
     setCreateSuccess(false);
     setShowPassword(false);

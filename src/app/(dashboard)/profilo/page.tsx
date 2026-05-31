@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/components/ui/toast';
 import { SkeletonStats } from '@/components/ui/skeleton';
-import { cn, getInitials, getUserColor, getRoleLabel, formatCurrency, formatDate } from '@/lib/utils';
+import { cn, getInitials, getUserColor, getRoleLabel, formatCurrency, formatDate, todayLocal } from '@/lib/utils';
 import { STATUS_LABELS } from '@/lib/constants';
 import type { EmployeeContractType } from '@/types/database';
 import { Clock, ListTodo, Plane, Wallet, Activity, Mail, Briefcase, Calendar, ChevronRight, AlertTriangle, Check } from 'lucide-react';
@@ -32,11 +32,6 @@ function monthLabel(m: string): string {
   const [y, mm] = m.split('-');
   const i = parseInt(mm, 10) - 1;
   return i >= 0 && i < 12 ? `${MONTHS[i]} ${y}` : m;
-}
-
-function todayLocal(): string {
-  const n = new Date();
-  return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}-${String(n.getDate()).padStart(2, '0')}`;
 }
 
 const fmtDays = (n: number) => (Number.isInteger(n) ? `${n}` : n.toFixed(1));

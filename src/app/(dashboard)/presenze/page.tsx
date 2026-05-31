@@ -13,11 +13,7 @@ import { BarChart3, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
 import { SkeletonStats, SkeletonList } from '@/components/ui/skeleton';
 import { PageHeader } from '@/components/ui/page-header';
-
-function getTodayLocal(): string {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-}
+import { todayLocal as getTodayLocal } from '@/lib/utils';
 
 export default function PresenzePage() {
   const { profile } = useAuth();

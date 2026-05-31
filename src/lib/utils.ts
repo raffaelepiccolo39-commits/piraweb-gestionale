@@ -5,6 +5,24 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+/**
+ * Restituisce una data come 'YYYY-MM-DD' usando i componenti LOCALI
+ * (anno/mese/giorno del fuso del browser), non UTC.
+ *
+ * Perché esiste: `new Date().toISOString().split('T')[0]` produce la data
+ * in UTC. A Casapesenna (UTC+1/+2 con DST) un timestamp alle 23:30 locali
+ * cade nel giorno successivo in UTC → query/filtri per "oggi" sballano di
+ * un giorno alla sera. Tutta la logica "data di calendario" deve usare questa.
+ */
+export function formatDateLocal(date: Date): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
+/** Data odierna in formato 'YYYY-MM-DD' fuso locale. */
+export function todayLocal(): string {
+  return formatDateLocal(new Date());
+}
+
 export function formatDate(date: string | Date): string {
   return new Intl.DateTimeFormat('it-IT', {
     day: '2-digit',

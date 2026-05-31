@@ -13,7 +13,7 @@ import { PageHeader } from '@/components/ui/page-header';
 import { useToast } from '@/components/ui/toast';
 import { SkeletonStats, SkeletonList } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
-import { formatDate } from '@/lib/utils';
+import { formatDate, todayLocal } from '@/lib/utils';
 import { TIME_OFF_TYPE_LABELS, TIME_OFF_STATUS_LABELS } from '@/lib/constants';
 import { notifyTimeOffDecision } from '@/lib/time-off-notifications';
 import type { TimeOffRequest, TimeOffBalance, TeamAbsence, TimeOffType } from '@/types/database';
@@ -33,11 +33,6 @@ const TYPE_ICON: Record<TimeOffType, React.ElementType> = {
   permesso: Clock,
   malattia: Stethoscope,
 };
-
-function todayLocal(): string {
-  const n = new Date();
-  return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}-${String(n.getDate()).padStart(2, '0')}`;
-}
 
 function addDays(iso: string, days: number): string {
   const d = new Date(iso + 'T00:00:00');

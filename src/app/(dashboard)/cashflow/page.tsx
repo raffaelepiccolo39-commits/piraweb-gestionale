@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/ui/empty-state';
 import { PageHeader } from '@/components/ui/page-header';
 import { SkeletonStats, SkeletonList } from '@/components/ui/skeleton';
-import { formatCurrency, getRoleLabel } from '@/lib/utils';
+import { formatCurrency, getRoleLabel, formatDateLocal, todayLocal } from '@/lib/utils';
 import type { CashflowMonthly, CashflowSummary, RevenuePerClient, ProfitLossSummary, MonthlyExpenses } from '@/types/database';
 import { HealthIndicators } from '@/components/cashflow/health-indicators';
 import { ProfitLossChart } from '@/components/cashflow/profit-loss-chart';
@@ -73,23 +73,24 @@ export default function CashflowPage() {
       case 'month': {
         const s = new Date(selectedYear, selectedMonth, 1);
         const e = new Date(selectedYear, selectedMonth + 1, 0);
-        return { start: s.toISOString().split('T')[0], end: e.toISOString().split('T')[0] };
+        return { start: formatDateLocal(s), end: formatDateLocal(e) };
       }
       case 'semester': {
         const isFirst = selectedMonth < 6;
         const s = new Date(selectedYear, isFirst ? 0 : 6, 1);
-        const e = new Date(selectedYear, isFirst ? 5 : 11, isFirst ? 30 : 31);
-        return { start: s.toISOString().split('T')[0], end: e.toISOString().split('T')[0] };
+        // Ultimo giorno del semestre: 30 giu o 31 dic
+        const e = new Date(selectedYear, isFirst ? 6 : 12, 0);
+        return { start: formatDateLocal(s), end: formatDateLocal(e) };
       }
       case 'year': {
         const s = new Date(selectedYear, 0, 1);
         const e = new Date(selectedYear, 11, 31);
-        return { start: s.toISOString().split('T')[0], end: e.toISOString().split('T')[0] };
+        return { start: formatDateLocal(s), end: formatDateLocal(e) };
       }
       case 'custom':
         return {
-          start: customStart || new Date(selectedYear, 0, 1).toISOString().split('T')[0],
-          end: customEnd || now.toISOString().split('T')[0],
+          start: customStart || formatDateLocal(new Date(selectedYear, 0, 1)),
+          end: customEnd || todayLocal(),
         };
     }
   }
@@ -121,8 +122,8 @@ export default function CashflowPage() {
     const durationMs = endDate.getTime() - startDate.getTime();
     const prevEnd = new Date(startDate.getTime() - 1);
     const prevStart = new Date(prevEnd.getTime() - durationMs);
-    const prevStartStr = prevStart.toISOString().split('T')[0];
-    const prevEndStr = prevEnd.toISOString().split('T')[0];
+    const prevStartStr = formatDateLocal(prevStart);
+    const prevEndStr = formatDateLocal(prevEnd);
 
     const [prevSummaryRes, prevPnlRes] = await Promise.all([
       supabase.rpc('get_cashflow_summary', { p_start_date: prevStartStr, p_end_date: prevEndStr }),

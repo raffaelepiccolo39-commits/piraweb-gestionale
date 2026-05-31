@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/ui/page-header';
 import { SkeletonRow } from '@/components/ui/skeleton';
-import { getInitials, getUserColor, formatCurrency } from '@/lib/utils';
+import { getInitials, getUserColor, formatCurrency, formatDateLocal } from '@/lib/utils';
 import type { Profile, TimeEntry } from '@/types/database';
 import {
   ChevronLeft,
@@ -109,8 +109,10 @@ export default function TimesheetPage() {
     // Build week data
     const memberWeeks: MemberWeek[] = Array.from(userMap.values()).map(({ profile: memberProfile, entries: memberEntries }) => {
       const days: DayHours[] = week.dates.map((date, i) => {
-        const dateStr = date.toISOString().split('T')[0];
-        const dayEntries = memberEntries.filter((e) => e.started_at.startsWith(dateStr));
+        const dateStr = formatDateLocal(date);
+        // Confronto LOCALE: e.started_at è UTC, una sessione iniziata alle 23:30
+        // locali è "domani" in UTC e startsWith(dateStr) sbaglierebbe giorno.
+        const dayEntries = memberEntries.filter((e) => formatDateLocal(new Date(e.started_at)) === dateStr);
         const hours = dayEntries.reduce((sum, e) => sum + (e.duration_minutes || 0), 0) / 60;
         return {
           date: dateStr,

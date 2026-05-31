@@ -16,6 +16,7 @@ import { ClientForm, type ClientFormData } from '@/components/clients/client-for
 import type { Client } from '@/types/database';
 import { useToast } from '@/components/ui/toast';
 import { SkeletonList, SkeletonStats } from '@/components/ui/skeleton';
+import { todayLocal } from '@/lib/utils';
 import { DataTable } from '@/components/ui/data-table';
 import {
   Plus,
@@ -63,7 +64,7 @@ export default function ClientsPage() {
       // Fetch unpaid payments for current month to show alerts
       if (profile?.role === 'admin') {
         const now = new Date();
-        const currentMonth = now.toISOString().slice(0, 7);
+        const currentMonth = todayLocal().slice(0, 7);
         // Ultimo giorno del mese reale (febbraio 28/29, mesi corti 30, ecc.)
         const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
         const { data: unpaidPayments } = await supabase

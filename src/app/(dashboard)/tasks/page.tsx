@@ -13,7 +13,7 @@ import { Select } from '@/components/ui/select';
 import { Modal } from '@/components/ui/modal';
 import { Input } from '@/components/ui/input';
 import { PageHeader } from '@/components/ui/page-header';
-import { formatDate, getPriorityTone, getStatusTone, getRoleLabel } from '@/lib/utils';
+import { formatDate, getPriorityTone, getStatusTone, getRoleLabel, formatDateLocal, todayLocal } from '@/lib/utils';
 import type { Task, Project, Client } from '@/types/database';
 import { useToast } from '@/components/ui/toast';
 import { SkeletonList, SkeletonStats } from '@/components/ui/skeleton';
@@ -345,16 +345,16 @@ export default function TasksPage() {
             ],
             accessor: (t) => {
               if (!t.deadline) return '';
-              const today = new Date().toISOString().split('T')[0];
+              const today = todayLocal();
               const d = (t.deadline as string).split('T')[0];
               if (d < today) return 'overdue';
               if (d === today) return 'today';
               const week = new Date();
               week.setDate(week.getDate() + 7);
-              if (d <= week.toISOString().split('T')[0]) return 'week';
+              if (d <= formatDateLocal(week)) return 'week';
               const month = new Date();
               month.setDate(month.getDate() + 30);
-              if (d <= month.toISOString().split('T')[0]) return 'month';
+              if (d <= formatDateLocal(month)) return 'month';
               return '';
             },
           },
