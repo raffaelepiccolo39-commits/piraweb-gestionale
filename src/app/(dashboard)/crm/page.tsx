@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/components/ui/toast';
@@ -240,7 +240,19 @@ export default function CRMPage() {
     ? Math.round((wonDeals.length / (wonDeals.length + lostDeals.length)) * 100)
     : 0;
 
-  const getDealsForStage = (stage: DealStage) => deals.filter((d) => d.stage === stage);
+  // Una singola passata su deals per indicizzare per stage (Map),
+  // invece di 6 .filter() per render (uno per stage del kanban).
+  // Su 200 deal passa da ~1200 confronti per render a 200.
+  const dealsByStage = useMemo(() => {
+    const map = new Map<DealStage, Deal[]>();
+    for (const stage of STAGES) map.set(stage.id, []);
+    for (const d of deals) {
+      const list = map.get(d.stage as DealStage);
+      if (list) list.push(d);
+    }
+    return map;
+  }, [deals]);
+  const getDealsForStage = (stage: DealStage) => dealsByStage.get(stage) || [];
 
   if (!profile || profile.role !== 'admin') {
     return (

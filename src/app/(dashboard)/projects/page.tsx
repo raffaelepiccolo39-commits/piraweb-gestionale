@@ -42,7 +42,11 @@ export default function ProjectsPage() {
 
   const fetchProjects = useCallback(async () => {
     try {
-      const [projectsRes, membersRes] = await Promise.all([
+      // Tre query parallele invece di una megaquery con `tasks(assigned_to)`
+      // nested che caricava tutti i task di tutti i progetti (N+1 implicito).
+      // L'RPC get_project_task_assignees fa l'aggregazione lato DB e ritorna
+      // solo {project_id, assignees[]} → ordini di grandezza in meno di righe.
+      const [projectsRes, membersRes, assigneesRes] = await Promise.all([
         supabase
           .from('projects')
           .select(`
@@ -51,8 +55,7 @@ export default function ProjectsPage() {
             members:project_members(
               id, user_id,
               profile:profiles(id, full_name, role, avatar_url)
-            ),
-            tasks(assigned_to)
+            )
           `)
           .order('created_at', { ascending: false }),
         supabase
@@ -60,22 +63,20 @@ export default function ProjectsPage() {
           .select('id, full_name')
           .eq('is_active', true)
           .order('full_name'),
+        supabase.rpc('get_project_task_assignees'),
       ]);
       if (projectsRes.error) throw projectsRes.error;
       if (membersRes.data) setMembers(membersRes.data as Profile[]);
-      // Merge task assignees into members count + keep task assignee list
-      const projects = ((projectsRes.data || []) as Array<Project & { tasks?: Array<{ assigned_to: string | null }> }>).map((p) => {
+
+      const assigneesByProject = new Map<string, string[]>();
+      ((assigneesRes.data as { project_id: string; assignees: string[] }[]) || [])
+        .forEach((row) => assigneesByProject.set(row.project_id, row.assignees || []));
+
+      const projects = ((projectsRes.data || []) as Project[]).map((p) => {
         const memberIds = new Set((p.members || []).map((m) => m.user_id));
-        const taskAssignees = new Set<string>();
-        if (p.tasks) {
-          for (const t of p.tasks) {
-            if (t.assigned_to) {
-              memberIds.add(t.assigned_to);
-              taskAssignees.add(t.assigned_to);
-            }
-          }
-        }
-        return { ...p, _teamCount: memberIds.size, _taskAssignees: Array.from(taskAssignees) };
+        const taskAssignees = assigneesByProject.get(p.id) || [];
+        for (const uid of taskAssignees) memberIds.add(uid);
+        return { ...p, _teamCount: memberIds.size, _taskAssignees: taskAssignees };
       });
       setProjects(projects as Project[]);
     } catch {

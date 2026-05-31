@@ -284,42 +284,29 @@ export default function ClientDetailPage({
       }
     }
 
-    // Create new contract FIRST, then close old one.
-    // This way, if insert fails, the old contract remains active.
-    const { data: newContract, error } = await supabase
-      .from('client_contracts')
-      .insert({
-        client_id: id,
-        monthly_fee: data.monthly_fee,
-        duration_months: data.duration_months,
-        start_date: data.start_date,
-        payment_timing: data.payment_timing,
-        attachment_url: attachmentUrl,
-        attachment_name: attachmentName,
-        notes: data.notes || null,
-        created_by: profile.id,
-      })
-      .select()
-      .single();
+    // RPC atomica: chiude il vecchio + crea il nuovo + genera pagamenti
+    // in una sola transazione (migration 00068). Prima, se la chiusura
+    // del vecchio falliva, restavano 2 contratti 'active'.
+    const { error } = await supabase.rpc('renew_client_contract', {
+      p_old_contract_id: contract.id,
+      p_client_id: id,
+      p_monthly_fee: data.monthly_fee,
+      p_duration_months: data.duration_months,
+      p_start_date: data.start_date,
+      p_payment_timing: data.payment_timing,
+      p_attachment_url: attachmentUrl,
+      p_attachment_name: attachmentName,
+      p_notes: data.notes || null,
+      p_created_by: profile.id,
+    });
 
-    if (error || !newContract) {
-      setContractError(error?.message || 'Rinnovo non riuscito');
+    if (error) {
+      setContractError(error.message || 'Rinnovo non riuscito');
       return;
     }
 
-    // Only close old contract after new one is confirmed
-    const { error: closeError } = await supabase
-      .from('client_contracts')
-      .update({ status: 'completed' })
-      .eq('id', contract.id);
-
-    if (closeError) {
-      setContractError('Nuovo contratto creato ma errore nella chiusura del precedente');
-    }
-
-    await supabase.rpc('generate_contract_payments', { p_contract_id: newContract.id });
-
     setShowRenewForm(false);
+    toast.success('Contratto rinnovato');
     fetchData();
   };
 
