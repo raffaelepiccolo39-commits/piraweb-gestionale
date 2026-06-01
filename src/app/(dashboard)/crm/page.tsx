@@ -369,6 +369,16 @@ export default function CRMPage() {
   const totalPipelineValue = activeDeals.reduce((sum, d) => sum + d.value, 0);
   const weightedValue = activeDeals.reduce((sum, d) => sum + d.value * (d.probability / 100), 0);
   const wonDeals = deals.filter((d) => d.stage === 'closed_won');
+
+  // KPI operativi
+  const today = todayLocal();
+  const in7Days = (() => { const d = new Date(); d.setDate(d.getDate() + 7); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; })();
+  const startOfMonth = `${today.slice(0, 7)}-01`;
+  const dealsClosingSoon = activeDeals.filter((d) => d.expected_close_date && d.expected_close_date <= in7Days && d.expected_close_date >= today);
+  const dealsOverdue = activeDeals.filter((d) => d.expected_close_date && d.expected_close_date < today);
+  const mrrPotential = activeDeals.reduce((sum, d) => sum + (d.monthly_value || 0) * (d.probability / 100), 0);
+  const wonThisMonth = wonDeals.filter((d) => d.actual_close_date && d.actual_close_date >= startOfMonth);
+  const wonThisMonthValue = wonThisMonth.reduce((sum, d) => sum + d.value, 0);
   const lostDeals = deals.filter((d) => d.stage === 'closed_lost');
   const winRate = wonDeals.length + lostDeals.length > 0
     ? Math.round((wonDeals.length / (wonDeals.length + lostDeals.length)) * 100)
@@ -428,7 +438,7 @@ export default function CRMPage() {
         }
       />
 
-      {/* Stats */}
+      {/* Stats generali */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4 stagger-children">
         <Card className="card-accent-top"><CardContent className="p-4 text-center">
           <p className="text-2xl font-bold text-pw-accent font-[var(--font-bebas)] animate-count">{activeDeals.length}</p>
@@ -449,6 +459,46 @@ export default function CRMPage() {
         <Card className="card-accent-top"><CardContent className="p-4 text-center">
           <p className="text-2xl font-bold text-pw-accent font-[var(--font-bebas)] animate-count">{winRate}%</p>
           <p className="text-[10px] text-pw-text-muted uppercase tracking-wider mt-1">Win rate</p>
+        </CardContent></Card>
+      </div>
+
+      {/* KPI operativi (alert-style) */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Card><CardContent className="p-3 flex items-center gap-3">
+          <div className="w-9 h-9 rounded-lg bg-orange-500/15 flex items-center justify-center shrink-0">
+            <Calendar size={16} className="text-orange-500" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-lg font-semibold text-pw-text tabular-nums leading-tight">{dealsClosingSoon.length}</p>
+            <p className="text-[10px] text-pw-text-muted uppercase tracking-wide">In scadenza ≤7gg</p>
+          </div>
+        </CardContent></Card>
+        <Card><CardContent className="p-3 flex items-center gap-3">
+          <div className="w-9 h-9 rounded-lg bg-red-500/15 flex items-center justify-center shrink-0">
+            <Clock size={16} className="text-red-500" />
+          </div>
+          <div className="min-w-0">
+            <p className={`text-lg font-semibold tabular-nums leading-tight ${dealsOverdue.length > 0 ? 'text-red-500' : 'text-pw-text'}`}>{dealsOverdue.length}</p>
+            <p className="text-[10px] text-pw-text-muted uppercase tracking-wide">In ritardo</p>
+          </div>
+        </CardContent></Card>
+        <Card><CardContent className="p-3 flex items-center gap-3">
+          <div className="w-9 h-9 rounded-lg bg-purple-500/15 flex items-center justify-center shrink-0">
+            <TrendingUp size={16} className="text-purple-500" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-lg font-semibold text-pw-text tabular-nums leading-tight">{formatCurrency(mrrPotential)}</p>
+            <p className="text-[10px] text-pw-text-muted uppercase tracking-wide">MRR potenziale</p>
+          </div>
+        </CardContent></Card>
+        <Card><CardContent className="p-3 flex items-center gap-3">
+          <div className="w-9 h-9 rounded-lg bg-green-500/15 flex items-center justify-center shrink-0">
+            <CheckCircle size={16} className="text-green-500" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-lg font-semibold text-pw-text tabular-nums leading-tight">{formatCurrency(wonThisMonthValue)}</p>
+            <p className="text-[10px] text-pw-text-muted uppercase tracking-wide">Vinti questo mese ({wonThisMonth.length})</p>
+          </div>
         </CardContent></Card>
       </div>
 
