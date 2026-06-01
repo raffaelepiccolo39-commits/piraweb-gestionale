@@ -1027,6 +1027,19 @@ export interface TeamTool {
 export type DealStage = 'lead' | 'qualified' | 'proposal' | 'negotiation' | 'closed_won' | 'closed_lost';
 export type DealSource = 'website' | 'referral' | 'social_media' | 'cold_outreach' | 'event' | 'ads' | 'other';
 export type DealActivityType = 'call' | 'email' | 'meeting' | 'note' | 'stage_change' | 'proposal_sent' | 'follow_up';
+export type DealPriority = 'high' | 'medium' | 'low';
+
+export const SERVICE_CATEGORIES = [
+  { value: 'web_development', label: 'Sviluppo Web' },
+  { value: 'social_media', label: 'Social Media' },
+  { value: 'advertising', label: 'Pubblicità / Ads' },
+  { value: 'branding', label: 'Branding' },
+  { value: 'seo', label: 'SEO' },
+  { value: 'content', label: 'Content Creation' },
+  { value: 'photo_video', label: 'Foto/Video' },
+  { value: 'consulting', label: 'Consulenza' },
+  { value: 'other', label: 'Altro' },
+] as const;
 
 export interface Deal {
   id: string;
@@ -1045,6 +1058,9 @@ export interface Deal {
   expected_close_date: string | null;
   actual_close_date: string | null;
   lost_reason: string | null;
+  priority: DealPriority;
+  tags: string[];
+  service_categories: string[];
   converted_client_id: string | null;
   owner_id: string;
   created_by: string;

@@ -41,12 +41,11 @@ import {
 } from 'lucide-react';
 
 const STAGES: { id: DealStage; label: string; color: string; bgColor: string }[] = [
-  { id: 'lead', label: 'Lead', color: 'text-pw-text-dim', bgColor: 'bg-gray-500' },
-  { id: 'qualified', label: 'Qualificato', color: 'text-blue-500', bgColor: 'bg-blue-500' },
+  { id: 'lead', label: 'Lead', color: 'text-pw-text-dim', bgColor: 'bg-pw-border' },
   { id: 'proposal', label: 'Proposta', color: 'text-purple-500', bgColor: 'bg-purple-500' },
   { id: 'negotiation', label: 'Negoziazione', color: 'text-orange-500', bgColor: 'bg-orange-500' },
-  { id: 'closed_won', label: 'Chiuso Vinto', color: 'text-green-500', bgColor: 'bg-green-500' },
-  { id: 'closed_lost', label: 'Chiuso Perso', color: 'text-red-500', bgColor: 'bg-red-500' },
+  { id: 'closed_won', label: 'Vinto', color: 'text-green-500', bgColor: 'bg-green-500' },
+  { id: 'closed_lost', label: 'Perso', color: 'text-red-500', bgColor: 'bg-red-500' },
 ];
 
 const SOURCE_LABELS: Record<string, string> = {
@@ -135,7 +134,9 @@ export default function CRMPage() {
         value: parseFloat(values.value) || 0,
         monthly_value: values.monthly_value ? parseFloat(values.monthly_value) : null,
         source: values.source,
-        services: values.services || null,
+        priority: values.priority,
+        service_categories: values.service_categories,
+        tags: values.tags,
         notes: values.notes || null,
         expected_close_date: values.expected_close_date || null,
         owner_id: values.owner_id || profile.id,
@@ -394,8 +395,14 @@ export default function CRMPage() {
                         onClick={() => setSelectedDeal(deal)}
                         className="p-3 rounded-xl bg-pw-surface-2 border border-pw-border hover:border-pw-accent/30 hover:shadow-md transition-all duration-200 ease-out cursor-pointer"
                       >
-                        <div className="flex items-start justify-between mb-1.5">
-                          <h4 className="text-sm font-medium text-pw-text line-clamp-1">{deal.title}</h4>
+                        <div className="flex items-start justify-between mb-1.5 gap-2">
+                          <h4 className="text-sm font-medium text-pw-text line-clamp-1 flex-1">{deal.title}</h4>
+                          {deal.priority === 'high' && (
+                            <span className="px-1.5 py-0.5 rounded text-[8px] font-bold uppercase bg-red-500/15 text-red-500 shrink-0" title="Priorità alta">Alta</span>
+                          )}
+                          {deal.priority === 'low' && (
+                            <span className="px-1.5 py-0.5 rounded text-[8px] font-bold uppercase bg-pw-surface-3 text-pw-text-dim shrink-0" title="Priorità bassa">Bassa</span>
+                          )}
                         </div>
                         {deal.company_name && (
                           <p className="text-[10px] text-pw-text-dim flex items-center gap-1 mb-1">
@@ -404,6 +411,14 @@ export default function CRMPage() {
                           </p>
                         )}
                         <p className="text-sm font-bold text-pw-accent mb-2">{formatCurrency(deal.value)}</p>
+                        {deal.tags && deal.tags.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mb-2">
+                            {deal.tags.slice(0, 3).map((t) => (
+                              <span key={t} className="px-1.5 py-0.5 rounded text-[9px] font-medium bg-pw-accent/10 text-pw-accent">{t}</span>
+                            ))}
+                            {deal.tags.length > 3 && <span className="text-[9px] text-pw-text-dim">+{deal.tags.length - 3}</span>}
+                          </div>
+                        )}
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-1">
                             {owner && (
