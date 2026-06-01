@@ -104,6 +104,7 @@ export default function ProjectsPage() {
           status: data.status,
           color: data.color,
           deadline: data.deadline || null,
+          budget_amount: data.budget_amount ? Number(data.budget_amount) : null,
           created_by: profile.id,
         })
         .select()

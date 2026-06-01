@@ -21,6 +21,7 @@ export interface ProjectFormData {
   status: string;
   color: string;
   deadline: string;
+  budget_amount: string;
   member_ids: string[];
 }
 
@@ -49,6 +50,7 @@ export function ProjectForm({ project, onSubmit, onCancel }: ProjectFormProps) {
     status: project?.status || 'draft',
     color: project?.color || '#4F46E5',
     deadline: project?.deadline ? project.deadline.split('T')[0] : '',
+    budget_amount: project?.budget_amount != null ? String(project.budget_amount) : '',
     member_ids: project?.members?.map((m) => m.user_id) || [],
   });
 
@@ -129,25 +131,36 @@ export function ProjectForm({ project, onSubmit, onCancel }: ProjectFormProps) {
           value={form.deadline}
           onChange={(e) => setForm({ ...form, deadline: e.target.value })}
         />
-        <div className="space-y-1.5">
-          <label className="block text-sm font-medium text-pw-text-muted">
-            Colore
-          </label>
-          <div className="flex gap-2">
-            {colorOptions.map((color) => (
-              <button
-                key={color}
-                type="button"
-                onClick={() => setForm({ ...form, color })}
-                className={`w-8 h-8 rounded-lg border-2 transition-all ${
-                  form.color === color
-                    ? 'border-gray-900 dark:border-white scale-110'
-                    : 'border-transparent'
-                }`}
-                style={{ backgroundColor: color }}
-              />
-            ))}
-          </div>
+        <Input
+          id="project-budget"
+          label="Budget totale (€)"
+          type="number"
+          step="0.01"
+          min="0"
+          value={form.budget_amount}
+          onChange={(e) => setForm({ ...form, budget_amount: e.target.value })}
+          placeholder="Es. 3000"
+        />
+      </div>
+
+      <div className="space-y-1.5">
+        <label className="block text-sm font-medium text-pw-text-muted">
+          Colore
+        </label>
+        <div className="flex gap-2">
+          {colorOptions.map((color) => (
+            <button
+              key={color}
+              type="button"
+              onClick={() => setForm({ ...form, color })}
+              className={`w-8 h-8 rounded-lg border-2 transition-all ${
+                form.color === color
+                  ? 'border-gray-900 dark:border-white scale-110'
+                  : 'border-transparent'
+              }`}
+              style={{ backgroundColor: color }}
+            />
+          ))}
         </div>
       </div>
 

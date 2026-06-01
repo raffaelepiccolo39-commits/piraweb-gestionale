@@ -269,11 +269,61 @@ export interface Project {
   status: ProjectStatus;
   color: string;
   deadline: string | null;
+  budget_amount: number | null;
+  budget_currency: string;
   created_by: string;
   created_at: string;
   updated_at: string;
   client?: Client;
   members?: ProjectMember[];
+}
+
+export type InstallmentPaymentMethod =
+  | 'bonifico' | 'contanti' | 'carta' | 'paypal' | 'stripe' | 'assegno' | 'altro';
+
+export interface ClientInstallment {
+  id: string;
+  client_id: string;
+  project_id: string | null;
+  sequence_number: number;
+  label: string;
+  amount: number;
+  due_date: string | null;
+  paid_at: string | null;
+  payment_method: InstallmentPaymentMethod | null;
+  notes: string | null;
+  receipt_url: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+  project?: { id: string; name: string } | null;
+}
+
+export interface InstallmentLog {
+  id: string;
+  installment_id: string | null;
+  client_id: string | null;
+  project_id: string | null;
+  action: 'created' | 'created_paid' | 'paid' | 'unpaid' | 'edited' | 'deleted';
+  amount: number | null;
+  payment_method: InstallmentPaymentMethod | null;
+  details: Record<string, unknown>;
+  performed_by: string | null;
+  performed_at: string;
+  performer?: Pick<Profile, 'id' | 'full_name'> | null;
+}
+
+export interface ProjectPaymentSummary {
+  project_id: string;
+  name: string;
+  client_id: string | null;
+  budget_amount: number | null;
+  budget_currency: string;
+  paid_total: number;
+  pending_total: number;
+  paid_count: number;
+  pending_count: number;
+  residual: number | null;
 }
 
 export interface ProjectMember {

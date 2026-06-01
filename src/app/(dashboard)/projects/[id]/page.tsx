@@ -13,6 +13,7 @@ import { useToast } from '@/components/ui/toast';
 import { KanbanBoard } from '@/components/kanban/kanban-board';
 import { TaskForm, type TaskFormData } from '@/components/tasks/task-form';
 import { ProjectForm, type ProjectFormData } from '@/components/projects/project-form';
+import { InstallmentsManager } from '@/components/clients/installments-manager';
 import { formatDate, getStatusTone, getInitials } from '@/lib/utils';
 import type { Project, Task } from '@/types/database';
 import {
@@ -166,6 +167,15 @@ export default function ProjectDetailPage({
     });
     if (error) {
       toast.error(error.message || 'Errore durante l\'aggiornamento del progetto');
+      return;
+    }
+    // budget_amount non è nella RPC esistente: update separato (non-critico)
+    const { error: budgetErr } = await supabase
+      .from('projects')
+      .update({ budget_amount: data.budget_amount ? Number(data.budget_amount) : null })
+      .eq('id', id);
+    if (budgetErr) {
+      toast.error('Progetto aggiornato ma budget non salvato: ' + budgetErr.message);
       return;
     }
     toast.success('Progetto aggiornato');
@@ -352,6 +362,17 @@ export default function ProjectDetailPage({
         onTaskClick={(task) => setEditingTask(task)}
         onTasksUpdate={fetchTasks}
       />
+
+      {/* Pagamenti del progetto (acconti + saldo) — solo admin gestisce */}
+      {project.client_id && (
+        <div className="pt-2">
+          <InstallmentsManager
+            clientId={project.client_id}
+            projectId={id}
+            projectBudget={project.budget_amount}
+          />
+        </div>
+      )}
 
       {/* Create task modal */}
       <Modal open={showTaskForm} onClose={() => setShowTaskForm(false)} title="Nuovo Task" size="lg">

@@ -17,6 +17,7 @@ import { FinancialSummary } from '@/components/clients/financial-summary';
 import { KnowledgeBaseForm } from '@/components/clients/knowledge-base-form';
 import { OnboardingSection } from '@/components/clients/onboarding-section';
 import { AssetLibrary } from '@/components/clients/asset-library';
+import { InstallmentsManager } from '@/components/clients/installments-manager';
 import { formatDate, formatCurrency } from '@/lib/utils';
 import type { Client, ClientContract, ClientPayment, ClientFinancialSummary, PaymentLog, ClientKnowledgeBase } from '@/types/database';
 import {
@@ -39,6 +40,7 @@ import {
   Brain,
   ChevronDown,
   FolderOpen,
+  Wallet,
 } from 'lucide-react';
 
 function CollapsibleSection({
@@ -617,6 +619,10 @@ export default function ClientDetailPage({
               </CollapsibleSection>
 
               {summary && <FinancialSummary summary={summary} />}
+
+              <CollapsibleSection title="Acconti / Progetti puntuali" icon={Wallet}>
+                <InstallmentsManager clientId={id} projectId={null} />
+              </CollapsibleSection>
 
               <CollapsibleSection title="Calendario Pagamenti" icon={Calendar} defaultOpen>
                 <PaymentCalendar payments={payments} onTogglePaid={handleTogglePaid} clientPhone={client.phone} clientName={client.company || client.name} />
