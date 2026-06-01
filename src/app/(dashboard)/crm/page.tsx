@@ -18,6 +18,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { SkeletonStats, SkeletonList } from '@/components/ui/skeleton';
 import { formatCurrency, formatDate, formatDateTime, getInitials, getUserColor, todayLocal } from '@/lib/utils';
 import type { Deal, DealStage, DealActivity, DealActivityType, Profile } from '@/types/database';
+import { SERVICE_CATEGORIES } from '@/types/database';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Modal } from '@/components/ui/modal';
 import {
@@ -91,6 +92,7 @@ export default function CRMPage() {
   const [editForm, setEditForm] = useState({ title: '', description: '' });
   const [deletingActivityId, setDeletingActivityId] = useState<string | null>(null);
   const [deletingDeal, setDeletingDeal] = useState<Deal | null>(null);
+  const [editingDeal, setEditingDeal] = useState<Deal | null>(null);
   const [view, setView] = useState<'pipeline' | 'list'>('pipeline');
 
   // Lost reason modal (replaces prompt())
@@ -213,6 +215,44 @@ export default function CRMPage() {
     });
     setShowActivity(false);
     fetchActivities(selectedDeal.id);
+  };
+
+  const handleUpdateDeal = async (values: DealFormValues) => {
+    if (!editingDeal) return;
+    if (!values.title) { toast.error('Titolo obbligatorio'); return; }
+    const { error } = await supabase.from('deals').update({
+      title: values.title,
+      company_name: values.company_name || null,
+      contact_name: values.contact_name || null,
+      contact_email: values.contact_email || null,
+      contact_phone: values.contact_phone || null,
+      value: parseFloat(values.value) || 0,
+      monthly_value: values.monthly_value ? parseFloat(values.monthly_value) : null,
+      source: values.source,
+      priority: values.priority,
+      service_categories: values.service_categories,
+      tags: values.tags,
+      notes: values.notes || null,
+      expected_close_date: values.expected_close_date || null,
+      owner_id: values.owner_id || editingDeal.owner_id,
+    }).eq('id', editingDeal.id);
+    if (error) {
+      Sentry.captureException(error, { tags: { route: 'crm', stage: 'update_deal' }, extra: { dealId: editingDeal.id } });
+      toast.error(error.message || 'Errore aggiornamento deal');
+      return;
+    }
+    toast.success('Deal aggiornato');
+    setEditingDeal(null);
+    // se il deal aperto è lo stesso, ricarica i dati nel modal dettaglio
+    if (selectedDeal?.id === editingDeal.id) {
+      const { data: refreshed } = await supabase
+        .from('deals')
+        .select('*, owner:profiles!deals_owner_id_fkey(id, full_name, color)')
+        .eq('id', editingDeal.id)
+        .single();
+      if (refreshed) setSelectedDeal(refreshed as Deal);
+    }
+    fetchDeals();
   };
 
   const handleDeleteDeal = async () => {
@@ -701,7 +741,15 @@ export default function CRMPage() {
             {/* Details */}
             <div className="grid grid-cols-2 gap-3 text-sm">
               <div><p className="text-[10px] text-pw-text-dim">Fonte</p><p className="text-pw-text">{SOURCE_LABELS[selectedDeal.source]}</p></div>
-              <div><p className="text-[10px] text-pw-text-dim">Probabilita'</p><p className="text-pw-text">{selectedDeal.probability}%</p></div>
+              <div><p className="text-[10px] text-pw-text-dim">Probabilita&apos;</p><p className="text-pw-text">{selectedDeal.probability}%</p></div>
+              <div>
+                <p className="text-[10px] text-pw-text-dim">Priorità</p>
+                <p className="text-pw-text">
+                  {selectedDeal.priority === 'high' && <span className="inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-red-500/15 text-red-500">Alta</span>}
+                  {selectedDeal.priority === 'medium' && <span className="text-pw-text-muted">Media</span>}
+                  {selectedDeal.priority === 'low' && <span className="inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-pw-surface-3 text-pw-text-dim">Bassa</span>}
+                </p>
+              </div>
               {selectedDeal.monthly_value && (
                 <div><p className="text-[10px] text-pw-text-dim">Valore mensile</p><p className="text-pw-text">{formatCurrency(selectedDeal.monthly_value)}</p></div>
               )}
@@ -710,8 +758,34 @@ export default function CRMPage() {
               )}
             </div>
 
+            {selectedDeal.service_categories && selectedDeal.service_categories.length > 0 && (
+              <div>
+                <p className="text-[10px] text-pw-text-dim uppercase tracking-widest mb-2">Servizi richiesti</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {selectedDeal.service_categories.map((sv) => {
+                    const label = SERVICE_CATEGORIES.find((s) => s.value === sv)?.label || sv;
+                    return (
+                      <span key={sv} className="px-2 py-0.5 rounded-md text-[11px] font-medium bg-pw-accent/15 text-pw-accent">{label}</span>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {selectedDeal.tags && selectedDeal.tags.length > 0 && (
+              <div>
+                <p className="text-[10px] text-pw-text-dim uppercase tracking-widest mb-2">Tag</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {selectedDeal.tags.map((t) => (
+                    <span key={t} className="px-2 py-0.5 rounded-md text-[11px] font-medium bg-pw-surface-3 text-pw-text-muted">{t}</span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Legacy services TEXT (deal vecchi creati prima del refactor) */}
             {selectedDeal.services && (
-              <div><p className="text-[10px] text-pw-text-dim uppercase tracking-widest mb-1">Servizi richiesti</p><p className="text-sm text-pw-text-muted">{selectedDeal.services}</p></div>
+              <div><p className="text-[10px] text-pw-text-dim uppercase tracking-widest mb-1">Servizi (legacy)</p><p className="text-sm text-pw-text-muted">{selectedDeal.services}</p></div>
             )}
             {selectedDeal.notes && (
               <div><p className="text-[10px] text-pw-text-dim uppercase tracking-widest mb-1">Note</p><p className="text-sm text-pw-text-muted whitespace-pre-wrap">{selectedDeal.notes}</p></div>
@@ -730,10 +804,16 @@ export default function CRMPage() {
                 </Button>
               )}
               {(isAdmin || selectedDeal.created_by === profile?.id) && (
-                <Button size="sm" variant="ghost" onClick={() => setDeletingDeal(selectedDeal)} className="text-pw-danger hover:bg-red-500/10 ml-auto">
-                  <Trash2 size={12} />
-                  Elimina deal
-                </Button>
+                <>
+                  <Button size="sm" variant="ghost" onClick={() => setEditingDeal(selectedDeal)} className="ml-auto">
+                    <Pencil size={12} />
+                    Modifica
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => setDeletingDeal(selectedDeal)} className="text-pw-danger hover:bg-red-500/10">
+                    <Trash2 size={12} />
+                    Elimina deal
+                  </Button>
+                </>
               )}
             </div>
 
@@ -880,6 +960,31 @@ export default function CRMPage() {
         onClose={() => setShowForm(false)}
         onSubmit={handleCreate}
         members={members}
+      />
+
+      {/* Edit deal modal */}
+      <DealForm
+        open={!!editingDeal}
+        onClose={() => setEditingDeal(null)}
+        onSubmit={handleUpdateDeal}
+        members={members}
+        mode="edit"
+        initialValues={editingDeal ? {
+          title: editingDeal.title,
+          company_name: editingDeal.company_name || '',
+          contact_name: editingDeal.contact_name || '',
+          contact_email: editingDeal.contact_email || '',
+          contact_phone: editingDeal.contact_phone || '',
+          value: String(editingDeal.value),
+          monthly_value: editingDeal.monthly_value != null ? String(editingDeal.monthly_value) : '',
+          source: editingDeal.source,
+          priority: editingDeal.priority,
+          service_categories: editingDeal.service_categories || [],
+          tags: editingDeal.tags || [],
+          notes: editingDeal.notes || '',
+          expected_close_date: editingDeal.expected_close_date || '',
+          owner_id: editingDeal.owner_id,
+        } : undefined}
       />
 
       {/* Add activity modal */}

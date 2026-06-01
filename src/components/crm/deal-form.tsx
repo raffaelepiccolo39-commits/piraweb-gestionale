@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Modal } from '@/components/ui/modal';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
@@ -50,12 +50,19 @@ interface DealFormProps {
   onClose: () => void;
   onSubmit: (values: DealFormValues) => Promise<void> | void;
   members: Profile[];
+  initialValues?: Partial<DealFormValues>;
+  mode?: 'create' | 'edit';
 }
 
-export function DealForm({ open, onClose, onSubmit, members }: DealFormProps) {
-  const [form, setForm] = useState<DealFormValues>(EMPTY_FORM);
+export function DealForm({ open, onClose, onSubmit, members, initialValues, mode = 'create' }: DealFormProps) {
+  const [form, setForm] = useState<DealFormValues>({ ...EMPTY_FORM, ...(initialValues || {}) });
   const [submitting, setSubmitting] = useState(false);
   const [tagInput, setTagInput] = useState('');
+
+  // Quando il modal si apre con initialValues diversi (es. cambio deal da editare), risincronizza
+  useEffect(() => {
+    if (open) setForm({ ...EMPTY_FORM, ...(initialValues || {}) });
+  }, [open, initialValues]);
 
   const toggleService = (val: string) => {
     setForm((f) => ({
@@ -91,7 +98,7 @@ export function DealForm({ open, onClose, onSubmit, members }: DealFormProps) {
   };
 
   return (
-    <Modal open={open} onClose={handleClose} title="Nuovo Deal">
+    <Modal open={open} onClose={handleClose} title={mode === 'edit' ? 'Modifica Deal' : 'Nuovo Deal'}>
       <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
         <Input
           label="Titolo deal"
@@ -228,7 +235,7 @@ export function DealForm({ open, onClose, onSubmit, members }: DealFormProps) {
         />
         <div className="flex justify-end gap-2 pt-2">
           <Button variant="ghost" onClick={handleClose} disabled={submitting}>Annulla</Button>
-          <Button onClick={handleSubmit} disabled={submitting}>Crea Deal</Button>
+          <Button onClick={handleSubmit} disabled={submitting}>{mode === 'edit' ? 'Salva modifiche' : 'Crea Deal'}</Button>
         </div>
       </div>
     </Modal>
