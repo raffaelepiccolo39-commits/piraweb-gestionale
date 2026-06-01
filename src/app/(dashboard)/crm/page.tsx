@@ -81,6 +81,8 @@ export default function CRMPage() {
   const [selectedDeal, setSelectedDeal] = useState<Deal | null>(null);
   const [activities, setActivities] = useState<DealActivity[]>([]);
   const [showActivity, setShowActivity] = useState(false);
+  const [quickNote, setQuickNote] = useState('');
+  const [savingNote, setSavingNote] = useState(false);
   const [view, setView] = useState<'pipeline' | 'list'>('pipeline');
 
   // Lost reason modal (replaces prompt())
@@ -201,6 +203,35 @@ export default function CRMPage() {
     });
     setShowActivity(false);
     fetchActivities(selectedDeal.id);
+  };
+
+  const handleSaveQuickNote = async () => {
+    if (!profile || !selectedDeal) return;
+    const txt = quickNote.trim();
+    if (!txt) return;
+    setSavingNote(true);
+    // Title = prima riga (max 80 char), description = resto se presente
+    const firstNl = txt.indexOf('\n');
+    const title = (firstNl > 0 ? txt.slice(0, firstNl) : txt).slice(0, 80);
+    const description = firstNl > 0 ? txt.slice(firstNl + 1).trim() || null
+                      : (txt.length > 80 ? txt : null);
+    const { error } = await supabase.from('deal_activities').insert({
+      deal_id: selectedDeal.id,
+      type: 'note',
+      title,
+      description,
+      completed: true,
+      created_by: profile.id,
+    });
+    setSavingNote(false);
+    if (error) {
+      Sentry.captureException(error, { tags: { route: 'crm', stage: 'quick_note' }, extra: { dealId: selectedDeal.id } });
+      toast.error('Errore salvataggio nota');
+      return;
+    }
+    setQuickNote('');
+    fetchActivities(selectedDeal.id);
+    toast.success('Nota salvata');
   };
 
   const handleConvertToClient = async (deal: Deal) => {
@@ -602,6 +633,29 @@ export default function CRMPage() {
                   Converti in Cliente
                 </Button>
               )}
+            </div>
+
+            {/* Quick note input */}
+            <div>
+              <p className="text-[10px] text-pw-text-dim uppercase tracking-widest mb-2">Nota rapida</p>
+              <textarea
+                value={quickNote}
+                onChange={(e) => setQuickNote(e.target.value)}
+                onKeyDown={(e) => {
+                  if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+                    e.preventDefault();
+                    handleSaveQuickNote();
+                  }
+                }}
+                placeholder="Scrivi una nota… (Cmd/Ctrl + ⏎ per salvare)"
+                rows={2}
+                className="w-full px-3 py-2 rounded-lg border border-pw-border bg-pw-surface-2 text-pw-text text-sm placeholder:text-pw-text-dim focus:ring-2 focus:ring-pw-accent/30 focus:border-pw-accent/50 outline-none resize-none"
+              />
+              <div className="flex justify-end mt-2">
+                <Button size="sm" variant="primary" loading={savingNote} disabled={!quickNote.trim()} onClick={handleSaveQuickNote}>
+                  <Plus size={12} /> Salva nota
+                </Button>
+              </div>
             </div>
 
             {/* Activity timeline */}
