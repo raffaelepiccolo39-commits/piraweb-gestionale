@@ -90,6 +90,7 @@ export default function CRMPage() {
   const [editingActivity, setEditingActivity] = useState<DealActivity | null>(null);
   const [editForm, setEditForm] = useState({ title: '', description: '' });
   const [deletingActivityId, setDeletingActivityId] = useState<string | null>(null);
+  const [deletingDeal, setDeletingDeal] = useState<Deal | null>(null);
   const [view, setView] = useState<'pipeline' | 'list'>('pipeline');
 
   // Lost reason modal (replaces prompt())
@@ -212,6 +213,20 @@ export default function CRMPage() {
     });
     setShowActivity(false);
     fetchActivities(selectedDeal.id);
+  };
+
+  const handleDeleteDeal = async () => {
+    if (!deletingDeal) return;
+    const { error } = await supabase.from('deals').delete().eq('id', deletingDeal.id);
+    if (error) {
+      Sentry.captureException(error, { tags: { route: 'crm', stage: 'delete_deal' }, extra: { dealId: deletingDeal.id } });
+      toast.error('Errore eliminazione deal');
+      return;
+    }
+    toast.success('Deal eliminato');
+    setDeletingDeal(null);
+    setSelectedDeal(null);
+    fetchDeals();
   };
 
   const handleStartEditActivity = (a: DealActivity) => {
@@ -703,15 +718,21 @@ export default function CRMPage() {
             )}
 
             {/* Actions */}
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
               <Button size="sm" onClick={() => setShowActivity(true)}>
                 <Plus size={12} />
-                Aggiungi Attivita'
+                Aggiungi Attivita&apos;
               </Button>
               {selectedDeal.stage !== 'closed_won' && selectedDeal.stage !== 'closed_lost' && (
                 <Button size="sm" variant="ghost" onClick={() => handleConvertToClient(selectedDeal)}>
                   <CheckCircle size={12} />
                   Converti in Cliente
+                </Button>
+              )}
+              {(isAdmin || selectedDeal.created_by === profile?.id) && (
+                <Button size="sm" variant="ghost" onClick={() => setDeletingDeal(selectedDeal)} className="text-pw-danger hover:bg-red-500/10 ml-auto">
+                  <Trash2 size={12} />
+                  Elimina deal
                 </Button>
               )}
             </div>
@@ -909,6 +930,16 @@ export default function CRMPage() {
         title="Eliminare l'attività?"
         description="L'azione è irreversibile."
         confirmLabel="Elimina"
+        variant="danger"
+      />
+
+      <ConfirmDialog
+        open={!!deletingDeal}
+        onClose={() => setDeletingDeal(null)}
+        onConfirm={handleDeleteDeal}
+        title={deletingDeal ? `Eliminare "${deletingDeal.title}"?` : 'Eliminare il deal?'}
+        description="Il deal e tutte le sue attività e note verranno cancellati definitivamente. L'azione è irreversibile."
+        confirmLabel="Elimina deal"
         variant="danger"
       />
     </div>
