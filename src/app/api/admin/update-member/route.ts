@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server';
+import { logAudit } from '@/lib/audit';
 
 /**
  * POST /api/admin/update-member
@@ -58,6 +59,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Errore aggiornamento ruolo' }, { status: 500 });
     }
 
+    await logAudit({
+      action: 'user.role_changed',
+      actorId: user.id,
+      actorEmail: user.email,
+      entityType: 'profile',
+      entityId: targetUserId,
+      details: { newRole },
+      request,
+    });
+
     return NextResponse.json({ success: true });
   }
 
@@ -77,6 +88,15 @@ export async function POST(request: NextRequest) {
     if (error) {
       return NextResponse.json({ error: 'Errore aggiornamento stato' }, { status: 500 });
     }
+
+    await logAudit({
+      action: !isActive ? 'user.activated' : 'user.deactivated',
+      actorId: user.id,
+      actorEmail: user.email,
+      entityType: 'profile',
+      entityId: targetUserId,
+      request,
+    });
 
     return NextResponse.json({ success: true });
   }

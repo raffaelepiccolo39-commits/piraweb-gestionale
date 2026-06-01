@@ -4,6 +4,7 @@ import * as Sentry from '@sentry/nextjs';
 import { randomBytes } from 'crypto';
 import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { sendInviteEmail } from '@/lib/email';
+import { logAudit } from '@/lib/audit';
 import type { UserRole } from '@/types/database';
 
 const VALID_ROLES: UserRole[] = ['admin', 'social_media_manager', 'content_creator', 'graphic_social', 'graphic_brand'];
@@ -109,6 +110,16 @@ export async function POST(request: NextRequest) {
     });
     console.error('Failed to send invite email:', emailError);
   }
+
+  await logAudit({
+    action: 'user.created',
+    actorId: user.id,
+    actorEmail: user.email,
+    entityType: 'profile',
+    entityId: newUser.user.id,
+    details: { email, role, full_name },
+    request,
+  });
 
   return NextResponse.json(
     { user: newUser.user, inviteLink },

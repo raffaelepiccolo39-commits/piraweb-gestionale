@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { sendInviteEmail } from '@/lib/email';
+import { logAudit } from '@/lib/audit';
 
 export async function POST(request: NextRequest) {
   const supabase = await createServerSupabaseClient();
@@ -64,6 +65,16 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+
+  await logAudit({
+    action: 'user.invite_resent',
+    actorId: user.id,
+    actorEmail: user.email,
+    entityType: 'profile',
+    entityId: userId,
+    details: { targetEmail: target.email },
+    request,
+  });
 
   return NextResponse.json({ ok: true, inviteLink });
 }

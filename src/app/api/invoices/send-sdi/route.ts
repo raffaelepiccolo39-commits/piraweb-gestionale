@@ -5,6 +5,7 @@ import * as Sentry from '@sentry/nextjs';
 import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { uploadInvoice, getArubaConfigFromEnv } from '@/lib/aruba/client';
 import { generateFatturapaXml, generateFatturapaFilename, type FatturapaData } from '@/lib/aruba/fatturapa';
+import { logAudit } from '@/lib/audit';
 
 /**
  * POST /api/invoices/send-sdi
@@ -132,6 +133,16 @@ export async function POST(request: NextRequest) {
       sdi_message: `Inviata con successo - ${result.uploadFileName}`,
       status: invoice.status === 'draft' ? 'sent' : invoice.status,
     }).eq('id', invoiceId);
+
+    await logAudit({
+      action: 'invoice.sent_to_sdi',
+      actorId: user.id,
+      actorEmail: user.email,
+      entityType: 'invoice',
+      entityId: invoiceId,
+      details: { invoiceNumber: invoice.invoice_number, total: invoice.total, env: arubaConfig.env, filename: result.uploadFileName },
+      request,
+    });
 
     return NextResponse.json({
       success: true,
