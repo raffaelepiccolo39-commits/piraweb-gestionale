@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import * as Sentry from '@sentry/nextjs';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { sendOutreachEmail } from '@/lib/email-outreach';
+import { withRetry, isTransientEmailError } from '@/lib/retry';
 
 /**
  * LEAD SENDER AGENT
@@ -112,7 +113,7 @@ async function handleCron(request: NextRequest) {
           continue;
         }
 
-        await sendOutreachEmail({
+        await withRetry(() => sendOutreachEmail({
           to: email,
           businessName,
           messageBody: message,
@@ -134,6 +135,10 @@ async function handleCron(request: NextRequest) {
             hasFacebook: !!(lead.facebook_url),
             hasTiktok: !!(lead.tiktok_url),
           },
+        }), {
+          attempts: 3,
+          baseDelayMs: 500,
+          shouldRetry: (err) => isTransientEmailError(err),
         });
 
         await supabase.from('lead_prospects').update({

@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import * as Sentry from '@sentry/nextjs';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { sendInvoiceReminder, generateWhatsAppReminderLink } from '@/lib/email-invoice';
+import { withRetry, isTransientEmailError } from '@/lib/retry';
 
 /**
  * INVOICE REMINDER CRON
@@ -87,13 +88,17 @@ async function handleCron(request: NextRequest) {
     // Send email reminder if client has email
     if (client.email) {
       try {
-        await sendInvoiceReminder({
-          to: client.email,
+        await withRetry(() => sendInvoiceReminder({
+          to: client.email!,
           clientName,
           invoiceNumber: invoice.invoice_number,
           total: invoice.total,
           dueDate: invoice.due_date,
           daysOverdue,
+        }), {
+          attempts: 3,
+          baseDelayMs: 500,
+          shouldRetry: (err) => isTransientEmailError(err),
         });
         emailsSent++;
       } catch (err) {
