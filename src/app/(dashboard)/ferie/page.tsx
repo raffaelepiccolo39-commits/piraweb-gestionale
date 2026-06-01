@@ -16,10 +16,17 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { formatDate, todayLocal } from '@/lib/utils';
 import { TIME_OFF_TYPE_LABELS, TIME_OFF_STATUS_LABELS } from '@/lib/constants';
 import { notifyTimeOffDecision } from '@/lib/time-off-notifications';
-import type { TimeOffRequest, TimeOffBalance, TeamAbsence, TimeOffType } from '@/types/database';
-import { Plus, Check, X, Plane, Clock, Stethoscope, Users, CalendarDays, AlertTriangle, Hourglass } from 'lucide-react';
+import type { TimeOffRequest, TeamAbsence, TimeOffType } from '@/types/database';
+import { Plus, Check, X, Plane, Clock, Stethoscope, Users, CalendarDays, AlertTriangle, Hourglass, Info } from 'lucide-react';
 
-const DEFAULT_FERIE = 26;
+interface TeamVacationRow {
+  user_id: string;
+  full_name: string;
+  contract_start_date: string | null;
+  accrued: number;
+  used: number;
+  available: number;
+}
 
 const STATUS_TONE: Record<string, 'warning' | 'success' | 'danger' | 'neutral'> = {
   pending: 'warning',
@@ -73,17 +80,15 @@ export default function FeriePage() {
   const year = new Date().getFullYear();
 
   const [myRequests, setMyRequests] = useState<TimeOffRequest[]>([]);
-  const [balance, setBalance] = useState<TimeOffBalance | null>(null);
+  const [myAccrued, setMyAccrued] = useState<number>(0);
+  const [myContractStart, setMyContractStart] = useState<string | null>(null);
   const [pending, setPending] = useState<TimeOffRequest[]>([]);
   const [absences, setAbsences] = useState<TeamAbsence[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
-  // Admin: monte ferie per dipendente
-  const [employees, setEmployees] = useState<{ id: string; full_name: string }[]>([]);
-  const [balanceEdits, setBalanceEdits] = useState<Record<string, number>>({});
-  const [usedByUser, setUsedByUser] = useState<Record<string, number>>({});
-  const [savingBalances, setSavingBalances] = useState(false);
+  // Admin: monte ferie team (read-only, calcolato server-side)
+  const [teamVacation, setTeamVacation] = useState<TeamVacationRow[]>([]);
 
   // New request modal
   const [showModal, setShowModal] = useState(false);
@@ -104,54 +109,35 @@ export default function FeriePage() {
   const fetchData = useCallback(async () => {
     if (!profile) return;
     try {
-      const requests = [
+      const [reqRes, accruedRes, profileRes, absRes] = await Promise.all([
         supabase.from('time_off_requests').select('*').eq('user_id', profile.id).order('start_date', { ascending: false }),
-        supabase.from('time_off_balances').select('*').eq('user_id', profile.id).eq('year', year).maybeSingle(),
+        supabase.rpc('accrued_vacation_days', { p_user_id: profile.id }),
+        supabase.from('profiles').select('contract_start_date').eq('id', profile.id).single(),
         supabase.rpc('get_team_absences', { p_from: todayLocal(), p_to: addDays(todayLocal(), 90) }),
-      ] as const;
-
-      const [reqRes, balRes, absRes] = await Promise.all(requests);
+      ]);
       if (reqRes.error) throw reqRes.error;
       setMyRequests((reqRes.data as TimeOffRequest[]) || []);
-      setBalance((balRes.data as TimeOffBalance | null) ?? null);
+      setMyAccrued(Number(accruedRes.data) || 0);
+      setMyContractStart((profileRes.data as { contract_start_date: string | null } | null)?.contract_start_date ?? null);
       setAbsences((absRes.data as TeamAbsence[]) || []);
 
       if (isAdmin) {
-        const [pendRes, empRes, balAllRes, ferieAllRes] = await Promise.all([
+        const [pendRes, summaryRes] = await Promise.all([
           supabase.from('time_off_requests')
             .select('*, user:profiles!time_off_requests_user_id_fkey(id, full_name, color)')
             .eq('status', 'pending')
             .order('start_date', { ascending: true }),
-          supabase.from('profiles').select('id, full_name').eq('is_active', true).order('full_name'),
-          supabase.from('time_off_balances').select('user_id, ferie_days').eq('year', year),
-          supabase.from('time_off_requests')
-            .select('user_id, total_days, status')
-            .eq('type', 'ferie')
-            .in('status', ['approved', 'pending'])
-            .gte('start_date', `${year}-01-01`)
-            .lte('start_date', `${year}-12-31`),
+          supabase.rpc('team_vacation_summary'),
         ]);
         setPending((pendRes.data as TimeOffRequest[]) || []);
-
-        const emps = (empRes.data as { id: string; full_name: string }[]) || [];
-        setEmployees(emps);
-        const balMap: Record<string, number> = {};
-        ((balAllRes.data as { user_id: string; ferie_days: number }[]) || []).forEach((b) => { balMap[b.user_id] = Number(b.ferie_days); });
-        const edits: Record<string, number> = {};
-        emps.forEach((e) => { edits[e.id] = balMap[e.id] ?? DEFAULT_FERIE; });
-        setBalanceEdits(edits);
-        const used: Record<string, number> = {};
-        ((ferieAllRes.data as { user_id: string; total_days: number }[]) || []).forEach((r) => {
-          used[r.user_id] = (used[r.user_id] || 0) + Number(r.total_days);
-        });
-        setUsedByUser(used);
+        setTeamVacation((summaryRes.data as TeamVacationRow[]) || []);
       }
     } catch {
       setError(true);
     } finally {
       setLoading(false);
     }
-  }, [profile, isAdmin, year]);
+  }, [profile, isAdmin]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -161,7 +147,7 @@ export default function FeriePage() {
     [form, sameDay]
   );
 
-  const ferieAllowance = balance?.ferie_days ?? DEFAULT_FERIE;
+  const ferieAllowance = myAccrued;
 
   const sumByTypeStatus = (t: TimeOffType, statuses: string[]) =>
     myRequests
@@ -278,21 +264,6 @@ export default function FeriePage() {
     }
   };
 
-  const handleSaveBalances = async () => {
-    setSavingBalances(true);
-    try {
-      const rows = employees.map((e) => ({ user_id: e.id, year, ferie_days: balanceEdits[e.id] ?? DEFAULT_FERIE }));
-      const { error } = await supabase.from('time_off_balances').upsert(rows, { onConflict: 'user_id,year' });
-      if (error) throw error;
-      toast.success('Monte ferie aggiornato');
-      fetchData();
-    } catch (e) {
-      toast.error((e as { message?: string } | undefined)?.message || 'Errore durante il salvataggio del monte ferie');
-    } finally {
-      setSavingBalances(false);
-    }
-  };
-
   const dateRangeLabel = (r: { start_date: string; end_date: string; start_half: boolean; end_half: boolean }) => {
     if (r.start_date === r.end_date) {
       return `${formatDate(r.start_date)}${r.start_half ? ' (mezza giornata)' : ''}`;
@@ -347,6 +318,15 @@ export default function FeriePage() {
             <p className="text-xs text-pw-text-dim mt-1.5">
               {fmtDays(ferieApproved)} approvati{feriePending > 0 ? ` · ${fmtDays(feriePending)} in attesa` : ''}
             </p>
+            {myContractStart ? (
+              <p className="flex items-center gap-1 text-[11px] text-pw-text-dim mt-1.5" title="2 giorni di ferie maturati al mese dalla data inizio contratto">
+                <Info size={11} /> Maturati 2 gg/mese dal {formatDate(myContractStart)}
+              </p>
+            ) : (
+              <p className="flex items-center gap-1 text-[11px] text-pw-danger mt-1.5">
+                <AlertTriangle size={11} /> Data inizio contratto mancante — chiedi all&apos;admin di impostarla
+              </p>
+            )}
           </CardContent>
         </Card>
         <Card>
@@ -412,39 +392,40 @@ export default function FeriePage() {
         </div>
       )}
 
-      {/* Monte ferie dipendenti (admin) */}
-      {isAdmin && employees.length > 0 && (
+      {/* Monte ferie team (admin, read-only - calcolato automaticamente) */}
+      {isAdmin && teamVacation.length > 0 && (
         <div>
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-semibold text-pw-text flex items-center gap-2">
-              <Plane size={16} className="text-pw-text-muted" /> Monte ferie {year}
+              <Plane size={16} className="text-pw-text-muted" /> Monte ferie team
             </h2>
-            <Button variant="outline" onClick={handleSaveBalances} loading={savingBalances}>
-              <Check size={14} /> Salva
-            </Button>
+            <span className="flex items-center gap-1 text-[11px] text-pw-text-dim">
+              <Info size={12} /> Calcolato automaticamente · 2 gg/mese dalla data inizio contratto
+            </span>
           </div>
           <Card>
             <CardContent className="p-0 divide-y divide-pw-border">
-              {employees.map((e) => {
-                const used = usedByUser[e.id] || 0;
-                const allot = balanceEdits[e.id] ?? DEFAULT_FERIE;
-                const residual = allot - used;
+              <div className="flex items-center gap-4 px-4 py-2 bg-pw-surface-2 text-[11px] uppercase tracking-wide text-pw-text-dim font-medium">
+                <span className="flex-1">Dipendente</span>
+                <span className="w-28">Inizio contratto</span>
+                <span className="w-20 text-right">Maturati</span>
+                <span className="w-20 text-right">Usati</span>
+                <span className="w-24 text-right">Disponibili</span>
+              </div>
+              {teamVacation.map((row) => {
+                const hasContract = !!row.contract_start_date;
                 return (
-                  <div key={e.id} className="flex items-center gap-4 px-4 py-2.5">
-                    <span className="text-sm text-pw-text flex-1 truncate">{e.full_name}</span>
-                    <div className="flex items-center gap-1.5">
-                      <input
-                        type="number"
-                        min={0}
-                        step={0.5}
-                        value={allot}
-                        onChange={(ev) => setBalanceEdits(m => ({ ...m, [e.id]: Number(ev.target.value) }))}
-                        className="w-20 px-2 py-1 rounded-lg border border-pw-border bg-pw-surface-2 text-pw-text text-sm text-right outline-none focus:border-pw-accent/50"
-                      />
-                      <span className="text-xs text-pw-text-dim">gg/anno</span>
-                    </div>
-                    <span className="text-xs text-pw-text-muted w-36 text-right tabular-nums">
-                      {fmtDays(used)} usate · <span className={residual < 0 ? 'text-pw-danger' : 'text-pw-text'}>{fmtDays(residual)} residue</span>
+                  <div key={row.user_id} className="flex items-center gap-4 px-4 py-2.5 text-sm">
+                    <span className="text-pw-text flex-1 truncate">{row.full_name}</span>
+                    <span className="w-28 text-xs text-pw-text-muted tabular-nums">
+                      {hasContract ? formatDate(row.contract_start_date!) : (
+                        <span className="text-pw-danger flex items-center gap-1"><AlertTriangle size={12} /> Mancante</span>
+                      )}
+                    </span>
+                    <span className="w-20 text-right text-pw-text tabular-nums">{fmtDays(Number(row.accrued))} gg</span>
+                    <span className="w-20 text-right text-pw-text-muted tabular-nums">{fmtDays(Number(row.used))} gg</span>
+                    <span className={`w-24 text-right font-semibold tabular-nums ${Number(row.available) <= 0 ? 'text-pw-text-dim' : 'text-pw-text'}`}>
+                      {fmtDays(Number(row.available))} gg
                     </span>
                   </div>
                 );
