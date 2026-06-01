@@ -156,7 +156,8 @@ BEGIN
     WHERE t.user_id = NEW.user_id
       AND t.id IS DISTINCT FROM NEW.id
       AND t.status IN ('pending', 'approved')
-      AND daterange(t.start_date, t.end_date, '[]') && daterange(NEW.start_date, NEW.end_date, '[]')
+      AND t.start_date <= NEW.end_date
+      AND t.end_date >= NEW.start_date
   ) THEN
     RAISE EXCEPTION 'Le date si sovrappongono a un''altra richiesta del dipendente.';
   END IF;
