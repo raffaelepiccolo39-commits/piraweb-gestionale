@@ -16,8 +16,10 @@ import { LostReasonForm } from '@/components/crm/lost-reason-form';
 import { DataTable } from '@/components/ui/data-table';
 import { EmptyState } from '@/components/ui/empty-state';
 import { SkeletonStats, SkeletonList } from '@/components/ui/skeleton';
-import { formatCurrency, formatDate, formatDateTime, getInitials, getUserColor } from '@/lib/utils';
-import type { Deal, DealStage, DealActivity, Profile } from '@/types/database';
+import { formatCurrency, formatDate, formatDateTime, getInitials, getUserColor, todayLocal } from '@/lib/utils';
+import type { Deal, DealStage, DealActivity, DealActivityType, Profile } from '@/types/database';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { Modal } from '@/components/ui/modal';
 import {
   Plus,
   Users,
@@ -38,6 +40,8 @@ import {
   Target,
   ChevronRight,
   X,
+  Pencil,
+  Trash2,
 } from 'lucide-react';
 
 const STAGES: { id: DealStage; label: string; color: string; bgColor: string }[] = [
@@ -82,6 +86,10 @@ export default function CRMPage() {
   const [showActivity, setShowActivity] = useState(false);
   const [quickNote, setQuickNote] = useState('');
   const [savingNote, setSavingNote] = useState(false);
+  const [activityFilter, setActivityFilter] = useState<'all' | DealActivityType>('all');
+  const [editingActivity, setEditingActivity] = useState<DealActivity | null>(null);
+  const [editForm, setEditForm] = useState({ title: '', description: '' });
+  const [deletingActivityId, setDeletingActivityId] = useState<string | null>(null);
   const [view, setView] = useState<'pipeline' | 'list'>('pipeline');
 
   // Lost reason modal (replaces prompt())
@@ -203,6 +211,41 @@ export default function CRMPage() {
       created_by: profile.id,
     });
     setShowActivity(false);
+    fetchActivities(selectedDeal.id);
+  };
+
+  const handleStartEditActivity = (a: DealActivity) => {
+    setEditingActivity(a);
+    setEditForm({ title: a.title, description: a.description || '' });
+  };
+
+  const handleSaveEditActivity = async () => {
+    if (!editingActivity || !selectedDeal) return;
+    if (!editForm.title.trim()) { toast.error('Titolo obbligatorio'); return; }
+    const { error } = await supabase.from('deal_activities').update({
+      title: editForm.title.trim(),
+      description: editForm.description.trim() || null,
+    }).eq('id', editingActivity.id);
+    if (error) {
+      Sentry.captureException(error, { tags: { route: 'crm', stage: 'edit_activity' } });
+      toast.error('Errore modifica attività');
+      return;
+    }
+    toast.success('Attività aggiornata');
+    setEditingActivity(null);
+    fetchActivities(selectedDeal.id);
+  };
+
+  const handleDeleteActivity = async () => {
+    if (!deletingActivityId || !selectedDeal) return;
+    const { error } = await supabase.from('deal_activities').delete().eq('id', deletingActivityId);
+    if (error) {
+      Sentry.captureException(error, { tags: { route: 'crm', stage: 'delete_activity' } });
+      toast.error('Errore eliminazione');
+      return;
+    }
+    toast.success('Attività eliminata');
+    setDeletingActivityId(null);
     fetchActivities(selectedDeal.id);
   };
 
@@ -461,14 +504,37 @@ export default function CRMPage() {
             (d) => d.company_name || '',
             (d) => d.contact_name || '',
             (d) => d.contact_email || '',
+            (d) => d.contact_phone || '',
+            (d) => d.notes || '',
+            (d) => (d.tags || []).join(' '),
+            (d) => (d.service_categories || []).join(' '),
           ]}
-          searchPlaceholder="Cerca per titolo, azienda, contatto o email…"
+          searchPlaceholder="Cerca per titolo, azienda, contatto, email, telefono, note, tag…"
           filters={[
             {
               key: 'stage',
               label: 'Tutti gli stadi',
               options: STAGES.map((s) => ({ value: s.id, label: s.label })),
               accessor: (d) => d.stage,
+            },
+            {
+              key: 'priority',
+              label: 'Tutte le priorità',
+              options: [
+                { value: 'high', label: 'Alta' },
+                { value: 'medium', label: 'Media' },
+                { value: 'low', label: 'Bassa' },
+              ],
+              accessor: (d) => d.priority,
+            },
+            {
+              key: 'owner',
+              label: 'Tutti gli owner',
+              options: [
+                { value: profile?.id || '', label: 'I miei' },
+                ...members.map((m) => ({ value: m.id, label: m.full_name })),
+              ],
+              accessor: (d) => d.owner_id,
             },
             {
               key: 'source',
@@ -675,33 +741,112 @@ export default function CRMPage() {
 
             {/* Activity timeline */}
             <div>
-              <p className="text-[10px] text-pw-text-dim uppercase tracking-widest mb-3">Attivita' ({activities.length})</p>
-              <div className="space-y-3">
-                {activities.map((activity) => {
-                  const Icon = ACTIVITY_ICONS[activity.type] || MessageSquare;
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-[10px] text-pw-text-dim uppercase tracking-widest">Attivita&apos; ({activities.length})</p>
+              </div>
+              {/* Filter chips */}
+              <div className="flex flex-wrap gap-1 mb-3">
+                {([
+                  { id: 'all', label: 'Tutto' },
+                  { id: 'note', label: 'Note' },
+                  { id: 'call', label: 'Chiamate' },
+                  { id: 'email', label: 'Email' },
+                  { id: 'meeting', label: 'Meeting' },
+                  { id: 'stage_change', label: 'Stage' },
+                ] as const).map((f) => {
+                  const active = activityFilter === f.id;
+                  const count = f.id === 'all' ? activities.length : activities.filter(a => a.type === f.id).length;
                   return (
-                    <div key={activity.id} className="flex gap-3">
-                      <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${
-                        activity.type === 'stage_change' ? 'bg-pw-accent/20' : 'bg-pw-surface-3'
-                      }`}>
-                        <Icon size={12} className={activity.type === 'stage_change' ? 'text-pw-accent' : 'text-pw-text-dim'} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm text-pw-text">{activity.title}</p>
-                        {activity.description && (
-                          <p className="text-xs text-pw-text-muted mt-0.5">{activity.description}</p>
-                        )}
-                        <p className="text-[10px] text-pw-text-dim mt-0.5">
-                          {formatDateTime(activity.created_at)}
-                        </p>
-                      </div>
-                    </div>
+                    <button
+                      key={f.id}
+                      onClick={() => setActivityFilter(f.id as 'all' | DealActivityType)}
+                      className={`px-2 py-0.5 rounded-md text-[11px] font-medium transition-colors ${
+                        active ? 'bg-pw-accent text-[#0A263A]' : 'bg-pw-surface-2 text-pw-text-muted hover:bg-pw-surface-3'
+                      }`}
+                    >
+                      {f.label} {count > 0 && <span className="opacity-60">{count}</span>}
+                    </button>
                   );
                 })}
-                {activities.length === 0 && (
-                  <p className="text-xs text-pw-text-dim text-center py-4">Nessuna attivita' ancora</p>
-                )}
               </div>
+              {/* Grouped by day */}
+              {(() => {
+                const filtered = activityFilter === 'all' ? activities : activities.filter(a => a.type === activityFilter);
+                if (filtered.length === 0) {
+                  return <p className="text-xs text-pw-text-dim text-center py-4">Nessuna attivita&apos; in questa categoria</p>;
+                }
+                const groups: Record<string, DealActivity[]> = {};
+                filtered.forEach((a) => {
+                  const day = a.created_at.slice(0, 10);
+                  if (!groups[day]) groups[day] = [];
+                  groups[day].push(a);
+                });
+                const today = todayLocal();
+                const yesterday = (() => { const d = new Date(); d.setDate(d.getDate() - 1); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; })();
+                const dayLabel = (d: string) => d === today ? 'Oggi' : d === yesterday ? 'Ieri' : formatDate(d);
+                return Object.keys(groups).sort().reverse().map((day) => (
+                  <div key={day} className="mb-3">
+                    <p className="text-[10px] uppercase tracking-wider text-pw-text-dim mb-2">{dayLabel(day)}</p>
+                    <div className="space-y-2">
+                      {groups[day].map((activity) => {
+                        const Icon = ACTIVITY_ICONS[activity.type] || MessageSquare;
+                        const canEdit = (activity.created_by === profile?.id || isAdmin) && activity.type !== 'stage_change';
+                        const creator = activity.creator as { id: string; full_name: string; color?: string } | undefined;
+                        return (
+                          <div key={activity.id} className="flex gap-2 group">
+                            <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${
+                              activity.type === 'stage_change' ? 'bg-pw-accent/20' : 'bg-pw-surface-3'
+                            }`}>
+                              <Icon size={12} className={activity.type === 'stage_change' ? 'text-pw-accent' : 'text-pw-text-dim'} />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm text-pw-text">{activity.title}</p>
+                              {activity.description && (
+                                <p className="text-xs text-pw-text-muted mt-0.5 whitespace-pre-wrap">{activity.description}</p>
+                              )}
+                              <div className="flex items-center gap-1.5 mt-1 text-[10px] text-pw-text-dim">
+                                {creator && (
+                                  <span className="inline-flex items-center gap-1">
+                                    <span
+                                      className="w-3.5 h-3.5 rounded-full flex items-center justify-center text-white text-[7px] font-bold"
+                                      style={{ backgroundColor: creator.color || getUserColor({ id: creator.id, color: creator.color } as Profile) }}
+                                    >
+                                      {getInitials(creator.full_name).charAt(0)}
+                                    </span>
+                                    {creator.full_name}
+                                  </span>
+                                )}
+                                <span>·</span>
+                                <span>{formatDateTime(activity.created_at)}</span>
+                              </div>
+                            </div>
+                            {canEdit && (
+                              <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button
+                                  onClick={() => handleStartEditActivity(activity)}
+                                  className="p-1 rounded text-pw-text-dim hover:text-pw-text hover:bg-pw-surface-2"
+                                  aria-label="Modifica"
+                                  title="Modifica"
+                                >
+                                  <Pencil size={11} />
+                                </button>
+                                <button
+                                  onClick={() => setDeletingActivityId(activity.id)}
+                                  className="p-1 rounded text-pw-text-dim hover:text-pw-danger hover:bg-pw-surface-2"
+                                  aria-label="Elimina"
+                                  title="Elimina"
+                                >
+                                  <Trash2 size={11} />
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ));
+              })()}
             </div>
           </div>
         </div>
@@ -727,6 +872,44 @@ export default function CRMPage() {
         open={showLostReasonModal}
         onClose={() => { setShowLostReasonModal(false); setPendingLostDealId(null); }}
         onConfirm={handleConfirmLostDeal}
+      />
+
+      {/* Edit activity modal */}
+      <Modal open={!!editingActivity} onClose={() => setEditingActivity(null)} title="Modifica attività" size="sm">
+        <div className="space-y-3">
+          <div>
+            <label className="block text-sm font-medium text-pw-text-muted mb-1">Titolo</label>
+            <input
+              type="text"
+              value={editForm.title}
+              onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
+              className="w-full px-3 py-2 rounded-lg border border-pw-border bg-pw-surface-2 text-pw-text text-sm focus:ring-2 focus:ring-pw-accent/30 focus:border-pw-accent/50 outline-none"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-pw-text-muted mb-1">Descrizione</label>
+            <textarea
+              value={editForm.description}
+              onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+              rows={3}
+              className="w-full px-3 py-2 rounded-lg border border-pw-border bg-pw-surface-2 text-pw-text text-sm focus:ring-2 focus:ring-pw-accent/30 focus:border-pw-accent/50 outline-none resize-none"
+            />
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" onClick={() => setEditingActivity(null)}>Annulla</Button>
+            <Button onClick={handleSaveEditActivity}>Salva</Button>
+          </div>
+        </div>
+      </Modal>
+
+      <ConfirmDialog
+        open={!!deletingActivityId}
+        onClose={() => setDeletingActivityId(null)}
+        onConfirm={handleDeleteActivity}
+        title="Eliminare l'attività?"
+        description="L'azione è irreversibile."
+        confirmLabel="Elimina"
+        variant="danger"
       />
     </div>
   );
