@@ -410,7 +410,7 @@ export default function CRMPage() {
   }
 
   return (
-    <div className="space-y-6 animate-slide-up">
+    <div className={`space-y-6 animate-slide-up transition-[padding] duration-300 ${selectedDeal ? 'lg:pr-[500px]' : ''}`}>
       <PageHeader
         title="CRM Pipeline"
         subtitle={`${activeDeals.length} deal attivi · ${formatCurrency(totalPipelineValue)} potenziale`}
@@ -675,8 +675,9 @@ export default function CRMPage() {
       {/* Deal detail sidebar */}
       {selectedDeal && (
         <>
-        {/* Overlay */}
-        <div className="fixed inset-0 bg-black/40 z-40 lg:bg-transparent" onClick={() => setSelectedDeal(null)} />
+        {/* Overlay: solo mobile/tablet. Su desktop niente backdrop, la
+            pipeline a sinistra resta cliccabile (puoi switchare deal). */}
+        <div className="fixed inset-0 bg-black/40 z-40 lg:hidden" onClick={() => setSelectedDeal(null)} />
         <div className="fixed inset-y-0 right-0 w-[90vw] sm:w-[450px] lg:w-[480px] bg-pw-surface border-l border-pw-border shadow-[-8px_0_30px_rgba(0,0,0,0.5)] z-50 overflow-y-auto animate-slide-right">
           <div className="p-6 space-y-5">
             {/* Header */}
