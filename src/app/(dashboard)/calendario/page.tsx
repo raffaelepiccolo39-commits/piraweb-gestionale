@@ -1,5 +1,6 @@
 'use client';
 
+import * as Sentry from '@sentry/nextjs';
 import { useEffect, useState, useCallback } from 'react';
 import { addMonths, subMonths, format, startOfMonth, endOfMonth, isSameDay } from 'date-fns';
 import { it } from 'date-fns/locale';
@@ -118,7 +119,7 @@ export default function CalendarioPage() {
     if (res.status === 400) return false;
     // Altri errori (auth iCloud, network, server CalDAV) → log ma non blocco UX
     const body = await res.json().catch(() => ({}));
-    console.error('[calendario] push CalDAV failed:', res.status, body);
+    Sentry.captureException(new Error(`calendario CalDAV push failed: ${res.status}`), { tags: { route: 'calendario', stage: 'push_caldav' }, extra: { status: res.status, body } });
     return false;
   };
 

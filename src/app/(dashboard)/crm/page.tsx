@@ -1,5 +1,7 @@
 'use client';
 
+import * as Sentry from '@sentry/nextjs';
+
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
@@ -12,6 +14,7 @@ import { DealForm, type DealFormValues } from '@/components/crm/deal-form';
 import { ActivityForm, type ActivityFormValues } from '@/components/crm/activity-form';
 import { LostReasonForm } from '@/components/crm/lost-reason-form';
 import { DataTable } from '@/components/ui/data-table';
+import { EmptyState } from '@/components/ui/empty-state';
 import { SkeletonStats, SkeletonList } from '@/components/ui/skeleton';
 import { formatCurrency, formatDate, formatDateTime, getInitials, getUserColor } from '@/lib/utils';
 import type { Deal, DealStage, DealActivity, Profile } from '@/types/database';
@@ -19,6 +22,7 @@ import {
   Plus,
   Users,
   Euro,
+  Briefcase,
   TrendingUp,
   Phone,
   Mail,
@@ -156,7 +160,7 @@ export default function CRMPage() {
 
     const { error } = await supabase.from('deals').update({ stage: newStage }).eq('id', dealId);
     if (error) {
-      console.error('[crm] update deal stage failed:', error);
+      Sentry.captureException(error, { tags: { route: 'crm', stage: 'update_deal_stage' } });
       toast.error('Errore nello spostamento del deal');
       return;
     }
@@ -320,6 +324,19 @@ export default function CRMPage() {
 
       {/* Pipeline view */}
       {view === 'pipeline' ? (
+        activeDeals.length === 0 ? (
+          <EmptyState
+            icon={Briefcase}
+            title="Nessun deal in pipeline"
+            description="Crea il tuo primo deal per iniziare a tracciare le opportunità commerciali."
+            action={
+              <Button variant="primary" onClick={() => setShowForm(true)}>
+                <Plus size={14} />
+                Nuovo Deal
+              </Button>
+            }
+          />
+        ) : (
         <div className="flex gap-4 overflow-x-auto pb-4">
           {STAGES.filter((s) => s.id !== 'closed_lost').map((stage) => {
             const stageDeals = getDealsForStage(stage.id);
@@ -385,6 +402,7 @@ export default function CRMPage() {
             );
           })}
         </div>
+        )
       ) : (
         /* List view with search + filter via DataTable */
         <DataTable

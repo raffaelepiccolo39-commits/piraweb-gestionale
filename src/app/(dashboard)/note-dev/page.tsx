@@ -1,5 +1,6 @@
 'use client';
 
+import * as Sentry from '@sentry/nextjs';
 import { useEffect, useState, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
@@ -85,7 +86,7 @@ export default function NoteDevPage() {
 
       const { data, error: queryError } = await query;
       if (queryError) {
-        console.error('[note-dev] fetch query error:', queryError);
+        Sentry.captureException(new Error(`note-dev fetch: ${queryError.message}`), { tags: { route: 'note-dev', stage: 'query' } });
         setError(true);
         return;
       }
@@ -94,7 +95,7 @@ export default function NoteDevPage() {
       const rows = (Array.isArray(data) ? data : []) as DeveloperNote[];
       setNotes(rows);
     } catch (err) {
-      console.error('[note-dev] fetch failed:', err);
+      Sentry.captureException(err, { tags: { route: 'note-dev', stage: 'fetch' } });
       setError(true);
     } finally {
       setLoading(false);

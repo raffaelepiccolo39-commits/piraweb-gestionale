@@ -1,6 +1,6 @@
 'use client';
 
-
+import * as Sentry from '@sentry/nextjs';
 import { useEffect, useState, useCallback } from 'react';
 import {
   DragDropContext,
@@ -115,7 +115,7 @@ export default function BachecaPage() {
 
     const { error } = await supabase.from('tasks').update(updates).eq('id', draggableId);
     if (error) {
-      console.error('[bacheca] drag-drop update failed:', error);
+      Sentry.captureException(error, { tags: { route: 'bacheca', stage: 'drag_drop' } });
       toast.error('Errore nello spostamento della task');
     }
     // Refetch sempre: riallinea la UI allo stato reale del DB (anche in caso di errore

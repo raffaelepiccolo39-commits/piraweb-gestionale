@@ -1,5 +1,6 @@
 'use client';
 
+import * as Sentry from '@sentry/nextjs';
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
@@ -288,7 +289,7 @@ export default function LeadFinderPage() {
   const handleStatusChange = async (prospectId: string, status: OutreachStatus) => {
     const { error } = await supabase.from('lead_prospects').update({ outreach_status: status }).eq('id', prospectId);
     if (error) {
-      console.error('[lead-finder] update outreach_status failed:', error);
+      Sentry.captureException(error, { tags: { route: 'lead-finder', stage: 'update_outreach_status' } });
       toast.error('Errore nel cambio di stato del lead');
       return;
     }

@@ -11,6 +11,7 @@ import { Modal } from '@/components/ui/modal';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { EmptyState } from '@/components/ui/empty-state';
 import { getInitials } from '@/lib/utils';
 import type { ChatChannel, ChatMessage, ChatChannelMember, Profile } from '@/types/database';
 import { ArrowLeft, MessageCircle, FolderKanban, Users, Check, AlertTriangle, Search, X } from 'lucide-react';
@@ -438,6 +439,7 @@ export default function ChatPage() {
                 onClick={() => setShowSearch(true)}
                 className="p-2 rounded-lg text-pw-text-dim hover:text-pw-text hover:bg-pw-surface-2 transition-colors duration-200 ease-out"
                 title="Cerca nei messaggi"
+                aria-label="Cerca nei messaggi"
               >
                 <Search size={16} />
               </button>
@@ -458,6 +460,20 @@ export default function ChatPage() {
             />
             <MessageInput onSend={handleSendMessage} members={teamMembers} />
           </>
+        ) : channels.length === 0 ? (
+          <div className="flex-1 flex items-center justify-center p-6">
+            <EmptyState
+              icon={MessageCircle}
+              title="Nessuna conversazione"
+              description="Crea un gruppo o invita un collaboratore per iniziare a chattare con il team."
+              action={
+                <Button variant="primary" onClick={() => { setGroupName(''); setGroupMembers([]); setShowCreateGroup(true); }}>
+                  <Users size={14} />
+                  Crea gruppo
+                </Button>
+              }
+            />
+          </div>
         ) : (
           <div className="flex-1 flex items-center justify-center">
             <div className="text-center">

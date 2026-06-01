@@ -1,5 +1,7 @@
 'use client';
 
+import * as Sentry from '@sentry/nextjs';
+
 import { useEffect, useState, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
@@ -172,7 +174,7 @@ export default function SocialCalendarPage() {
       } catch (err) {
         // Errore di rete: differente dal "non configurato". Logghiamo per debug ma
         // non blocchiamo: mostriamo "Collega Meta" come fallback safe.
-        console.error('[social-calendar] fetch Meta pages failed:', err);
+        Sentry.captureException(err, { tags: { route: 'social-calendar', stage: 'fetch_meta_pages' } });
         setMetaConnected(false);
       }
     })();
@@ -228,7 +230,7 @@ export default function SocialCalendarPage() {
     if (newStatus === 'published') updates.published_at = new Date().toISOString();
     const { error } = await supabase.from('social_posts').update(updates).eq('id', postId);
     if (error) {
-      console.error('[social-calendar] update status failed:', error);
+      Sentry.captureException(error, { tags: { route: 'social-calendar', stage: 'update_status' } });
       toast.error('Errore nel cambio di stato del post');
       return;
     }
