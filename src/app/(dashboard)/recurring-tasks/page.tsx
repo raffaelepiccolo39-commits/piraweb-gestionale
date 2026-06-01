@@ -195,11 +195,11 @@ export default function RecurringTasksPage() {
                     </p>
                   </div>
                   <div className="flex items-center gap-1">
-                    <button onClick={() => handleToggle(task)} className="p-1.5 rounded-lg text-pw-text-dim hover:bg-pw-surface-2" title={task.is_active ? 'Metti in pausa' : 'Riattiva'}>
+                    <button onClick={() => handleToggle(task)} className="p-1.5 rounded-lg text-pw-text-dim hover:bg-pw-surface-2" title={task.is_active ? 'Metti in pausa' : 'Riattiva'} aria-label={task.is_active ? 'Metti in pausa task ricorrente' : 'Riattiva task ricorrente'}>
                       {task.is_active ? <Pause size={12} /> : <Play size={12} />}
                     </button>
                     {isAdmin && (
-                      <button onClick={() => setDeletingId(task.id)} className="p-1.5 rounded-lg text-pw-text-dim hover:text-red-400 hover:bg-pw-surface-2">
+                      <button onClick={() => setDeletingId(task.id)} className="p-1.5 rounded-lg text-pw-text-dim hover:text-red-400 hover:bg-pw-surface-2" aria-label="Elimina task ricorrente">
                         <Trash2 size={12} />
                       </button>
                     )}

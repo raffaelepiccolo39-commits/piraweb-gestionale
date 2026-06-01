@@ -102,7 +102,7 @@ export default function OrganigrammaPage() {
           {/* Gray solid */}
           <div className="flex items-center gap-3">
             <div className="flex items-center shrink-0">
-              <div className="w-8 h-0.5 bg-gray-500" />
+              <div className="w-8 h-0.5 bg-pw-border" />
               <div style={{ width: 0, height: 0, borderTop: '5px solid transparent', borderBottom: '5px solid transparent', borderLeft: '7px solid #6b7280' }} />
             </div>
             <span className="text-sm text-pw-text-muted">Gerarchia — riporta al CEO</span>

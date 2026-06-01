@@ -476,7 +476,7 @@ export default function LeadFinderPage() {
                       {/* Compact header row - always visible */}
                       <button
                         onClick={() => setExpandedId(isOpen ? null : `search-${i}`)}
-                        className="w-full text-left p-4 flex items-center gap-3 hover:bg-white/[0.02] transition-colors duration-200 ease-out"
+                        className="w-full text-left p-4 flex items-center gap-3 hover:bg-pw-surface-2 transition-colors duration-200 ease-out"
                       >
                         <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 border-2 ${verdictBg}`}>
                           <span className={`text-xs font-bold ${verdictColor}`}>{scoreTotal}</span>
@@ -638,7 +638,7 @@ export default function LeadFinderPage() {
                     {/* Summary row */}
                     <button
                       onClick={() => setExpandedId(isExpanded ? null : prospect.id)}
-                      className="w-full text-left p-4 flex items-center gap-4 hover:bg-white/[0.02] transition-colors duration-200 ease-out"
+                      className="w-full text-left p-4 flex items-center gap-4 hover:bg-pw-surface-2 transition-colors duration-200 ease-out"
                     >
                       {/* Score circle */}
                       <div className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 border-2 ${

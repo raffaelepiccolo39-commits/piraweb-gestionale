@@ -332,11 +332,11 @@ export default function SocialCalendarPage() {
 
       {/* Calendar navigation */}
       <div className="flex items-center justify-between">
-        <button onClick={prevMonth} className="p-2 rounded-lg hover:bg-pw-surface-2 text-pw-text-muted hover:text-pw-text transition-colors duration-200 ease-out">
+        <button onClick={prevMonth} aria-label="Mese precedente" className="p-2 rounded-lg hover:bg-pw-surface-2 text-pw-text-muted hover:text-pw-text transition-colors duration-200 ease-out">
           <ChevronLeft size={20} />
         </button>
         <h2 className="text-lg font-semibold text-pw-text capitalize">{monthName}</h2>
-        <button onClick={nextMonth} className="p-2 rounded-lg hover:bg-pw-surface-2 text-pw-text-muted hover:text-pw-text transition-colors duration-200 ease-out">
+        <button onClick={nextMonth} aria-label="Mese successivo" className="p-2 rounded-lg hover:bg-pw-surface-2 text-pw-text-muted hover:text-pw-text transition-colors duration-200 ease-out">
           <ChevronRight size={20} />
         </button>
       </div>

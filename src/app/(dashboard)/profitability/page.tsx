@@ -414,7 +414,7 @@ export default function ProfitabilityPage() {
                 {/* Summary row - clickable */}
                 <button
                   onClick={() => setExpandedProject(isExpanded ? null : project.projectId)}
-                  className="w-full text-left p-4 flex items-center gap-4 hover:bg-white/[0.02] transition-colors duration-200 ease-out"
+                  className="w-full text-left p-4 flex items-center gap-4 hover:bg-pw-surface-2 transition-colors duration-200 ease-out"
                 >
                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${statusBg} border`}>
                     <StatusIcon size={18} className={statusColor} />

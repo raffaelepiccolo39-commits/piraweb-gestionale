@@ -314,7 +314,7 @@ export default function LeadAIPage() {
                         <CardContent className="p-0">
                           <button
                             onClick={() => setExpandedLead(isOpen ? null : `${priority}-${i}`)}
-                            className="w-full text-left p-3 flex items-center gap-3 hover:bg-white/[0.02] transition-colors duration-200 ease-out"
+                            className="w-full text-left p-3 flex items-center gap-3 hover:bg-pw-surface-2 transition-colors duration-200 ease-out"
                           >
                             <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 border ${config.bg}`}>
                               <span className={`text-[10px] font-bold ${config.color}`}>{lead.score}</span>

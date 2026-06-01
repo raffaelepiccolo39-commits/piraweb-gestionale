@@ -494,7 +494,7 @@ export default function ClientsPage() {
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center gap-3">
                     {client.logo_url ? (
-                      <div className="w-10 h-10 rounded-xl border border-pw-border overflow-hidden bg-white shrink-0">
+                      <div className="w-10 h-10 rounded-xl border border-pw-border overflow-hidden bg-pw-surface shrink-0">
                         <Image src={client.logo_url} alt={client.name} width={40} height={40} className="w-full h-full object-contain" />
                       </div>
                     ) : (
@@ -634,7 +634,7 @@ export default function ClientsPage() {
               <CardContent className="p-5">
                 <div className="flex items-center gap-3">
                   {client.logo_url ? (
-                    <div className="w-10 h-10 rounded-xl border border-pw-border overflow-hidden bg-white shrink-0">
+                    <div className="w-10 h-10 rounded-xl border border-pw-border overflow-hidden bg-pw-surface shrink-0">
                       <Image src={client.logo_url} alt={client.company || client.name} width={40} height={40} className="w-full h-full object-contain" />
                     </div>
                   ) : (
