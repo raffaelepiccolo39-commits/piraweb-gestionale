@@ -7,6 +7,9 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    // Esclude anche sw.js, manifest e file statici di root: il service worker
+    // DEVE essere servito pubblicamente (senza auth/redirect), altrimenti il
+    // browser non riesce ad aggiornarlo e un SW vecchio resta bloccato.
+    '/((?!_next/static|_next/image|favicon.ico|sw.js|manifest.webmanifest|robots.txt|sitemap.xml|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 };
