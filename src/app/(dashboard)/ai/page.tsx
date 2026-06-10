@@ -4,6 +4,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
+import { useToast } from '@/components/ui/toast';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -46,6 +47,7 @@ const providerOptions = [
 export default function AiPage() {
   const { profile } = useAuth();
   const supabase = createClient();
+  const toast = useToast();
   const [activeTab, setActiveTab] = useState<'generate' | 'assign' | 'history'>('generate');
   const [scripts, setScripts] = useState<AiScript[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
@@ -177,8 +179,12 @@ export default function AiPage() {
     }));
 
     const { error } = await supabase.from('tasks').insert(tasksToInsert);
-    if (!error) {
+    if (error) {
+      // Prima falliva in silenzio: l'admin cliccava "Salva" e non succedeva nulla.
+      toast.error(error.message || 'Errore nel salvataggio dei task');
+    } else {
       setTasksSaved(true);
+      toast.success(`${tasksToInsert.length} task creati e assegnati`);
     }
     setTaskLoading(false);
   };

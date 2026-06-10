@@ -29,6 +29,7 @@ import {
   Sparkles,
   ThumbsUp,
   ThumbsDown,
+  Wallet,
 } from 'lucide-react';
 
 const STATUS_LABELS: Record<string, string> = {
@@ -328,6 +329,12 @@ export default function BriefsPage() {
                         </a>
                       ))}
                     </div>
+                  </Section>
+                )}
+
+                {selectedBrief.budget_notes && (
+                  <Section icon={Wallet} title="Note Budget">
+                    <p className="text-sm text-pw-text-muted whitespace-pre-wrap">{selectedBrief.budget_notes}</p>
                   </Section>
                 )}
 

@@ -101,6 +101,10 @@ export default function SocialCalendarPage() {
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth());
   const [posts, setPosts] = useState<SocialPost[]>([]);
+  // Post senza data ("Da programmare"): non rientrano nel calendario (filtrato per
+  // scheduled_at), ma esistono — es. quelli salvati da "AI Contenuti". Li mostriamo
+  // a parte così sono trovabili e pianificabili.
+  const [undatedPosts, setUndatedPosts] = useState<SocialPost[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -149,6 +153,21 @@ export default function SocialCalendarPage() {
       filtered = filtered.filter((p) => p.platforms.includes(filterPlatform as SocialPlatform));
     }
     setPosts(filtered);
+
+    // Post senza data programmata (non legati al mese visualizzato)
+    let undatedQuery = supabase
+      .from('social_posts')
+      .select('*, client:clients(id, name, company, logo_url)')
+      .is('scheduled_at', null)
+      .neq('status', 'published')
+      .order('created_at', { ascending: false });
+    if (filterClient) undatedQuery = undatedQuery.eq('client_id', filterClient);
+    const { data: undated } = await undatedQuery;
+    let undatedFiltered = (undated as SocialPost[]) || [];
+    if (filterPlatform) {
+      undatedFiltered = undatedFiltered.filter((p) => p.platforms.includes(filterPlatform as SocialPlatform));
+    }
+    setUndatedPosts(undatedFiltered);
   }, [supabase, year, month, filterClient, filterPlatform]);
 
   const fetchClients = useCallback(async () => {
@@ -414,6 +433,41 @@ export default function SocialCalendarPage() {
         </div>
       </div>
 
+      {/* Da programmare: post senza data (es. salvati da AI Contenuti) */}
+      {undatedPosts.length > 0 && (
+        <div>
+          <div className="flex items-center gap-2 mb-3 flex-wrap">
+            <Calendar size={18} className="text-pw-text-muted" />
+            <h3 className="text-sm font-semibold text-pw-text">Da programmare ({undatedPosts.length})</h3>
+            <span className="text-xs text-pw-text-dim">— post senza data, clicca per assegnarne una</span>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {undatedPosts.map((post) => {
+              const client = post.client as Client | undefined;
+              return (
+                <button key={post.id} onClick={() => openEditPost(post)} className="text-left w-full">
+                  <Card className="hover:border-pw-accent/30 transition-colors duration-200 ease-out">
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <h3 className="text-sm font-medium text-pw-text line-clamp-1">{post.title}</h3>
+                        <Badge className={STATUS_COLORS[post.status]}>{STATUS_LABELS[post.status]}</Badge>
+                      </div>
+                      <p className="text-xs text-pw-text-muted mb-2">{client?.company || client?.name || '—'}</p>
+                      <div className="flex items-center gap-2">
+                        {post.platforms.map((p) => {
+                          const Icon = PLATFORM_ICONS[p] || Hash;
+                          return <Icon key={p} size={14} className={PLATFORM_COLORS[p]} />;
+                        })}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Posts summary below calendar */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 stagger-children">
         {posts.filter((p) => p.status !== 'published').slice(0, 6).map((post) => {
@@ -541,7 +595,7 @@ export default function SocialCalendarPage() {
           />
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="ghost" onClick={() => setShowForm(false)}>Annulla</Button>
-            <Button onClick={handleCreate}>Crea Post</Button>
+            <Button onClick={handleCreate}>{editingPostId ? 'Salva Modifiche' : 'Crea Post'}</Button>
           </div>
         </div>
       </Modal>
