@@ -19,10 +19,10 @@ import {
   Wallet,
   Clock,
   Plane,
-  Receipt,
+  // Receipt,        // usato da "Note spese" — voce nascosta
   FileText,
   Target,
-  CalendarClock,
+  // CalendarClock,  // usato da "Turni" — voce nascosta
   Settings,
   ChevronDown,
   LogOut,
@@ -64,10 +64,12 @@ const navSections: NavSection[] = [
       { label: 'Bacheca Team', href: '/team', icon: MessageSquare },
       { label: 'Timesheet', href: '/timesheet', icon: Clock },
       { label: 'Ferie & Permessi', href: '/ferie', icon: Plane },
-      { label: 'Note spese', href: '/note-spese', icon: Receipt },
+      // Nascoste perché non servono al team attuale (route/pagine restano attive,
+      // basta ripristinare queste righe per rimetterle nel menu).
+      // { label: 'Note spese', href: '/note-spese', icon: Receipt },
       { label: 'Documenti', href: '/documenti', icon: FileText },
       { label: 'Performance', href: '/performance', icon: Target },
-      { label: 'Turni', href: '/turni', icon: CalendarClock },
+      // { label: 'Turni', href: '/turni', icon: CalendarClock },
     ],
   },
   {
