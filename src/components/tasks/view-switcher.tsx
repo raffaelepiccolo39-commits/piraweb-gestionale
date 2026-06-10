@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
-import { ListTodo, Layout, Layers } from 'lucide-react';
+import { Layout } from 'lucide-react'; // ListTodo, Layers usati dalle viste nascoste
 
 export type TaskView = 'lista' | 'kanban' | 'raggruppata';
 
@@ -11,9 +11,11 @@ interface ViewSwitcherProps {
 }
 
 const TABS: { id: TaskView; label: string; href: string; icon: React.ElementType }[] = [
-  { id: 'lista', label: 'Lista', href: '/tasks', icon: ListTodo },
+  // Viste "Lista" e "Per settore" nascoste su richiesta — resta solo Kanban.
+  // Per ripristinarle: riattiva queste righe e i relativi import icona (ListTodo, Layers).
+  // { id: 'lista', label: 'Lista', href: '/tasks', icon: ListTodo },
   { id: 'kanban', label: 'Kanban', href: '/bacheca', icon: Layout },
-  { id: 'raggruppata', label: 'Per settore', href: '/tasks?group=sector', icon: Layers },
+  // { id: 'raggruppata', label: 'Per settore', href: '/tasks?group=sector', icon: Layers },
 ];
 
 export function TaskViewSwitcher({ active }: ViewSwitcherProps) {
