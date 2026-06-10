@@ -185,26 +185,6 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         </Link>
       </div>
 
-      {/* Workspace switcher */}
-      {!collapsed && profile && (
-        <div className="px-3 pb-2.5">
-          <div className="flex items-center gap-2.5 px-2.5 py-2 rounded-md bg-pw-surface-soft border border-pw-border cursor-pointer hover:border-pw-border-strong transition-colors duration-150">
-            <div className="w-[22px] h-[22px] rounded-sm bg-[var(--pw-navy)] text-[var(--pw-gold)] flex items-center justify-center font-bold text-[11px] tracking-tight">
-              PW
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="text-xs font-semibold text-pw-text leading-tight truncate">
-                PiraWeb Agency
-              </div>
-              <div className="text-[10px] text-pw-text-dim leading-tight mt-0.5">
-                Gestionale · Pro
-              </div>
-            </div>
-            <ChevronDown size={14} className="text-pw-text-dim" aria-hidden="true" />
-          </div>
-        </div>
-      )}
-
       {/* Navigation */}
       <nav aria-label="Navigazione principale" className="flex-1 py-1 px-3 overflow-y-auto no-scrollbar">
         {navSections.map((section, si) => {
