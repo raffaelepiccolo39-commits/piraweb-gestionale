@@ -52,7 +52,7 @@ const navSections: NavSection[] = [
   {
     items: [
       { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-      { label: 'Task', href: '/tasks', icon: ListTodo, badgeKey: 'tasks' },
+      { label: 'Task', href: '/tasks', icon: ListTodo, badgeKey: 'tasks', adminOnly: true },
       { label: 'Progetti', href: '/projects', icon: FolderKanban },
       { label: 'Calendario', href: '/calendario', icon: Calendar },
       // { label: 'Chat', href: '/chat', icon: MessageCircle, badgeKey: 'chat', dot: true },
@@ -61,7 +61,7 @@ const navSections: NavSection[] = [
   {
     label: 'Team',
     items: [
-      { label: 'Bacheca Team', href: '/team', icon: MessageSquare },
+      { label: 'Bacheca Task', href: '/team', icon: MessageSquare },
       { label: 'Timesheet', href: '/timesheet', icon: Clock },
       { label: 'Ferie & Permessi', href: '/ferie', icon: Plane },
       // Nascoste perché non servono al team attuale (route/pagine restano attive,
