@@ -13,15 +13,15 @@ import {
   ListTodo,
   FolderKanban,
   Calendar,
-  MessageCircle,
+  // MessageCircle,  // usato da "Chat" — voce nascosta
   Users,
   Briefcase,
   Wallet,
   Clock,
   Plane,
   // Receipt,        // usato da "Note spese" — voce nascosta
-  FileText,
-  Target,
+  // FileText,       // usato da "Documenti" — voce nascosta
+  // Target,         // usato da "Performance" — voce nascosta
   // CalendarClock,  // usato da "Turni" — voce nascosta
   Settings,
   ChevronDown,
@@ -55,7 +55,7 @@ const navSections: NavSection[] = [
       { label: 'Task', href: '/tasks', icon: ListTodo, badgeKey: 'tasks' },
       { label: 'Progetti', href: '/projects', icon: FolderKanban },
       { label: 'Calendario', href: '/calendario', icon: Calendar },
-      { label: 'Chat', href: '/chat', icon: MessageCircle, badgeKey: 'chat', dot: true },
+      // { label: 'Chat', href: '/chat', icon: MessageCircle, badgeKey: 'chat', dot: true },
     ],
   },
   {
@@ -67,8 +67,8 @@ const navSections: NavSection[] = [
       // Nascoste perché non servono al team attuale (route/pagine restano attive,
       // basta ripristinare queste righe per rimetterle nel menu).
       // { label: 'Note spese', href: '/note-spese', icon: Receipt },
-      { label: 'Documenti', href: '/documenti', icon: FileText },
-      { label: 'Performance', href: '/performance', icon: Target },
+      // { label: 'Documenti', href: '/documenti', icon: FileText },
+      // { label: 'Performance', href: '/performance', icon: Target },
       // { label: 'Turni', href: '/turni', icon: CalendarClock },
     ],
   },
