@@ -1,7 +1,7 @@
 'use client';
 
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
@@ -40,6 +40,16 @@ export default function TasksPage() {
   const [teamMembers, setTeamMembers] = useState<{ id: string; full_name: string; role: string; color: string | null }[]>([]);
   const [loading, setLoading] = useState(true);
   const [assigneeFilter, setAssigneeFilter] = useState<string>('me');
+  // Default "Tutti" per gli admin (creano task per il team e se li aspettano
+  // visibili subito); "Solo i miei" per gli altri. Applicato una sola volta al
+  // primo caricamento del profilo, così non sovrascrive le scelte manuali.
+  const didInitAssignee = useRef(false);
+  useEffect(() => {
+    if (profile && !didInitAssignee.current) {
+      didInitAssignee.current = true;
+      if (profile.role === 'admin') setAssigneeFilter('all');
+    }
+  }, [profile]);
   const searchParams = useSearchParams();
   const groupMode: 'none' | 'sector' = searchParams.get('group') === 'sector' ? 'sector' : 'none';
 

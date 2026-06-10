@@ -90,7 +90,9 @@ export default function TemplatesPage() {
     const { error } = await supabase.from('project_templates').insert({
       name: form.name, description: form.description || null, category: form.category, created_by: profile.id,
     });
-    if (!error) {
+    if (error) {
+      toast.error(error.message || 'Errore nella creazione del template');
+    } else {
       toast.success('Template creato');
       setShowCreate(false);
       setForm({ name: '', description: '', category: 'other' });
@@ -110,7 +112,10 @@ export default function TemplatesPage() {
       day_offset: parseInt(taskForm.day_offset) || 0,
       position: templateTasks.length,
     });
-    if (!error) {
+    if (error) {
+      toast.error(error.message || 'Errore nell\'aggiunta della task');
+    } else {
+      toast.success('Task aggiunta al template');
       setShowAddTask(false);
       setTaskForm({ title: '', description: '', assigned_role: '', priority: 'medium', estimated_hours: '', day_offset: '0' });
       fetchTemplateTasks(selectedTemplate.id);
@@ -118,7 +123,11 @@ export default function TemplatesPage() {
   };
 
   const handleDeleteTask = async (taskId: string) => {
-    await supabase.from('template_tasks').delete().eq('id', taskId);
+    const { error } = await supabase.from('template_tasks').delete().eq('id', taskId);
+    if (error) {
+      toast.error(error.message || 'Errore nell\'eliminazione della task');
+      return;
+    }
     if (selectedTemplate) fetchTemplateTasks(selectedTemplate.id);
   };
 
