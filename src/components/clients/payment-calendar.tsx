@@ -9,7 +9,7 @@ import { Check, Clock, AlertTriangle, MessageCircle } from 'lucide-react';
 
 interface PaymentCalendarProps {
   payments: ClientPayment[];
-  onTogglePaid: (payment: ClientPayment) => void;
+  onTogglePaid: (payment: ClientPayment, paidAt?: string) => void;
   clientPhone?: string | null;
   clientName?: string | null;
 }
@@ -17,6 +17,13 @@ interface PaymentCalendarProps {
 function formatMonthLabel(dateStr: string): string {
   const date = new Date(dateStr);
   return date.toLocaleDateString('it-IT', { month: 'long', year: 'numeric' });
+}
+
+// Data odierna in formato YYYY-MM-DD per il default dell'input date (ora locale)
+function todayISO(): string {
+  const d = new Date();
+  const offset = d.getTimezoneOffset();
+  return new Date(d.getTime() - offset * 60000).toISOString().slice(0, 10);
 }
 
 type PaymentAlert = 'none' | 'warning' | 'danger';
@@ -46,11 +53,19 @@ function getPaymentAlert(payment: ClientPayment): PaymentAlert {
 export function PaymentCalendar({ payments, onTogglePaid, clientPhone, clientName }: PaymentCalendarProps) {
   const [confirmPayment, setConfirmPayment] = useState<ClientPayment | null>(null);
   const [sendWhatsapp, setSendWhatsapp] = useState(true);
+  const [paidDate, setPaidDate] = useState(todayISO());
+
+  const openConfirm = (payment: ClientPayment) => {
+    // La data di pagamento parte sempre da oggi (modificabile in fase di conferma)
+    setPaidDate(todayISO());
+    setConfirmPayment(payment);
+  };
 
   const handleConfirm = () => {
     if (!confirmPayment) return;
     const wasPaid = confirmPayment.is_paid;
-    onTogglePaid(confirmPayment);
+    // Passa la data scelta solo quando si sta registrando il pagamento
+    onTogglePaid(confirmPayment, wasPaid ? undefined : paidDate);
 
     // Send WhatsApp message when marking as paid
     if (!wasPaid && sendWhatsapp && clientPhone) {
@@ -72,7 +87,7 @@ export function PaymentCalendar({ payments, onTogglePaid, clientPhone, clientNam
           return (
             <button
               key={payment.id}
-              onClick={() => setConfirmPayment(payment)}
+              onClick={() => openConfirm(payment)}
               className={`p-4 rounded-xl border-2 text-left transition-all hover:shadow-md hover-glow ${
                 payment.is_paid
                   ? 'border-green-500/30 bg-green-500/10'
@@ -185,9 +200,20 @@ export function PaymentCalendar({ payments, onTogglePaid, clientPhone, clientNam
                 <p className="text-2xl font-bold text-pw-text mb-4">
                   {formatCurrency(confirmPayment.amount)}
                 </p>
-                <p className="text-sm text-pw-text-muted mb-6">
+                <p className="text-sm text-pw-text-muted mb-4">
                   Confermi di aver ricevuto il pagamento per questa mensilità?
                 </p>
+                {/* Data effettiva del pagamento (default oggi, modificabile per arretrati) */}
+                <label className="block mb-4">
+                  <span className="text-sm text-pw-text-muted block mb-1">Data del pagamento</span>
+                  <input
+                    type="date"
+                    value={paidDate}
+                    max={todayISO()}
+                    onChange={(e) => setPaidDate(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-pw-border bg-pw-surface-2 text-pw-text text-sm focus:outline-none focus:border-pw-accent"
+                  />
+                </label>
               </>
             )}
             {/* WhatsApp option - only when confirming payment */}

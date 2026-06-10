@@ -312,13 +312,16 @@ export default function ClientDetailPage({
     fetchData();
   };
 
-  const handleTogglePaid = async (payment: ClientPayment) => {
+  const handleTogglePaid = async (payment: ClientPayment, paidAt?: string) => {
     if (!profile) return;
     // RPC atomica: update + log in una sola transazione. Niente più rischio
     // di divergenza tra stato e audit log (migration 00066).
+    // p_paid_at opzionale: data effettiva del pagamento scelta dall'admin
+    // (null => la RPC usa now()).
     const { error } = await supabase.rpc('toggle_payment_paid', {
       p_payment_id: payment.id,
       p_performed_by: profile.id,
+      p_paid_at: paidAt ?? null,
     });
     if (error) {
       toast.error(error.message || 'Errore durante l\'aggiornamento del pagamento');
