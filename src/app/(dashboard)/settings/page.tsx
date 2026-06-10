@@ -49,6 +49,9 @@ export default function SettingsPage() {
   const [createLoading, setCreateLoading] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [createSuccess, setCreateSuccess] = useState(false);
+  // Avviso quando l'utente viene creato ma l'email di invito non parte:
+  // mostriamo il link da inviare manualmente invece di chiudere il modal.
+  const [createWarning, setCreateWarning] = useState<{ inviteLink: string } | null>(null);
   const [createForm, setCreateForm] = useState<{
     full_name: string;
     email: string;
@@ -352,6 +355,7 @@ export default function SettingsPage() {
     setCreateLoading(true);
     setCreateError(null);
     setCreateSuccess(false);
+    setCreateWarning(null);
 
     try {
       const res = await fetch('/api/auth/create-user', {
@@ -364,6 +368,12 @@ export default function SettingsPage() {
 
       if (!res.ok) {
         setCreateError(data.error);
+      } else if (data.emailSent === false) {
+        // Utente creato ma email di invito NON inviata: non chiudere il modal,
+        // mostra il link da consegnare manualmente.
+        setCreateWarning({ inviteLink: data.inviteLink });
+        setCreateForm({ full_name: '', email: '', role: 'content_creator', salary: '', iban: '', contract_type: '', contract_start_date: todayLocal() });
+        fetchTeam();
       } else {
         setCreateSuccess(true);
         setCreateForm({ full_name: '', email: '', role: 'content_creator', salary: '', iban: '', contract_type: '', contract_start_date: todayLocal() });
@@ -425,6 +435,7 @@ export default function SettingsPage() {
     setCreateForm({ full_name: '', email: '', role: 'content_creator', salary: '', iban: '', contract_type: '', contract_start_date: todayLocal() });
     setCreateError(null);
     setCreateSuccess(false);
+    setCreateWarning(null);
     setShowCreateModal(true);
   };
 
@@ -805,6 +816,31 @@ export default function SettingsPage() {
           {createError && (
             <div className="p-3 rounded-lg bg-red-500/10 text-red-400 text-sm">
               {createError}
+            </div>
+          )}
+          {createWarning && (
+            <div className="p-3 rounded-lg bg-amber-500/10 text-amber-400 text-sm space-y-2">
+              <p className="font-medium">
+                Utente creato, ma l&apos;email di invito non è stata inviata.
+              </p>
+              <p className="text-amber-400/80">
+                Invia tu questo link di accesso alla persona (imposterà la password al primo accesso):
+              </p>
+              <div className="flex gap-2">
+                <input
+                  readOnly
+                  value={createWarning.inviteLink}
+                  onFocus={(e) => e.target.select()}
+                  className="flex-1 px-2 py-1.5 rounded-lg border border-amber-500/30 bg-pw-surface-2 text-pw-text text-xs"
+                />
+                <button
+                  type="button"
+                  onClick={() => navigator.clipboard?.writeText(createWarning.inviteLink)}
+                  className="px-3 py-1.5 rounded-lg bg-amber-500/20 text-amber-300 text-xs font-medium hover:bg-amber-500/30 transition-colors shrink-0"
+                >
+                  Copia
+                </button>
+              </div>
             </div>
           )}
           <Input

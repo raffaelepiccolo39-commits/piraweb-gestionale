@@ -96,6 +96,8 @@ export async function POST(request: NextRequest) {
     // fallback su /login se la generazione fallisce
   }
 
+  let emailSent = true;
+  let emailError: string | null = null;
   try {
     await sendInviteEmail({
       to: email,
@@ -103,12 +105,14 @@ export async function POST(request: NextRequest) {
       role,
       inviteLink,
     });
-  } catch (emailError) {
-    Sentry.captureException(emailError, {
+  } catch (err) {
+    emailSent = false;
+    emailError = err instanceof Error ? err.message : 'invio email fallito';
+    Sentry.captureException(err, {
       tags: { route: 'auth/create-user', stage: 'send_invite_email' },
       extra: { email, userId: newUser.user.id, role },
     });
-    console.error('Failed to send invite email:', emailError);
+    console.error('Failed to send invite email:', err);
   }
 
   await logAudit({
@@ -122,7 +126,7 @@ export async function POST(request: NextRequest) {
   });
 
   return NextResponse.json(
-    { user: newUser.user, inviteLink },
+    { user: newUser.user, inviteLink, emailSent, emailError },
     { status: 201 }
   );
 }
