@@ -28,6 +28,8 @@ import {
   Sparkles,
   Loader2,
   ExternalLink,
+  Pencil,
+  Check,
 } from 'lucide-react';
 
 interface TaskDetailModalProps {
@@ -68,6 +70,10 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
   const [newComment, setNewComment] = useState('');
   const [saving, setSaving] = useState(false);
   const [sendingComment, setSendingComment] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [editingContent, setEditingContent] = useState('');
+  const [savingEdit, setSavingEdit] = useState(false);
   const [attachments, setAttachments] = useState<TaskAttachment[]>([]);
   const [uploadingFile, setUploadingFile] = useState(false);
   const [generatingAi, setGeneratingAi] = useState(false);
@@ -88,6 +94,12 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
       fetchAttachments(task.id);
     }
   }, [task]);
+
+  // Utente corrente: serve a mostrare modifica/elimina solo sui propri commenti
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setCurrentUserId(data.user?.id ?? null));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const fetchComments = async (taskId: string) => {
     const { data } = await supabase
@@ -274,6 +286,45 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
     setNewComment('');
     await fetchComments(task.id);
     setSendingComment(false);
+  };
+
+  const startEditComment = (comment: TaskComment) => {
+    setEditingCommentId(comment.id);
+    setEditingContent(comment.content);
+  };
+
+  const cancelEditComment = () => {
+    setEditingCommentId(null);
+    setEditingContent('');
+  };
+
+  const handleSaveEditComment = async (commentId: string) => {
+    if (!task || !editingContent.trim()) return;
+    setSavingEdit(true);
+    const { error } = await supabase
+      .from('task_comments')
+      .update({ content: editingContent.trim() })
+      .eq('id', commentId);
+    setSavingEdit(false);
+    if (error) {
+      console.error('[task-detail] edit comment failed:', error);
+      toast.error('Errore nella modifica del commento');
+      return;
+    }
+    cancelEditComment();
+    await fetchComments(task.id);
+  };
+
+  const handleDeleteComment = async (commentId: string) => {
+    if (!task) return;
+    const { error } = await supabase.from('task_comments').delete().eq('id', commentId);
+    if (error) {
+      console.error('[task-detail] delete comment failed:', error);
+      toast.error('Errore nell\'eliminazione del commento');
+      return;
+    }
+    await fetchComments(task.id);
+    toast.success('Commento eliminato');
   };
 
   const assigneeName = members.find((m) => m.id === assignedTo)?.full_name || '';
@@ -512,8 +563,10 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
               )}
               {comments.map((comment) => {
                 const commenter = (comment.user as { full_name: string } | undefined)?.full_name || '?';
+                const isOwn = !!currentUserId && comment.user_id === currentUserId;
+                const isEditing = editingCommentId === comment.id;
                 return (
-                  <div key={comment.id} className="flex gap-2">
+                  <div key={comment.id} className="flex gap-2 group">
                     <div className="w-6 h-6 rounded-full bg-pw-navy flex items-center justify-center shrink-0 mt-0.5">
                       <span className="text-white text-[8px] font-bold">{getInitials(commenter)}</span>
                     </div>
@@ -521,8 +574,65 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-semibold text-pw-text">{commenter}</span>
                         <span className="text-[10px] text-pw-text-dim">{formatDateTime(comment.created_at)}</span>
+                        {comment.updated_at !== comment.created_at && (
+                          <span className="text-[9px] text-pw-text-dim italic">modificato</span>
+                        )}
+                        {isOwn && !isEditing && (
+                          <div className="ml-auto flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button
+                              type="button"
+                              onClick={() => startEditComment(comment)}
+                              className="text-pw-text-dim hover:text-pw-accent transition-colors"
+                              title="Modifica commento"
+                            >
+                              <Pencil size={11} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteComment(comment.id)}
+                              className="text-pw-text-dim hover:text-red-400 transition-colors"
+                              title="Elimina commento"
+                            >
+                              <Trash2 size={11} />
+                            </button>
+                          </div>
+                        )}
                       </div>
-                      <p className="text-xs text-pw-text-muted mt-0.5 whitespace-pre-wrap">{comment.content}</p>
+                      {isEditing ? (
+                        <div className="mt-1">
+                          <textarea
+                            value={editingContent}
+                            onChange={(e) => setEditingContent(e.target.value)}
+                            rows={2}
+                            autoFocus
+                            className="w-full px-2 py-1.5 rounded-lg border border-pw-border bg-pw-surface-2 text-pw-text text-xs focus:ring-2 focus:ring-pw-accent/30 outline-none resize-none"
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSaveEditComment(comment.id); }
+                              if (e.key === 'Escape') cancelEditComment();
+                            }}
+                          />
+                          <div className="flex items-center gap-1.5 mt-1">
+                            <button
+                              type="button"
+                              onClick={() => handleSaveEditComment(comment.id)}
+                              disabled={!editingContent.trim() || savingEdit}
+                              className="flex items-center gap-1 px-2 py-1 rounded-md bg-pw-accent text-[#0A263A] text-[10px] font-medium hover:bg-pw-accent-hover disabled:opacity-40 transition-colors"
+                            >
+                              {savingEdit ? <Loader2 size={10} className="animate-spin" /> : <Check size={10} />}
+                              Salva
+                            </button>
+                            <button
+                              type="button"
+                              onClick={cancelEditComment}
+                              className="px-2 py-1 rounded-md text-[10px] text-pw-text-muted hover:text-pw-text transition-colors"
+                            >
+                              Annulla
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-xs text-pw-text-muted mt-0.5 whitespace-pre-wrap">{comment.content}</p>
+                      )}
                     </div>
                   </div>
                 );
