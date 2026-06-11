@@ -163,6 +163,34 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
     toast.success('Allegato rimosso');
   };
 
+  const handleDownloadAttachment = async (att: TaskAttachment) => {
+    // Il bucket "attachments" è privato: il public URL salvato non scarica (403).
+    // Ricaviamo il path dall'URL e usiamo download() con la sessione autenticata
+    // (policy SELECT per authenticated), poi forziamo il download nel browser.
+    try {
+      const marker = '/attachments/';
+      const idx = att.file_url.indexOf(marker);
+      const path = idx >= 0 ? decodeURIComponent(att.file_url.slice(idx + marker.length)) : null;
+      if (!path) {
+        window.open(att.file_url, '_blank', 'noopener');
+        return;
+      }
+      const { data, error } = await supabase.storage.from('attachments').download(path);
+      if (error || !data) throw error || new Error('Download vuoto');
+      const url = URL.createObjectURL(data);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = att.file_name;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error('[task-detail] download attachment failed:', e);
+      toast.error('Errore nel download dell\'allegato');
+    }
+  };
+
   const handleAiDescription = async () => {
     if (!title.trim()) return;
     setGeneratingAi(true);
@@ -413,14 +441,14 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
                           {(att.file_size / 1024).toFixed(0)} KB
                         </span>
                       )}
-                      <a
-                        href={att.file_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                      <button
+                        type="button"
+                        onClick={() => handleDownloadAttachment(att)}
                         className="shrink-0 text-pw-text-dim hover:text-pw-accent transition-colors"
+                        title="Scarica allegato"
                       >
                         <Download size={14} />
-                      </a>
+                      </button>
                       <button
                         onClick={() => handleDeleteAttachment(att)}
                         className="shrink-0 text-pw-text-dim hover:text-red-400 transition-colors"
