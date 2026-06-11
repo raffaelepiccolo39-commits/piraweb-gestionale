@@ -1,0 +1,34 @@
+name: Calendar CalDAV sync
+
+# Scheduler esterno gratuito: chiama l'endpoint /api/cron/calendar-sync ogni 30
+# minuti, aggirando il limite "cron solo giornalieri" del piano Vercel Hobby.
+# Richiede il secret CRON_SECRET (stesso valore della env Vercel) nelle
+# repo Settings → Secrets and variables → Actions.
+#
+# Nota: lo scheduler di GitHub Actions è "best effort" — può ritardare di
+# qualche minuto o, sotto carico, saltare un'esecuzione. Per un calendario va
+# bene (in più c'è già l'auto-sync all'apertura della pagina).
+
+on:
+  schedule:
+    - cron: '*/30 * * * *'
+  workflow_dispatch: {} # consente l'avvio manuale dalla tab Actions (per testare)
+
+# Evita esecuzioni sovrapposte se una sync è lenta
+concurrency:
+  group: calendar-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger CalDAV sync
+        run: |
+          if [ -z "${{ secrets.CRON_SECRET }}" ]; then
+            echo "::error::Secret CRON_SECRET non configurato nel repo"
+            exit 1
+          fi
+          curl -fsS --max-time 120 -X POST \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            https://gestionale.piraweb.it/api/cron/calendar-sync
