@@ -224,9 +224,11 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
 
   const handleSave = async () => {
     if (!task) return;
-    // Require delivery URL when marking as done
-    if (status === 'done' && !deliveryUrl.trim() && !task.delivery_url) {
-      toast.error('Per segnare come "Fatto" inserisci il link al lavoro (Google Drive, Figma, ecc.)');
+    // Link al lavoro obbligatorio per "Review" e "Fatto": chi rivede/consegna
+    // deve poter aprire il lavoro.
+    if ((status === 'review' || status === 'done') && !deliveryUrl.trim() && !task.delivery_url) {
+      const label = status === 'review' ? 'Review' : 'Fatto';
+      toast.error(`Per spostare in "${label}" inserisci il link al lavoro (Google Drive, Figma, ecc.)`);
       return;
     }
     setSaving(true);
