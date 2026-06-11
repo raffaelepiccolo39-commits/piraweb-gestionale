@@ -1,7 +1,7 @@
 'use client';
 
 import * as Sentry from '@sentry/nextjs';
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { addMonths, subMonths, format, startOfMonth, endOfMonth, isSameDay } from 'date-fns';
 import { it } from 'date-fns/locale';
 import { createClient } from '@/lib/supabase/client';
@@ -105,6 +105,25 @@ export default function CalendarioPage() {
 
   useEffect(() => {
     fetchEvents();
+  }, [fetchEvents]);
+
+  // Auto-sync CalDAV all'apertura della pagina (una sola volta). Silenzioso:
+  // niente toast, e chi non ha config CalDAV (400) viene ignorato. Così il
+  // calendario è già allineato senza dover premere "Sync" a mano.
+  const didAutoSync = useRef(false);
+  useEffect(() => {
+    if (didAutoSync.current) return;
+    didAutoSync.current = true;
+    (async () => {
+      try {
+        const res = await fetch('/api/calendar/sync', { method: 'POST' });
+        if (!res.ok) return; // 400 = nessuna config CalDAV → ignora in silenzio
+        // Sync riuscita: ricarica gli eventi per riflettere import/update/delete
+        fetchEvents();
+      } catch {
+        // auto-sync non deve mai disturbare: errori ignorati
+      }
+    })();
   }, [fetchEvents]);
 
   // Tenta sempre il push CalDAV; true = sincronizzato, false = no config (silent).
