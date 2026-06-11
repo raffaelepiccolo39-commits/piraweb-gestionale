@@ -3,7 +3,6 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -14,7 +13,8 @@ import { Modal } from '@/components/ui/modal';
 import { Input } from '@/components/ui/input';
 import { PageHeader } from '@/components/ui/page-header';
 import { formatDate, getPriorityTone, getStatusTone, getRoleLabel, formatDateLocal, todayLocal } from '@/lib/utils';
-import type { Task, Project, Client } from '@/types/database';
+import type { Task, Project, Client, Profile } from '@/types/database';
+import { TaskDetailModal } from '@/components/tasks/task-detail-modal';
 import { useToast } from '@/components/ui/toast';
 import { SkeletonList, SkeletonStats } from '@/components/ui/skeleton';
 import { DataTable } from '@/components/ui/data-table';
@@ -37,7 +37,8 @@ export default function TasksPage() {
   const router = useRouter();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
-  const [teamMembers, setTeamMembers] = useState<{ id: string; full_name: string; role: string; color: string | null }[]>([]);
+  const [teamMembers, setTeamMembers] = useState<Profile[]>([]);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [loading, setLoading] = useState(true);
   const [assigneeFilter, setAssigneeFilter] = useState<string>('me');
   // Default "Tutti" per gli admin (creano task per il team e se li aspettano
@@ -114,10 +115,10 @@ export default function TasksPage() {
   const fetchTeamMembers = useCallback(async () => {
     const { data } = await supabase
       .from('profiles')
-      .select('id, full_name, role, color')
+      .select('*')
       .eq('is_active', true)
       .order('full_name');
-    if (data) setTeamMembers(data);
+    if (data) setTeamMembers(data as Profile[]);
   }, []);
 
   useEffect(() => {
@@ -402,9 +403,13 @@ export default function TasksPage() {
                         )}
                       </div>
                       <h3 className="font-medium text-pw-text mb-2">
-                        <Link href={`/tasks/${task.id}`} className="hover:text-pw-accent transition-colors duration-200 ease-out">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedTask(task)}
+                          className="text-left hover:text-pw-accent transition-colors duration-200 ease-out"
+                        >
                           {task.title}
-                        </Link>
+                        </button>
                       </h3>
                       {task.description && (
                         <p className="text-xs text-pw-text-muted mb-2 line-clamp-1">{task.description}</p>
@@ -482,6 +487,16 @@ export default function TasksPage() {
               </Card>
             );
           }}
+      />
+
+      {/* Task detail pop-up (unico, condiviso con Bacheca e Progetti) */}
+      <TaskDetailModal
+        task={selectedTask}
+        members={teamMembers}
+        clients={clients}
+        open={!!selectedTask}
+        onClose={() => setSelectedTask(null)}
+        onUpdate={() => { setSelectedTask(null); fetchTasks(); }}
       />
 
       {/* Delivery URL Modal */}

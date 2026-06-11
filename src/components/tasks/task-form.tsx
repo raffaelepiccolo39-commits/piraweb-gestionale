@@ -215,14 +215,17 @@ export function TaskForm({
         />
       </div>
 
-      {/* Stato + Scadenza */}
+      {/* Stato (solo in modifica) + Scadenza.
+          In creazione lo stato è sempre "Da fare": niente campo, niente confusione. */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Select
-          label="Stato"
-          value={form.status}
-          onChange={(e) => setForm({ ...form, status: e.target.value })}
-          options={statusOptions}
-        />
+        {task && (
+          <Select
+            label="Stato"
+            value={form.status}
+            onChange={(e) => setForm({ ...form, status: e.target.value })}
+            options={statusOptions}
+          />
+        )}
         <Input
           label="Scadenza"
           type="date"

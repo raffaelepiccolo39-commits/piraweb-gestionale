@@ -12,10 +12,11 @@ import { Modal } from '@/components/ui/modal';
 import { useToast } from '@/components/ui/toast';
 import { KanbanBoard } from '@/components/kanban/kanban-board';
 import { TaskForm, type TaskFormData } from '@/components/tasks/task-form';
+import { TaskDetailModal } from '@/components/tasks/task-detail-modal';
 import { ProjectForm, type ProjectFormData } from '@/components/projects/project-form';
 import { InstallmentsManager } from '@/components/clients/installments-manager';
 import { formatDate, getStatusTone, getInitials } from '@/lib/utils';
-import type { Project, Task } from '@/types/database';
+import type { Project, Task, Profile, Client } from '@/types/database';
 import {
   ArrowLeft,
   Plus,
@@ -119,33 +120,6 @@ export default function ProjectDetailPage({
     } catch (e) {
       // Prima errori silenti: il modal restava aperto senza feedback → utente confuso
       toast.error((e as { message?: string } | undefined)?.message || 'Errore durante la creazione del task');
-    } finally {
-      taskSubmittingRef.current = false;
-    }
-  };
-
-  const handleUpdateTask = async (data: TaskFormData) => {
-    if (!editingTask || taskSubmittingRef.current) return;
-    taskSubmittingRef.current = true;
-    try {
-      const { error } = await supabase
-        .from('tasks')
-        .update({
-          title: data.title,
-          description: data.description || null,
-          assigned_to: data.assigned_to || null,
-          priority: data.priority,
-          status: data.status,
-          deadline: data.deadline || null,
-          estimated_hours: data.estimated_hours ? parseFloat(data.estimated_hours) : null,
-        })
-        .eq('id', editingTask.id);
-      if (error) throw error;
-      toast.success('Task aggiornato');
-      setEditingTask(null);
-      fetchTasks();
-    } catch (e) {
-      toast.error((e as { message?: string } | undefined)?.message || 'Errore durante l\'aggiornamento del task');
     } finally {
       taskSubmittingRef.current = false;
     }
@@ -383,22 +357,15 @@ export default function ProjectDetailPage({
         />
       </Modal>
 
-      {/* Edit task modal */}
-      <Modal
+      {/* Task detail pop-up (unico, condiviso con Bacheca e "Le mie task") */}
+      <TaskDetailModal
+        task={editingTask}
+        members={(project.members?.map((m) => m.profile).filter(Boolean) as Profile[]) || []}
+        clients={[] as Client[]}
         open={!!editingTask}
         onClose={() => setEditingTask(null)}
-        title="Modifica Task"
-        size="lg"
-      >
-        {editingTask && (
-          <TaskForm
-            projectId={id}
-            task={editingTask}
-            onSubmit={handleUpdateTask}
-            onCancel={() => setEditingTask(null)}
-          />
-        )}
-      </Modal>
+        onUpdate={() => { setEditingTask(null); fetchTasks(); }}
+      />
 
       {/* Edit project modal */}
       <Modal

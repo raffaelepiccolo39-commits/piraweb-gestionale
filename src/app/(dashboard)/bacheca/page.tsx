@@ -20,7 +20,7 @@ import { Select } from '@/components/ui/select';
 import { EmptyState } from '@/components/ui/empty-state';
 import { SkeletonList } from '@/components/ui/skeleton';
 import { PageHeader } from '@/components/ui/page-header';
-import { TaskDetailModal } from '@/components/bacheca/task-detail-modal';
+import { TaskDetailModal } from '@/components/tasks/task-detail-modal';
 import { TaskForm } from '@/components/tasks/task-form';
 import { TaskViewSwitcher } from '@/components/tasks/view-switcher';
 import { formatDate, getInitials } from '@/lib/utils';
@@ -49,11 +49,9 @@ export default function BachecaPage() {
   const [error, setError] = useState(false);
   const [showAddTask, setShowAddTask] = useState(false);
   const [addToMemberId, setAddToMemberId] = useState<string | null>(null);
-  const [newTask, setNewTask] = useState({ title: '', description: '', client_id: '', priority: 'medium', deadline: '' });
   const [addingTask, setAddingTask] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
-  const [generatingAi, setGeneratingAi] = useState(false);
   const [attachFiles, setAttachFiles] = useState<File[]>([]);
 
   const isAdmin = profile?.role === 'admin';
@@ -155,102 +153,8 @@ export default function BachecaPage() {
 
   const openAddTask = (memberId: string | null) => {
     setAddToMemberId(memberId);
-    setNewTask({ title: '', description: '', client_id: '', priority: memberId ? 'medium' : 'urgent', deadline: '' });
     setAttachFiles([]);
     setShowAddTask(true);
-  };
-
-  const handleAiDescription = async () => {
-    if (!newTask.title.trim()) return;
-    setGeneratingAi(true);
-    try {
-      const clientName = newTask.client_id
-        ? clients.find((c) => c.id === newTask.client_id)?.company || clients.find((c) => c.id === newTask.client_id)?.name || ''
-        : '';
-      const res = await fetch('/api/ai/describe-task', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: newTask.title, client_name: clientName }),
-      });
-      const data = await res.json();
-      if (res.ok && data.description) {
-        setNewTask((prev) => ({ ...prev, description: data.description }));
-      }
-    } catch { setGeneratingAi(false); }
-    setGeneratingAi(false);
-  };
-
-  const handleAddTask = async () => {
-    if (!profile || !newTask.title.trim()) return;
-    setAddingTask(true);
-
-    let projectId: string | null = null;
-    if (newTask.client_id) {
-      const { data } = await supabase.rpc('get_or_create_client_project', {
-        p_client_id: newTask.client_id,
-        p_created_by: profile.id,
-      });
-      projectId = data;
-    }
-
-    if (!projectId) {
-      // Crea un progetto generico se non c'è cliente
-      const { data: defaultProject } = await supabase
-        .from('projects')
-        .select('id')
-        .eq('name', 'Generale')
-        .maybeSingle();
-
-      if (defaultProject) {
-        projectId = defaultProject.id;
-      } else {
-        const { data: newProject } = await supabase
-          .from('projects')
-          .insert({ name: 'Generale', status: 'active', color: '#FFD108', created_by: profile.id })
-          .select()
-          .single();
-        projectId = newProject?.id || null;
-      }
-    }
-
-    if (projectId) {
-      const { data: createdTask } = await supabase.from('tasks').insert({
-        title: newTask.title,
-        description: newTask.description || null,
-        project_id: projectId,
-        assigned_to: addToMemberId,
-        priority: newTask.priority,
-        deadline: newTask.deadline || null,
-        status: 'todo',
-        position: 0,
-        created_by: profile.id,
-      }).select('id').single();
-
-      // Upload attachments
-      if (createdTask && attachFiles.length > 0) {
-        for (const file of attachFiles) {
-          const ext = file.name.split('.').pop();
-          const path = `${createdTask.id}/${Date.now()}_${file.name}`;
-          const { error: uploadError } = await supabase.storage.from('attachments').upload(path, file);
-          if (!uploadError) {
-            const { data: urlData } = supabase.storage.from('attachments').getPublicUrl(path);
-            await supabase.from('task_attachments').insert({
-              task_id: createdTask.id,
-              file_name: file.name,
-              file_url: urlData.publicUrl,
-              file_type: file.type,
-              file_size: file.size,
-              uploaded_by: profile.id,
-            });
-          }
-        }
-      }
-    }
-
-    setShowAddTask(false);
-    setAddingTask(false);
-    setAttachFiles([]);
-    fetchData();
   };
 
   const getClientName = (task: Task): string => {
@@ -544,36 +448,41 @@ export default function BachecaPage() {
           onSubmit={async (data, files) => {
             if (!profile) return;
             setAddingTask(true);
-
-            let projectId: string | null = null;
-            if (data.client_id) {
-              const { data: pid } = await supabase.rpc('get_or_create_client_project', {
-                p_client_id: data.client_id,
-                p_created_by: profile.id,
-              });
-              projectId = pid;
-            }
-
-            if (!projectId) {
-              const { data: defaultProject } = await supabase
-                .from('projects')
-                .select('id')
-                .eq('name', 'Generale')
-                .maybeSingle();
-              if (defaultProject) {
-                projectId = defaultProject.id;
-              } else {
-                const { data: newProject } = await supabase
-                  .from('projects')
-                  .insert({ name: 'Generale', status: 'active', color: '#FFD108', created_by: profile.id })
-                  .select()
-                  .single();
-                projectId = newProject?.id || null;
+            try {
+              let projectId: string | null = null;
+              if (data.client_id) {
+                const { data: pid, error: rpcErr } = await supabase.rpc('get_or_create_client_project', {
+                  p_client_id: data.client_id,
+                  p_created_by: profile.id,
+                });
+                if (rpcErr) throw rpcErr;
+                projectId = pid;
               }
-            }
 
-            if (projectId) {
-              const { data: createdTask } = await supabase.from('tasks').insert({
+              if (!projectId) {
+                const { data: defaultProject, error: selErr } = await supabase
+                  .from('projects')
+                  .select('id')
+                  .eq('name', 'Generale')
+                  .maybeSingle();
+                if (selErr) throw selErr;
+                if (defaultProject) {
+                  projectId = defaultProject.id;
+                } else {
+                  const { data: newProject, error: projErr } = await supabase
+                    .from('projects')
+                    .insert({ name: 'Generale', status: 'active', color: '#FFD108', created_by: profile.id })
+                    .select()
+                    .single();
+                  if (projErr) throw projErr;
+                  projectId = newProject?.id || null;
+                }
+              }
+
+              if (!projectId) throw new Error('Impossibile determinare il progetto per la task');
+
+              // status: in creazione il TaskForm non espone più il campo → sempre "todo"
+              const { data: createdTask, error: taskErr } = await supabase.from('tasks').insert({
                 title: data.title,
                 description: data.description || null,
                 project_id: projectId,
@@ -585,30 +494,42 @@ export default function BachecaPage() {
                 position: 0,
                 created_by: profile.id,
               }).select('id').single();
+              if (taskErr) throw taskErr;
 
               if (createdTask && files && files.length > 0) {
+                let attachFailed = 0;
                 for (const file of files) {
                   const path = `${createdTask.id}/${Date.now()}_${file.name}`;
                   const { error: uploadError } = await supabase.storage.from('attachments').upload(path, file);
-                  if (!uploadError) {
-                    const { data: urlData } = supabase.storage.from('attachments').getPublicUrl(path);
-                    await supabase.from('task_attachments').insert({
-                      task_id: createdTask.id,
-                      file_name: file.name,
-                      file_url: urlData.publicUrl,
-                      file_type: file.type,
-                      file_size: file.size,
-                      uploaded_by: profile.id,
-                    });
-                  }
+                  if (uploadError) { attachFailed++; continue; }
+                  const { data: urlData } = supabase.storage.from('attachments').getPublicUrl(path);
+                  const { error: attErr } = await supabase.from('task_attachments').insert({
+                    task_id: createdTask.id,
+                    file_name: file.name,
+                    file_url: urlData.publicUrl,
+                    file_type: file.type,
+                    file_size: file.size,
+                    uploaded_by: profile.id,
+                  });
+                  if (attErr) attachFailed++;
                 }
+                if (attachFailed > 0) toast.error(`${attachFailed} allegato${attachFailed === 1 ? '' : 'i'} non caricato${attachFailed === 1 ? '' : 'i'}`);
               }
-            }
 
-            setShowAddTask(false);
-            setAddingTask(false);
-            setAttachFiles([]);
-            fetchData();
+              toast.success('Task creata');
+              setShowAddTask(false);
+              setAttachFiles([]);
+              fetchData();
+            } catch (e) {
+              // Prima l'errore veniva ingoiato: il modal si chiudeva senza dire nulla.
+              const msg = (e as { message?: string } | undefined)?.message || '';
+              const friendly = /row-level security|permission|policy|not authorized/i.test(msg)
+                ? 'Non hai i permessi per creare questa task. Contatta un amministratore.'
+                : (msg || 'Errore durante la creazione della task');
+              toast.error(friendly);
+            } finally {
+              setAddingTask(false);
+            }
           }}
           onCancel={() => setShowAddTask(false)}
         />
