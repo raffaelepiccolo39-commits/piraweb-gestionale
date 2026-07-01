@@ -183,6 +183,7 @@ export interface Profile {
   contract_start_date: string | null;
   must_change_password: boolean;
   onboarded_at: string | null;
+  terminated_at: string | null;
   created_at: string;
   updated_at: string;
 }

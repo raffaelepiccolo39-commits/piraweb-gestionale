@@ -126,5 +126,78 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true });
   }
 
+  if (action === 'terminate_member') {
+    // Licenziamento: blocca l'accesso per sempre (ban auth), disattiva il profilo,
+    // libera le task aperte. Lo storico resta (nessuna cancellazione dati).
+    if (targetUserId === user.id) {
+      return NextResponse.json({ error: 'Non puoi licenziare te stesso' }, { status: 400 });
+    }
+
+    // 1. Ban dell'utente auth (~100 anni) → non potrà più autenticarsi
+    const { error: banError } = await serviceClient.auth.admin.updateUserById(targetUserId, {
+      ban_duration: '876600h',
+    });
+    if (banError) {
+      return NextResponse.json({ error: 'Errore nel blocco dell\'accesso' }, { status: 500 });
+    }
+
+    // 2. Marca il profilo come licenziato + disattivato
+    const { error: profError } = await serviceClient
+      .from('profiles')
+      .update({ is_active: false, terminated_at: new Date().toISOString() })
+      .eq('id', targetUserId);
+    if (profError) {
+      return NextResponse.json({ error: 'Errore aggiornamento profilo' }, { status: 500 });
+    }
+
+    // 3. Libera le sue task aperte (non archiviate e non completate)
+    await serviceClient
+      .from('tasks')
+      .update({ assigned_to: null })
+      .eq('assigned_to', targetUserId)
+      .is('archived_at', null)
+      .neq('status', 'done');
+
+    await logAudit({
+      action: 'user.terminated',
+      actorId: user.id,
+      actorEmail: user.email,
+      entityType: 'profile',
+      entityId: targetUserId,
+      request,
+    });
+
+    return NextResponse.json({ success: true });
+  }
+
+  if (action === 'reinstate_member') {
+    // Riassunzione: sblocca l'accesso e riattiva il profilo.
+    const { error: unbanError } = await serviceClient.auth.admin.updateUserById(targetUserId, {
+      ban_duration: 'none',
+    });
+    if (unbanError) {
+      return NextResponse.json({ error: 'Errore nello sblocco dell\'accesso' }, { status: 500 });
+    }
+
+    const { error: profError } = await serviceClient
+      .from('profiles')
+      .update({ is_active: true, terminated_at: null })
+      .eq('id', targetUserId);
+    if (profError) {
+      return NextResponse.json({ error: 'Errore aggiornamento profilo' }, { status: 500 });
+    }
+
+    await logAudit({
+      action: 'user.reinstated',
+      actorId: user.id,
+      actorEmail: user.email,
+      entityType: 'profile',
+      entityId: targetUserId,
+      request,
+    });
+
+    return NextResponse.json({ success: true });
+  }
+
   return NextResponse.json({ error: 'Azione non valida' }, { status: 400 });
 }

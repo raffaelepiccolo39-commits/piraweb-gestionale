@@ -11,9 +11,10 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Modal } from '@/components/ui/modal';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { getRoleLabel, getRoleTone, getInitials, formatCurrency, todayLocal } from '@/lib/utils';
 import type { Profile, UserRole } from '@/types/database';
-import { Settings, Users, Shield, ShieldCheck, ShieldOff, Save, UserPlus, Eye, EyeOff, Pencil, Lock, ArrowRightLeft, AlertTriangle, Loader2, Copy, Check } from 'lucide-react';
+import { Settings, Users, Shield, ShieldCheck, ShieldOff, Save, UserPlus, Eye, EyeOff, Pencil, Lock, ArrowRightLeft, AlertTriangle, Loader2, Copy, Check, UserX, UserCheck } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
 import { SkeletonStats, SkeletonList } from '@/components/ui/skeleton';
 
@@ -92,6 +93,9 @@ export default function SettingsPage() {
   const [reassignFrom, setReassignFrom] = useState<Profile | null>(null);
   const [reassignTo, setReassignTo] = useState('');
   const [reassignLoading, setReassignLoading] = useState(false);
+
+  // Licenziamento membro
+  const [terminateTarget, setTerminateTarget] = useState<Profile | null>(null);
 
   // 2FA state
   const [twoFAEnabled, setTwoFAEnabled] = useState(false);
@@ -344,6 +348,46 @@ export default function SettingsPage() {
         toast.error(data.error || 'Errore aggiornamento stato');
         return;
       }
+    } catch {
+      toast.error('Errore di connessione');
+      return;
+    }
+    fetchTeam();
+  };
+
+  const handleTerminate = async (userId: string) => {
+    try {
+      const res = await fetch('/api/admin/update-member', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'terminate_member', user_id: userId }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error || 'Errore durante il licenziamento');
+        return;
+      }
+      toast.success('Membro licenziato: accesso bloccato e task liberate');
+    } catch {
+      toast.error('Errore di connessione');
+      return;
+    }
+    fetchTeam();
+  };
+
+  const handleReinstate = async (userId: string) => {
+    try {
+      const res = await fetch('/api/admin/update-member', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'reinstate_member', user_id: userId }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error || 'Errore durante la riassunzione');
+        return;
+      }
+      toast.success('Membro riassunto: accesso ripristinato');
     } catch {
       toast.error('Errore di connessione');
       return;
@@ -782,17 +826,46 @@ export default function SettingsPage() {
                         </button>
                       </>
                     )}
-                    <button
-                      onClick={(e) => { e.stopPropagation(); handleToggleActive(member.id, member.is_active); }}
-                      disabled={member.id === profile.id}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors duration-200 ease-out ${
-                        member.is_active
-                          ? 'bg-green-500/15 text-green-400'
-                          : 'bg-pw-surface-3 text-pw-text-dim'
-                      } disabled:opacity-50`}
-                    >
-                      {member.is_active ? 'Attivo' : 'Disattivato'}
-                    </button>
+                    {member.terminated_at ? (
+                      <>
+                        <span className="px-2 py-0.5 rounded-md text-[11px] font-medium bg-red-500/15 text-red-400">
+                          Licenziato
+                        </span>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleReinstate(member.id); }}
+                          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-pw-surface-3 text-pw-text-muted hover:bg-pw-surface-2 hover:text-green-400 transition-colors"
+                          title="Riassumi: ripristina l'accesso"
+                        >
+                          <UserCheck size={13} />
+                          Riassumi
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleToggleActive(member.id, member.is_active); }}
+                          disabled={member.id === profile.id}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors duration-200 ease-out ${
+                            member.is_active
+                              ? 'bg-green-500/15 text-green-400'
+                              : 'bg-pw-surface-3 text-pw-text-dim'
+                          } disabled:opacity-50`}
+                          title={member.is_active ? 'Sospendi (nascondi dalle liste)' : 'Riattiva'}
+                        >
+                          {member.is_active ? 'Attivo' : 'Disattivato'}
+                        </button>
+                        {member.id !== profile.id && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setTerminateTarget(member); }}
+                            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors"
+                            title="Licenzia: blocca l'accesso definitivamente"
+                          >
+                            <UserX size={13} />
+                            Licenzia
+                          </button>
+                        )}
+                      </>
+                    )}
                   </div>
                 </div>
               ))}
@@ -1156,6 +1229,23 @@ export default function SettingsPage() {
           </div>
         )}
       </Modal>
+
+      {/* Conferma licenziamento membro */}
+      <ConfirmDialog
+        open={terminateTarget !== null}
+        onClose={() => setTerminateTarget(null)}
+        onConfirm={() => {
+          if (terminateTarget) handleTerminate(terminateTarget.id);
+          setTerminateTarget(null);
+        }}
+        title="Licenzia membro"
+        description={
+          terminateTarget
+            ? `Licenziare ${terminateTarget.full_name}? L'accesso verrà bloccato definitivamente e le sue task aperte verranno liberate. Lo storico resta consultabile e potrai riassumerlo in futuro.`
+            : ''
+        }
+        confirmLabel="Licenzia"
+      />
     </div>
   );
 }
