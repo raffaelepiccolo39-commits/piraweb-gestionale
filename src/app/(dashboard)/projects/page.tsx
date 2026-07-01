@@ -163,10 +163,16 @@ export default function ProjectsPage() {
         title="Progetti"
         subtitle={`${filteredProjects.length} progett${filteredProjects.length === 1 ? 'o' : 'i'}${filterMember ? ` per ${members.find((m) => m.id === filterMember)?.full_name}` : ''}`}
         actions={
-          isAdmin && (
+          isAdmin ? (
             <Button variant="primary" onClick={() => setShowForm(true)}>
               <Plus size={14} />
               Nuovo Progetto
+            </Button>
+          ) : (
+            // I membri non creano progetti: scorciatoia per creare una task in Bacheca
+            <Button variant="primary" onClick={() => router.push('/bacheca')}>
+              <Plus size={14} />
+              Nuova Task
             </Button>
           )
         }

@@ -20,6 +20,7 @@ import { Select } from '@/components/ui/select';
 import { EmptyState } from '@/components/ui/empty-state';
 import { SkeletonList } from '@/components/ui/skeleton';
 import { PageHeader } from '@/components/ui/page-header';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { TaskDetailModal } from '@/components/tasks/task-detail-modal';
 import { TaskForm } from '@/components/tasks/task-form';
 import { TaskViewSwitcher } from '@/components/tasks/view-switcher';
@@ -47,6 +48,7 @@ export default function BachecaPage() {
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [confirmArchive, setConfirmArchive] = useState(false);
   const [showAddTask, setShowAddTask] = useState(false);
   const [addToMemberId, setAddToMemberId] = useState<string | null>(null);
   const [addingTask, setAddingTask] = useState(false);
@@ -65,7 +67,7 @@ export default function BachecaPage() {
           project:projects(id, name, color, client_id, client:clients(id, name, company)),
           assignee:profiles!tasks_assigned_to_fkey(id, full_name, color)
         `)
-        .not('status', 'eq', 'archived')
+        .is('archived_at', null)
         .order('position')
         .limit(2000),
       supabase
@@ -145,7 +147,7 @@ export default function BachecaPage() {
     const doneTasks = tasks.filter((t) => t.status === 'done');
     if (doneTasks.length === 0) return;
     const ids = doneTasks.map((t) => t.id);
-    await supabase.from('tasks').update({ status: 'archived' as never }).in('id', ids);
+    await supabase.from('tasks').update({ archived_at: new Date().toISOString() }).in('id', ids);
     fetchData();
   };
 
@@ -287,7 +289,7 @@ export default function BachecaPage() {
         subtitle={`${tasks.filter(t => t.status !== 'done').length} attivi · ${totalDone} completati`}
         actions={
           totalDone > 0 && (
-            <Button variant="outline" onClick={handleArchiveCompleted}>
+            <Button variant="outline" onClick={() => setConfirmArchive(true)}>
               <CheckCircle2 size={14} />
               Archivia {totalDone} completat{totalDone === 1 ? 'o' : 'i'}
             </Button>
@@ -431,6 +433,16 @@ export default function BachecaPage() {
         open={!!selectedTask}
         onClose={() => setSelectedTask(null)}
         onUpdate={() => { setSelectedTask(null); fetchData(); }}
+      />
+
+      {/* Conferma archiviazione massiva dei completati */}
+      <ConfirmDialog
+        open={confirmArchive}
+        onClose={() => setConfirmArchive(false)}
+        onConfirm={() => { handleArchiveCompleted(); setConfirmArchive(false); }}
+        title="Archivia completati"
+        description={`Vuoi archiviare ${totalDone} task completat${totalDone === 1 ? 'a' : 'e'}? Spariranno dalla bacheca ma resteranno consultabili filtrando per stato “Archiviato”.`}
+        confirmLabel="Archivia"
       />
 
       {/* Add task modal — usa TaskForm universale */}

@@ -30,6 +30,7 @@ import {
   ExternalLink,
   Pencil,
   Check,
+  ImagePlus,
 } from 'lucide-react';
 
 interface TaskDetailModalProps {
@@ -59,6 +60,7 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
   const supabase = createClient();
   const toast = useToast();
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [confirmDeleteCommentId, setConfirmDeleteCommentId] = useState<string | null>(null);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [assignedTo, setAssignedTo] = useState('');
@@ -66,8 +68,12 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
   const [priority, setPriority] = useState('');
   const [deadline, setDeadline] = useState('');
   const [estimatedHours, setEstimatedHours] = useState('');
+  const [loggedHours, setLoggedHours] = useState('');
   const [comments, setComments] = useState<TaskComment[]>([]);
   const [newComment, setNewComment] = useState('');
+  const [commentImage, setCommentImage] = useState<File | null>(null);
+  const [commentImagePreview, setCommentImagePreview] = useState('');
+  const [commentImageUrls, setCommentImageUrls] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [sendingComment, setSendingComment] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
@@ -79,6 +85,7 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
   const [generatingAi, setGeneratingAi] = useState(false);
   const [aiError, setAiError] = useState(false);
   const [deliveryUrl, setDeliveryUrl] = useState('');
+  const [linkError, setLinkError] = useState(false);
 
   useEffect(() => {
     if (task) {
@@ -89,7 +96,12 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
       setPriority(task.priority);
       setDeadline(task.deadline ? task.deadline.split('T')[0] : '');
       setEstimatedHours(task.estimated_hours ? String(task.estimated_hours) : '');
+      setLoggedHours(task.logged_hours ? String(task.logged_hours) : '');
       setDeliveryUrl(task.delivery_url || '');
+      setLinkError(false);
+      setNewComment('');
+      setCommentImage(null);
+      setCommentImagePreview('');
       fetchComments(task.id);
       fetchAttachments(task.id);
     }
@@ -107,7 +119,35 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
       .select('*, user:profiles!task_comments_user_id_fkey(id, full_name)')
       .eq('task_id', taskId)
       .order('created_at', { ascending: true });
-    setComments((data as TaskComment[]) || []);
+    const list = (data as TaskComment[]) || [];
+    setComments(list);
+    // Signed URL per le immagini allegate ai commenti (bucket privato)
+    const withImg = list.filter((c) => c.image_path);
+    if (withImg.length > 0) {
+      const entries = await Promise.all(
+        withImg.map(async (c) => {
+          const { data: signed } = await supabase.storage
+            .from('attachments')
+            .createSignedUrl(c.image_path as string, 3600);
+          return [c.id, signed?.signedUrl ?? ''] as const;
+        })
+      );
+      setCommentImageUrls(Object.fromEntries(entries.filter(([, u]) => u)));
+    } else {
+      setCommentImageUrls({});
+    }
+  };
+
+  const pickCommentImage = (file: File) => {
+    if (commentImagePreview) URL.revokeObjectURL(commentImagePreview);
+    setCommentImage(file);
+    setCommentImagePreview(URL.createObjectURL(file));
+  };
+
+  const clearCommentImage = () => {
+    if (commentImagePreview) URL.revokeObjectURL(commentImagePreview);
+    setCommentImage(null);
+    setCommentImagePreview('');
   };
 
   const fetchAttachments = async (taskId: string) => {
@@ -228,9 +268,11 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
     // deve poter aprire il lavoro.
     if ((status === 'review' || status === 'done') && !deliveryUrl.trim() && !task.delivery_url) {
       const label = status === 'review' ? 'Review' : 'Fatto';
+      setLinkError(true);
       toast.error(`Per spostare in "${label}" inserisci il link al lavoro (Google Drive, Figma, ecc.)`);
       return;
     }
+    setLinkError(false);
     setSaving(true);
     const { error } = await supabase.from('tasks').update({
       title,
@@ -240,6 +282,7 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
       priority,
       deadline: deadline || null,
       estimated_hours: estimatedHours ? Number(estimatedHours) : null,
+      logged_hours: loggedHours ? Number(loggedHours) : 0,
       delivery_url: deliveryUrl.trim() || null,
     }).eq('id', task.id);
     setSaving(false);
@@ -266,7 +309,7 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
   };
 
   const handleSendComment = async () => {
-    if (!task || !newComment.trim()) return;
+    if (!task || (!newComment.trim() && !commentImage)) return;
     setSendingComment(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
@@ -274,10 +317,29 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
       setSendingComment(false);
       return;
     }
+    let imagePath: string | null = null;
+    if (commentImage) {
+      const MAX = 10 * 1024 * 1024; // 10MB
+      if (commentImage.size > MAX) {
+        toast.error('L\'immagine supera i 10MB');
+        setSendingComment(false);
+        return;
+      }
+      const path = `comments/${task.id}/${Date.now()}_${commentImage.name}`;
+      const { error: upErr } = await supabase.storage.from('attachments').upload(path, commentImage);
+      if (upErr) {
+        console.error('[task-detail] comment image upload failed:', upErr);
+        toast.error('Errore nel caricamento dell\'immagine');
+        setSendingComment(false);
+        return;
+      }
+      imagePath = path;
+    }
     const { error } = await supabase.from('task_comments').insert({
       task_id: task.id,
       user_id: user.id,
       content: newComment.trim(),
+      image_path: imagePath,
     });
     if (error) {
       console.error('[task-detail] add comment failed:', error);
@@ -286,6 +348,7 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
       return;
     }
     setNewComment('');
+    clearCommentImage();
     await fetchComments(task.id);
     setSendingComment(false);
   };
@@ -389,14 +452,28 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
                   {statusOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
               </div>
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-pw-surface-3 text-xs text-pw-text-muted">
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-pw-surface-3 text-xs text-pw-text-muted" title="Ore stimate">
                 <Clock size={12} />
+                <span className="text-[10px] text-pw-text-dim">Stim.</span>
                 <input
                   type="number"
                   value={estimatedHours}
                   onChange={(e) => setEstimatedHours(e.target.value)}
-                  placeholder="Ore"
-                  className="bg-transparent outline-none text-pw-text-muted w-12"
+                  placeholder="—"
+                  className="bg-transparent outline-none text-pw-text-muted w-10"
+                  min="0"
+                  step="0.5"
+                />
+              </div>
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-pw-surface-3 text-xs text-pw-text-muted" title="Ore lavorate">
+                <CheckSquare size={12} />
+                <span className="text-[10px] text-pw-text-dim">Fatte</span>
+                <input
+                  type="number"
+                  value={loggedHours}
+                  onChange={(e) => setLoggedHours(e.target.value)}
+                  placeholder="—"
+                  className="bg-transparent outline-none text-pw-text-muted w-10"
                   min="0"
                   step="0.5"
                 />
@@ -411,10 +488,19 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
               <input
                 type="url"
                 value={deliveryUrl}
-                onChange={(e) => setDeliveryUrl(e.target.value)}
+                onChange={(e) => { setDeliveryUrl(e.target.value); if (linkError) setLinkError(false); }}
                 placeholder="https://drive.google.com/..."
-                className="w-full px-3 py-2 rounded-lg border border-pw-border bg-pw-surface-2 text-pw-text text-xs focus:ring-2 focus:ring-pw-accent/30 focus:border-pw-accent/50 outline-none"
+                className={`w-full px-3 py-2 rounded-lg border bg-pw-surface-2 text-pw-text text-xs focus:ring-2 outline-none ${
+                  linkError
+                    ? 'border-red-400 focus:ring-red-400/30 focus:border-red-400'
+                    : 'border-pw-border focus:ring-pw-accent/30 focus:border-pw-accent/50'
+                }`}
               />
+              {linkError && (
+                <p className="text-[11px] text-red-400 mt-1">
+                  Inserisci il link al lavoro per spostare la task in “Review” o “Fatto”.
+                </p>
+              )}
               {deliveryUrl && (
                 <a href={deliveryUrl} target="_blank" rel="noopener noreferrer" className="text-[10px] text-pw-accent hover:underline mt-1 inline-flex items-center gap-1">
                   Apri link <ExternalLink size={8} />
@@ -422,10 +508,22 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
               )}
             </div>
 
-            {/* Client info */}
+            {/* Client info — nome cliente/progetto cliccabile → apre il progetto */}
             {clientName && (
               <p className="text-xs text-pw-text-dim">
-                Cliente: <span className="text-pw-text-muted">{clientName}</span>
+                Cliente:{' '}
+                {task.project_id ? (
+                  <a
+                    href={`/projects/${task.project_id}`}
+                    className="text-pw-accent hover:underline inline-flex items-center gap-1"
+                    title="Apri il progetto"
+                  >
+                    {clientName}
+                    <ExternalLink size={9} />
+                  </a>
+                ) : (
+                  <span className="text-pw-text-muted">{clientName}</span>
+                )}
                 {' · '}Ultima modifica: <span className="text-pw-text-muted">{formatDateTime(task.updated_at)}</span>
               </p>
             )}
@@ -538,24 +636,57 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
             </h3>
 
             {/* New comment */}
-            <div className="flex gap-2 mb-4">
-              <textarea
-                value={newComment}
-                onChange={(e) => setNewComment(e.target.value)}
-                placeholder="Scrivi un commento..."
-                rows={2}
-                className="flex-1 px-3 py-2 rounded-xl border border-pw-border bg-pw-surface-2 text-pw-text placeholder:text-pw-text-dim focus:ring-2 focus:ring-pw-accent/30 outline-none text-xs resize-none"
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendComment(); }
-                }}
-              />
-              <button
-                onClick={handleSendComment}
-                disabled={!newComment.trim() || sendingComment}
-                className="p-2 rounded-lg bg-pw-accent text-[#0A263A] hover:bg-pw-accent-hover disabled:opacity-40 transition-colors self-end"
-              >
-                <Send size={14} />
-              </button>
+            <div className="mb-4">
+              <div className="flex gap-2">
+                <textarea
+                  value={newComment}
+                  onChange={(e) => setNewComment(e.target.value)}
+                  placeholder="Scrivi un commento..."
+                  rows={2}
+                  className="flex-1 px-3 py-2 rounded-xl border border-pw-border bg-pw-surface-2 text-pw-text placeholder:text-pw-text-dim focus:ring-2 focus:ring-pw-accent/30 outline-none text-xs resize-none"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendComment(); }
+                  }}
+                />
+                <div className="flex flex-col gap-1.5 self-end">
+                  <label
+                    htmlFor="comment-image-upload"
+                    className="p-2 rounded-lg bg-pw-surface-3 text-pw-text-muted hover:bg-pw-surface-2 cursor-pointer transition-colors"
+                    title="Allega un'immagine"
+                  >
+                    <ImagePlus size={14} />
+                    <input
+                      id="comment-image-upload"
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => { if (e.target.files?.[0]) pickCommentImage(e.target.files[0]); e.target.value = ''; }}
+                    />
+                  </label>
+                  <button
+                    onClick={handleSendComment}
+                    disabled={(!newComment.trim() && !commentImage) || sendingComment}
+                    className="p-2 rounded-lg bg-pw-accent text-[#0A263A] hover:bg-pw-accent-hover disabled:opacity-40 transition-colors"
+                  >
+                    {sendingComment ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+                  </button>
+                </div>
+              </div>
+              {/* Anteprima immagine selezionata */}
+              {commentImagePreview && (
+                <div className="mt-2 relative inline-block">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={commentImagePreview} alt="Anteprima" className="max-h-24 rounded-lg border border-pw-border" />
+                  <button
+                    type="button"
+                    onClick={clearCommentImage}
+                    className="absolute -top-2 -right-2 p-0.5 rounded-full bg-pw-surface-3 border border-pw-border text-pw-text-dim hover:text-red-400"
+                    title="Rimuovi immagine"
+                  >
+                    <X size={12} />
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Comments list */}
@@ -591,7 +722,7 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
                             </button>
                             <button
                               type="button"
-                              onClick={() => handleDeleteComment(comment.id)}
+                              onClick={() => setConfirmDeleteCommentId(comment.id)}
                               className="text-pw-text-dim hover:text-red-400 transition-colors"
                               title="Elimina commento"
                             >
@@ -633,7 +764,21 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
                           </div>
                         </div>
                       ) : (
-                        <p className="text-xs text-pw-text-muted mt-0.5 whitespace-pre-wrap">{comment.content}</p>
+                        <>
+                          {comment.content && (
+                            <p className="text-xs text-pw-text-muted mt-0.5 whitespace-pre-wrap">{comment.content}</p>
+                          )}
+                          {comment.image_path && commentImageUrls[comment.id] && (
+                            <a href={commentImageUrls[comment.id]} target="_blank" rel="noopener noreferrer" className="block mt-1.5">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={commentImageUrls[comment.id]}
+                                alt="Immagine del commento"
+                                className="max-h-40 rounded-lg border border-pw-border hover:opacity-90 transition-opacity"
+                              />
+                            </a>
+                          )}
+                        </>
                       )}
                     </div>
                   </div>
@@ -649,6 +794,17 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
         onConfirm={handleDelete}
         title="Elimina task"
         description="Sei sicuro di voler eliminare questa task? Verranno rimossi anche commenti e allegati associati."
+        confirmLabel="Elimina"
+      />
+      <ConfirmDialog
+        open={confirmDeleteCommentId !== null}
+        onClose={() => setConfirmDeleteCommentId(null)}
+        onConfirm={() => {
+          if (confirmDeleteCommentId) handleDeleteComment(confirmDeleteCommentId);
+          setConfirmDeleteCommentId(null);
+        }}
+        title="Elimina commento"
+        description="Sei sicuro di voler eliminare questo commento? L'azione non è reversibile."
         confirmLabel="Elimina"
       />
     </Modal>

@@ -138,7 +138,7 @@ export default function ProfiloPage() {
     try {
       const [attRes, tasksRes, payRes] = await Promise.all([
         supabase.from('attendance_records').select('clock_in, clock_out, total_hours, status').eq('user_id', profile.id).eq('date', todayLocal()).maybeSingle(),
-        supabase.from('tasks').select('id, title, status, deadline, updated_at, project:projects(name, color)').eq('assigned_to', profile.id).neq('status', 'archived').order('updated_at', { ascending: false }).limit(30),
+        supabase.from('tasks').select('id, title, status, deadline, updated_at, project:projects(name, color)').eq('assigned_to', profile.id).is('archived_at', null).order('updated_at', { ascending: false }).limit(30),
         supabase.from('payslips').select('month, netto_mensile, lordo_mensile').eq('employee_id', profile.id).order('month', { ascending: false }).limit(1).maybeSingle(),
       ]);
       setAttendance((attRes.data as AttendanceRow | null) ?? null);

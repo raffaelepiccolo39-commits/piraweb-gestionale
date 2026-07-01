@@ -111,14 +111,14 @@ export default function DashboardPage() {
         supabase.from('projects').select('id', { count: 'exact', head: true }).eq('status', 'active'),
         // 2: tasks for stats (admin vede tutto, dipendenti solo le proprie)
         isAdmin
-          ? supabase.from('tasks').select('id, status, deadline').neq('status', 'archived').limit(200)
-          : supabase.from('tasks').select('id, status, deadline').eq('assigned_to', profile.id).neq('status', 'archived').limit(200),
+          ? supabase.from('tasks').select('id, status, deadline').is('archived_at', null).limit(200)
+          : supabase.from('tasks').select('id, status, deadline').eq('assigned_to', profile.id).is('archived_at', null).limit(200),
         // 3: recent tasks (solo le mie)
         supabase.from('tasks').select(`
           id, title, status, priority, deadline,
           project:projects(name, color),
           assignee:profiles!tasks_assigned_to_fkey(full_name)
-        `).eq('assigned_to', profile.id).not('status', 'in', '(done,archived)').order('updated_at', { ascending: false }).limit(8),
+        `).eq('assigned_to', profile.id).neq('status', 'done').is('archived_at', null).order('updated_at', { ascending: false }).limit(8),
         // 4: urgent tasks (overdue + due today) — dipendenti vedono solo le proprie
         // Esclude task done E archived (le archiviate sono "messe via", non più urgenti)
         isAdmin
@@ -126,12 +126,12 @@ export default function DashboardPage() {
               id, title, deadline,
               project:projects(name, color),
               assignee:profiles!tasks_assigned_to_fkey(full_name)
-            `).not('status', 'in', '(done,archived)').lte('deadline', tomorrowStr).order('deadline', { ascending: true }).limit(10)
+            `).neq('status', 'done').is('archived_at', null).lte('deadline', tomorrowStr).order('deadline', { ascending: true }).limit(10)
           : supabase.from('tasks').select(`
               id, title, deadline,
               project:projects(name, color),
               assignee:profiles!tasks_assigned_to_fkey(full_name)
-            `).eq('assigned_to', profile.id).not('status', 'in', '(done,archived)').lte('deadline', tomorrowStr).order('deadline', { ascending: true }).limit(10),
+            `).eq('assigned_to', profile.id).neq('status', 'done').is('archived_at', null).lte('deadline', tomorrowStr).order('deadline', { ascending: true }).limit(10),
         // 5: my attendance
         supabase.from('attendance_records').select('*').eq('user_id', profile.id).eq('date', todayStr).maybeSingle(),
         // 6: projects with tasks for progress
@@ -157,7 +157,7 @@ export default function DashboardPage() {
           // 10: team profiles
           supabase.from('profiles').select('id, full_name, role').eq('is_active', true),
           // 11: all tasks for team stats (esclude archived)
-          supabase.from('tasks').select('assigned_to, status').neq('status', 'archived').limit(300),
+          supabase.from('tasks').select('assigned_to, status').is('archived_at', null).limit(300),
           // 12: cashflow this month - only active contracts
           (() => {
             const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();

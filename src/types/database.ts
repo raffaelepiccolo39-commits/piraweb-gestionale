@@ -348,6 +348,7 @@ export interface Task {
   logged_hours: number;
   ai_generated: boolean;
   delivery_url: string | null;
+  archived_at: string | null;
   created_by: string;
   created_at: string;
   updated_at: string;
@@ -364,6 +365,7 @@ export interface TaskComment {
   task_id: string;
   user_id: string;
   content: string;
+  image_path: string | null;
   created_at: string;
   updated_at: string;
   user?: Profile;

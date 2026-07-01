@@ -50,7 +50,7 @@ La descrizione deve spiegare brevemente cosa fare, come farlo e qual è il risul
           'anthropic-version': '2023-06-01',
         },
         body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
+          model: 'claude-sonnet-4-6',
           max_tokens: 500,
           system: systemPrompt,
           messages: [{ role: 'user', content: prompt }],

@@ -70,7 +70,7 @@ export default function ClientReportPage({ params }: { params: Promise<{ id: str
         .from('tasks')
         .select('*, assignee:profiles!tasks_assigned_to_fkey(id, full_name, role, color)')
         .in('project_id', projectIds)
-        .neq('status', 'archived');
+        .is('archived_at', null);
       tasks = (data as Task[]) || [];
     }
 

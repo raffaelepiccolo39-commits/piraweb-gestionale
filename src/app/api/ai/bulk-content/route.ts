@@ -47,7 +47,7 @@ async function callClaude(prompt: string, systemPrompt: string): Promise<{ text:
       'anthropic-version': '2023-06-01',
     },
     body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-6',
       max_tokens: 8000,
       system: systemPrompt,
       messages: [{ role: 'user', content: prompt }],
@@ -58,7 +58,7 @@ async function callClaude(prompt: string, systemPrompt: string): Promise<{ text:
   const data = await response.json();
   return {
     text: data.content[0].text,
-    model: 'claude-sonnet-4-20250514',
+    model: 'claude-sonnet-4-6',
     tokens: (data.usage?.input_tokens ?? 0) + (data.usage?.output_tokens ?? 0),
   };
 }

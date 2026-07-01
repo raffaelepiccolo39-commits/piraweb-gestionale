@@ -71,7 +71,7 @@ export default function DirectionPage() {
       supabase.from('client_contracts').select('monthly_fee, status').eq('status', 'active'),
       supabase.from('client_payments').select('amount, is_paid, due_date').limit(5000),
       supabase.from('profiles').select('id, full_name, role, color, is_active').limit(200),
-      supabase.from('tasks').select('id, status, deadline, created_at, updated_at, assigned_to, estimated_hours, logged_hours').neq('status', 'archived').limit(5000),
+      supabase.from('tasks').select('id, status, deadline, created_at, updated_at, assigned_to, estimated_hours, logged_hours').is('archived_at', null).limit(5000),
       supabase.from('deals').select('id, stage, value, actual_close_date, created_at').limit(5000),
       supabase.from('clients').select('id, name, company, is_active').eq('is_active', true),
       supabase.from('time_entries').select('user_id, duration_minutes, started_at').gte('started_at', monthStart).lte('started_at', monthEnd).not('duration_minutes', 'is', null),

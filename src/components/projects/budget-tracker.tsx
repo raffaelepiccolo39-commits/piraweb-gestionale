@@ -55,7 +55,7 @@ export function BudgetTracker({ projectId, clientId }: BudgetTrackerProps) {
       .from('tasks')
       .select('id, assigned_to')
       .eq('project_id', projectId)
-      .neq('status', 'archived');
+      .is('archived_at', null);
     const taskIds = (tasks || []).map((t) => t.id);
 
     // Get time entries for these tasks

@@ -16,6 +16,7 @@ import { TaskDetailModal } from '@/components/tasks/task-detail-modal';
 import { ProjectForm, type ProjectFormData } from '@/components/projects/project-form';
 import { InstallmentsManager } from '@/components/clients/installments-manager';
 import { formatDate, getStatusTone, getInitials } from '@/lib/utils';
+import { STATUS_LABELS } from '@/lib/constants';
 import type { Project, Task, Profile, Client } from '@/types/database';
 import {
   ArrowLeft,
@@ -24,6 +25,10 @@ import {
   Calendar,
   Users,
   Trash2,
+  Archive,
+  ArchiveRestore,
+  ChevronDown,
+  ChevronRight,
 } from 'lucide-react';
 
 const statusLabels: Record<string, string> = {
@@ -46,6 +51,8 @@ export default function ProjectDetailPage({
   const toast = useToast();
   const [project, setProject] = useState<Project | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [archivedTasks, setArchivedTasks] = useState<Task[]>([]);
+  const [showArchive, setShowArchive] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
@@ -81,15 +88,38 @@ export default function ProjectDetailPage({
         assignee:profiles!tasks_assigned_to_fkey(id, full_name, role, avatar_url, color)
       `)
       .eq('project_id', id)
+      .is('archived_at', null)
       .order('position');
     setTasks((data as Task[]) || []);
     setLoading(false);
   }, [supabase, id]);
 
+  const fetchArchivedTasks = useCallback(async () => {
+    const { data } = await supabase
+      .from('tasks')
+      .select(`
+        *,
+        assignee:profiles!tasks_assigned_to_fkey(id, full_name, role, avatar_url, color)
+      `)
+      .eq('project_id', id)
+      .not('archived_at', 'is', null)
+      .order('archived_at', { ascending: false });
+    setArchivedTasks((data as Task[]) || []);
+  }, [supabase, id]);
+
+  const handleRestoreTask = async (taskId: string) => {
+    const { error } = await supabase.from('tasks').update({ archived_at: null }).eq('id', taskId);
+    if (error) { toast.error('Errore durante il ripristino'); return; }
+    toast.success('Task ripristinata');
+    fetchTasks();
+    fetchArchivedTasks();
+  };
+
   useEffect(() => {
     fetchProject();
     fetchTasks();
-  }, [fetchProject, fetchTasks]);
+    fetchArchivedTasks();
+  }, [fetchProject, fetchTasks, fetchArchivedTasks]);
 
   const taskSubmittingRef = useRef(false);
 
@@ -336,6 +366,52 @@ export default function ProjectDetailPage({
         onTaskClick={(task) => setEditingTask(task)}
         onTasksUpdate={fetchTasks}
       />
+
+      {/* Archivio del progetto: task archiviate, consultabili e ripristinabili */}
+      {archivedTasks.length > 0 && (
+        <div className="pt-2">
+          <button
+            type="button"
+            onClick={() => setShowArchive((v) => !v)}
+            className="flex items-center gap-2 text-sm font-medium text-pw-text-muted hover:text-pw-text transition-colors"
+          >
+            {showArchive ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+            <Archive size={14} />
+            Archivio ({archivedTasks.length})
+          </button>
+          {showArchive && (
+            <div className="mt-3 space-y-1.5">
+              {archivedTasks.map((task) => (
+                <div
+                  key={task.id}
+                  className="flex items-center gap-3 px-3 py-2 rounded-lg bg-pw-surface-2 border border-pw-border"
+                >
+                  <button
+                    type="button"
+                    onClick={() => setEditingTask(task)}
+                    className="flex-1 min-w-0 text-left text-sm text-pw-text truncate hover:text-pw-accent transition-colors"
+                    title="Apri task"
+                  >
+                    {task.title}
+                  </button>
+                  <Badge tone={getStatusTone(task.status)} dot>
+                    {STATUS_LABELS[task.status] ?? task.status}
+                  </Badge>
+                  <button
+                    type="button"
+                    onClick={() => handleRestoreTask(task.id)}
+                    className="shrink-0 flex items-center gap-1 text-xs text-pw-text-dim hover:text-pw-accent transition-colors"
+                    title="Ripristina task"
+                  >
+                    <ArchiveRestore size={14} />
+                    Ripristina
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Pagamenti del progetto (acconti + saldo) — solo admin gestisce */}
       {project.client_id && (

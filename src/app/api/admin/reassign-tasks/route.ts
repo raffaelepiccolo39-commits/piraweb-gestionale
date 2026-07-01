@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
     .update({ assigned_to: to_user_id })
     .eq('assigned_to', from_user_id)
     .neq('status', 'done')
-    .neq('status', 'archived')
+    .is('archived_at', null)
     .select('id');
 
   if (error) {

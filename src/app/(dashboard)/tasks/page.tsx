@@ -18,7 +18,8 @@ import { TaskDetailModal } from '@/components/tasks/task-detail-modal';
 import { useToast } from '@/components/ui/toast';
 import { SkeletonList, SkeletonStats } from '@/components/ui/skeleton';
 import { DataTable } from '@/components/ui/data-table';
-import { ListTodo, Calendar, Clock, ArrowRight, Sparkles, Brain, Check, Send, AlertTriangle, Archive, ExternalLink } from 'lucide-react';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { ListTodo, Calendar, Clock, ArrowRight, Sparkles, Brain, Check, Send, AlertTriangle, Archive, ArchiveRestore, ExternalLink } from 'lucide-react';
 import { STATUS_LABELS, PRIORITY_LABELS } from '@/lib/constants';
 import { TaskViewSwitcher } from '@/components/tasks/view-switcher';
 
@@ -30,6 +31,14 @@ interface ParsedTask {
   priority: string;
   estimated_hours: number | null;
 }
+
+// Colore del bordo card per stato: panoramica visiva immediata
+const STATUS_BORDER: Record<string, string> = {
+  todo: 'border-l-slate-400',
+  in_progress: 'border-l-blue-400',
+  review: 'border-l-amber-400',
+  done: 'border-l-green-500',
+};
 
 export default function TasksPage() {
   const { profile } = useAuth();
@@ -67,6 +76,8 @@ export default function TasksPage() {
   const [showDeliveryModal, setShowDeliveryModal] = useState(false);
   const [deliveryUrl, setDeliveryUrl] = useState('');
   const [pendingDoneTaskId, setPendingDoneTaskId] = useState<string | null>(null);
+  const [confirmArchiveId, setConfirmArchiveId] = useState<string | null>(null);
+  const [showArchived, setShowArchived] = useState(false);
 
   const isAdmin = profile?.role === 'admin';
   const toast = useToast();
@@ -90,8 +101,12 @@ export default function TasksPage() {
         query = query.eq('assigned_to', assigneeFilter);
       }
 
-      // Escludi archiviati di default — l'utente può vederli col filtro client-side
-      query = query.neq('status', 'archived').order('updated_at', { ascending: false }).limit(500);
+      // Archivio: di default mostra solo le attive (archived_at IS NULL).
+      // Con "Mostra archiviati" attivo mostra solo le archiviate.
+      query = (showArchived
+        ? query.not('archived_at', 'is', null)
+        : query.is('archived_at', null)
+      ).order('updated_at', { ascending: false }).limit(500);
 
       const { data, error } = await query;
       if (error) throw error;
@@ -101,7 +116,7 @@ export default function TasksPage() {
     } finally {
       setLoading(false);
     }
-  }, [profile, isAdmin, assigneeFilter]);
+  }, [profile, isAdmin, assigneeFilter, showArchived]);
 
   const fetchClients = useCallback(async () => {
     const { data } = await supabase
@@ -147,6 +162,20 @@ export default function TasksPage() {
     } catch {
       toast.error('Errore durante l\'aggiornamento dello stato');
     }
+  };
+
+  const handleArchive = async (taskId: string) => {
+    const { error } = await supabase.from('tasks').update({ archived_at: new Date().toISOString() }).eq('id', taskId);
+    if (error) { toast.error('Errore durante l\'archiviazione'); return; }
+    toast.success('Task archiviata');
+    fetchTasks();
+  };
+
+  const handleRestore = async (taskId: string) => {
+    const { error } = await supabase.from('tasks').update({ archived_at: null }).eq('id', taskId);
+    if (error) { toast.error('Errore durante il ripristino'); return; }
+    toast.success('Task ripristinata');
+    fetchTasks();
   };
 
   const handleConfirmDelivery = async () => {
@@ -279,10 +308,16 @@ export default function TasksPage() {
         }
         subtitle={`${tasks.length} task ${assigneeFilter === 'me' ? 'assegnati a te' : assigneeFilter === 'all' ? 'totali' : 'assegnati'}`}
         actions={
-          <Button variant="primary" onClick={() => { setParsedTasks(null); setTasksSaved(false); setAiInput(''); setAiClientId(''); setShowAiModal(true); }}>
-            <Sparkles size={14} />
-            Crea Task con AI
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={() => setShowArchived((v) => !v)}>
+              <Archive size={14} />
+              {showArchived ? 'Mostra attivi' : 'Mostra archiviati'}
+            </Button>
+            <Button variant="primary" onClick={() => { setParsedTasks(null); setTasksSaved(false); setAiInput(''); setAiClientId(''); setShowAiModal(true); }}>
+              <Sparkles size={14} />
+              Crea Task con AI
+            </Button>
+          </div>
         }
       />
       <TaskViewSwitcher active={groupMode === 'sector' ? 'raggruppata' : 'lista'} />
@@ -329,8 +364,8 @@ export default function TasksPage() {
             options: [
               { value: 'todo', label: 'Da fare' },
               { value: 'in_progress', label: 'In corso' },
+              { value: 'review', label: 'Review' },
               { value: 'done', label: 'Fatto' },
-              { value: 'archived', label: 'Archiviato' },
             ],
             accessor: (t) => t.status,
           },
@@ -379,7 +414,7 @@ export default function TasksPage() {
           const project = task.project as { id: string; name: string; color: string } | undefined;
           const assignee = task.assignee as { id: string; full_name: string } | undefined;
           return (
-            <Card hover>
+            <Card hover onClick={() => setSelectedTask(task)} className={`cursor-pointer border-l-4 ${STATUS_BORDER[task.status] ?? 'border-l-transparent'}`}>
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1 min-w-0">
@@ -451,21 +486,31 @@ export default function TasksPage() {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                       <select
                         value={task.status}
                         onChange={(e) => handleStatusChange(task.id, e.target.value)}
                         className="text-xs px-2 py-1 rounded-lg border border-pw-border bg-pw-surface-2 text-pw-text-muted"
                       >
-                        {Object.entries(STATUS_LABELS).map(([value, label]) => (
-                          <option key={value} value={value}>
-                            {label}
-                          </option>
-                        ))}
+                        {Object.entries(STATUS_LABELS)
+                          .filter(([value]) => value !== 'archived')
+                          .map(([value, label]) => (
+                            <option key={value} value={value}>
+                              {label}
+                            </option>
+                          ))}
                       </select>
-                      {task.status !== 'archived' && (
+                      {task.archived_at ? (
                         <button
-                          onClick={() => handleStatusChange(task.id, 'archived')}
+                          onClick={() => handleRestore(task.id)}
+                          className="p-1.5 rounded-lg text-pw-text-dim hover:bg-pw-surface-2 hover:text-pw-accent"
+                          title="Ripristina task"
+                        >
+                          <ArchiveRestore size={16} />
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => setConfirmArchiveId(task.id)}
                           className="p-1.5 rounded-lg text-pw-text-dim hover:bg-pw-surface-2 hover:text-pw-accent"
                           title="Archivia task"
                         >
@@ -497,6 +542,19 @@ export default function TasksPage() {
         open={!!selectedTask}
         onClose={() => setSelectedTask(null)}
         onUpdate={() => { setSelectedTask(null); fetchTasks(); }}
+      />
+
+      {/* Conferma archiviazione task */}
+      <ConfirmDialog
+        open={confirmArchiveId !== null}
+        onClose={() => setConfirmArchiveId(null)}
+        onConfirm={() => {
+          if (confirmArchiveId) handleArchive(confirmArchiveId);
+          setConfirmArchiveId(null);
+        }}
+        title="Archivia task"
+        description="Vuoi archiviare questa task? Potrai ritrovarla con “Mostra archiviati” e ripristinarla quando vuoi."
+        confirmLabel="Archivia"
       />
 
       {/* Delivery URL Modal */}
