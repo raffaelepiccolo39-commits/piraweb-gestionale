@@ -9,6 +9,7 @@ import { useToast } from '@/components/ui/toast';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Select } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
+import { TimeTracker } from '@/components/tasks/time-tracker';
 import { formatDateTime, getInitials } from '@/lib/utils';
 import type { Task, Profile, TaskComment, TaskAttachment, Client } from '@/types/database';
 import {
@@ -68,7 +69,6 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
   const [priority, setPriority] = useState('');
   const [deadline, setDeadline] = useState('');
   const [estimatedHours, setEstimatedHours] = useState('');
-  const [loggedHours, setLoggedHours] = useState('');
   const [comments, setComments] = useState<TaskComment[]>([]);
   const [newComment, setNewComment] = useState('');
   const [commentImage, setCommentImage] = useState<File | null>(null);
@@ -96,7 +96,6 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
       setPriority(task.priority);
       setDeadline(task.deadline ? task.deadline.split('T')[0] : '');
       setEstimatedHours(task.estimated_hours ? String(task.estimated_hours) : '');
-      setLoggedHours(task.logged_hours ? String(task.logged_hours) : '');
       setDeliveryUrl(task.delivery_url || '');
       setLinkError(false);
       setNewComment('');
@@ -282,7 +281,6 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
       priority,
       deadline: deadline || null,
       estimated_hours: estimatedHours ? Number(estimatedHours) : null,
-      logged_hours: loggedHours ? Number(loggedHours) : 0,
       delivery_url: deliveryUrl.trim() || null,
     }).eq('id', task.id);
     setSaving(false);
@@ -465,19 +463,6 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
                   step="0.5"
                 />
               </div>
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-pw-surface-3 text-xs text-pw-text-muted" title="Ore lavorate">
-                <CheckSquare size={12} />
-                <span className="text-[10px] text-pw-text-dim">Fatte</span>
-                <input
-                  type="number"
-                  value={loggedHours}
-                  onChange={(e) => setLoggedHours(e.target.value)}
-                  placeholder="—"
-                  className="bg-transparent outline-none text-pw-text-muted w-10"
-                  min="0"
-                  step="0.5"
-                />
-              </div>
             </div>
 
             {/* Delivery URL / Drive link */}
@@ -527,6 +512,16 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
                 {' · '}Ultima modifica: <span className="text-pw-text-muted">{formatDateTime(task.updated_at)}</span>
               </p>
             )}
+
+            {/* Timer / registrazione ore → time_entries (timesheet). logged_hours
+                si aggiorna da solo via trigger DB, non va salvato a mano. */}
+            <div className="rounded-xl border border-pw-border bg-pw-surface-2 p-3">
+              <TimeTracker
+                taskId={task.id}
+                estimatedHours={task.estimated_hours}
+                loggedHours={task.logged_hours}
+              />
+            </div>
 
             {/* Description */}
             <div>
