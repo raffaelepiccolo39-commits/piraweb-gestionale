@@ -99,25 +99,36 @@ export default function ProfitabilityPage() {
       .select('id, name, client_id, client:clients(id, name, company)')
       .eq('status', 'active');
 
+    // Clienti in pausa: esclusi dalla rendicontazione (ricavi e righe progetto)
+    const { data: pausedClients } = await supabase
+      .from('clients')
+      .select('id')
+      .not('paused_at', 'is', null);
+    const pausedClientIds = new Set((pausedClients || []).map((c) => c.id));
+
     // 3. Fetch all active contracts for monthly revenue
     const { data: contracts } = await supabase
       .from('client_contracts')
       .select('client_id, monthly_fee, status')
       .eq('status', 'active');
 
-    // Map client_id → monthly_fee
+    // Map client_id → monthly_fee (esclude i clienti in pausa)
     const clientRevenueMap = new Map<string, number>();
     (contracts || []).forEach((c) => {
+      if (pausedClientIds.has(c.client_id)) return;
       clientRevenueMap.set(c.client_id, (clientRevenueMap.get(c.client_id) || 0) + (c.monthly_fee || 0));
     });
 
     const totalMRR = Array.from(clientRevenueMap.values()).reduce((s, v) => s + v, 0);
 
+    // Progetti dei clienti in pausa: fuori dal report di profittabilità
+    const visibleProjects = (projects || []).filter((p) => !p.client_id || !pausedClientIds.has(p.client_id));
+
     // 4. Batch-fetch all data for projects to avoid N+1 queries
     const now = new Date();
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
 
-    const projectIds = (projects || []).map((p) => p.id);
+    const projectIds = visibleProjects.map((p) => p.id);
 
     // Fetch ALL tasks, time entries, and freelancer assignments in 3 batch queries
     const [allTasksRes, allEntriesRes, allAssignmentsRes] = await Promise.all([
@@ -157,7 +168,7 @@ export default function ProfitabilityPage() {
     const projectResults: ProjectProfitability[] = [];
     let totalFreelancerCostAll = 0;
 
-    for (const project of (projects || [])) {
+    for (const project of visibleProjects) {
       const client = project.client as Client | undefined;
       const monthlyRevenue = project.client_id ? (clientRevenueMap.get(project.client_id) || 0) : 0;
 

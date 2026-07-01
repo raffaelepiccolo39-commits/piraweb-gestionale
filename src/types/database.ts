@@ -198,6 +198,7 @@ export interface Client {
   notes: string | null;
   logo_url: string | null;
   is_active: boolean;
+  paused_at: string | null;
   ragione_sociale: string | null;
   partita_iva: string | null;
   codice_fiscale: string | null;

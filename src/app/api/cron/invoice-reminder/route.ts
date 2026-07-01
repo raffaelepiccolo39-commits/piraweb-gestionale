@@ -48,7 +48,7 @@ async function handleCron(request: NextRequest) {
 
   const { data: overdueInvoices, error: fetchError } = await supabase
     .from('invoices')
-    .select('*, client:clients(id, name, company, ragione_sociale, email, phone)')
+    .select('*, client:clients(id, name, company, ragione_sociale, email, phone, paused_at)')
     .in('status', ['sent', 'overdue'])
     .lte('due_date', tenDaysAgoStr)
     .or(`reminder_sent_at.is.null,reminder_sent_at.lt.${sevenDaysAgoStr}`)
@@ -73,9 +73,12 @@ async function handleCron(request: NextRequest) {
     const client = invoice.client as {
       id: string; name: string; company: string | null;
       ragione_sociale: string | null; email: string | null; phone: string | null;
+      paused_at: string | null;
     } | null;
 
     if (!client) continue;
+    // Cliente in pausa: niente solleciti finché è fermo
+    if (client.paused_at) continue;
 
     const clientName = client.ragione_sociale || client.company || client.name;
     const daysOverdue = Math.floor((Date.now() - new Date(invoice.due_date).getTime()) / 86400000);

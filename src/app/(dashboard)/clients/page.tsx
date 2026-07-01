@@ -419,6 +419,22 @@ export default function ClientsPage() {
     }
   };
 
+  // Pausa: il cliente resta operativo ma esce dalla rendicontazione (ricavi,
+  // cashflow, direzione, solleciti). Reversibile.
+  const handleTogglePause = async (client: Client) => {
+    try {
+      const { error } = await supabase
+        .from('clients')
+        .update({ paused_at: client.paused_at ? null : new Date().toISOString() })
+        .eq('id', client.id);
+      if (error) throw error;
+      toast.success(client.paused_at ? 'Cliente riattivato' : 'Cliente messo in pausa');
+      fetchClients();
+    } catch {
+      toast.error('Errore durante l\'aggiornamento della pausa');
+    }
+  };
+
   if (loading) {
     return (
       <div className="space-y-6 animate-slide-up">
@@ -522,15 +538,21 @@ export default function ClientsPage() {
                         <span className="w-2 h-2 rounded-full bg-white" />
                       </div>
                     )}
-                    <Badge
-                      className={
-                        client.is_active
-                          ? 'bg-green-500/10 text-green-400 border border-green-500/20'
-                          : 'bg-pw-surface-3 text-pw-text-dim'
-                      }
-                    >
-                      {client.is_active ? 'Attivo' : 'Inattivo'}
-                    </Badge>
+                    {client.paused_at ? (
+                      <Badge className="bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                        In pausa
+                      </Badge>
+                    ) : (
+                      <Badge
+                        className={
+                          client.is_active
+                            ? 'bg-green-500/10 text-green-400 border border-green-500/20'
+                            : 'bg-pw-surface-3 text-pw-text-dim'
+                        }
+                      >
+                        {client.is_active ? 'Attivo' : 'Inattivo'}
+                      </Badge>
+                    )}
                   </div>
                 </div>
 
@@ -609,6 +631,15 @@ export default function ClientsPage() {
                   >
                     <Pencil size={14} />
                     Modifica
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleTogglePause(client)}
+                    className={client.paused_at ? 'text-amber-500 hover:text-amber-600' : ''}
+                    title={client.paused_at ? 'Riattiva: rientra nella rendicontazione' : 'Metti in pausa: fuori dalla rendicontazione'}
+                  >
+                    {client.paused_at ? 'Riattiva' : 'Metti in pausa'}
                   </Button>
                   <Button
                     variant="ghost"

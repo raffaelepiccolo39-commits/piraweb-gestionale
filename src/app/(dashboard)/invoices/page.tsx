@@ -98,7 +98,7 @@ export default function InvoicesPage() {
   useEffect(() => {
     Promise.all([
       fetchInvoices(),
-      supabase.from('clients').select('id, name, company, ragione_sociale, partita_iva').eq('is_active', true).order('company').then((r) => {
+      supabase.from('clients').select('id, name, company, ragione_sociale, partita_iva').eq('is_active', true).is('paused_at', null).order('company').then((r) => {
         if (r.error) setFetchError(r.error.message);
         else setClients((r.data as Client[]) || []);
       }),

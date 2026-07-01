@@ -66,15 +66,16 @@ export default function DirectionPage() {
 
     // Parallel fetches
     const [
-      contractsRes, paymentsRes, profilesRes, tasksRes, dealsRes, clientsRes, timeRes,
+      contractsRes, paymentsRes, profilesRes, tasksRes, dealsRes, clientsRes, timeRes, pausedRes,
     ] = await Promise.all([
-      supabase.from('client_contracts').select('monthly_fee, status').eq('status', 'active'),
-      supabase.from('client_payments').select('amount, is_paid, due_date').limit(5000),
+      supabase.from('client_contracts').select('id, client_id, monthly_fee, status'),
+      supabase.from('client_payments').select('amount, is_paid, due_date, contract_id').limit(5000),
       supabase.from('profiles').select('id, full_name, role, color, is_active').limit(200),
       supabase.from('tasks').select('id, status, deadline, created_at, updated_at, assigned_to, estimated_hours, logged_hours').is('archived_at', null).limit(5000),
       supabase.from('deals').select('id, stage, value, actual_close_date, created_at').limit(5000),
       supabase.from('clients').select('id, name, company, is_active').eq('is_active', true),
       supabase.from('time_entries').select('user_id, duration_minutes, started_at').gte('started_at', monthStart).lte('started_at', monthEnd).not('duration_minutes', 'is', null),
+      supabase.from('clients').select('id').not('paused_at', 'is', null),
     ]);
 
     const contracts = contractsRes.data || [];
@@ -85,10 +86,23 @@ export default function DirectionPage() {
     const clients = clientsRes.data || [];
     const timeEntries = timeRes.data || [];
 
-    // Revenue
-    const mrr = contracts.reduce((s, c) => s + (c.monthly_fee || 0), 0);
-    const totalRevenue = payments.filter((p) => p.is_paid).reduce((s, p) => s + p.amount, 0);
-    const pendingRevenue = payments.filter((p) => !p.is_paid).reduce((s, p) => s + p.amount, 0);
+    // Clienti in pausa: esclusi dalla rendicontazione (MRR + pagamenti)
+    const pausedSet = new Set(((pausedRes.data as { id: string }[]) || []).map((c) => c.id));
+    const contractClient = new Map<string, string>();
+    for (const c of contracts) contractClient.set(c.id, c.client_id);
+    const isActiveClientPayment = (contractId: string | null) => {
+      if (!contractId) return true;
+      const cid = contractClient.get(contractId);
+      return cid ? !pausedSet.has(cid) : true;
+    };
+    const activePayments = payments.filter((p) => isActiveClientPayment(p.contract_id));
+
+    // Revenue (clienti in pausa esclusi)
+    const mrr = contracts
+      .filter((c) => c.status === 'active' && !pausedSet.has(c.client_id))
+      .reduce((s, c) => s + (c.monthly_fee || 0), 0);
+    const totalRevenue = activePayments.filter((p) => p.is_paid).reduce((s, p) => s + p.amount, 0);
+    const pendingRevenue = activePayments.filter((p) => !p.is_paid).reduce((s, p) => s + p.amount, 0);
 
     // Revenue by last 6 months
     const revenueByMonth: { month: string; amount: number }[] = [];
@@ -97,7 +111,7 @@ export default function DirectionPage() {
       const label = d.toLocaleDateString('it-IT', { month: 'short' });
       const mStart = formatDateLocal(d);
       const mEnd = formatDateLocal(new Date(d.getFullYear(), d.getMonth() + 1, 0));
-      const amount = payments
+      const amount = activePayments
         .filter((p) => p.is_paid && p.due_date >= mStart && p.due_date <= mEnd)
         .reduce((s, p) => s + p.amount, 0);
       revenueByMonth.push({ month: label, amount });
