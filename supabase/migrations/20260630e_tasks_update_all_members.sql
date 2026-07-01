@@ -3,6 +3,7 @@
 -- apriva una task non sua e salvava riceveva "Errore nel salvataggio" (RLS).
 -- Ora ogni utente con profilo attivo può aggiornare qualsiasi task.
 DROP POLICY IF EXISTS "Admins and assignees can update tasks" ON tasks;
+DROP POLICY IF EXISTS "Active members can update tasks" ON tasks;
 
 CREATE POLICY "Active members can update tasks"
   ON tasks FOR UPDATE
