@@ -32,7 +32,6 @@ import {
   Check,
   ImagePlus,
   Play,
-  Square,
   CheckCircle2,
 } from 'lucide-react';
 
@@ -185,13 +184,6 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
     }
     setRunningEntry(null);
     return true;
-  };
-
-  const handleStopTimer = async () => {
-    setTimerBusy(true);
-    const ok = await stopRunningEntry();
-    setTimerBusy(false);
-    if (ok) { toast.success('Timer fermato'); }
   };
 
   const handleCompleteTask = async () => {
@@ -655,16 +647,6 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
                     >
                       {timerBusy ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
                       Task completata
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleStopTimer}
-                      disabled={timerBusy}
-                      className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-pw-surface-3 text-pw-text-muted hover:bg-pw-surface-2 disabled:opacity-50 transition-colors"
-                      title="Ferma il timer senza completare la task"
-                    >
-                      <Square size={12} />
-                      Ferma
                     </button>
                   </>
                 )}
