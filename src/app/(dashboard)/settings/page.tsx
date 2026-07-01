@@ -1097,6 +1097,25 @@ export default function SettingsPage() {
                 <ArrowRightLeft size={16} />
                 Riassegna tutte le task a un altro utente
               </Button>
+              {viewingMember.terminated_at ? (
+                <Button
+                  variant="outline"
+                  onClick={() => { handleReinstate(viewingMember.id); setViewingMember(null); }}
+                  className="w-full"
+                >
+                  <UserCheck size={16} />
+                  Riassumi (ripristina l&apos;accesso)
+                </Button>
+              ) : (
+                <Button
+                  variant="danger"
+                  onClick={() => { const m = viewingMember; setViewingMember(null); setTerminateTarget(m); }}
+                  className="w-full"
+                >
+                  <UserX size={16} />
+                  Licenzia (blocca l&apos;accesso)
+                </Button>
+              )}
             </div>
           </div>
         )}
