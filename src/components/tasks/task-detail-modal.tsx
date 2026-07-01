@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Modal } from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
@@ -9,7 +9,6 @@ import { useToast } from '@/components/ui/toast';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Select } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { TimeTracker } from '@/components/tasks/time-tracker';
 import { formatDateTime, getInitials } from '@/lib/utils';
 import type { Task, Profile, TaskComment, TaskAttachment, Client } from '@/types/database';
 import {
@@ -32,6 +31,9 @@ import {
   Pencil,
   Check,
   ImagePlus,
+  Play,
+  Square,
+  CheckCircle2,
 } from 'lucide-react';
 
 interface TaskDetailModalProps {
@@ -86,6 +88,10 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
   const [aiError, setAiError] = useState(false);
   const [deliveryUrl, setDeliveryUrl] = useState('');
   const [linkError, setLinkError] = useState(false);
+  const [runningEntry, setRunningEntry] = useState<{ id: string; started_at: string } | null>(null);
+  const [elapsed, setElapsed] = useState('00:00:00');
+  const [timerBusy, setTimerBusy] = useState(false);
+  const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     if (task) {
@@ -111,6 +117,106 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
     supabase.auth.getUser().then(({ data }) => setCurrentUserId(data.user?.id ?? null));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Timer: carica l'eventuale sessione in corso dell'utente su questa task
+  useEffect(() => {
+    if (!task || !currentUserId) { setRunningEntry(null); return; }
+    supabase
+      .from('time_entries')
+      .select('id, started_at')
+      .eq('task_id', task.id)
+      .eq('user_id', currentUserId)
+      .eq('is_running', true)
+      .order('started_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+      .then(({ data }) => setRunningEntry(data ? { id: data.id, started_at: data.started_at } : null));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [task?.id, currentUserId]);
+
+  // Tick del cronometro
+  useEffect(() => {
+    if (!runningEntry) { setElapsed('00:00:00'); return; }
+    const tick = () => {
+      const s = Math.max(0, Math.floor((Date.now() - new Date(runningEntry.started_at).getTime()) / 1000));
+      const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+      setElapsed(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`);
+    };
+    tick();
+    tickRef.current = setInterval(tick, 1000);
+    return () => { if (tickRef.current) clearInterval(tickRef.current); };
+  }, [runningEntry]);
+
+  const handleStartTask = async () => {
+    if (!task || !currentUserId) return;
+    setTimerBusy(true);
+    const { data, error } = await supabase
+      .from('time_entries')
+      .insert({ task_id: task.id, user_id: currentUserId, started_at: new Date().toISOString(), is_running: true })
+      .select('id, started_at')
+      .single();
+    if (error || !data) {
+      console.error('[task-detail] start timer failed:', error);
+      toast.error(error?.message || 'Errore nell\'avvio della task');
+      setTimerBusy(false);
+      return;
+    }
+    setRunningEntry({ id: data.id, started_at: data.started_at });
+    // La task passa "In corso" (se non lo è già)
+    if (status !== 'in_progress') {
+      const { error: stErr } = await supabase.from('tasks').update({ status: 'in_progress' }).eq('id', task.id);
+      if (stErr) { toast.error(stErr.message || 'Timer avviato ma stato non aggiornato'); }
+      else { setStatus('in_progress'); }
+    }
+    setTimerBusy(false);
+    toast.success('Task avviata');
+  };
+
+  const stopRunningEntry = async () => {
+    if (!runningEntry) return true;
+    const { error } = await supabase
+      .from('time_entries')
+      .update({ ended_at: new Date().toISOString(), is_running: false })
+      .eq('id', runningEntry.id);
+    if (error) {
+      console.error('[task-detail] stop timer failed:', error);
+      toast.error(error.message || 'Errore nello stop del timer');
+      return false;
+    }
+    setRunningEntry(null);
+    return true;
+  };
+
+  const handleStopTimer = async () => {
+    setTimerBusy(true);
+    const ok = await stopRunningEntry();
+    setTimerBusy(false);
+    if (ok) { toast.success('Timer fermato'); }
+  };
+
+  const handleCompleteTask = async () => {
+    if (!task) return;
+    setTimerBusy(true);
+    // Ferma il timer eventualmente in corso (le ore restano registrate)
+    if (runningEntry) {
+      const ok = await stopRunningEntry();
+      if (!ok) { setTimerBusy(false); return; }
+    }
+    const { error } = await supabase.from('tasks').update({ status: 'done' }).eq('id', task.id);
+    setTimerBusy(false);
+    if (error) {
+      console.error('[task-detail] complete task failed:', error);
+      toast.error(error.message || 'Errore nel completamento della task');
+      return;
+    }
+    setStatus('done');
+    if (!deliveryUrl.trim() && !task.delivery_url) {
+      toast.success('Task completata — ricordati di aggiungere il link al lavoro');
+    } else {
+      toast.success('Task completata');
+    }
+    onUpdate?.();
+  };
 
   const fetchComments = async (taskId: string) => {
     const { data } = await supabase
@@ -513,14 +619,56 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
               </p>
             )}
 
-            {/* Timer / registrazione ore → time_entries (timesheet). logged_hours
-                si aggiorna da solo via trigger DB, non va salvato a mano. */}
+            {/* Timer task → registra le ore nel Timesheet (time_entries).
+                "Inizia task" mette In corso; "Task completata" ferma e mette Fatto. */}
             <div className="rounded-xl border border-pw-border bg-pw-surface-2 p-3">
-              <TimeTracker
-                taskId={task.id}
-                estimatedHours={task.estimated_hours}
-                loggedHours={task.logged_hours}
-              />
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2 text-xs text-pw-text-muted">
+                  <Clock size={14} className="text-pw-accent" />
+                  <span>
+                    Registrate <strong className="text-pw-text">{(task.logged_hours || 0).toFixed(1)}h</strong>
+                    {task.estimated_hours ? ` / ${task.estimated_hours}h stimate` : ''}
+                  </span>
+                </div>
+                {runningEntry && (
+                  <span className="font-mono text-sm font-semibold text-pw-accent tabular-nums">{elapsed}</span>
+                )}
+              </div>
+              <div className="mt-3 flex items-center gap-2">
+                {!runningEntry ? (
+                  <button
+                    type="button"
+                    onClick={handleStartTask}
+                    disabled={timerBusy || status === 'done'}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-pw-accent text-[#0A263A] hover:bg-pw-accent-hover disabled:opacity-40 transition-colors"
+                  >
+                    {timerBusy ? <Loader2 size={14} className="animate-spin" /> : <Play size={14} />}
+                    Inizia task
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={handleCompleteTask}
+                      disabled={timerBusy}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 transition-colors"
+                    >
+                      {timerBusy ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
+                      Task completata
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleStopTimer}
+                      disabled={timerBusy}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-pw-surface-3 text-pw-text-muted hover:bg-pw-surface-2 disabled:opacity-50 transition-colors"
+                      title="Ferma il timer senza completare la task"
+                    >
+                      <Square size={12} />
+                      Ferma
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
 
             {/* Description */}
