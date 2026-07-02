@@ -39,6 +39,8 @@ export interface DataTableProps<T> {
   searchKeys?: ((item: T) => string | undefined | null)[];
   searchPlaceholder?: string;
   filters?: DataTableFilter<T>[];
+  /** Valori iniziali dei filtri (es. da query param dell'URL) */
+  initialFilterValues?: Record<string, string>;
   onRowClick?: (item: T) => void;
   emptyState?: DataTableEmptyProps;
   noResultsState?: DataTableEmptyProps;
@@ -60,6 +62,7 @@ export function DataTable<T>({
   searchKeys,
   searchPlaceholder = 'Cerca…',
   filters,
+  initialFilterValues,
   onRowClick,
   emptyState,
   noResultsState,
@@ -74,7 +77,7 @@ export function DataTable<T>({
   groupOrder,
 }: DataTableProps<T>) {
   const [search, setSearch] = useState('');
-  const [filterValues, setFilterValues] = useState<Record<string, string>>({});
+  const [filterValues, setFilterValues] = useState<Record<string, string>>(initialFilterValues ?? {});
   const [sortKey, setSortKey] = useState<string | undefined>(defaultSortKey);
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>(defaultSortDir);
 

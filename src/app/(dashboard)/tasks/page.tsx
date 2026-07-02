@@ -1,7 +1,7 @@
 'use client';
 
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
@@ -62,6 +62,15 @@ export default function TasksPage() {
   }, [profile]);
   const searchParams = useSearchParams();
   const groupMode: 'none' | 'sector' = searchParams.get('group') === 'sector' ? 'sector' : 'none';
+  // Filtri iniziali da query param (es. link dalle card della dashboard)
+  const initialFilterValues = useMemo(() => {
+    const v: Record<string, string> = {};
+    const status = searchParams.get('status');
+    const deadline = searchParams.get('deadline');
+    if (status) v.status = status;
+    if (deadline) v.deadline = deadline;
+    return v;
+  }, [searchParams]);
 
   // AI task creation
   const [showAiModal, setShowAiModal] = useState(false);
@@ -371,6 +380,7 @@ export default function TasksPage() {
           (t) => (t.project as { client?: { company?: string; name?: string } } | undefined)?.client?.company || '',
         ]}
         searchPlaceholder="Cerca per titolo, descrizione, progetto o cliente…"
+        initialFilterValues={initialFilterValues}
         filters={[
           {
             key: 'status',
