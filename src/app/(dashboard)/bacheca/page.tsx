@@ -455,6 +455,7 @@ export default function BachecaPage() {
         <TaskForm
           showClientSelect
           clients={clients}
+          defaultAssignedTo={addToMemberId}
           showAttachments
           showAiDescription
           onSubmit={async (data, files) => {

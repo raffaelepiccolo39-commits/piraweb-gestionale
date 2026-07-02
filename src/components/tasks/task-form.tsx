@@ -16,6 +16,8 @@ interface TaskFormProps {
   showClientSelect?: boolean;
   /** Lista clienti (se showClientSelect è true) */
   clients?: Client[];
+  /** In creazione, pre-seleziona l'assegnatario (es. click sul "+" di una persona) */
+  defaultAssignedTo?: string | null;
   /** Se fornito, è in modalità modifica */
   task?: {
     id: string;
@@ -66,6 +68,7 @@ export function TaskForm({
   projectId,
   showClientSelect = false,
   clients = [],
+  defaultAssignedTo,
   task,
   showAttachments = false,
   showAiDescription = false,
@@ -81,7 +84,7 @@ export function TaskForm({
   const [form, setForm] = useState<TaskFormData>({
     title: task?.title || '',
     description: task?.description || '',
-    assigned_to: task?.assigned_to || '',
+    assigned_to: task?.assigned_to || defaultAssignedTo || '',
     priority: task?.priority || 'medium',
     status: task?.status || 'todo',
     deadline: task?.deadline ? task.deadline.split('T')[0] : '',
