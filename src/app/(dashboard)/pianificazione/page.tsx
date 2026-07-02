@@ -48,8 +48,10 @@ interface PlanTask {
 }
 interface SlotEntry {
   planId: string;
-  task: PlanTask;
+  task: PlanTask | null;
+  label: string | null;
 }
+const MANUAL_COLOR = '#64748b'; // slate: slot manuali (senza task)
 // slotMap[userId][slotIndex] = SlotEntry
 type SlotMap = Record<string, Record<number, SlotEntry>>;
 
@@ -64,6 +66,11 @@ function slotsForHours(h: number | null): number {
   if (!h || h <= 0) return 1;
   return Math.max(1, Math.round(h * 2));
 }
+// Chiave per raggruppare slot consecutivi dello stesso blocco (task o manuale)
+function entryKey(e?: SlotEntry | null): string {
+  if (!e) return '';
+  return e.task?.id ?? `label:${e.label ?? ''}`;
+}
 
 export default function PianificazionePage() {
   const supabase = createClient();
@@ -76,16 +83,22 @@ export default function PianificazionePage() {
   const [tasks, setTasks] = useState<PlanTask[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Ore reali (consuntivo dal timer) per collaboratore, nella data scelta
+  const [actualByUser, setActualByUser] = useState<Record<string, number>>({});
+
   // Modal di assegnazione
   const [target, setTarget] = useState<{ userId: string; slotIndex: number } | null>(null);
   const [pickSearch, setPickSearch] = useState('');
+  const [manualText, setManualText] = useState('');
+  const [manualHours, setManualHours] = useState('0.5');
 
   const fetchData = useCallback(async () => {
-    const [membersRes, slotsRes, tasksRes] = await Promise.all([
+    const nextDay = formatDateLocal(new Date(new Date(date + 'T12:00:00').getTime() + 86400000));
+    const [membersRes, slotsRes, tasksRes, entriesRes] = await Promise.all([
       supabase.from('profiles').select('*').eq('is_active', true).order('full_name'),
       supabase
         .from('task_plan_slots')
-        .select('id, user_id, slot_index, task:tasks(id, title, estimated_hours, project:projects(name, color, client:clients(name, company)))')
+        .select('id, user_id, slot_index, label, task:tasks(id, title, estimated_hours, project:projects(name, color, client:clients(name, company)))')
         .eq('plan_date', date),
       supabase
         .from('tasks')
@@ -94,17 +107,31 @@ export default function PianificazionePage() {
         .is('archived_at', null)
         .order('updated_at', { ascending: false })
         .limit(400),
+      // Ore reali registrate col timer, nella data scelta
+      supabase
+        .from('time_entries')
+        .select('user_id, duration_minutes')
+        .eq('is_running', false)
+        .gte('started_at', `${date}T00:00:00`)
+        .lt('started_at', `${nextDay}T00:00:00`),
     ]);
 
     setMembers((membersRes.data as Profile[]) || []);
     setTasks((tasksRes.data as PlanTask[]) || []);
 
     const map: SlotMap = {};
-    for (const row of (slotsRes.data as Array<{ id: string; user_id: string; slot_index: number; task: PlanTask }>) || []) {
+    for (const row of (slotsRes.data as Array<{ id: string; user_id: string; slot_index: number; label: string | null; task: PlanTask | null }>) || []) {
       if (!map[row.user_id]) map[row.user_id] = {};
-      map[row.user_id][row.slot_index] = { planId: row.id, task: row.task };
+      map[row.user_id][row.slot_index] = { planId: row.id, task: row.task, label: row.label };
     }
     setSlotMap(map);
+
+    const actual: Record<string, number> = {};
+    for (const e of (entriesRes.data as Array<{ user_id: string; duration_minutes: number | null }>) || []) {
+      actual[e.user_id] = (actual[e.user_id] || 0) + (e.duration_minutes || 0) / 60;
+    }
+    setActualByUser(actual);
+
     setLoading(false);
   }, [supabase, date]);
 
@@ -121,6 +148,8 @@ export default function PianificazionePage() {
 
   const openPicker = (userId: string, slotIndex: number) => {
     setPickSearch('');
+    setManualText('');
+    setManualHours('0.5');
     setTarget({ userId, slotIndex });
   };
 
@@ -154,12 +183,45 @@ export default function PianificazionePage() {
     fetchData();
   };
 
-  const removeBlock = async (userId: string, slotIndex: number, taskId: string) => {
+  const assignManual = async () => {
+    if (!target || !profile) return;
+    const text = manualText.trim();
+    if (!text) { toast.error('Scrivi cosa c\'è da fare'); return; }
+    const want = slotsForHours(parseFloat(manualHours.replace(',', '.')) || 0.5);
+    const { userId, slotIndex } = target;
     const memberSlots = slotMap[userId] || {};
+    let free = 0;
+    for (let i = slotIndex; i < TOTAL_SLOTS && free < want; i++) {
+      if (memberSlots[i]) break;
+      free++;
+    }
+    if (free === 0) { toast.error('Questo slot è già occupato'); return; }
+    const toInsert = Array.from({ length: free }, (_, i) => ({
+      user_id: userId,
+      task_id: null,
+      label: text,
+      plan_date: date,
+      slot_index: slotIndex + i,
+      created_by: profile.id,
+    }));
+    const { error } = await supabase.from('task_plan_slots').insert(toInsert);
+    if (error) { toast.error(error.message || 'Errore nella pianificazione'); return; }
+    toast.success(`Aggiunta attività (${(free * 0.5).toFixed(1)}h)`);
+    setManualText('');
+    setManualHours('0.5');
+    setTarget(null);
+    fetchData();
+  };
+
+  const removeBlock = async (userId: string, slotIndex: number) => {
+    const memberSlots = slotMap[userId] || {};
+    const entry = memberSlots[slotIndex];
+    if (!entry) return;
+    const key = entryKey(entry);
     let start = slotIndex;
-    while (start > 0 && memberSlots[start - 1]?.task?.id === taskId) start--;
+    while (start > 0 && memberSlots[start - 1] && entryKey(memberSlots[start - 1]) === key) start--;
     let end = slotIndex;
-    while (end < TOTAL_SLOTS - 1 && memberSlots[end + 1]?.task?.id === taskId) end++;
+    while (end < TOTAL_SLOTS - 1 && memberSlots[end + 1] && entryKey(memberSlots[end + 1]) === key) end++;
     const ids: string[] = [];
     for (let i = start; i <= end; i++) {
       if (memberSlots[i]?.planId) ids.push(memberSlots[i].planId);
@@ -244,7 +306,10 @@ export default function PianificazionePage() {
                     <div className="min-w-0">
                       <p className="text-pw-text font-semibold truncate">{m.full_name.split(' ')[0]}</p>
                       <p className="text-[10px] text-pw-text-muted truncate">{getRoleLabel(m.role)}</p>
-                      <p className="text-[10px] text-pw-text-dim">{plannedHours(m.id).toFixed(1)}/8h</p>
+                      <p className="text-[10px] text-pw-text-dim">
+                        Pianif. <span className="text-pw-text-muted font-medium">{plannedHours(m.id).toFixed(1)}</span>/8h
+                        {' · '}Reali <span className="text-pw-accent font-medium">{(actualByUser[m.id] || 0).toFixed(1)}h</span>
+                      </p>
                     </div>
                   </div>
                 </th>
@@ -273,21 +338,24 @@ export default function PianificazionePage() {
                   </td>
                   {members.map((m) => {
                     const entry = slotMap[m.id]?.[idx];
-                    const prevSame = slotMap[m.id]?.[idx - 1]?.task?.id === entry?.task?.id;
+                    const prev = slotMap[m.id]?.[idx - 1];
+                    const prevSame = !!entry && entryKey(prev) === entryKey(entry);
                     if (entry) {
-                      const color = projectColor(entry.task);
+                      const color = entry.task ? projectColor(entry.task) : MANUAL_COLOR;
+                      const top = entry.task ? clientLabel(entry.task) : 'Manuale';
+                      const main = entry.task ? entry.task.title : (entry.label || '');
                       return (
                         <td
                           key={m.id}
-                          onClick={() => removeBlock(m.id, idx, entry.task.id)}
+                          onClick={() => removeBlock(m.id, idx)}
                           title="Clicca per rimuovere"
                           className="px-1.5 py-1 border-b border-pw-border cursor-pointer group align-top"
                           style={{ backgroundColor: color + '22', borderLeft: `3px solid ${color}` }}
                         >
                           {!prevSame && (
                             <div className="min-w-0">
-                              <p className="text-[9px] uppercase text-pw-text-muted truncate leading-tight">{clientLabel(entry.task)}</p>
-                              <p className="text-pw-text font-medium truncate leading-tight">{entry.task.title}</p>
+                              <p className="text-[9px] uppercase text-pw-text-muted truncate leading-tight">{top}</p>
+                              <p className="text-pw-text font-medium truncate leading-tight">{main}</p>
                             </div>
                           )}
                           <X size={11} className="opacity-0 group-hover:opacity-100 text-red-400 float-right -mt-4" />
@@ -344,6 +412,38 @@ export default function PianificazionePage() {
                 </span>
               </button>
             ))}
+          </div>
+
+          {/* Attività manuale (testo libero, senza task) */}
+          <div className="pt-3 border-t border-pw-border space-y-2">
+            <p className="text-[11px] uppercase tracking-widest text-pw-text-dim">Oppure attività manuale</p>
+            <div className="flex items-end gap-2">
+              <div className="flex-1">
+                <Input
+                  value={manualText}
+                  onChange={(e) => setManualText(e.target.value)}
+                  placeholder="Es. Riunione, formazione, pausa attiva…"
+                />
+              </div>
+              <div className="w-20">
+                <Input
+                  type="number"
+                  min="0.5"
+                  step="0.5"
+                  value={manualHours}
+                  onChange={(e) => setManualHours(e.target.value)}
+                  placeholder="Ore"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={assignManual}
+                disabled={!manualText.trim()}
+                className="px-3 py-2 rounded-lg text-xs font-semibold bg-pw-accent text-[#0A263A] hover:bg-pw-accent-hover disabled:opacity-40 transition-colors shrink-0"
+              >
+                Aggiungi
+              </button>
+            </div>
           </div>
         </div>
       </Modal>

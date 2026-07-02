@@ -725,11 +725,13 @@ export interface TimeEntry {
   user?: Profile;
 }
 
-// Pianificazione giornaliera: uno slot da 30 min occupato da una task
+// Pianificazione giornaliera: uno slot da 30 min occupato da una task o da
+// un'attività scritta a mano (label)
 export interface TaskPlanSlot {
   id: string;
   user_id: string;
-  task_id: string;
+  task_id: string | null;
+  label: string | null;
   plan_date: string;
   slot_index: number;
   created_by: string | null;
