@@ -202,29 +202,43 @@ export default function TasksPage() {
     setParsedTasks(null);
     setTasksSaved(false);
 
+    // Timeout di sicurezza: se la richiesta non risponde entro 70s la
+    // interrompiamo, così lo spinner non gira all'infinito.
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 70_000);
+
     try {
       // Auto-crea progetto per il cliente se non esiste
-      const { data: projectId } = await supabase.rpc('get_or_create_client_project', {
+      const { data: projectId, error: rpcError } = await supabase.rpc('get_or_create_client_project', {
         p_client_id: aiClientId,
         p_created_by: profile.id,
       });
 
-      if (!projectId) { setAiLoading(false); return; }
+      if (rpcError || !projectId) {
+        toast.error('Impossibile creare il progetto per il cliente selezionato');
+        return;
+      }
 
       const res = await fetch('/api/ai/parse-tasks', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ input: aiInput, project_id: projectId }),
+        signal: controller.signal,
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (res.ok) {
         setParsedTasks(data.tasks);
       } else {
+        toast.error(data.error || 'Errore nell\'analisi AI dei task');
+      }
+    } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') {
+        toast.error('L\'AI ci sta mettendo troppo. Riprova con una richiesta più breve.');
+      } else {
         toast.error('Errore nell\'analisi AI dei task');
       }
-    } catch {
-      toast.error('Errore nell\'analisi AI dei task');
     } finally {
+      clearTimeout(timeout);
       setAiLoading(false);
     }
   };

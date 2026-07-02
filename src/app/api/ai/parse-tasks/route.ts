@@ -1,4 +1,8 @@
 export const dynamic = 'force-dynamic';
+// La generazione di più task è più lenta di una singola descrizione: senza
+// questo la funzione veniva uccisa al timeout di default e la richiesta
+// restava appesa (spinner infinito lato client).
+export const maxDuration = 60;
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { checkRateLimit, AI_RATE_LIMIT } from '@/lib/rate-limit';
@@ -26,7 +30,7 @@ async function callClaude(prompt: string): Promise<string> {
     }),
   });
 
-  if (!response.ok) throw new Error('Claude API error');
+  if (!response.ok) throw new Error(`Claude API error ${response.status}: ${await response.text()}`);
   const data = await response.json();
   return data.content[0].text;
 }
@@ -45,7 +49,7 @@ async function callOpenAI(prompt: string): Promise<string> {
     }),
   });
 
-  if (!response.ok) throw new Error('OpenAI API error');
+  if (!response.ok) throw new Error(`OpenAI API error ${response.status}: ${await response.text()}`);
   const data = await response.json();
   return data.choices[0].message.content;
 }
@@ -139,10 +143,12 @@ Genera task specifici, actionable. Se l'input menziona più attività, crea un t
 
   try {
     result = await callClaude(prompt);
-  } catch {
+  } catch (claudeErr) {
+    console.error('[parse-tasks] Claude fallito:', claudeErr);
     try {
       result = await callOpenAI(prompt);
-    } catch {
+    } catch (openaiErr) {
+      console.error('[parse-tasks] OpenAI fallito:', openaiErr);
       return NextResponse.json(
         { error: 'Errore nella generazione AI. Verifica le API key.' },
         { status: 500 }
