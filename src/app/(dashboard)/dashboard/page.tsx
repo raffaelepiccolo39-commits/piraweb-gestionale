@@ -422,10 +422,21 @@ export default function DashboardPage() {
               <Filter size={14} />
               Questa settimana
             </Button>
-            <Button variant="primary" size="md">
-              <Plus size={14} />
-              Nuovo progetto
-            </Button>
+            {isAdmin ? (
+              <Link href="/projects">
+                <Button variant="primary" size="md">
+                  <Plus size={14} />
+                  Nuovo progetto
+                </Button>
+              </Link>
+            ) : (
+              <Link href="/tasks">
+                <Button variant="primary" size="md">
+                  <Plus size={14} />
+                  Nuova Task
+                </Button>
+              </Link>
+            )}
           </>
         }
       />
