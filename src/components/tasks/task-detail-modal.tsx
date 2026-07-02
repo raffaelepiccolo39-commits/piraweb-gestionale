@@ -10,7 +10,7 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Select } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { formatDateTime, getInitials } from '@/lib/utils';
-import type { Task, Profile, TaskComment, TaskAttachment, Client } from '@/types/database';
+import type { Task, Profile, TaskComment, TaskAttachment, Client, TimeEntry } from '@/types/database';
 import {
   Calendar,
   User,
@@ -90,6 +90,11 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
   const [elapsed, setElapsed] = useState('00:00:00');
   const [timerBusy, setTimerBusy] = useState(false);
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Registrazione manuale ore + giustificazione
+  const [timeEntries, setTimeEntries] = useState<TimeEntry[]>([]);
+  const [logHours, setLogHours] = useState('');
+  const [logNote, setLogNote] = useState('');
+  const [loggingHours, setLoggingHours] = useState(false);
 
   useEffect(() => {
     if (task) {
@@ -130,6 +135,25 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
       .then(({ data }) => setRunningEntry(data ? { id: data.id, started_at: data.started_at } : null));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [task?.id, currentUserId]);
+
+  // Carica le ore registrate (di tutti) su questa task, con giustificazione
+  const fetchTimeEntries = async (taskId: string) => {
+    const { data } = await supabase
+      .from('time_entries')
+      .select('*, user:profiles!time_entries_user_id_fkey(id, full_name)')
+      .eq('task_id', taskId)
+      .eq('is_running', false)
+      .order('started_at', { ascending: false });
+    setTimeEntries((data as TimeEntry[]) || []);
+  };
+
+  useEffect(() => {
+    if (task?.id) fetchTimeEntries(task.id);
+    else setTimeEntries([]);
+    setLogHours('');
+    setLogNote('');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [task?.id]);
 
   // Tick del cronometro
   useEffect(() => {
@@ -205,6 +229,48 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
     } else {
       toast.success('Task completata');
     }
+    onUpdate?.();
+  };
+
+  const handleLogHours = async () => {
+    if (!task || !currentUserId) return;
+    const hours = parseFloat(logHours.replace(',', '.'));
+    if (!hours || hours <= 0) {
+      toast.error('Inserisci un numero di ore valido');
+      return;
+    }
+    setLoggingHours(true);
+    const now = new Date().toISOString();
+    const { error } = await supabase.from('time_entries').insert({
+      task_id: task.id,
+      user_id: currentUserId,
+      description: logNote.trim() || null,
+      started_at: now,
+      ended_at: now,
+      duration_minutes: Math.round(hours * 60),
+      is_running: false,
+    });
+    setLoggingHours(false);
+    if (error) {
+      console.error('[task-detail] log hours failed:', error);
+      toast.error(error.message || 'Errore nella registrazione delle ore');
+      return;
+    }
+    setLogHours('');
+    setLogNote('');
+    await fetchTimeEntries(task.id);
+    toast.success('Ore registrate');
+    onUpdate?.();
+  };
+
+  const handleDeleteEntry = async (entryId: string) => {
+    if (!task) return;
+    const { error } = await supabase.from('time_entries').delete().eq('id', entryId);
+    if (error) {
+      toast.error(error.message || 'Errore nell\'eliminazione della registrazione');
+      return;
+    }
+    await fetchTimeEntries(task.id);
     onUpdate?.();
   };
 
@@ -362,7 +428,7 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
     // Il link al lavoro è facoltativo: chiunque (incluso l'assegnatario) può
     // spostare la task in "Review"/"Fatto" anche senza link.
     setSaving(true);
-    const { error } = await supabase.from('tasks').update({
+    const { data, error } = await supabase.from('tasks').update({
       title,
       description: description || null,
       assigned_to: assignedTo || null,
@@ -371,11 +437,17 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
       deadline: deadline || null,
       estimated_hours: estimatedHours ? Number(estimatedHours) : null,
       delivery_url: deliveryUrl.trim() || null,
-    }).eq('id', task.id);
+    }).eq('id', task.id).select('id');
     setSaving(false);
     if (error) {
       console.error('[task-detail] update task failed:', error);
       toast.error('Errore nel salvataggio della task');
+      return;
+    }
+    // Nessuna riga aggiornata = RLS ha bloccato l'update in silenzio
+    // (es. la modifica "si salvava" ma poi tornava indietro).
+    if (!data || data.length === 0) {
+      toast.error('Non hai i permessi per modificare questa task');
       return;
     }
     toast.success('Task aggiornata');
@@ -631,6 +703,60 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
                       Task completata
                     </button>
                   </>
+                )}
+              </div>
+
+              {/* Registra ore manualmente + giustificazione */}
+              <div className="mt-3 pt-3 border-t border-pw-border">
+                <p className="text-[11px] uppercase tracking-widest text-pw-text-dim mb-2">Registra ore</p>
+                <div className="flex items-end gap-2">
+                  <div className="w-20">
+                    <Input
+                      type="number"
+                      min="0"
+                      step="0.25"
+                      value={logHours}
+                      onChange={(e) => setLogHours(e.target.value)}
+                      placeholder="Ore"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <Input
+                      value={logNote}
+                      onChange={(e) => setLogNote(e.target.value)}
+                      placeholder="Giustificazione (es. montaggio video reel)"
+                    />
+                  </div>
+                  <Button size="sm" onClick={handleLogHours} loading={loggingHours} disabled={!logHours}>
+                    <Clock size={14} />
+                    Registra
+                  </Button>
+                </div>
+
+                {timeEntries.length > 0 && (
+                  <div className="mt-3 space-y-1.5">
+                    {timeEntries.map((entry) => (
+                      <div key={entry.id} className="flex items-start gap-2 text-xs">
+                        <span className="font-mono font-semibold text-pw-accent tabular-nums shrink-0 w-12">
+                          {((entry.duration_minutes || 0) / 60).toFixed(2)}h
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <span className="text-pw-text-muted">{entry.user?.full_name || 'Utente'}</span>
+                          {entry.description && <span className="text-pw-text"> — {entry.description}</span>}
+                        </div>
+                        {entry.user_id === currentUserId && (
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteEntry(entry.id)}
+                            className="text-pw-text-dim hover:text-red-400 transition-colors shrink-0"
+                            title="Elimina registrazione"
+                          >
+                            <X size={12} />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
             </div>
