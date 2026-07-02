@@ -725,6 +725,18 @@ export interface TimeEntry {
   user?: Profile;
 }
 
+// Pianificazione giornaliera: uno slot da 30 min occupato da una task
+export interface TaskPlanSlot {
+  id: string;
+  user_id: string;
+  task_id: string;
+  plan_date: string;
+  slot_index: number;
+  created_by: string | null;
+  created_at: string;
+  task?: Task;
+}
+
 // === CONTENT APPROVAL ===
 export type ApprovalStatus = 'pending' | 'approved' | 'rejected' | 'revision_requested';
 
