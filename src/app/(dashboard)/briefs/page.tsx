@@ -361,7 +361,7 @@ export default function BriefsPage() {
       <Modal open={showForm} onClose={() => setShowForm(false)} title="Nuovo Brief Creativo">
         <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
           <Input label="Titolo Brief" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Es: Campagna lancio estate 2026" required />
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Select label="Progetto" value={form.project_id} onChange={(e) => setForm({ ...form, project_id: e.target.value })} options={projects.map((p) => ({ value: p.id, label: p.name }))} placeholder="Seleziona..." required />
             <Select label="Cliente" value={form.client_id} onChange={(e) => setForm({ ...form, client_id: e.target.value })} options={[{ value: '', label: 'Nessuno' }, ...clients.map((c) => ({ value: c.id, label: c.company || c.name }))]} placeholder="Opzionale" />
           </div>
@@ -370,12 +370,12 @@ export default function BriefsPage() {
           <Textarea label="Messaggio Chiave" value={form.key_message} onChange={(e) => setForm({ ...form, key_message: e.target.value })} placeholder="Qual è il messaggio principale da comunicare?" rows={2} />
           <Input label="Tone of Voice" value={form.tone_of_voice} onChange={(e) => setForm({ ...form, tone_of_voice: e.target.value })} placeholder="Es: Professionale ma accessibile, giovane, ironico..." />
           <Textarea label="Deliverable" value={form.deliverables} onChange={(e) => setForm({ ...form, deliverables: e.target.value })} placeholder="Lista dei deliverable attesi (es: 5 post Instagram, 1 video reel, 2 stories)" rows={3} />
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Textarea label="Da Fare (DO)" value={form.do_list} onChange={(e) => setForm({ ...form, do_list: e.target.value })} placeholder="Cosa deve essere fatto..." rows={3} />
             <Textarea label="Da NON Fare (DON'T)" value={form.dont_list} onChange={(e) => setForm({ ...form, dont_list: e.target.value })} placeholder="Cosa evitare..." rows={3} />
           </div>
           <Textarea label="Link Riferimenti (uno per riga)" value={form.references_urls} onChange={(e) => setForm({ ...form, references_urls: e.target.value })} placeholder="https://pinterest.com/pin/...&#10;https://figma.com/file/..." rows={3} />
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input label="Deadline" type="date" value={form.deadline} onChange={(e) => setForm({ ...form, deadline: e.target.value })} />
             <Input label="Note Budget" value={form.budget_notes} onChange={(e) => setForm({ ...form, budget_notes: e.target.value })} placeholder="Es: Max €500 per foto stock" />
           </div>

@@ -215,7 +215,7 @@ export default function AnalyticsPage() {
       ) : (
         <>
           {/* Summary cards */}
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 stagger-children">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 stagger-children">
             {statCards.map((stat) => (
               <Card key={stat.label}>
                 <CardContent className="p-4">

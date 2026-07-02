@@ -555,7 +555,7 @@ export default function LeadFinderPage() {
                           ) : null}
 
                           {/* Checklist grid */}
-                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 text-[10px]">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 sm:grid-cols-4 gap-1.5 text-[10px]">
                             {[
                               { label: 'Sito web', ok: r.has_website },
                               { label: 'HTTPS', ok: r.has_ssl },
@@ -864,7 +864,7 @@ export default function LeadFinderPage() {
                                     {/* Website specific details */}
                                     {cat.key === 'website' && cat.details && (
                                       <div className="px-4 py-3 border-b border-pw-border/10">
-                                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[10px]">
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 sm:grid-cols-4 gap-2 text-[10px]">
                                           {[
                                             { label: 'HTTPS/SSL', ok: cat.details.ssl },
                                             { label: 'Mobile', ok: cat.details.mobile_responsive },

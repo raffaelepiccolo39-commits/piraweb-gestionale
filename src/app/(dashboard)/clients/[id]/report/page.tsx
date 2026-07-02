@@ -208,7 +208,7 @@ export default function ClientReportPage({ params }: { params: Promise<{ id: str
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 stagger-children">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 stagger-children">
         <Card>
           <CardContent className="p-4 text-center">
             <div className="w-10 h-10 rounded-xl bg-blue-500/15 text-blue-500 flex items-center justify-center mx-auto mb-2">

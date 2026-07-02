@@ -299,7 +299,7 @@ export default function TurniPage() {
             value={form.shift_date}
             onChange={(e) => setForm(f => ({ ...f, shift_date: e.target.value }))}
           />
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Input id="sh-start" type="time" label="Inizio" value={form.start_time} onChange={(e) => setForm(f => ({ ...f, start_time: e.target.value }))} />
             <Input id="sh-end" type="time" label="Fine" value={form.end_time} onChange={(e) => setForm(f => ({ ...f, end_time: e.target.value }))} />
           </div>

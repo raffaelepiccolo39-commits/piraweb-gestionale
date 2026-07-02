@@ -256,7 +256,7 @@ export default function AiPage() {
                 onChange={(e) => setScriptForm({ ...scriptForm, script_type: e.target.value })}
                 options={scriptTypeOptions}
               />
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Select
                   id="script-client"
                   label="Cliente"

@@ -202,7 +202,7 @@ export default function TimesheetPage() {
 
       {/* Summary cards */}
       {isAdmin && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 stagger-children">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 stagger-children">
           <Card>
             <CardContent className="p-4 text-center">
               <p className="text-2xl font-bold text-pw-text font-[var(--font-bebas)] animate-count">{teamTotalHours.toFixed(1)}h</p>

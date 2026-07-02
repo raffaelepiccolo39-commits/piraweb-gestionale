@@ -294,7 +294,7 @@ export default function InvoicesPage() {
       )}
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 stagger-children">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 stagger-children">
         <Card><CardContent className="p-3 text-center">
           <p className="text-lg font-bold text-pw-text-dim">{formatCurrency(totalDraft)}</p>
           <p className="text-[10px] text-pw-text-muted">Bozze</p>
@@ -557,7 +557,7 @@ export default function InvoicesPage() {
       <Modal open={showAddItem} onClose={() => setShowAddItem(false)} title="Aggiungi Voce">
         <div className="space-y-4">
           <Input label="Descrizione" value={itemForm.description} onChange={(e) => setItemForm({ ...itemForm, description: e.target.value })} placeholder="Es: Gestione social media" required />
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input label="Quantita'" type="number" value={itemForm.quantity} onChange={(e) => setItemForm({ ...itemForm, quantity: e.target.value })} />
             <Input label="Prezzo unitario (€)" type="number" value={itemForm.unit_price} onChange={(e) => setItemForm({ ...itemForm, unit_price: e.target.value })} required />
           </div>

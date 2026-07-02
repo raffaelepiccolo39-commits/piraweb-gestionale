@@ -218,7 +218,7 @@ export function InstallmentsManager({ clientId, projectId, projectBudget, readon
     <div className="space-y-3">
       {/* Riepilogo budget (solo se progetto con budget) */}
       {showBudgetSummary && (
-        <div className="grid gap-3 grid-cols-2 sm:grid-cols-4">
+        <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 sm:grid-cols-4">
           <Card><CardContent className="p-3">
             <div className="text-[11px] text-pw-text-muted uppercase tracking-wide">Budget</div>
             <div className="text-lg font-semibold text-pw-text tabular-nums">{formatEur(projectBudget)}</div>
@@ -345,7 +345,7 @@ export function InstallmentsManager({ clientId, projectId, projectBudget, readon
             onChange={(e) => setForm({ ...form, label: e.target.value })}
             placeholder='Es. "Acconto 1", "Saldo"'
           />
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Input
               id="inst-amount"
               label="Importo (€) *"
@@ -368,7 +368,7 @@ export function InstallmentsManager({ clientId, projectId, projectBudget, readon
             Già pagato
           </label>
           {form.paid_now && (
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Input
                 id="inst-paid-date"
                 label="Data pagamento"

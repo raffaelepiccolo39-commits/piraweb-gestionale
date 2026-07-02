@@ -3,7 +3,7 @@ export default function DashboardLoading() {
     <div className="space-y-6 animate-pulse">
       <div className="h-8 w-64 bg-pw-surface-2 rounded-xl" />
       <div className="h-4 w-48 bg-pw-surface-2 rounded-lg" />
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         {Array.from({ length: 6 }).map((_, i) => (
           <div key={i} className="h-24 bg-pw-surface-2 rounded-2xl" />
         ))}

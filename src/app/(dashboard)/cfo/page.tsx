@@ -503,7 +503,7 @@ export default function CFOPage() {
       )}
 
       {/* ═══ SEZIONE 1: KPI PRINCIPALI ═══ */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 stagger-children">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 stagger-children">
         <Card>
           <CardContent className="p-4">
             <p className="text-[10px] uppercase tracking-widest text-pw-text-dim">MRR (Ricavo Mensile)</p>
@@ -830,7 +830,7 @@ export default function CFOPage() {
       </Card>
 
       {/* ═══ SEZIONE 7: RIEPILOGO QUICK ═══ */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 stagger-children">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 stagger-children">
         <Card>
           <CardContent className="p-4 text-center">
             <Briefcase size={20} className="text-pw-text-dim mx-auto mb-1" />
@@ -1069,7 +1069,7 @@ export default function CFOPage() {
                         </div>
                         <span className="text-xs text-pw-text-dim">{String(p.month || '')}</span>
                       </div>
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
                         <div>
                           <span className="text-pw-text-dim">Lordo</span>
                           <p className="font-medium text-pw-text">{formatCurrency(Number(p.lordo_mensile) || 0)}</p>
@@ -1128,7 +1128,7 @@ export default function CFOPage() {
             onChange={(e) => setExpenseForm({ ...expenseForm, name: e.target.value })}
             placeholder="es. Canone Aruba, Licenza Adobe, Affitto ufficio"
           />
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Select
               id="expense-category"
               label="Categoria"

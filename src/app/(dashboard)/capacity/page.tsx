@@ -123,7 +123,7 @@ export default function CapacityPage() {
       />
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 stagger-children">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4 stagger-children">
         <Card><CardContent className="p-3 text-center">
           <p className={`text-xl font-bold ${teamUtilization > 85 ? 'text-red-400' : teamUtilization > 60 ? 'text-green-400' : 'text-yellow-400'}`}>{teamUtilization}%</p>
           <p className="text-[10px] text-pw-text-muted">Utilizzo medio</p>

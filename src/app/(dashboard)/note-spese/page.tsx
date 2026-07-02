@@ -474,7 +474,7 @@ export default function NoteSpesePage() {
             onChange={(e) => setForm(f => ({ ...f, category: e.target.value as ExpenseCategory }))}
             options={Object.entries(EXPENSE_CATEGORY_LABELS).map(([value, label]) => ({ value, label }))}
           />
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Input id="exp-amount" type="number" step="0.01" min="0" label="Importo (€)"
               value={form.amount}
               onChange={(e) => setForm(f => ({ ...f, amount: e.target.value }))}

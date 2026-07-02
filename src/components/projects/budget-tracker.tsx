@@ -142,7 +142,7 @@ export function BudgetTracker({ projectId, clientId }: BudgetTrackerProps) {
   return (
     <div className="space-y-4">
       {/* KPI Row */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
         <div className="p-3 rounded-xl bg-pw-surface-2 text-center">
           <Euro size={16} className="text-blue-400 mx-auto mb-1" />
           <p className="text-sm font-bold text-pw-text">{formatCurrency(budget.monthlyRevenue)}</p>
