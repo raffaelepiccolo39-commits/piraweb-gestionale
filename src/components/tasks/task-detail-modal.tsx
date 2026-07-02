@@ -456,10 +456,16 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
 
   const handleDelete = async () => {
     if (!task) return;
-    const { error } = await supabase.from('tasks').delete().eq('id', task.id);
+    const { data, error } = await supabase.from('tasks').delete().eq('id', task.id).select('id');
     if (error) {
       console.error('[task-detail] delete task failed:', error);
       toast.error('Errore nella rimozione della task');
+      return;
+    }
+    // Nessuna riga eliminata = RLS ha bloccato in silenzio (prima mostrava
+    // "Task eliminata" pur non cancellando nulla).
+    if (!data || data.length === 0) {
+      toast.error('Non hai i permessi per eliminare questa task');
       return;
     }
     toast.success('Task eliminata');
