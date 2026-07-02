@@ -388,8 +388,10 @@ export default function ClientsPage() {
       setEditingMonthlyFee(undefined);
       toast.success('Cliente aggiornato con successo');
       fetchClients();
-    } catch {
-      toast.error('Errore durante l\'aggiornamento del cliente');
+    } catch (e) {
+      console.error('[clients] update failed:', e);
+      const msg = (e as { message?: string } | undefined)?.message;
+      toast.error(msg ? `Errore aggiornamento cliente: ${msg}` : 'Errore durante l\'aggiornamento del cliente');
     }
   };
 
