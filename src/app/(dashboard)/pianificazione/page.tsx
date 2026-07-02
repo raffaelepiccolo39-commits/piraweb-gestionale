@@ -231,7 +231,7 @@ export default function PianificazionePage() {
 
       {/* Griglia */}
       <div className="overflow-x-auto no-scrollbar rounded-xl border border-pw-border">
-        <table className="w-full border-collapse text-xs">
+        <table className="w-full border-collapse text-xs [&_td]:border [&_th]:border [&_td]:border-pw-border [&_th]:border-pw-border [&_td]:h-9">
           <thead>
             <tr>
               <th className="sticky left-0 z-10 bg-pw-surface-2 w-16 min-w-16 px-2 py-2 text-left text-pw-text-dim font-medium border-b border-r border-pw-border">Ora</th>
