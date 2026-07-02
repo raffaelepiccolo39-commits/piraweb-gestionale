@@ -6,14 +6,11 @@ import { Suspense } from 'react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
 import { PageHeader } from '@/components/ui/page-header';
-import { MessageSquare, Clock, Network, Wrench, UserCog, BarChart3 } from 'lucide-react';
+import { MessageSquare, Clock, BarChart3 } from 'lucide-react';
 
 // Import delle pagine esistenti
 import BachecaPage from '../bacheca/page';
 import PresenzePage from '../presenze/page';
-import OrganigrammaPage from '../organigramma/page';
-import ToolsPage from '../tools/page';
-import FreelancersPage from '../freelancers/page';
 import CapacityPage from '../capacity/page';
 
 interface TeamTab {
@@ -26,9 +23,6 @@ interface TeamTab {
 const tabs: TeamTab[] = [
   { id: 'bacheca', label: 'Bacheca', icon: MessageSquare },
   { id: 'presenze', label: 'Presenze', icon: Clock },
-  { id: 'organigramma', label: 'Organigramma', icon: Network },
-  { id: 'tools', label: 'Tools', icon: Wrench },
-  { id: 'freelancers', label: 'Freelancers', icon: UserCog, adminOnly: true },
   { id: 'capacity', label: 'Capacità', icon: BarChart3, adminOnly: true },
 ];
 
@@ -74,9 +68,6 @@ function TeamContent() {
       <div>
         {activeTab === 'bacheca' && <BachecaPage />}
         {activeTab === 'presenze' && <PresenzePage />}
-        {activeTab === 'organigramma' && <OrganigrammaPage />}
-        {activeTab === 'tools' && <ToolsPage />}
-        {activeTab === 'freelancers' && isAdmin && <FreelancersPage />}
         {activeTab === 'capacity' && isAdmin && <CapacityPage />}
       </div>
     </div>
