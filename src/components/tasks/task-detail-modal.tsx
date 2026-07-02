@@ -86,7 +86,6 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
   const [generatingAi, setGeneratingAi] = useState(false);
   const [aiError, setAiError] = useState(false);
   const [deliveryUrl, setDeliveryUrl] = useState('');
-  const [linkError, setLinkError] = useState(false);
   const [runningEntry, setRunningEntry] = useState<{ id: string; started_at: string } | null>(null);
   const [elapsed, setElapsed] = useState('00:00:00');
   const [timerBusy, setTimerBusy] = useState(false);
@@ -102,7 +101,6 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
       setDeadline(task.deadline ? task.deadline.split('T')[0] : '');
       setEstimatedHours(task.estimated_hours ? String(task.estimated_hours) : '');
       setDeliveryUrl(task.delivery_url || '');
-      setLinkError(false);
       setNewComment('');
       setCommentImage(null);
       setCommentImagePreview('');
@@ -361,15 +359,8 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
 
   const handleSave = async () => {
     if (!task) return;
-    // Link al lavoro obbligatorio per "Review" e "Fatto": chi rivede/consegna
-    // deve poter aprire il lavoro.
-    if ((status === 'review' || status === 'done') && !deliveryUrl.trim() && !task.delivery_url) {
-      const label = status === 'review' ? 'Review' : 'Fatto';
-      setLinkError(true);
-      toast.error(`Per spostare in "${label}" inserisci il link al lavoro (Google Drive, Figma, ecc.)`);
-      return;
-    }
-    setLinkError(false);
+    // Il link al lavoro è facoltativo: chiunque (incluso l'assegnatario) può
+    // spostare la task in "Review"/"Fatto" anche senza link.
     setSaving(true);
     const { error } = await supabase.from('tasks').update({
       title,
@@ -571,19 +562,10 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
               <input
                 type="url"
                 value={deliveryUrl}
-                onChange={(e) => { setDeliveryUrl(e.target.value); if (linkError) setLinkError(false); }}
+                onChange={(e) => setDeliveryUrl(e.target.value)}
                 placeholder="https://drive.google.com/..."
-                className={`w-full px-3 py-2 rounded-lg border bg-pw-surface-2 text-pw-text text-xs focus:ring-2 outline-none ${
-                  linkError
-                    ? 'border-red-400 focus:ring-red-400/30 focus:border-red-400'
-                    : 'border-pw-border focus:ring-pw-accent/30 focus:border-pw-accent/50'
-                }`}
+                className="w-full px-3 py-2 rounded-lg border border-pw-border bg-pw-surface-2 text-pw-text text-xs focus:ring-2 focus:ring-pw-accent/30 focus:border-pw-accent/50 outline-none"
               />
-              {linkError && (
-                <p className="text-[11px] text-red-400 mt-1">
-                  Inserisci il link al lavoro per spostare la task in “Review” o “Fatto”.
-                </p>
-              )}
               {deliveryUrl && (
                 <a href={deliveryUrl} target="_blank" rel="noopener noreferrer" className="text-[10px] text-pw-accent hover:underline mt-1 inline-flex items-center gap-1">
                   Apri link <ExternalLink size={8} />
