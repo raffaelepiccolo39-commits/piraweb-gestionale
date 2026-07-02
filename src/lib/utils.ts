@@ -6,6 +6,24 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 /**
+ * Rende un nome file sicuro come chiave di Supabase Storage.
+ * Lo storage rifiuta/gestisce male chiavi con spazi, apostrofi (es.
+ * "NOTAIO D'AUSILIO.pdf") e lettere accentate → l'upload falliva.
+ * Mantiene l'estensione; il nome originale va salvato a parte per la UI.
+ */
+export function safeStorageName(name: string): string {
+  const strip = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, ''); // via accenti
+  const dot = name.lastIndexOf('.');
+  const base = dot > 0 ? name.slice(0, dot) : name;
+  const ext = dot > 0 ? name.slice(dot) : '';
+  const clean = strip(base)
+    .replace(/[^a-zA-Z0-9._-]+/g, '_') // spazi/apostrofi/simboli → _
+    .replace(/_+/g, '_').replace(/^_|_$/g, '');
+  const cleanExt = strip(ext).replace(/[^a-zA-Z0-9.]+/g, '');
+  return (clean || 'file') + cleanExt;
+}
+
+/**
  * Restituisce una data come 'YYYY-MM-DD' usando i componenti LOCALI
  * (anno/mese/giorno del fuso del browser), non UTC.
  *

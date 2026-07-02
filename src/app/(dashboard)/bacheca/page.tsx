@@ -24,7 +24,7 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { TaskDetailModal } from '@/components/tasks/task-detail-modal';
 import { TaskForm } from '@/components/tasks/task-form';
 import { TaskViewSwitcher } from '@/components/tasks/view-switcher';
-import { formatDate, getInitials, getStatusBarColor } from '@/lib/utils';
+import { formatDate, getInitials, getStatusBarColor, safeStorageName } from '@/lib/utils';
 import type { Task, Profile, Client } from '@/types/database';
 import {
   LayoutGrid,
@@ -526,11 +526,15 @@ export default function BachecaPage() {
               if (taskErr) throw taskErr;
 
               if (createdTask && files && files.length > 0) {
+                const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
                 let attachFailed = 0;
+                let lastErr = '';
                 for (const file of files) {
-                  const path = `${createdTask.id}/${Date.now()}_${file.name}`;
+                  if (file.size > MAX_FILE_SIZE) { attachFailed++; lastErr = `"${file.name}" supera i 10MB`; continue; }
+                  // Sanifica il nome per la chiave storage (spazi/apostrofi/accenti la facevano fallire)
+                  const path = `${createdTask.id}/${Date.now()}_${safeStorageName(file.name)}`;
                   const { error: uploadError } = await supabase.storage.from('attachments').upload(path, file);
-                  if (uploadError) { attachFailed++; continue; }
+                  if (uploadError) { attachFailed++; lastErr = uploadError.message; console.error('[bacheca] upload allegato fallito:', file.name, uploadError); continue; }
                   const { data: urlData } = supabase.storage.from('attachments').getPublicUrl(path);
                   const { error: attErr } = await supabase.from('task_attachments').insert({
                     task_id: createdTask.id,
@@ -540,9 +544,9 @@ export default function BachecaPage() {
                     file_size: file.size,
                     uploaded_by: profile.id,
                   });
-                  if (attErr) attachFailed++;
+                  if (attErr) { attachFailed++; lastErr = attErr.message; console.error('[bacheca] insert allegato fallito:', file.name, attErr); }
                 }
-                if (attachFailed > 0) toast.error(`${attachFailed} allegato${attachFailed === 1 ? '' : 'i'} non caricato${attachFailed === 1 ? '' : 'i'}`);
+                if (attachFailed > 0) toast.error(`${attachFailed} allegato/i non caricato/i${lastErr ? `: ${lastErr}` : ''}`);
               }
 
               toast.success('Task creata');

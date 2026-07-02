@@ -9,7 +9,7 @@ import { useToast } from '@/components/ui/toast';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Select } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { formatDateTime, getInitials } from '@/lib/utils';
+import { formatDateTime, getInitials, safeStorageName } from '@/lib/utils';
 import type { Task, Profile, TaskComment, TaskAttachment, Client, TimeEntry } from '@/types/database';
 import {
   Calendar,
@@ -335,7 +335,7 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
         skippedSize++;
         continue;
       }
-      const path = `${task.id}/${Date.now()}_${file.name}`;
+      const path = `${task.id}/${Date.now()}_${safeStorageName(file.name)}`;
       const { error: uploadError } = await supabase.storage.from('attachments').upload(path, file);
       if (uploadError) {
         console.error('[task-detail] upload failed:', file.name, uploadError);
