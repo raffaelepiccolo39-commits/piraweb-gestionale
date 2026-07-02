@@ -216,11 +216,11 @@ export default function BachecaPage() {
             <img
               src={getClientLogo(task) as string}
               alt={getClientName(task)}
-              className="mt-0.5 shrink-0 w-8 h-8 rounded-md object-cover border border-pw-border bg-white"
+              className="mt-0.5 shrink-0 w-10 h-10 rounded-md object-contain p-1 border border-pw-border bg-white"
             />
           ) : (
             <div
-              className="mt-0.5 shrink-0 w-8 h-8 rounded-md flex items-center justify-center text-[9px] font-bold text-white"
+              className="mt-0.5 shrink-0 w-10 h-10 rounded-md flex items-center justify-center text-[11px] font-bold text-white"
               style={{ backgroundColor: getProjectColor(task) }}
               title={getClientName(task)}
             >
