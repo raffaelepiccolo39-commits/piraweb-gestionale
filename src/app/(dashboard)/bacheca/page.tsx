@@ -24,7 +24,7 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { TaskDetailModal } from '@/components/tasks/task-detail-modal';
 import { TaskForm } from '@/components/tasks/task-form';
 import { TaskViewSwitcher } from '@/components/tasks/view-switcher';
-import { formatDate, getInitials, getStatusBarColor, safeStorageName } from '@/lib/utils';
+import { formatDate, getInitials, getStatusBarColor, getStatusColor, safeStorageName } from '@/lib/utils';
 import type { Task, Profile, Client } from '@/types/database';
 import {
   LayoutGrid,
@@ -64,7 +64,7 @@ export default function BachecaPage() {
         .from('tasks')
         .select(`
           *,
-          project:projects(id, name, color, client_id, client:clients(id, name, company)),
+          project:projects(id, name, color, client_id, client:clients(id, name, company, logo_url)),
           assignee:profiles!tasks_assigned_to_fkey(id, full_name, color)
         `)
         .is('archived_at', null)
@@ -164,6 +164,11 @@ export default function BachecaPage() {
     return project?.client?.company || project?.client?.name || project?.name || '';
   };
 
+  const getClientLogo = (task: Task): string | null => {
+    const project = task.project as { client?: { logo_url?: string | null } } | undefined;
+    return project?.client?.logo_url || null;
+  };
+
   const getProjectColor = (task: Task): string => {
     const project = task.project as { color: string } | undefined;
     return project?.color || '#FFD108';
@@ -204,64 +209,57 @@ export default function BachecaPage() {
             : 'border-pw-border bg-pw-surface-2 hover:border-pw-border-hover'
         }`}
       >
-        {/* Client color bar */}
-        <div className="flex items-center gap-2 mb-1.5">
-          <div className="w-8 h-1 rounded-full" style={{ backgroundColor: getProjectColor(task) }} />
-          {task.ai_generated && <Sparkles size={10} className="text-pw-accent" />}
-          {isDone && <CheckCircle2 size={10} className="text-green-500" />}
-        </div>
-
-        {/* Task status check */}
-        <div className="flex items-start gap-2">
-          <button
-            onClick={async (e) => {
-              e.stopPropagation();
-              if (isDone) {
-                // Ripristina
-                await supabase.from('tasks').update({ status: 'todo' }).eq('id', task.id);
-              } else {
-                await supabase.from('tasks').update({ status: 'done' }).eq('id', task.id);
-              }
-              fetchData();
-            }}
-            className={`mt-0.5 shrink-0 w-4 h-4 rounded border transition-colors duration-200 ease-out ${
-              isDone
-                ? 'border-green-500 bg-green-500 flex items-center justify-center'
-                : 'border-pw-border hover:border-green-500'
-            }`}
-            title={isDone ? 'Ripristina' : 'Segna come completato'}
-          >
-            {isDone && <CheckCircle2 size={10} className="text-white" />}
-          </button>
+        {/* Logo cliente (al posto del checkbox) + nome cliente + titolo */}
+        <div className="flex items-start gap-2.5">
+          {getClientLogo(task) ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={getClientLogo(task) as string}
+              alt={getClientName(task)}
+              className="mt-0.5 shrink-0 w-8 h-8 rounded-md object-cover border border-pw-border bg-white"
+            />
+          ) : (
+            <div
+              className="mt-0.5 shrink-0 w-8 h-8 rounded-md flex items-center justify-center text-[9px] font-bold text-white"
+              style={{ backgroundColor: getProjectColor(task) }}
+              title={getClientName(task)}
+            >
+              {getInitials(getClientName(task) || '—')}
+            </div>
+          )}
           <div className="flex-1 min-w-0">
-            <p className={`text-xs truncate uppercase font-medium ${isDone ? 'text-pw-text-dim' : 'text-pw-text-muted'}`}>
-              {getClientName(task)}
-            </p>
+            <div className="flex items-center gap-1.5">
+              <p className={`text-xs truncate uppercase font-medium ${isDone ? 'text-pw-text-dim' : 'text-pw-text-muted'}`}>
+                {getClientName(task)}
+              </p>
+              {task.ai_generated && <Sparkles size={10} className="text-pw-accent shrink-0" />}
+            </div>
             <p className={`text-sm font-medium mt-0.5 leading-snug ${isDone ? 'text-pw-text-dim line-through' : 'text-pw-text'}`}>
               {task.title}
             </p>
           </div>
         </div>
 
-        {/* Footer */}
-        {!isDone && (
-          <div className="flex items-center gap-2 mt-2">
-            {task.deadline && (
-              <span className={`flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-md ${
-                isOverdue(task) ? 'bg-red-500/15 text-red-400' : 'bg-pw-surface-3 text-pw-text-muted'
-              }`}>
-                <Calendar size={10} />
-                {formatDate(task.deadline)}
-              </span>
-            )}
-            {task.priority === 'urgent' && (
-              <span className="flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-md bg-red-500/15 text-red-400">
-                <AlertTriangle size={10} />
-                Urgente
-              </span>
-            )}
-          </div>
-        )}
+        {/* Footer: scadenza + STATO + urgente */}
+        <div className="flex flex-wrap items-center gap-2 mt-2">
+          <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-medium ${getStatusColor(task.status)}`}>
+            {STATUS_LABELS[task.status] || task.status}
+          </span>
+          {task.deadline && (
+            <span className={`flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-md ${
+              isOverdue(task) ? 'bg-red-500/15 text-red-400' : 'bg-pw-surface-3 text-pw-text-muted'
+            }`}>
+              <Calendar size={10} />
+              {formatDate(task.deadline)}
+            </span>
+          )}
+          {task.priority === 'urgent' && (
+            <span className="flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-md bg-red-500/15 text-red-400">
+              <AlertTriangle size={10} />
+              Urgente
+            </span>
+          )}
+        </div>
       </div>
     );
 
