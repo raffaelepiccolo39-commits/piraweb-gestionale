@@ -127,9 +127,12 @@ export default function ClientsPage() {
     if (!profile || creatingRef.current) return;
     creatingRef.current = true;
     try {
-      const { logo, ...fields } = data;
+      const { logo, monthly_fee, ...fields } = data;
+      void monthly_fee; // non è una colonna di clients (gestita sui contratti)
       const { data: newClient, error } = await supabase.from('clients').insert({
         ...fields,
+        // relationship_start è DATE: la stringa vuota va convertita in null
+        relationship_start: fields.relationship_start || null,
         created_by: profile.id,
       }).select().single();
       if (error) throw error;
@@ -358,7 +361,8 @@ export default function ClientsPage() {
       }
       const { error } = await supabase
         .from('clients')
-        .update({ ...fields, logo_url: logoUrl })
+        // relationship_start è DATE: la stringa vuota va convertita in null
+        .update({ ...fields, relationship_start: fields.relationship_start || null, logo_url: logoUrl })
         .eq('id', editingClient.id);
       if (error) throw error;
 
