@@ -8,7 +8,7 @@ import { PageHeader } from '@/components/ui/page-header';
 import { Modal } from '@/components/ui/modal';
 import { Input } from '@/components/ui/input';
 import { SkeletonList } from '@/components/ui/skeleton';
-import { getInitials, todayLocal, formatDateLocal } from '@/lib/utils';
+import { getInitials, getRoleLabel, todayLocal, formatDateLocal } from '@/lib/utils';
 import type { Profile } from '@/types/database';
 import { X, Clock, ChevronLeft, ChevronRight, Plus, Coffee, Utensils } from 'lucide-react';
 
@@ -243,6 +243,7 @@ export default function PianificazionePage() {
                     </div>
                     <div className="min-w-0">
                       <p className="text-pw-text font-semibold truncate">{m.full_name.split(' ')[0]}</p>
+                      <p className="text-[10px] text-pw-text-muted truncate">{getRoleLabel(m.role)}</p>
                       <p className="text-[10px] text-pw-text-dim">{plannedHours(m.id).toFixed(1)}/8h</p>
                     </div>
                   </div>
