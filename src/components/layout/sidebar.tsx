@@ -29,6 +29,7 @@ import {
   Moon,
   Sun,
   MessageSquare,
+  MessageSquareWarning,
   Sparkles,
   Crown,
 } from 'lucide-react';
@@ -64,6 +65,7 @@ const navSections: NavSection[] = [
       { label: 'Bacheca Task', href: '/team', icon: MessageSquare },
       { label: 'Timesheet', href: '/timesheet', icon: Clock },
       { label: 'Ferie & Permessi', href: '/ferie', icon: Plane },
+      { label: 'Suggerimenti & Bug', href: '/note-dev', icon: MessageSquareWarning },
       // Nascoste perché non servono al team attuale (route/pagine restano attive,
       // basta ripristinare queste righe per rimetterle nel menu).
       // { label: 'Note spese', href: '/note-spese', icon: Receipt },
