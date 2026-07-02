@@ -97,6 +97,18 @@ export function getStatusColor(status: string): string {
   return colors[status] || '';
 }
 
+/** Colore pieno (hex) per lo stato di una task — per bordi/strisce nelle card. */
+export function getStatusBarColor(status: string): string {
+  const colors: Record<string, string> = {
+    todo: '#FFD108',        // brand giallo — Da fare
+    in_progress: '#ff4d1c', // accent arancio — In corso
+    review: '#22d3ee',      // cyan — Review
+    done: '#22c55e',        // green-500 — Fatto
+    archived: '#6b7280',    // gray-500 — Archiviato
+  };
+  return colors[status] || '#6b7280';
+}
+
 export type BadgeTone = 'neutral' | 'brand' | 'success' | 'warning' | 'danger' | 'info' | 'accent';
 
 export function getStatusTone(status: string): BadgeTone {

@@ -24,7 +24,7 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { TaskDetailModal } from '@/components/tasks/task-detail-modal';
 import { TaskForm } from '@/components/tasks/task-form';
 import { TaskViewSwitcher } from '@/components/tasks/view-switcher';
-import { formatDate, getInitials } from '@/lib/utils';
+import { formatDate, getInitials, getStatusBarColor } from '@/lib/utils';
 import type { Task, Profile, Client } from '@/types/database';
 import {
   LayoutGrid,
@@ -197,6 +197,7 @@ export default function BachecaPage() {
     const cardContent = (
       <div
         onClick={() => setSelectedTask(task)}
+        style={{ borderLeftWidth: 4, borderLeftColor: getStatusBarColor(task.status) }}
         className={`p-3 rounded-xl border transition-all duration-200 ease-out mb-2 cursor-pointer ${
           isDone
             ? 'border-green-500/20 bg-green-500/5 opacity-60'
@@ -298,6 +299,21 @@ export default function BachecaPage() {
       />
 
       <TaskViewSwitcher active="kanban" />
+
+      {/* Legenda colori stato: la striscia a sinistra di ogni card ne indica lo stato */}
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[11px] text-pw-text-muted">
+        {[
+          { status: 'todo', label: 'Da fare' },
+          { status: 'in_progress', label: 'In corso' },
+          { status: 'review', label: 'Review' },
+          { status: 'done', label: 'Fatto' },
+        ].map((s) => (
+          <span key={s.status} className="inline-flex items-center gap-1.5">
+            <span className="w-3 h-3 rounded-sm" style={{ backgroundColor: getStatusBarColor(s.status) }} />
+            {s.label}
+          </span>
+        ))}
+      </div>
 
       <DragDropContext onDragEnd={handleDragEnd}>
         <div className="flex gap-4 overflow-x-auto pb-4 no-scrollbar">
