@@ -31,7 +31,6 @@ import {
   MessageSquare,
   MessageSquareWarning,
   CalendarClock,
-  Table2,
   Sparkles,
   Crown,
 } from 'lucide-react';
@@ -96,7 +95,6 @@ const navSections: NavSection[] = [
     adminOnly: true,
     items: [
       { label: 'Gestione', href: '/gestione', icon: Crown },
-      { label: 'Controllo Aziendale', href: '/controllo-gestione', icon: Table2 },
       { label: 'Impostazioni', href: '/settings', icon: Settings },
     ],
   },

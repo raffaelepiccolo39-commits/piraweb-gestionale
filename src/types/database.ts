@@ -725,20 +725,6 @@ export interface TimeEntry {
   user?: Profile;
 }
 
-// Controllo e Gestione Aziendale: voce di conto economico con 12 valori mensili
-export type BusinessSection = 'ricavi_agenzia' | 'ricavi_extra' | 'costi';
-export interface BusinessControlRow {
-  id: string;
-  year: number;
-  section: BusinessSection;
-  label: string;
-  sort_order: number;
-  months: number[];
-  created_by: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
 // Pianificazione giornaliera: uno slot da 30 min occupato da una task o da
 // un'attività scritta a mano (label)
 export interface TaskPlanSlot {
