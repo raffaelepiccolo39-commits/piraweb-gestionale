@@ -6,11 +6,10 @@ import { Suspense } from 'react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
 import { PageHeader } from '@/components/ui/page-header';
-import { MessageSquare, Video, Clock, Network, Wrench, UserCog, BarChart3 } from 'lucide-react';
+import { MessageSquare, Clock, Network, Wrench, UserCog, BarChart3 } from 'lucide-react';
 
 // Import delle pagine esistenti
 import BachecaPage from '../bacheca/page';
-import MeetingsPage from '../meetings/page';
 import PresenzePage from '../presenze/page';
 import OrganigrammaPage from '../organigramma/page';
 import ToolsPage from '../tools/page';
@@ -26,7 +25,6 @@ interface TeamTab {
 
 const tabs: TeamTab[] = [
   { id: 'bacheca', label: 'Bacheca', icon: MessageSquare },
-  { id: 'meeting', label: 'Meeting', icon: Video },
   { id: 'presenze', label: 'Presenze', icon: Clock },
   { id: 'organigramma', label: 'Organigramma', icon: Network },
   { id: 'tools', label: 'Tools', icon: Wrench },
@@ -75,7 +73,6 @@ function TeamContent() {
       {/* Tab content */}
       <div>
         {activeTab === 'bacheca' && <BachecaPage />}
-        {activeTab === 'meeting' && <MeetingsPage />}
         {activeTab === 'presenze' && <PresenzePage />}
         {activeTab === 'organigramma' && <OrganigrammaPage />}
         {activeTab === 'tools' && <ToolsPage />}
