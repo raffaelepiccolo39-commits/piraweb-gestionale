@@ -256,7 +256,7 @@ export default function RecurringTasksPage() {
             <Select label="Progetto" value={form.project_id} onChange={(e) => setForm({ ...form, project_id: e.target.value })} options={projects.map((p) => ({ value: p.id, label: p.name }))} required />
             <Select label="Assegnato a" value={form.assigned_to} onChange={(e) => setForm({ ...form, assigned_to: e.target.value })} options={[{ value: '', label: 'Nessuno' }, ...members.map((m) => ({ value: m.id, label: m.full_name }))]} />
           </div>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <Select label="Frequenza" value={form.recurrence_type} onChange={(e) => setForm({ ...form, recurrence_type: e.target.value })} options={Object.entries(RECURRENCE_LABELS).map(([v, l]) => ({ value: v, label: l }))} />
             <Select label="Priorita'" value={form.priority} onChange={(e) => setForm({ ...form, priority: e.target.value })} options={Object.entries(PRIORITY_LABELS).map(([v, l]) => ({ value: v, label: l }))} />
             <Input label="Ore stimate" type="number" value={form.estimated_hours} onChange={(e) => setForm({ ...form, estimated_hours: e.target.value })} />

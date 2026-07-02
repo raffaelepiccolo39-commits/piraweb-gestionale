@@ -542,7 +542,7 @@ export default function InvoicesPage() {
         <div className="space-y-4">
           <Select label="Cliente" value={form.client_id} onChange={(e) => setForm({ ...form, client_id: e.target.value })} options={clients.map((c) => ({ value: c.id, label: c.ragione_sociale || c.company || c.name }))} required />
           <Input label="Descrizione" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Es: Servizi di social media management - Aprile 2026" />
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <Input label="Scadenza" type="date" value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })} required />
             <Input label="Periodo da" type="date" value={form.period_start} onChange={(e) => setForm({ ...form, period_start: e.target.value })} />
             <Input label="Periodo a" type="date" value={form.period_end} onChange={(e) => setForm({ ...form, period_end: e.target.value })} />

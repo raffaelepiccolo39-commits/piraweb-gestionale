@@ -340,7 +340,7 @@ export function ClientForm({ client, monthlyFee, onSubmit, onCancel }: ClientFor
           onChange={(e) => update('indirizzo', e.target.value)}
           placeholder="Via Roma, 1"
         />
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <Input
             label="CAP"
             value={form.cap}

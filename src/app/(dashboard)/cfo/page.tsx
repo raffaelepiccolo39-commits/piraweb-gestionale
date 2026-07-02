@@ -1069,7 +1069,7 @@ export default function CFOPage() {
                         </div>
                         <span className="text-xs text-pw-text-dim">{String(p.month || '')}</span>
                       </div>
-                      <div className="grid grid-cols-4 gap-3 text-xs">
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
                         <div>
                           <span className="text-pw-text-dim">Lordo</span>
                           <p className="font-medium text-pw-text">{formatCurrency(Number(p.lordo_mensile) || 0)}</p>
