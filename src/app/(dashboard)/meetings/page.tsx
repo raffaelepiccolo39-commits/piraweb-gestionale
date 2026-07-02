@@ -438,7 +438,7 @@ export default function MeetingsPage() {
             placeholder="Agenda del meeting..."
             rows={2}
           />
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Select
               label="Cliente"
               value={form.client_id}
@@ -454,7 +454,7 @@ export default function MeetingsPage() {
               options={[{ value: '', label: 'Nessun progetto' }, ...projects.map((p) => ({ value: p.id, label: p.name }))]}
             />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input
               label="Data e ora"
               type="datetime-local"

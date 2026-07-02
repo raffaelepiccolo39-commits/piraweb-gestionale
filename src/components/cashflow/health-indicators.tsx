@@ -66,7 +66,7 @@ export function HealthIndicators({ operatingMarginPct, collectionRate, topClient
   ];
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       {indicators.map((ind) => (
         <Card key={ind.label} className={`border ${ind.color.split(' ').pop()}`}>
           <CardContent className="p-4">

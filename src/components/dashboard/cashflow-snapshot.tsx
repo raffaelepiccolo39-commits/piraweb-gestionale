@@ -22,7 +22,7 @@ export const CashflowSnapshot = memo(function CashflowSnapshot({ expected, recei
           <Euro size={16} className="text-yellow-500" />
           <span className="text-sm font-semibold text-pw-text">Cashflow Mensile</span>
         </div>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <p className="text-[10px] text-pw-text-dim uppercase tracking-wider">Incassato</p>
             <p className="text-lg font-bold text-green-400 animate-count">{formatCurrency(received)}</p>

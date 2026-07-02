@@ -204,7 +204,7 @@ export function OnboardingSection({ clientId }: OnboardingSectionProps) {
               <div className="w-4 h-4 rounded bg-gradient-to-tr from-yellow-500 via-pink-500 to-purple-500" />
               Instagram
             </label>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <input
                 value={credForm.instagram_username}
                 onChange={(e) => setCredForm({ ...credForm, instagram_username: e.target.value })}
@@ -227,7 +227,7 @@ export function OnboardingSection({ clientId }: OnboardingSectionProps) {
               <div className="w-4 h-4 rounded bg-blue-600" />
               Facebook
             </label>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <input
                 value={credForm.facebook_username}
                 onChange={(e) => setCredForm({ ...credForm, facebook_username: e.target.value })}
@@ -250,7 +250,7 @@ export function OnboardingSection({ clientId }: OnboardingSectionProps) {
               <div className="w-4 h-4 rounded bg-black border border-pw-border" />
               TikTok
             </label>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <input
                 value={credForm.tiktok_username}
                 onChange={(e) => setCredForm({ ...credForm, tiktok_username: e.target.value })}

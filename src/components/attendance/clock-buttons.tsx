@@ -65,7 +65,7 @@ export function ClockButtons({ record, onAction, loading }: ClockButtonsProps) {
 
         {/* Action buttons */}
         {!isCompleted && (
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <button
               onClick={() => onAction('clock_in')}
               disabled={!canClockIn || loading}

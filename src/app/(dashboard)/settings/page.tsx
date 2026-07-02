@@ -950,7 +950,7 @@ export default function SettingsPage() {
                   Contratto Dipendente
                 </p>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label htmlFor="create-salary" className="block text-sm font-medium text-pw-text-muted mb-1">
                     Paga Mensile (EUR)
@@ -1129,7 +1129,7 @@ export default function SettingsPage() {
       >
         {editingMember && (
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label htmlFor="edit-salary" className="block text-sm font-medium text-pw-text-muted mb-1">
                   Paga Mensile (EUR)

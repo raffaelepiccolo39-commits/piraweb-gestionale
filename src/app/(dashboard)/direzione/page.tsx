@@ -219,7 +219,7 @@ export default function DirectionPage() {
       />
 
       {/* Top KPIs */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 stagger-children">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 stagger-children">
         <Card className="border-l-4 border-l-green-500">
           <CardContent className="p-4">
             <p className="text-[10px] text-pw-text-dim uppercase tracking-widest">MRR</p>

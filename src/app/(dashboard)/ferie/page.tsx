@@ -525,7 +525,7 @@ export default function FeriePage() {
               { value: 'malattia', label: 'Malattia' },
             ]}
           />
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Input id="to-start" type="date" label="Dal" value={form.start_date} min={isAdmin ? undefined : todayLocal()}
               onChange={(e) => setForm(f => {
                 const newStart = e.target.value;

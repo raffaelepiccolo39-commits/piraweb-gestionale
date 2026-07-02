@@ -326,11 +326,11 @@ export default function TemplatesPage() {
         <div className="space-y-4">
           <Input label="Titolo" value={taskForm.title} onChange={(e) => setTaskForm({ ...taskForm, title: e.target.value })} required />
           <Textarea label="Descrizione" value={taskForm.description} onChange={(e) => setTaskForm({ ...taskForm, description: e.target.value })} rows={2} />
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Select label="Ruolo assegnato" value={taskForm.assigned_role} onChange={(e) => setTaskForm({ ...taskForm, assigned_role: e.target.value })} options={[{ value: '', label: 'Nessuno' }, ...Object.entries(ROLE_LABELS).map(([v, l]) => ({ value: v, label: l }))]} />
             <Select label="Priorita'" value={taskForm.priority} onChange={(e) => setTaskForm({ ...taskForm, priority: e.target.value })} options={Object.entries(PRIORITY_LABELS).map(([v, l]) => ({ value: v, label: l }))} />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input label="Ore stimate" type="number" value={taskForm.estimated_hours} onChange={(e) => setTaskForm({ ...taskForm, estimated_hours: e.target.value })} />
             <Input label="Giorno offset (dalla partenza)" type="number" value={taskForm.day_offset} onChange={(e) => setTaskForm({ ...taskForm, day_offset: e.target.value })} />
           </div>

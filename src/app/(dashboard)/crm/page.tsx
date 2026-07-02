@@ -439,7 +439,7 @@ export default function CRMPage() {
       />
 
       {/* Stats generali */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 stagger-children">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4 stagger-children">
         <Card className="card-accent-top"><CardContent className="p-4 text-center">
           <p className="text-2xl font-bold text-pw-accent font-[var(--font-bebas)] animate-count">{activeDeals.length}</p>
           <p className="text-[10px] text-pw-text-muted uppercase tracking-wider mt-1">Deal attivi</p>
@@ -463,7 +463,7 @@ export default function CRMPage() {
       </div>
 
       {/* KPI operativi (alert-style) */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
         <Card><CardContent className="p-3 flex items-center gap-3">
           <div className="w-9 h-9 rounded-lg bg-orange-500/15 flex items-center justify-center shrink-0">
             <Calendar size={16} className="text-orange-500" />
@@ -790,7 +790,7 @@ export default function CRMPage() {
             </div>
 
             {/* Details */}
-            <div className="grid grid-cols-2 gap-3 text-sm">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
               <div><p className="text-[10px] text-pw-text-dim">Fonte</p><p className="text-pw-text">{SOURCE_LABELS[selectedDeal.source]}</p></div>
               <div><p className="text-[10px] text-pw-text-dim">Probabilita&apos;</p><p className="text-pw-text">{selectedDeal.probability}%</p></div>
               <div>

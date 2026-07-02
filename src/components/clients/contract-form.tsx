@@ -105,7 +105,7 @@ export function ContractForm({ onSubmit, onCancel }: ContractFormProps) {
 
       {!noContract && (
         <>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label htmlFor="monthly-fee" className="block text-sm font-medium text-pw-text-muted mb-1">
                 Canone Mensile (EUR) *
@@ -130,7 +130,7 @@ export function ContractForm({ onSubmit, onCancel }: ContractFormProps) {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input
               id="start-date"
               label="Data Inizio Contratto *"

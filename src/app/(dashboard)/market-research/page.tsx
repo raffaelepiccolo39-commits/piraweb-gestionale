@@ -167,7 +167,7 @@ export default function MarketResearchPage() {
       {data && (
         <div className="space-y-6 animate-slide-up">
           {/* Overview KPIs */}
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 stagger-children">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4 stagger-children">
             <Card>
               <CardContent className="p-4 text-center">
                 <Users size={18} className="text-pw-accent mx-auto mb-1" />

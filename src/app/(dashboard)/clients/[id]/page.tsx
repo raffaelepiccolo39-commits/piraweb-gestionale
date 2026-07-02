@@ -457,7 +457,7 @@ export default function ClientDetailPage({
                     <p className="text-pw-text font-medium">{client.ragione_sociale}</p>
                   </div>
                 )}
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {client.partita_iva && (
                     <div>
                       <span className="text-pw-text-dim text-xs uppercase tracking-wider">P. IVA</span>
@@ -471,7 +471,7 @@ export default function ClientDetailPage({
                     </div>
                   )}
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {client.codice_sdi && (
                     <div>
                       <span className="text-pw-text-dim text-xs uppercase tracking-wider">Codice SDI</span>
@@ -565,7 +565,7 @@ export default function ClientDetailPage({
                       )}
                     </div>
                   ) : (
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 text-sm">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 text-sm">
                     <div>
                       <p className="text-pw-text-muted">Canone Mensile</p>
                       <p className="font-semibold text-pw-text text-lg">

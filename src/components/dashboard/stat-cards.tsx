@@ -60,7 +60,7 @@ export const StatCards = memo(function StatCards({ stats }: StatCardsProps) {
   ], [stats]);
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
       {cards.map((stat) => (
         <StatCard key={stat.label} {...stat} />
       ))}

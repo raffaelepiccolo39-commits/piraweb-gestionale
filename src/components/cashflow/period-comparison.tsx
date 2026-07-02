@@ -64,7 +64,7 @@ export function PeriodComparison({
         </h2>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {metrics.map((m) => {
             const change = getChange(m.current, m.previous);
             const Icon = change.direction === 'up' ? ArrowUpRight : change.direction === 'down' ? ArrowDownRight : Minus;

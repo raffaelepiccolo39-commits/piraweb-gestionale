@@ -202,7 +202,7 @@ export default function FreelancersPage() {
       />
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 stagger-children">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 stagger-children">
         <Card>
           <CardContent className="p-4 text-center">
             <p className="text-2xl font-bold text-pw-text font-[var(--font-bebas)] animate-count">{activeFreelancers.length}</p>
@@ -339,11 +339,11 @@ export default function FreelancersPage() {
         <div className="space-y-4">
           <Input label="Nome completo" value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} placeholder="Mario Rossi" required />
           <Select label="Specialita'" value={form.specialty} onChange={(e) => setForm({ ...form, specialty: e.target.value })} options={SPECIALTY_OPTIONS} required />
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input label="Email" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="email@example.com" />
             <Input label="Telefono" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="+39 333..." />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input label="Tariffa oraria (€)" type="number" value={form.hourly_rate} onChange={(e) => setForm({ ...form, hourly_rate: e.target.value })} placeholder="35" />
             <Input label="Portfolio URL" value={form.portfolio_url} onChange={(e) => setForm({ ...form, portfolio_url: e.target.value })} placeholder="https://behance.net/..." />
           </div>

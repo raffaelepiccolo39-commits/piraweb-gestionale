@@ -107,7 +107,7 @@ export function DealForm({ open, onClose, onSubmit, members, initialValues, mode
           placeholder="Es: Gestione social per Acme Corp"
           required
         />
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Input
             label="Azienda"
             value={form.company_name}
@@ -121,7 +121,7 @@ export function DealForm({ open, onClose, onSubmit, members, initialValues, mode
             placeholder="Mario Rossi"
           />
         </div>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Input
             label="Email"
             type="email"
@@ -136,7 +136,7 @@ export function DealForm({ open, onClose, onSubmit, members, initialValues, mode
             placeholder="+39 333..."
           />
         </div>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Input
             label="Valore deal (€)"
             type="number"
@@ -152,7 +152,7 @@ export function DealForm({ open, onClose, onSubmit, members, initialValues, mode
             placeholder="500"
           />
         </div>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Select
             label="Fonte"
             value={form.source}
@@ -166,7 +166,7 @@ export function DealForm({ open, onClose, onSubmit, members, initialValues, mode
             onChange={(e) => setForm((f) => ({ ...f, expected_close_date: e.target.value }))}
           />
         </div>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Select
             label="Assegnato a"
             value={form.owner_id}

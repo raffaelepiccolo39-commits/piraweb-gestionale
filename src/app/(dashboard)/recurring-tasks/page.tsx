@@ -252,7 +252,7 @@ export default function RecurringTasksPage() {
         <div className="space-y-4">
           <Input label="Titolo" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Es: Report settimanale social" required />
           <Textarea label="Descrizione" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={2} />
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Select label="Progetto" value={form.project_id} onChange={(e) => setForm({ ...form, project_id: e.target.value })} options={projects.map((p) => ({ value: p.id, label: p.name }))} required />
             <Select label="Assegnato a" value={form.assigned_to} onChange={(e) => setForm({ ...form, assigned_to: e.target.value })} options={[{ value: '', label: 'Nessuno' }, ...members.map((m) => ({ value: m.id, label: m.full_name }))]} />
           </div>

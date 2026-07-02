@@ -572,7 +572,7 @@ export default function SocialCalendarPage() {
             onChange={(e) => setForm({ ...form, hashtags: e.target.value })}
             placeholder="#marketing #socialmedia"
           />
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input
               label="Data programmazione"
               type="datetime-local"

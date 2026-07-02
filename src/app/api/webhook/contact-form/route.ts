@@ -54,6 +54,13 @@ export async function POST(request: NextRequest) {
   const service = typeof body.service === 'string' ? body.service.trim() : '';
   const message = typeof body.message === 'string' ? body.message.trim() : '';
 
+  // Fonte del lead (etichetta): 'website' = form del sito, 'ads' = landing ADV.
+  // Validata contro l'enum deal_source; default 'website' per retrocompatibilità.
+  const allowedSources = ['website', 'referral', 'social_media', 'cold_outreach', 'event', 'ads', 'other'];
+  const rawSource = typeof body.source === 'string' ? body.source.trim() : '';
+  const source = allowedSources.includes(rawSource) ? rawSource : 'website';
+  const sourceLabel = source === 'ads' ? 'ADV' : 'Sito';
+
   if (!name || !email) {
     return NextResponse.json({ error: 'Nome e email obbligatori' }, { status: 400, headers });
   }
@@ -75,7 +82,7 @@ export async function POST(request: NextRequest) {
   const { data: deal, error: dealError } = await supabase
     .from('deals')
     .insert({
-      title: `Richiesta da sito web - ${fullName}`,
+      title: `Richiesta da ${sourceLabel} - ${fullName}`,
       company_name: null,
       contact_name: fullName,
       contact_email: email,
@@ -83,7 +90,7 @@ export async function POST(request: NextRequest) {
       stage: 'lead',
       value: 0,
       probability: 20,
-      source: 'website',
+      source: source,
       services: service || null,
       notes: message ? `Messaggio dal form:\n${message}` : null,
       owner_id: adminId,
@@ -101,7 +108,7 @@ export async function POST(request: NextRequest) {
     await supabase.from('deal_activities').insert({
       deal_id: deal.id,
       type: 'note',
-      title: 'Form compilato su piraweb.it',
+      title: `Form compilato su piraweb.it (${sourceLabel})`,
       description: `${fullName} ha compilato il modulo di contatto.\n\nServizio richiesto: ${service || 'Non specificato'}\n\nMessaggio: ${message || 'Nessun messaggio'}`,
       completed: true,
       created_by: adminId,

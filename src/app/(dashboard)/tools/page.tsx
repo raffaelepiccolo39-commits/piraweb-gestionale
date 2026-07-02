@@ -350,7 +350,7 @@ export default function ToolsPage() {
         title={editingTool ? `Modifica - ${editingTool.name}` : 'Nuovo Tool'}
       >
         <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input
               id="tool-name"
               label="Nome *"
@@ -383,7 +383,7 @@ export default function ToolsPage() {
             placeholder="es. Creazione grafiche social"
           />
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input
               id="tool-emoji"
               label="Emoji icona"
@@ -405,7 +405,7 @@ export default function ToolsPage() {
               <Lock size={12} />
               Credenziali di accesso (visibili al team)
             </p>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Input
                 id="tool-username"
                 label="Username / Email"

@@ -413,7 +413,7 @@ export default function DocumentiPage() {
               options={employees.map(e => ({ value: e.id, label: e.full_name }))}
             />
           )}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Input
               id="doc-issued"
               type="date"
