@@ -89,6 +89,8 @@ export default function FeriePage() {
 
   // Admin: monte ferie team (read-only, calcolato server-side)
   const [teamVacation, setTeamVacation] = useState<TeamVacationRow[]>([]);
+  // Admin: tutte le richieste dei collaboratori (non le proprie)
+  const [allRequests, setAllRequests] = useState<TimeOffRequest[]>([]);
 
   // New request modal
   const [showModal, setShowModal] = useState(false);
@@ -122,15 +124,20 @@ export default function FeriePage() {
       setAbsences((absRes.data as TeamAbsence[]) || []);
 
       if (isAdmin) {
-        const [pendRes, summaryRes] = await Promise.all([
+        const [pendRes, summaryRes, allRes] = await Promise.all([
           supabase.from('time_off_requests')
             .select('*, user:profiles!time_off_requests_user_id_fkey(id, full_name, color)')
             .eq('status', 'pending')
             .order('start_date', { ascending: true }),
           supabase.rpc('team_vacation_summary'),
+          supabase.from('time_off_requests')
+            .select('*, user:profiles!time_off_requests_user_id_fkey(id, full_name, color)')
+            .neq('user_id', profile.id)
+            .order('start_date', { ascending: false }),
         ]);
         setPending((pendRes.data as TimeOffRequest[]) || []);
         setTeamVacation((summaryRes.data as TeamVacationRow[]) || []);
+        setAllRequests((allRes.data as TimeOffRequest[]) || []);
       }
     } catch {
       setError(true);
@@ -297,14 +304,17 @@ export default function FeriePage() {
         title="Ferie & Permessi"
         subtitle={`Anno ${year}`}
         actions={
-          <Button variant="primary" onClick={() => { resetForm(); setShowModal(true); }}>
-            <Plus size={14} />
-            Nuova richiesta
-          </Button>
+          isAdmin ? undefined : (
+            <Button variant="primary" onClick={() => { resetForm(); setShowModal(true); }}>
+              <Plus size={14} />
+              Nuova richiesta
+            </Button>
+          )
         }
       />
 
-      {/* Saldo */}
+      {/* Saldo personale — solo collaboratori (l'admin non richiede ferie) */}
+      {!isAdmin && (
       <div className="grid gap-4 sm:grid-cols-3">
         <Card>
           <CardContent className="p-4">
@@ -350,6 +360,7 @@ export default function FeriePage() {
           </CardContent>
         </Card>
       </div>
+      )}
 
       {/* Coda approvazioni (admin) */}
       {isAdmin && pending.length > 0 && (
@@ -458,7 +469,47 @@ export default function FeriePage() {
         </div>
       )}
 
-      {/* Le mie richieste */}
+      {/* Admin: tutte le richieste dei collaboratori */}
+      {isAdmin && (
+        <div>
+          <h2 className="text-sm font-semibold text-pw-text mb-3 flex items-center gap-2">
+            <CalendarDays size={16} className="text-pw-text-muted" /> Tutte le richieste del team
+          </h2>
+          {allRequests.length === 0 ? (
+            <EmptyState icon={Plane} title="Nessuna richiesta" description="Quando i collaboratori chiederanno ferie o permessi, le richieste compariranno qui." />
+          ) : (
+            <div className="space-y-2">
+              {allRequests.map((r) => {
+                const Icon = TYPE_ICON[r.type];
+                return (
+                  <Card key={r.id}>
+                    <CardContent className="px-4 py-3 flex items-center justify-between gap-4">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <span className="w-8 h-8 rounded-lg bg-pw-surface-2 flex items-center justify-center shrink-0" style={r.user?.color ? { color: r.user.color } : undefined}>
+                          <Icon size={16} />
+                        </span>
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-pw-text truncate">
+                            {r.user?.full_name || 'Dipendente'} · {TIME_OFF_TYPE_LABELS[r.type]} · {fmtDays(Number(r.total_days))} gg
+                          </p>
+                          <p className="text-xs text-pw-text-muted truncate">{dateRangeLabel(r)}{r.reason ? ` · ${r.reason}` : ''}</p>
+                          {r.status === 'rejected' && r.review_note && (
+                            <p className="text-xs text-pw-danger mt-0.5">Motivo rifiuto: {r.review_note}</p>
+                          )}
+                        </div>
+                      </div>
+                      <Badge tone={STATUS_TONE[r.status]} dot>{TIME_OFF_STATUS_LABELS[r.status]}</Badge>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Le mie richieste — solo collaboratori */}
+      {!isAdmin && (
       <div>
         <h2 className="text-sm font-semibold text-pw-text mb-3 flex items-center gap-2">
           <CalendarDays size={16} className="text-pw-text-muted" /> Le mie richieste
@@ -510,6 +561,7 @@ export default function FeriePage() {
           </div>
         )}
       </div>
+      )}
 
       {/* Modal nuova richiesta */}
       <Modal open={showModal} onClose={() => setShowModal(false)} title="Nuova richiesta" size="sm">
