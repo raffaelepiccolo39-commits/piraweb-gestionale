@@ -9,6 +9,7 @@ import { useToast } from '@/components/ui/toast';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Select } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
+import { RichTextEditor } from '@/components/ui/rich-text-editor';
 import { formatDateTime, getInitials, safeStorageName } from '@/lib/utils';
 import type { Task, Profile, TaskComment, TaskAttachment, Client, TimeEntry } from '@/types/database';
 import {
@@ -785,12 +786,10 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
                 </button>
                 {aiError && <span className="text-[11px] text-red-400 ml-2">Errore, riprova</span>}
               </div>
-              <textarea
+              <RichTextEditor
                 value={description}
-                onChange={(e) => setDescription(e.target.value)}
+                onChange={setDescription}
                 placeholder="Aggiungi una descrizione dettagliata..."
-                rows={8}
-                className="w-full px-4 py-3 rounded-xl border border-pw-border bg-pw-surface-2 text-pw-text placeholder:text-pw-text-dim focus:ring-2 focus:ring-pw-accent/30 focus:border-pw-accent/50 outline-none transition-all text-sm resize-y"
               />
             </div>
 

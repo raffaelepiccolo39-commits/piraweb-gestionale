@@ -12,7 +12,7 @@ import { Select } from '@/components/ui/select';
 import { Modal } from '@/components/ui/modal';
 import { Input } from '@/components/ui/input';
 import { PageHeader } from '@/components/ui/page-header';
-import { formatDate, getPriorityTone, getStatusTone, getRoleLabel, formatDateLocal, todayLocal } from '@/lib/utils';
+import { formatDate, getPriorityTone, getStatusTone, getRoleLabel, formatDateLocal, todayLocal, stripHtml } from '@/lib/utils';
 import type { Task, Project, Client, Profile } from '@/types/database';
 import { TaskDetailModal } from '@/components/tasks/task-detail-modal';
 import { useToast } from '@/components/ui/toast';
@@ -375,7 +375,7 @@ export default function TasksPage() {
         groupLabel={(key) => (key === '__none__' ? 'Senza settore' : key)}
         searchKeys={[
           (t) => t.title,
-          (t) => t.description || '',
+          (t) => stripHtml(t.description),
           (t) => (t.project as { name?: string } | undefined)?.name || '',
           (t) => (t.project as { client?: { company?: string; name?: string } } | undefined)?.client?.company || '',
         ]}
@@ -471,7 +471,7 @@ export default function TasksPage() {
                         </button>
                       </h3>
                       {task.description && (
-                        <p className="text-xs text-pw-text-muted mb-2 line-clamp-1">{task.description}</p>
+                        <p className="text-xs text-pw-text-muted mb-2 line-clamp-1">{stripHtml(task.description)}</p>
                       )}
                       <div className="flex flex-wrap items-center gap-2">
                         <Badge tone={getStatusTone(task.status)} dot>
@@ -693,7 +693,7 @@ export default function TasksPage() {
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex-1">
                             <h4 className="font-medium text-pw-text">{task.title}</h4>
-                            <p className="text-sm text-pw-text-muted mt-1">{task.description}</p>
+                            <p className="text-sm text-pw-text-muted mt-1">{stripHtml(task.description)}</p>
                           </div>
                           <Badge className="bg-indigo-500/15 text-indigo-400 shrink-0">
                             {getRoleLabel(task.assigned_to_role)}

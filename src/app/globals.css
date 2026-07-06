@@ -537,3 +537,24 @@ body {
     animation-delay: 0ms !important;
   }
 }
+
+/* ── Rich text editor (TipTap) — contenuto descrizione task ── */
+.pw-richtext { line-height: 1.6; }
+.pw-richtext h1 { font-size: 1.5rem; font-weight: 700; margin: 0.6em 0 0.3em; }
+.pw-richtext h2 { font-size: 1.25rem; font-weight: 700; margin: 0.5em 0 0.3em; }
+.pw-richtext h3 { font-size: 1.1rem; font-weight: 600; margin: 0.4em 0 0.2em; }
+.pw-richtext p { margin: 0.25em 0; }
+.pw-richtext ul { list-style: disc; padding-left: 1.4em; margin: 0.3em 0; }
+.pw-richtext ol { list-style: decimal; padding-left: 1.4em; margin: 0.3em 0; }
+.pw-richtext li { margin: 0.1em 0; }
+.pw-richtext strong { font-weight: 700; }
+.pw-richtext em { font-style: italic; }
+.pw-richtext s { text-decoration: line-through; }
+.pw-richtext a { color: var(--pw-accent); text-decoration: underline; cursor: pointer; }
+.pw-richtext p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  color: var(--pw-text-dim);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}

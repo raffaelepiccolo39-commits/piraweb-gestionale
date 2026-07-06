@@ -6,6 +6,25 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 /**
+ * Estrae il testo semplice da una descrizione in HTML (editor rich-text),
+ * per mostrarla in anteprime/liste senza tag. Robusto anche su testo già
+ * semplice (nessun tag → ritorna il testo così com'è).
+ */
+export function stripHtml(html: string | null | undefined): string {
+  if (!html) return '';
+  return html
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&#39;/g, "'")
+    .replace(/&quot;/g, '"')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/**
  * Rende un nome file sicuro come chiave di Supabase Storage.
  * Lo storage rifiuta/gestisce male chiavi con spazi, apostrofi (es.
  * "NOTAIO D'AUSILIO.pdf") e lettere accentate → l'upload falliva.

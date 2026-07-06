@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
+import { RichTextEditor } from '@/components/ui/rich-text-editor';
 import { Select } from '@/components/ui/select';
 import type { Profile, Client } from '@/types/database';
 import { Sparkles, Loader2, Paperclip, X } from 'lucide-react';
@@ -178,12 +178,11 @@ export function TaskForm({
 
       {/* Descrizione + AI */}
       <div>
-        <Textarea
-          label="Descrizione"
+        <label className="block text-xs uppercase tracking-[0.08em] font-semibold text-pw-text mb-1.5">Descrizione</label>
+        <RichTextEditor
           value={form.description}
-          onChange={(e) => setForm({ ...form, description: e.target.value })}
+          onChange={(html) => setForm({ ...form, description: html })}
           placeholder="Descrizione del task..."
-          rows={3}
         />
         {showAiDescription && (
           <div className="mt-2 flex items-center">

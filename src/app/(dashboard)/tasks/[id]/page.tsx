@@ -19,6 +19,7 @@ import {
   getInitials,
   getRoleLabel,
   getUserColor,
+  stripHtml,
 } from '@/lib/utils';
 import { STATUS_LABELS, PRIORITY_LABELS } from '@/lib/constants';
 import type { Task, TaskComment, TaskAttachment, ContentApproval, Profile } from '@/types/database';
@@ -258,7 +259,7 @@ export default function TaskDetailPage({
 
               {task.description && (
                 <p className="text-sm text-pw-text-muted leading-relaxed whitespace-pre-wrap">
-                  {task.description}
+                  {stripHtml(task.description)}
                 </p>
               )}
 
