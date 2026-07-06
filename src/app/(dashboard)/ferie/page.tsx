@@ -111,20 +111,20 @@ export default function FeriePage() {
   const fetchData = useCallback(async () => {
     if (!profile) return;
     try {
-      const [reqRes, accruedRes, profileRes, absRes] = await Promise.all([
+      const [reqRes, accruedRes, profileRes] = await Promise.all([
         supabase.from('time_off_requests').select('*').eq('user_id', profile.id).order('start_date', { ascending: false }),
         supabase.rpc('accrued_vacation_days', { p_user_id: profile.id }),
         supabase.from('profiles').select('contract_start_date').eq('id', profile.id).single(),
-        supabase.rpc('get_team_absences', { p_from: todayLocal(), p_to: addDays(todayLocal(), 90) }),
       ]);
       if (reqRes.error) throw reqRes.error;
       setMyRequests((reqRes.data as TimeOffRequest[]) || []);
       setMyAccrued(Number(accruedRes.data) || 0);
       setMyContractStart((profileRes.data as { contract_start_date: string | null } | null)?.contract_start_date ?? null);
-      setAbsences((absRes.data as TeamAbsence[]) || []);
 
       if (isAdmin) {
-        const [pendRes, summaryRes, allRes] = await Promise.all([
+        // Le assenze del team le carica SOLO l'admin: i collaboratori non
+        // devono vedere le ferie altrui, quindi non le richiediamo nemmeno.
+        const [pendRes, summaryRes, allRes, absRes] = await Promise.all([
           supabase.from('time_off_requests')
             .select('*, user:profiles!time_off_requests_user_id_fkey(id, full_name, color)')
             .eq('status', 'pending')
@@ -134,10 +134,12 @@ export default function FeriePage() {
             .select('*, user:profiles!time_off_requests_user_id_fkey(id, full_name, color)')
             .neq('user_id', profile.id)
             .order('start_date', { ascending: false }),
+          supabase.rpc('get_team_absences', { p_from: todayLocal(), p_to: addDays(todayLocal(), 90) }),
         ]);
         setPending((pendRes.data as TimeOffRequest[]) || []);
         setTeamVacation((summaryRes.data as TeamVacationRow[]) || []);
         setAllRequests((allRes.data as TimeOffRequest[]) || []);
+        setAbsences((absRes.data as TeamAbsence[]) || []);
       }
     } catch {
       setError(true);
@@ -446,8 +448,8 @@ export default function FeriePage() {
         </div>
       )}
 
-      {/* Prossime assenze team */}
-      {absences.length > 0 && (
+      {/* Prossime assenze team (solo admin) */}
+      {isAdmin && absences.length > 0 && (
         <div>
           <h2 className="text-sm font-semibold text-pw-text mb-3 flex items-center gap-2">
             <Users size={16} className="text-pw-text-muted" /> Prossime assenze del team
