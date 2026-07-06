@@ -33,6 +33,7 @@ import {
   CalendarClock,
   Sparkles,
   Crown,
+  NotebookPen,
 } from 'lucide-react';
 
 interface NavItem {
@@ -66,6 +67,7 @@ const navSections: NavSection[] = [
       { label: 'Bacheca Task', href: '/team', icon: MessageSquare },
       { label: 'Pianificazione', href: '/pianificazione', icon: CalendarClock },
       { label: 'Timesheet', href: '/timesheet', icon: Clock },
+      { label: 'Note Clienti', href: '/note-clienti', icon: NotebookPen },
       { label: 'Ferie & Permessi', href: '/ferie', icon: Plane },
       { label: 'Suggerimenti & Bug', href: '/note-dev', icon: MessageSquareWarning },
       // Nascoste perché non servono al team attuale (route/pagine restano attive,
