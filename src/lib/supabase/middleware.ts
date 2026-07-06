@@ -21,7 +21,6 @@ const ADMIN_ROUTES: readonly string[] = [
   '/analytics',
   '/gestione',
   '/settings',
-  '/note-dev',
 ];
 
 export async function updateSession(request: NextRequest) {
