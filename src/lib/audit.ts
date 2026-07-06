@@ -10,6 +10,7 @@ export type AuditAction =
   | 'user.terminated'
   | 'user.reinstated'
   | 'user.invite_resent'
+  | 'user.welcome_sent'
   | 'user.password_changed'
   | 'user.deleted'
   | 'invoice.sent_to_sdi'
