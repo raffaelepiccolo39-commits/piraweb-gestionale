@@ -137,3 +137,92 @@ export async function sendInviteEmail({ to, fullName, role, inviteLink }: Invite
     html,
   });
 }
+
+interface WelcomeEmailParams {
+  to: string;
+  fullName: string;
+  loginLink: string;
+}
+
+/**
+ * Email di "benvenuto/accedi" per chi ha già un account attivo — usa un
+ * magic-link che porta direttamente in dashboard. Copy diverso dall'invito
+ * (nessun "imposta password"), stesso stile brand.
+ */
+export async function sendWelcomeEmail({ to, fullName, loginLink }: WelcomeEmailParams) {
+  const firstName = escapeHtml(fullName.split(' ')[0]);
+  const appBase = process.env.NEXT_PUBLIC_APP_URL || 'https://gestionale.piraweb.it';
+  const logoUrl = `${appBase}/logo-dark.png`;
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin:0;padding:0;background-color:#F5F5F4;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#F5F5F4;padding:40px 20px;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 12px rgba(10,38,58,0.08);border:1px solid #E5E7EB;">
+
+          <tr><td style="height:4px;background-color:#D4A800;font-size:0;line-height:0;">&nbsp;</td></tr>
+
+          <tr>
+            <td align="center" style="background-color:#ffffff;padding:36px 40px 28px;border-bottom:1px solid #F0F2F5;">
+              <img src="${logoUrl}" alt="PiraWeb" width="190" style="display:block;width:190px;max-width:60%;height:auto;border:0;" />
+              <p style="margin:16px 0 0;color:#6B7280;font-size:13px;letter-spacing:0.02em;">Gestionale Interno</p>
+            </td>
+          </tr>
+
+          <tr>
+            <td style="padding:40px;">
+              <h2 style="margin:0 0 8px;color:#0B1F2F;font-size:22px;font-weight:600;">
+                Ci siamo, ${firstName}! 🚀
+              </h2>
+              <p style="margin:0 0 24px;color:#4B5563;font-size:15px;line-height:1.6;">
+                Il gestionale PiraWeb è ufficialmente attivo per il team. Da oggi organizziamo tutto qui:
+                task, progetti, ore, ferie. Entra e dai un'occhiata al tuo spazio.
+              </p>
+
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td align="center" style="padding-bottom:22px;">
+                    <a href="${loginLink}" style="display:inline-block;background-color:#0A263A;color:#ffffff;text-decoration:none;padding:14px 32px;border-radius:12px;font-size:15px;font-weight:600;">
+                      Entra nel gestionale
+                    </a>
+                  </td>
+                </tr>
+              </table>
+
+              <p style="margin:0;color:#6B7280;font-size:13px;line-height:1.6;">
+                Il link ti porta dentro in automatico. In alternativa vai su
+                <a href="${appBase}/login" style="color:#8A6D00;text-decoration:none;font-weight:600;">gestionale.piraweb.it</a>
+                e accedi con la tua password.
+              </p>
+            </td>
+          </tr>
+
+          <tr>
+            <td style="padding:24px 40px;background-color:#F5F5F4;border-top:1px solid #E5E7EB;">
+              <p style="margin:0;color:#9CA3AF;font-size:12px;text-align:center;">
+                PiraWeb Gestionale &copy; ${new Date().getFullYear()} — Questa è un'email automatica, non rispondere.
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+
+  await transporter.sendMail({
+    from: process.env.SMTP_FROM,
+    to,
+    subject: `Il Gestionale PiraWeb è online — entra, ${firstName}`,
+    html,
+  });
+}
