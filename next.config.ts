@@ -6,6 +6,11 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   compress: true,
   reactStrictMode: true,
+  // Build id esposto al client per rilevare quando esce una nuova versione
+  // (usato da VersionWatcher per invitare a ricaricare).
+  env: {
+    NEXT_PUBLIC_BUILD_ID: process.env.VERCEL_GIT_COMMIT_SHA || 'dev',
+  },
   images: {
     remotePatterns: [
       {

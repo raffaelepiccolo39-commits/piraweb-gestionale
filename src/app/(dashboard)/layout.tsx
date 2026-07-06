@@ -5,6 +5,7 @@ import { Sidebar } from '@/components/layout/sidebar';
 import { Header } from '@/components/layout/header';
 import { ToastProvider } from '@/components/ui/toast';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
+import { VersionWatcher } from '@/components/version-watcher';
 import { cn } from '@/lib/utils';
 
 export default function DashboardLayout({
@@ -62,6 +63,7 @@ export default function DashboardLayout({
           </ErrorBoundary>
         </main>
       </div>
+      <VersionWatcher />
     </div>
     </ToastProvider>
   );
