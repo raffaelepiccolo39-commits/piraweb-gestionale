@@ -107,8 +107,8 @@ export function TeamAbsenceCalendar() {
                   'text-[11px] font-medium leading-none px-1 pt-0.5',
                   isToday ? 'text-pw-accent font-bold' : inMonth ? 'text-pw-text-muted' : 'text-pw-text-dim',
                 ].join(' ')}>{d.getDate()}</span>
-                <div className="flex flex-col gap-0.5 overflow-hidden">
-                  {dayAbs.slice(0, 3).map((a) => {
+                <div className="flex flex-col gap-0.5">
+                  {dayAbs.map((a) => {
                     const Icon = TYPE_ICON[a.type];
                     return (
                       <div
@@ -125,9 +125,6 @@ export function TeamAbsenceCalendar() {
                       </div>
                     );
                   })}
-                  {dayAbs.length > 3 && (
-                    <span className="text-[9px] text-pw-text-dim px-1">+{dayAbs.length - 3}</span>
-                  )}
                 </div>
               </div>
             );
