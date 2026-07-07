@@ -78,6 +78,8 @@ export default function FeriePage() {
   const supabase = createClient();
   const toast = useToast();
   const isAdmin = profile?.role === 'admin';
+  // Saldo/giorni rimasti nascosti: i collaboratori vedono solo il calendario assenze.
+  const showPersonalBalance: boolean = false;
   const year = new Date().getFullYear();
 
   const [myRequests, setMyRequests] = useState<TimeOffRequest[]>([]);
@@ -318,7 +320,7 @@ export default function FeriePage() {
 
       {/* Saldo/giorni rimasti nascosti: i collaboratori vedono solo il calendario
           assenze, non il proprio monte residuo. L'admin ha "Monte ferie team". */}
-      {false && (
+      {showPersonalBalance && (
       <div className="grid gap-4 sm:grid-cols-3">
         <Card>
           <CardContent className="p-4">
