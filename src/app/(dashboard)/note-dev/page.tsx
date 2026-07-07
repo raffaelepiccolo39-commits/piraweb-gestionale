@@ -205,6 +205,25 @@ export default function NoteDevPage() {
     }
   };
 
+  // Segna direttamente come risolto (senza creare una task collegata)
+  const handleMarkResolved = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('developer_notes')
+        .update({
+          status: 'resolved' as DevNoteStatus,
+          resolved_by: profile?.id,
+          resolved_at: new Date().toISOString(),
+        })
+        .eq('id', id);
+      if (error) throw error;
+      fetchNotes();
+      toast.success('Segnalazione risolta');
+    } catch {
+      toast.error('Errore nel segnare come risolto');
+    }
+  };
+
   const handleResolve = async () => {
     if (!resolvingNote || !resolveProject || !profile) return;
     setResolveLoading(true);
@@ -436,12 +455,19 @@ export default function NoteDevPage() {
                             </Button>
                           )}
                           <Button
+                            variant="primary"
+                            size="sm"
+                            onClick={() => handleMarkResolved(note.id)}
+                          >
+                            <CheckCircle2 size={14} />
+                            Segna risolto
+                          </Button>
+                          <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => openResolveModal(note)}
                           >
-                            <CheckCircle2 size={14} />
-                            Risolvi
+                            Risolvi come task
                           </Button>
                         </>
                       )}
