@@ -36,13 +36,28 @@ export function AttendanceGate({ children }: { children: React.ReactNode }) {
     if (!profile) return;
     if (isAdmin) { setClockedIn(true); setChecked(true); return; }
     let active = true;
-    supabase
-      .from('attendance_records')
-      .select('clock_in')
-      .eq('user_id', profile.id)
-      .eq('date', todayLocal())
-      .maybeSingle()
-      .then(({ data }) => { if (active) { setClockedIn(!!data?.clock_in); setChecked(true); } });
+    const check = async () => {
+      const today = todayLocal();
+      // Se è in ferie/permesso/malattia approvato oggi → niente cancello
+      const { data: off } = await supabase
+        .from('time_off_requests')
+        .select('id')
+        .eq('user_id', profile.id)
+        .eq('status', 'approved')
+        .lte('start_date', today)
+        .gte('end_date', today)
+        .limit(1);
+      if (off && off.length > 0) { if (active) { setClockedIn(true); setChecked(true); } return; }
+      // Altrimenti serve la timbratura d'entrata
+      const { data } = await supabase
+        .from('attendance_records')
+        .select('clock_in')
+        .eq('user_id', profile.id)
+        .eq('date', today)
+        .maybeSingle();
+      if (active) { setClockedIn(!!data?.clock_in); setChecked(true); }
+    };
+    check();
     return () => { active = false; };
   }, [profile?.id, isAdmin]); // eslint-disable-line react-hooks/exhaustive-deps
 
