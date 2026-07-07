@@ -78,8 +78,6 @@ export default function FeriePage() {
   const supabase = createClient();
   const toast = useToast();
   const isAdmin = profile?.role === 'admin';
-  // Saldo/giorni rimasti nascosti: i collaboratori vedono solo il calendario assenze.
-  const showPersonalBalance: boolean = false;
   const year = new Date().getFullYear();
 
   const [myRequests, setMyRequests] = useState<TimeOffRequest[]>([]);
@@ -318,28 +316,37 @@ export default function FeriePage() {
         }
       />
 
-      {/* Saldo/giorni rimasti nascosti: i collaboratori vedono solo il calendario
-          assenze, non il proprio monte residuo. L'admin ha "Monte ferie team". */}
-      {showPersonalBalance && (
+      {/* Le mie ferie — maturate, utilizzate, rimaste (collaboratore loggato) */}
+      {!isAdmin && (
       <div className="grid gap-4 sm:grid-cols-3">
         <Card>
           <CardContent className="p-4">
-            <div className="flex items-center gap-2 text-pw-text-muted text-xs mb-1">
-              <Plane size={14} /> Ferie residue
+            <div className="flex items-center gap-2 text-pw-text-muted text-xs mb-3">
+              <Plane size={14} /> Le mie ferie
             </div>
-            <p className="text-3xl font-semibold text-pw-text leading-none">
-              {fmtDays(ferieResidual)}
-              <span className="text-base text-pw-text-dim font-normal"> / {fmtDays(ferieAllowance)} gg</span>
-            </p>
-            <p className="text-xs text-pw-text-dim mt-1.5">
-              {fmtDays(ferieApproved)} approvati{feriePending > 0 ? ` · ${fmtDays(feriePending)} in attesa` : ''}
-            </p>
+            <div className="grid grid-cols-3 gap-2 text-center">
+              <div>
+                <p className="text-2xl font-semibold text-pw-text leading-none tabular-nums">{fmtDays(ferieAllowance)}</p>
+                <p className="text-[11px] text-pw-text-dim mt-1">Maturate</p>
+              </div>
+              <div>
+                <p className="text-2xl font-semibold text-pw-text leading-none tabular-nums">{fmtDays(ferieApproved)}</p>
+                <p className="text-[11px] text-pw-text-dim mt-1">Utilizzate</p>
+              </div>
+              <div>
+                <p className="text-2xl font-semibold text-pw-accent leading-none tabular-nums">{fmtDays(ferieResidual)}</p>
+                <p className="text-[11px] text-pw-text-dim mt-1">Rimaste</p>
+              </div>
+            </div>
+            {feriePending > 0 && (
+              <p className="text-[11px] text-pw-text-dim mt-2 text-center">{fmtDays(feriePending)} gg in attesa di approvazione</p>
+            )}
             {myContractStart ? (
-              <p className="flex items-center gap-1 text-[11px] text-pw-text-dim mt-1.5" title="2 giorni di ferie maturati al mese dalla data inizio contratto">
-                <Info size={11} /> Maturati 2 gg/mese dal {formatDate(myContractStart)}
+              <p className="flex items-center gap-1 text-[11px] text-pw-text-dim mt-2" title="2 giorni di ferie maturati al mese dalla data inizio contratto">
+                <Info size={11} /> Maturi 2 gg/mese dal {formatDate(myContractStart)}
               </p>
             ) : (
-              <p className="flex items-center gap-1 text-[11px] text-pw-danger mt-1.5">
+              <p className="flex items-center gap-1 text-[11px] text-pw-danger mt-2">
                 <AlertTriangle size={11} /> Data inizio contratto mancante — chiedi all&apos;admin di impostarla
               </p>
             )}
