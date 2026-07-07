@@ -68,20 +68,6 @@ export default function RootLayout({
   return (
     <html lang="it" className={`${inter.variable} ${syne.variable} ${jetbrainsMono.variable} ${bebasNeue.variable} ${dmSerif.variable} h-full`} suppressHydrationWarning>
       <body className={`${inter.className} min-h-full bg-pw-bg text-pw-text antialiased`}>
-        {/* DIAGNOSTICA temporanea: mostra a schermo eventuali errori JS (utile su mobile) */}
-        <script dangerouslySetInnerHTML={{ __html: `
-          (function(){
-            function show(msg){
-              try{
-                var el=document.getElementById('__jserr__');
-                if(!el){el=document.createElement('div');el.id='__jserr__';el.style.cssText='position:fixed;top:0;left:0;right:0;z-index:2147483647;background:#c1121f;color:#fff;font:11px/1.4 monospace;padding:8px;white-space:pre-wrap;max-height:60vh;overflow:auto';document.body&&document.body.appendChild(el);}
-                el.textContent=(el.textContent?el.textContent+'\\n\\n':'')+'JS ERROR: '+msg;
-              }catch(_){}
-            }
-            window.addEventListener('error',function(e){show((e.message||'errore')+' @ '+((e.filename||'').split('/').pop())+':'+(e.lineno||''));});
-            window.addEventListener('unhandledrejection',function(e){var r=e.reason;show('promise: '+((r&&(r.message||r.toString&&r.toString()))||r||''));});
-          })();
-        `}} />
         <ThemeProvider>
           {children}
         </ThemeProvider>
