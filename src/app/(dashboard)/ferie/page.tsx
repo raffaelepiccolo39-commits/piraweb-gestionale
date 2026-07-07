@@ -16,6 +16,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { formatDate, todayLocal } from '@/lib/utils';
 import { TIME_OFF_TYPE_LABELS, TIME_OFF_STATUS_LABELS } from '@/lib/constants';
 import { notifyTimeOffDecision } from '@/lib/time-off-notifications';
+import { TeamAbsenceCalendar } from '@/components/ferie/team-absence-calendar';
 import type { TimeOffRequest, TeamAbsence, TimeOffType } from '@/types/database';
 import { Plus, Check, X, Plane, Clock, Stethoscope, Users, CalendarDays, AlertTriangle, Hourglass, Info } from 'lucide-react';
 
@@ -445,6 +446,16 @@ export default function FeriePage() {
               })}
             </CardContent>
           </Card>
+        </div>
+      )}
+
+      {/* Calendario assenze team (solo admin) */}
+      {isAdmin && (
+        <div>
+          <h2 className="text-sm font-semibold text-pw-text mb-3 flex items-center gap-2">
+            <CalendarDays size={16} className="text-pw-text-muted" /> Calendario assenze team
+          </h2>
+          <TeamAbsenceCalendar />
         </div>
       )}
 
