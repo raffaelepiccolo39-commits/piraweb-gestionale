@@ -14,7 +14,6 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
     <ToastProvider>
@@ -34,19 +33,7 @@ export default function DashboardLayout({
         />
       </div>
 
-      {/* Mobile sidebar overlay — z alto per stare sopra header e contenuto */}
-      {mobileMenuOpen && (
-        <div className="lg:hidden fixed inset-0 z-[90]" role="dialog" aria-modal="true" aria-label="Menu di navigazione">
-          <div
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-            onClick={() => setMobileMenuOpen(false)}
-            aria-hidden="true"
-          />
-          <div className="absolute inset-y-0 left-0">
-            <Sidebar collapsed={false} onToggle={() => setMobileMenuOpen(false)} onNavigate={() => setMobileMenuOpen(false)} />
-          </div>
-        </div>
-      )}
+      {/* Il menu mobile è ora autonomo dentro l'Header (MobileMenu) */}
 
       {/* Main content */}
       <div
@@ -55,10 +42,7 @@ export default function DashboardLayout({
           sidebarCollapsed ? 'lg:ml-[68px]' : 'lg:ml-[240px]'
         )}
       >
-        <Header
-          onMobileMenuToggle={() => setMobileMenuOpen(!mobileMenuOpen)}
-          mobileMenuOpen={mobileMenuOpen}
-        />
+        <Header />
         <main id="main-content" className="p-4 lg:p-6 xl:p-8 min-w-0">
           <ErrorBoundary>
             {children}

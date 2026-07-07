@@ -6,6 +6,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { createClient } from '@/lib/supabase/client';
 import { getInitials, cn } from '@/lib/utils';
 import { APP_VERSION } from '@/lib/version';
+import { MobileMenu } from '@/components/layout/mobile-menu';
 
 const PAGE_TITLES: Record<string, string> = {
   '/dashboard': 'Dashboard',
@@ -54,12 +55,7 @@ const SEARCH_ITEMS = [
   { label: 'Impostazioni', href: '/settings' },
 ];
 
-interface HeaderProps {
-  onMobileMenuToggle: () => void;
-  mobileMenuOpen: boolean;
-}
-
-export function Header({ onMobileMenuToggle, mobileMenuOpen }: HeaderProps) {
+export function Header() {
   const pathname = usePathname();
   const router = useRouter();
   const { profile, signOut } = useAuth();
@@ -244,14 +240,8 @@ export function Header({ onMobileMenuToggle, mobileMenuOpen }: HeaderProps) {
 
   return (
     <header className="h-[56px] bg-pw-surface border-b border-pw-border flex items-center justify-between px-4 lg:px-7 sticky top-0 z-30">
-      {/* Mobile menu button */}
-      <button
-        onClick={onMobileMenuToggle}
-        className="lg:hidden p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg text-pw-text-muted hover:bg-pw-surface-2"
-        aria-label={mobileMenuOpen ? 'Chiudi menu' : 'Apri menu'}
-      >
-        {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
-      </button>
+      {/* Menu mobile (autonomo) */}
+      <MobileMenu />
 
       {/* Page title on mobile + version badge */}
       <div className="flex-1 flex items-center gap-2">
