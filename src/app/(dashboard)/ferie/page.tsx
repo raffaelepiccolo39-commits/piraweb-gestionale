@@ -316,8 +316,9 @@ export default function FeriePage() {
         }
       />
 
-      {/* Saldo personale — solo collaboratori (l'admin non richiede ferie) */}
-      {!isAdmin && (
+      {/* Saldo/giorni rimasti nascosti: i collaboratori vedono solo il calendario
+          assenze, non il proprio monte residuo. L'admin ha "Monte ferie team". */}
+      {false && (
       <div className="grid gap-4 sm:grid-cols-3">
         <Card>
           <CardContent className="p-4">
@@ -449,15 +450,13 @@ export default function FeriePage() {
         </div>
       )}
 
-      {/* Calendario assenze team (solo admin) */}
-      {isAdmin && (
-        <div>
-          <h2 className="text-sm font-semibold text-pw-text mb-3 flex items-center gap-2">
-            <CalendarDays size={16} className="text-pw-text-muted" /> Calendario assenze team
-          </h2>
-          <TeamAbsenceCalendar />
-        </div>
-      )}
+      {/* Calendario assenze team — visibile a tutti (chi è assente e quando) */}
+      <div>
+        <h2 className="text-sm font-semibold text-pw-text mb-3 flex items-center gap-2">
+          <CalendarDays size={16} className="text-pw-text-muted" /> Calendario assenze team
+        </h2>
+        <TeamAbsenceCalendar />
+      </div>
 
       {/* Prossime assenze team (solo admin) */}
       {isAdmin && absences.length > 0 && (
