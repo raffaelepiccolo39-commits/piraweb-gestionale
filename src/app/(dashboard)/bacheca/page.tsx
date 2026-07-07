@@ -523,6 +523,16 @@ export default function BachecaPage() {
               }).select('id').single();
               if (taskErr) throw taskErr;
 
+              if (createdTask) {
+                const primary = data.assigned_to || addToMemberId || '';
+                const ids = (data.assignee_ids && data.assignee_ids.length > 0)
+                  ? data.assignee_ids
+                  : (primary ? [primary] : []);
+                if (ids.length > 0) {
+                  await supabase.rpc('set_task_assignees', { p_task_id: createdTask.id, p_user_ids: ids });
+                }
+              }
+
               if (createdTask && files && files.length > 0) {
                 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
                 let attachFailed = 0;

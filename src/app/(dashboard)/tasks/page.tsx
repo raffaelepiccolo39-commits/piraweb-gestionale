@@ -103,11 +103,14 @@ export default function TasksPage() {
           assignee:profiles!tasks_assigned_to_fkey(id, full_name, color)
         `);
 
-      // Filtro dipendente: "me" = solo i miei, "all" = tutti, UUID = specifico
-      if (assigneeFilter === 'me') {
-        query = query.eq('assigned_to', profile.id);
-      } else if (assigneeFilter && assigneeFilter !== 'all') {
-        query = query.eq('assigned_to', assigneeFilter);
+      // Filtro dipendente: "me" = solo i miei, "all" = tutti, UUID = specifico.
+      // Multi-assegnatario: filtro via junction (pre-carico gli id delle task
+      // in cui la persona è assegnata).
+      if (assigneeFilter === 'me' || (assigneeFilter && assigneeFilter !== 'all')) {
+        const targetId = assigneeFilter === 'me' ? profile.id : assigneeFilter;
+        const { data: myTaskRows } = await supabase.from('task_assignees').select('task_id').eq('user_id', targetId);
+        const ids = (myTaskRows || []).map((r) => r.task_id as string);
+        query = query.in('id', ids.length ? ids : ['00000000-0000-0000-0000-000000000000']);
       }
 
       // Archivio: di default mostra solo le attive (archived_at IS NULL).

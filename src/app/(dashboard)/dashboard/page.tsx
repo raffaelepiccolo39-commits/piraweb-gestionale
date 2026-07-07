@@ -103,6 +103,13 @@ export default function DashboardPage() {
       const tomorrowStr = formatDateLocal(new Date(now.getTime() + 86400000));
       const currentMonth = todayStr.slice(0, 7);
 
+      // Multi-assegnatario: id delle task in cui l'utente è assegnato (per i dipendenti)
+      let myTaskIds: string[] = ['00000000-0000-0000-0000-000000000000'];
+      if (!isAdmin) {
+        const { data: taRows } = await supabase.from('task_assignees').select('task_id').eq('user_id', profile.id);
+        if (taRows && taRows.length > 0) myTaskIds = taRows.map((r) => r.task_id as string);
+      }
+
       // Build all queries
       const queries: Promise<unknown>[] = [
         // 0: clients count
@@ -112,13 +119,13 @@ export default function DashboardPage() {
         // 2: tasks for stats (admin vede tutto, dipendenti solo le proprie)
         isAdmin
           ? supabase.from('tasks').select('id, status, deadline').is('archived_at', null).limit(200)
-          : supabase.from('tasks').select('id, status, deadline').eq('assigned_to', profile.id).is('archived_at', null).limit(200),
+          : supabase.from('tasks').select('id, status, deadline').in('id', myTaskIds).is('archived_at', null).limit(200),
         // 3: recent tasks (solo le mie)
         supabase.from('tasks').select(`
           id, title, status, priority, deadline,
           project:projects(name, color),
           assignee:profiles!tasks_assigned_to_fkey(full_name)
-        `).eq('assigned_to', profile.id).neq('status', 'done').is('archived_at', null).order('updated_at', { ascending: false }).limit(8),
+        `).in('id', myTaskIds).neq('status', 'done').is('archived_at', null).order('updated_at', { ascending: false }).limit(8),
         // 4: urgent tasks (overdue + due today) — dipendenti vedono solo le proprie
         // Esclude task done E archived (le archiviate sono "messe via", non più urgenti)
         isAdmin
@@ -131,7 +138,7 @@ export default function DashboardPage() {
               id, title, deadline,
               project:projects(name, color),
               assignee:profiles!tasks_assigned_to_fkey(full_name)
-            `).eq('assigned_to', profile.id).neq('status', 'done').is('archived_at', null).lte('deadline', tomorrowStr).order('deadline', { ascending: true }).limit(10),
+            `).in('id', myTaskIds).neq('status', 'done').is('archived_at', null).lte('deadline', tomorrowStr).order('deadline', { ascending: true }).limit(10),
         // 5: my attendance
         supabase.from('attendance_records').select('*').eq('user_id', profile.id).eq('date', todayStr).maybeSingle(),
         // 6: projects with tasks for progress

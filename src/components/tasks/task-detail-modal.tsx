@@ -10,6 +10,7 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Select } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { RichTextEditor } from '@/components/ui/rich-text-editor';
+import { AssigneeMultiSelect } from '@/components/tasks/assignee-multi-select';
 import { formatDateTime, getInitials, safeStorageName } from '@/lib/utils';
 import type { Task, Profile, TaskComment, TaskAttachment, Client, TimeEntry } from '@/types/database';
 import {
@@ -66,7 +67,7 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
   const [confirmDeleteCommentId, setConfirmDeleteCommentId] = useState<string | null>(null);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [assignedTo, setAssignedTo] = useState('');
+  const [assigneeIds, setAssigneeIds] = useState<string[]>([]);
   const [status, setStatus] = useState('');
   const [priority, setPriority] = useState('');
   const [deadline, setDeadline] = useState('');
@@ -101,7 +102,7 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
     if (task) {
       setTitle(task.title);
       setDescription(task.description || '');
-      setAssignedTo(task.assigned_to || '');
+      setAssigneeIds(task.assigned_to ? [task.assigned_to] : []);
       setStatus(task.status);
       setPriority(task.priority);
       setDeadline(task.deadline ? task.deadline.split('T')[0] : '');
@@ -112,6 +113,10 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
       setCommentImagePreview('');
       fetchComments(task.id);
       fetchAttachments(task.id);
+      // Carica la lista completa degli assegnatari (multi)
+      supabase.from('task_assignees').select('user_id').eq('task_id', task.id).then(({ data }) => {
+        if (data && data.length > 0) setAssigneeIds(data.map((r) => r.user_id as string));
+      });
     }
   }, [task]);
 
@@ -432,7 +437,7 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
     const { data, error } = await supabase.from('tasks').update({
       title,
       description: description || null,
-      assigned_to: assignedTo || null,
+      assigned_to: assigneeIds[0] || null,
       status,
       priority,
       deadline: deadline || null,
@@ -451,6 +456,8 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
       toast.error('Non hai i permessi per modificare questa task');
       return;
     }
+    // Aggiorna la lista completa degli assegnatari (multi) + notifiche ai nuovi
+    await supabase.rpc('set_task_assignees', { p_task_id: task.id, p_user_ids: assigneeIds });
     toast.success('Task aggiornata');
     onUpdate();
   };
@@ -558,7 +565,6 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
     toast.success('Commento eliminato');
   };
 
-  const assigneeName = members.find((m) => m.id === assignedTo)?.full_name || '';
   const projectInfo = task?.project as { name: string; client?: { name: string; company: string | null } } | undefined;
   const clientName = projectInfo?.client?.company || projectInfo?.client?.name || projectInfo?.name || '';
 
@@ -570,12 +576,10 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
           <div className="flex-1 min-w-0 space-y-5">
             {/* Assigned to badge */}
             <div className="flex items-center gap-2">
-              <Select
-                id="detail-assignee"
-                value={assignedTo}
-                onChange={(e) => setAssignedTo(e.target.value)}
-                options={members.map((m) => ({ value: m.id, label: m.full_name }))}
-                placeholder="Non assegnato"
+              <AssigneeMultiSelect
+                value={assigneeIds}
+                onChange={setAssigneeIds}
+                members={members.map((m) => ({ id: m.id, full_name: m.full_name, color: m.color }))}
               />
             </div>
 

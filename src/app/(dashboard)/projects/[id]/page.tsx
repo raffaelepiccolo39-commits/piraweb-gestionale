@@ -131,7 +131,7 @@ export default function ProjectDetailPage({
         .filter((t) => t.status === data.status)
         .reduce((max, t) => Math.max(max, t.position), -1);
 
-      const { error } = await supabase.from('tasks').insert({
+      const { data: created, error } = await supabase.from('tasks').insert({
         title: data.title,
         description: data.description || null,
         project_id: id,
@@ -142,8 +142,11 @@ export default function ProjectDetailPage({
         estimated_hours: data.estimated_hours ? parseFloat(data.estimated_hours) : null,
         position: maxPosition + 1,
         created_by: profile.id,
-      });
+      }).select('id').single();
       if (error) throw error;
+      if (created && data.assignee_ids && data.assignee_ids.length > 0) {
+        await supabase.rpc('set_task_assignees', { p_task_id: created.id, p_user_ids: data.assignee_ids });
+      }
       toast.success('Task creato');
       setShowTaskForm(false);
       fetchTasks();

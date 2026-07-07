@@ -124,10 +124,10 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
       const counts: Record<string, number> = {};
       const [tasksRes, chatRes] = await Promise.all([
         supabase
-          .from('tasks')
-          .select('id', { count: 'exact', head: true })
-          .eq('assigned_to', profile.id)
-          .in('status', ['todo', 'in_progress']),
+          .from('task_assignees')
+          .select('task_id, tasks!inner(status)', { count: 'exact', head: true })
+          .eq('user_id', profile.id)
+          .in('tasks.status', ['todo', 'in_progress']),
         supabase
           .from('chat_messages')
           .select('id', { count: 'exact', head: true })

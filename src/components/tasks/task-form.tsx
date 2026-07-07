@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { RichTextEditor } from '@/components/ui/rich-text-editor';
 import { Select } from '@/components/ui/select';
+import { AssigneeMultiSelect } from '@/components/tasks/assignee-multi-select';
 import type { Profile, Client } from '@/types/database';
 import { Sparkles, Loader2, Paperclip, X } from 'lucide-react';
 
@@ -43,6 +44,7 @@ export interface TaskFormData {
   title: string;
   description: string;
   assigned_to: string;
+  assignee_ids: string[];
   priority: string;
   status: string;
   deadline: string;
@@ -85,6 +87,7 @@ export function TaskForm({
     title: task?.title || '',
     description: task?.description || '',
     assigned_to: task?.assigned_to || defaultAssignedTo || '',
+    assignee_ids: task?.assigned_to ? [task.assigned_to] : (defaultAssignedTo ? [defaultAssignedTo] : []),
     priority: task?.priority || 'medium',
     status: task?.status || 'todo',
     deadline: task?.deadline ? task.deadline.split('T')[0] : '',
@@ -121,6 +124,21 @@ export function TaskForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId]);
 
+  // In modifica: carica la lista completa degli assegnatari (non solo il primo)
+  useEffect(() => {
+    if (!task?.id) return;
+    supabase
+      .from('task_assignees')
+      .select('user_id')
+      .eq('task_id', task.id)
+      .then(({ data }) => {
+        if (data && data.length > 0) {
+          setForm((prev) => ({ ...prev, assignee_ids: data.map((r) => r.user_id as string) }));
+        }
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [task?.id]);
+
   const handleAiDescription = async () => {
     if (!form.title.trim()) return;
     setGeneratingAi(true);
@@ -148,7 +166,7 @@ export function TaskForm({
     if (!form.title.trim()) return;
     setLoading(true);
     try {
-      await onSubmit(form, files.length > 0 ? files : undefined);
+      await onSubmit({ ...form, assigned_to: form.assignee_ids[0] || '' }, files.length > 0 ? files : undefined);
     } finally {
       setLoading(false);
     }
@@ -202,12 +220,11 @@ export function TaskForm({
 
       {/* Assegna + Priorità */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Select
+        <AssigneeMultiSelect
           label="Assegna a"
-          value={form.assigned_to}
-          onChange={(e) => setForm({ ...form, assigned_to: e.target.value })}
-          options={members.map((m) => ({ value: m.id, label: m.full_name }))}
-          placeholder="Non assegnato"
+          value={form.assignee_ids}
+          onChange={(ids) => setForm({ ...form, assignee_ids: ids })}
+          members={members.map((m) => ({ id: m.id, full_name: m.full_name, color: m.color }))}
         />
         <Select
           label="Priorità"
