@@ -14,7 +14,6 @@ import { KanbanBoard } from '@/components/kanban/kanban-board';
 import { TaskForm, type TaskFormData } from '@/components/tasks/task-form';
 import { TaskDetailModal } from '@/components/tasks/task-detail-modal';
 import { ProjectForm, type ProjectFormData } from '@/components/projects/project-form';
-import { InstallmentsManager } from '@/components/clients/installments-manager';
 import { formatDate, getStatusTone, getInitials } from '@/lib/utils';
 import { STATUS_LABELS } from '@/lib/constants';
 import type { Project, Task, Profile, Client } from '@/types/database';
@@ -413,17 +412,6 @@ export default function ProjectDetailPage({
               ))}
             </div>
           )}
-        </div>
-      )}
-
-      {/* Pagamenti del progetto (acconti + saldo) — solo admin gestisce */}
-      {project.client_id && (
-        <div className="pt-2">
-          <InstallmentsManager
-            clientId={project.client_id}
-            projectId={id}
-            projectBudget={project.budget_amount}
-          />
         </div>
       )}
 
