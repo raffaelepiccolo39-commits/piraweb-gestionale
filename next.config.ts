@@ -41,6 +41,14 @@ const nextConfig: NextConfig = {
         { key: 'Cache-Control', value: 'no-store, max-age=0' },
       ],
     },
+    {
+      // Il service worker va sempre riscaricato fresco, così gli
+      // aggiornamenti (e il passaggio alla versione passthrough) arrivano.
+      source: '/sw.js',
+      headers: [
+        { key: 'Cache-Control', value: 'no-cache, no-store, must-revalidate' },
+      ],
+    },
   ],
 };
 
