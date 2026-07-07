@@ -6,6 +6,7 @@ import { Header } from '@/components/layout/header';
 import { ToastProvider } from '@/components/ui/toast';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { VersionWatcher } from '@/components/version-watcher';
+import { AttendanceGate } from '@/components/layout/attendance-gate';
 import { cn } from '@/lib/utils';
 
 export default function DashboardLayout({
@@ -45,7 +46,7 @@ export default function DashboardLayout({
         <Header />
         <main id="main-content" className="p-4 lg:p-6 xl:p-8 min-w-0">
           <ErrorBoundary>
-            {children}
+            <AttendanceGate>{children}</AttendanceGate>
           </ErrorBoundary>
         </main>
       </div>
