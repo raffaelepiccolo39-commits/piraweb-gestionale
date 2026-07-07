@@ -19,6 +19,7 @@ import { StatCards } from '@/components/dashboard/stat-cards';
 import { ProjectProgress } from '@/components/dashboard/project-progress';
 import { ActivityFeed } from '@/components/dashboard/activity-feed';
 import { TeamAttendance } from '@/components/dashboard/team-attendance';
+import { AbsentToday } from '@/components/dashboard/absent-today';
 import { TimeOffInbox } from '@/components/dashboard/time-off-inbox';
 import { notifyTimeOffDecision } from '@/lib/time-off-notifications';
 import type { TimeOffRequest } from '@/types/database';
@@ -533,6 +534,8 @@ export default function DashboardPage() {
           )}
 
           {isAdmin && <TeamAttendance team={teamAttendance} />}
+
+          {isAdmin && <AbsentToday />}
 
           {isAdmin && (
             <Card>
