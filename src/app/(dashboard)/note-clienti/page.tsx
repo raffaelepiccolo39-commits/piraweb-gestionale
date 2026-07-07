@@ -14,7 +14,7 @@ import { SkeletonList } from '@/components/ui/skeleton';
 import { useToast } from '@/components/ui/toast';
 import { NotebookPen, Plus, Pencil, Trash2, Lock, Check, X } from 'lucide-react';
 
-interface ClientRow { id: string; name: string }
+interface ClientRow { id: string; name: string; company: string | null }
 interface ClientNote {
   id: string;
   client_id: string;
@@ -50,7 +50,7 @@ export default function NoteClientiPage() {
 
   useEffect(() => {
     const fetchClients = async () => {
-      const { data } = await supabase.from('clients').select('id, name').order('name');
+      const { data } = await supabase.from('clients').select('id, name, company').order('company', { nullsFirst: false });
       setClients((data as ClientRow[]) || []);
       setLoadingClients(false);
     };
@@ -111,7 +111,8 @@ export default function NoteClientiPage() {
     toast.success('Nota eliminata');
   };
 
-  const clientName = clients.find((c) => c.id === selected)?.name;
+  const selectedClient = clients.find((c) => c.id === selected);
+  const clientName = selectedClient?.company || selectedClient?.name;
 
   return (
     <div className="space-y-6 animate-slide-up">
@@ -131,7 +132,7 @@ export default function NoteClientiPage() {
           value={selected}
           onChange={(e) => { setSelected(e.target.value); setEditingId(null); }}
           placeholder={loadingClients ? 'Caricamento…' : 'Scegli un cliente…'}
-          options={clients.map((c) => ({ value: c.id, label: c.name }))}
+          options={clients.map((c) => ({ value: c.id, label: c.company || c.name }))}
         />
       </div>
 
