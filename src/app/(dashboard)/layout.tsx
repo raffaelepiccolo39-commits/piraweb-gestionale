@@ -34,15 +34,17 @@ export default function DashboardLayout({
         />
       </div>
 
-      {/* Mobile sidebar overlay */}
+      {/* Mobile sidebar overlay — z alto per stare sopra header e contenuto */}
       {mobileMenuOpen && (
-        <div className="lg:hidden" role="dialog" aria-modal="true" aria-label="Menu di navigazione">
+        <div className="lg:hidden fixed inset-0 z-[90]" role="dialog" aria-modal="true" aria-label="Menu di navigazione">
           <div
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-30"
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             onClick={() => setMobileMenuOpen(false)}
             aria-hidden="true"
           />
-          <Sidebar collapsed={false} onToggle={() => setMobileMenuOpen(false)} onNavigate={() => setMobileMenuOpen(false)} />
+          <div className="absolute inset-y-0 left-0">
+            <Sidebar collapsed={false} onToggle={() => setMobileMenuOpen(false)} onNavigate={() => setMobileMenuOpen(false)} />
+          </div>
         </div>
       )}
 
