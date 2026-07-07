@@ -119,7 +119,8 @@ export function Sidebar({ collapsed, onToggle, onNavigate }: SidebarProps) {
   const isAdmin = profile?.role === 'admin';
 
   useEffect(() => {
-    if (!profile) return;
+    const userId = profile?.id;
+    if (!userId) return;
     const supabase = createClient();
 
     const fetchBadges = async () => {
@@ -128,12 +129,12 @@ export function Sidebar({ collapsed, onToggle, onNavigate }: SidebarProps) {
         supabase
           .from('task_assignees')
           .select('task_id, tasks!inner(status)', { count: 'exact', head: true })
-          .eq('user_id', profile.id)
+          .eq('user_id', userId)
           .in('tasks.status', ['todo', 'in_progress']),
         supabase
           .from('chat_messages')
           .select('id', { count: 'exact', head: true })
-          .neq('sender_id', profile.id)
+          .neq('sender_id', userId)
           .gt('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()),
       ]);
       if (tasksRes.count) counts.tasks = tasksRes.count;
@@ -143,14 +144,26 @@ export function Sidebar({ collapsed, onToggle, onNavigate }: SidebarProps) {
 
     fetchBadges();
 
-    const channel = supabase
-      .channel('sidebar-badges')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, fetchBadges)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages' }, fetchBadges)
-      .subscribe();
+    // Realtime badge. Protetto: rimuove eventuali canali duplicati con lo stesso
+    // topic (causa dell'errore "cannot add callbacks after subscribe()") e avvolto
+    // in try/catch — un problema realtime NON deve mai bloccare l'app (su iOS
+    // WebKit un throw qui crashava l'intera pagina → tutto non cliccabile).
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    try {
+      supabase.getChannels().forEach((ch) => {
+        if (ch.topic === 'realtime:sidebar-badges') supabase.removeChannel(ch);
+      });
+      channel = supabase
+        .channel('sidebar-badges')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, fetchBadges)
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages' }, fetchBadges)
+        .subscribe();
+    } catch {
+      // realtime non disponibile: i badge non si aggiornano live, ma l'app resta viva
+    }
 
-    return () => { supabase.removeChannel(channel); };
-  }, [profile]);
+    return () => { if (channel) supabase.removeChannel(channel); };
+  }, [profile?.id]);
 
   const handleLogout = async () => {
     setLoggingOut(true);
