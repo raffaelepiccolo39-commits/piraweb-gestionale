@@ -105,9 +105,11 @@ const navSections: NavSection[] = [
 interface SidebarProps {
   collapsed: boolean;
   onToggle: () => void;
+  /** Chiamato quando si tocca una voce di navigazione (per chiudere il menu su mobile) */
+  onNavigate?: () => void;
 }
 
-export function Sidebar({ collapsed, onToggle }: SidebarProps) {
+export function Sidebar({ collapsed, onToggle, onNavigate }: SidebarProps) {
   const pathname = usePathname();
   const { profile } = useAuth();
   const [badges, setBadges] = useState<Record<string, number>>({});
@@ -221,6 +223,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                     <Link
                       key={item.href}
                       href={item.href}
+                      onClick={onNavigate}
                       aria-current={isActive ? 'page' : undefined}
                       aria-label={item.label}
                       className={cn(

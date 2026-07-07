@@ -42,7 +42,7 @@ export default function DashboardLayout({
             onClick={() => setMobileMenuOpen(false)}
             aria-hidden="true"
           />
-          <Sidebar collapsed={false} onToggle={() => setMobileMenuOpen(false)} />
+          <Sidebar collapsed={false} onToggle={() => setMobileMenuOpen(false)} onNavigate={() => setMobileMenuOpen(false)} />
         </div>
       )}
 
