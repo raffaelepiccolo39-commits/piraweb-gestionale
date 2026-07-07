@@ -65,7 +65,8 @@ export default function BachecaPage() {
         .select(`
           *,
           project:projects(id, name, color, client_id, client:clients(id, name, company, logo_url)),
-          assignee:profiles!tasks_assigned_to_fkey(id, full_name, color)
+          assignee:profiles!tasks_assigned_to_fkey(id, full_name, color),
+          task_assignees(user_id)
         `)
         .is('archived_at', null)
         .order('position')
@@ -117,21 +118,34 @@ export default function BachecaPage() {
     if (error) {
       Sentry.captureException(error, { tags: { route: 'bacheca', stage: 'drag_drop' } });
       toast.error('Errore nello spostamento della task');
+    } else if (newAssigneeId) {
+      // Spostando su una persona la task viene riassegnata interamente a lei:
+      // allineo la junction così non resta anche nelle colonne dei vecchi assegnatari.
+      await supabase.rpc('set_task_assignees', { p_task_id: draggableId, p_user_ids: [newAssigneeId] });
     }
     // Refetch sempre: riallinea la UI allo stato reale del DB (anche in caso di errore
     // la card torna al suo posto originale)
     fetchData();
   };
 
+  // Assegnatari di una task: usa la junction task_assignees (multi-assegnatario);
+  // fallback ad assigned_to per le task create prima della junction.
+  const assigneeIdsOf = (t: Task): string[] => {
+    const rows = (t as unknown as { task_assignees?: { user_id: string }[] }).task_assignees || [];
+    const ids = rows.map((r) => r.user_id).filter(Boolean);
+    if (ids.length > 0) return ids;
+    return t.assigned_to ? [t.assigned_to] : [];
+  };
+
   const getColumnTasks = (memberId: string): Task[] => {
     return tasks
-      .filter((t) => t.assigned_to === memberId && t.priority !== 'urgent' && t.status !== 'done')
+      .filter((t) => assigneeIdsOf(t).includes(memberId) && t.priority !== 'urgent' && t.status !== 'done')
       .sort((a, b) => a.position - b.position);
   };
 
   const getColumnDoneTasks = (memberId: string): Task[] => {
     return tasks
-      .filter((t) => t.assigned_to === memberId && t.priority !== 'urgent' && t.status === 'done')
+      .filter((t) => assigneeIdsOf(t).includes(memberId) && t.priority !== 'urgent' && t.status === 'done')
       .sort((a, b) => a.position - b.position);
   };
 

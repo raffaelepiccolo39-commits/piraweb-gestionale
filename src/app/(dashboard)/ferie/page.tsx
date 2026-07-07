@@ -342,8 +342,8 @@ export default function FeriePage() {
               <p className="text-[11px] text-pw-text-dim mt-2 text-center">{fmtDays(feriePending)} gg in attesa di approvazione</p>
             )}
             {myContractStart ? (
-              <p className="flex items-center gap-1 text-[11px] text-pw-text-dim mt-2" title="2 giorni di ferie maturati al mese dalla data inizio contratto">
-                <Info size={11} /> Maturi 2 gg/mese dal {formatDate(myContractStart)}
+              <p className="flex items-center gap-1 text-[11px] text-pw-text-dim mt-2" title="2 giorni maturati al mese + bonus, fino a un massimo di 24">
+                <Info size={11} /> Maturi 2 gg/mese · max 24 giorni
               </p>
             ) : (
               <p className="flex items-center gap-1 text-[11px] text-pw-danger mt-2">
