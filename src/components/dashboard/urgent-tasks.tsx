@@ -24,6 +24,19 @@ export const UrgentTasks = memo(function UrgentTasks({ tasks, isAdmin }: UrgentT
   if (tasks.length === 0) return null;
 
   const today = todayLocal();
+  const t = new Date();
+  const tmr = new Date(t.getFullYear(), t.getMonth(), t.getDate() + 1);
+  const tomorrow = `${tmr.getFullYear()}-${String(tmr.getMonth() + 1).padStart(2, '0')}-${String(tmr.getDate()).padStart(2, '0')}`;
+
+  // Etichetta scadenza corretta: distingue scaduta / oggi / domani (prima
+  // i task di domani venivano mostrati come "Scade oggi").
+  const deadlineInfo = (deadline: string): { label: string; overdue: boolean } => {
+    const d = deadline.slice(0, 10);
+    if (d < today) return { label: `Scaduta ${formatDate(deadline)}`, overdue: true };
+    if (d === today) return { label: 'Scade oggi', overdue: false };
+    if (d === tomorrow) return { label: 'Scade domani', overdue: false };
+    return { label: `Scade ${formatDate(deadline)}`, overdue: false };
+  };
 
   return (
     <Card className="border-red-500/20 bg-red-500/[0.03]">
@@ -54,11 +67,14 @@ export const UrgentTasks = memo(function UrgentTasks({ tasks, isAdmin }: UrgentT
                     <span className="text-xs text-pw-text-dim shrink-0">· {task.assignee.full_name}</span>
                   )}
                 </div>
-                <span className={`text-xs shrink-0 font-medium ${
-                  task.deadline < today ? 'text-red-400' : 'text-yellow-400'
-                }`}>
-                  {task.deadline < today ? `Scaduta ${formatDate(task.deadline)}` : 'Scade oggi'}
-                </span>
+                {(() => {
+                  const info = deadlineInfo(task.deadline);
+                  return (
+                    <span className={`text-xs shrink-0 font-medium ${info.overdue ? 'text-red-400' : 'text-yellow-400'}`}>
+                      {info.label}
+                    </span>
+                  );
+                })()}
               </div>
             </Link>
           ))}
