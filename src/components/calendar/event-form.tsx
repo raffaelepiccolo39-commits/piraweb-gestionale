@@ -10,6 +10,8 @@ import { createClient } from '@/lib/supabase/client';
 interface EventFormProps {
   event?: CalendarEvent;
   defaultDate?: string;
+  /** Valori pre-compilati (es. per uno shooting: titolo, cliente, tipo, colore). */
+  initial?: Partial<EventFormData>;
   onSubmit: (data: EventFormData) => Promise<void>;
   onCancel: () => void;
 }
@@ -23,6 +25,8 @@ export interface EventFormData {
   all_day: boolean;
   color: string;
   assigned_to: string[];
+  client_id?: string | null;
+  event_type?: string;
   sync_caldav?: boolean;
 }
 
@@ -30,7 +34,7 @@ const COLORS = [
   '#FFD108', '#ff4d1c', '#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#ec4899', '#6366f1',
 ];
 
-export function EventForm({ event, defaultDate, onSubmit, onCancel }: EventFormProps) {
+export function EventForm({ event, defaultDate, initial, onSubmit, onCancel }: EventFormProps) {
   const supabase = createClient();
   const [members, setMembers] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(false);
@@ -47,14 +51,16 @@ export function EventForm({ event, defaultDate, onSubmit, onCancel }: EventFormP
     : '';
 
   const [form, setForm] = useState<EventFormData>({
-    title: event?.title || '',
+    title: initial?.title ?? event?.title ?? '',
     description: event?.description || '',
     start_time: defaultStart,
     end_time: defaultEnd,
     location: event?.location || '',
     all_day: event?.all_day || false,
-    color: event?.color || '#FFD108',
+    color: initial?.color ?? event?.color ?? '#FFD108',
     assigned_to: event?.assigned_to || [],
+    client_id: initial?.client_id ?? null,
+    event_type: initial?.event_type ?? 'general',
     sync_caldav: !event, // default on for new events
   });
 

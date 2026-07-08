@@ -14,6 +14,7 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { SkeletonStats, SkeletonList } from '@/components/ui/skeleton';
 import { CalendarMonthView } from '@/components/calendar/calendar-month-view';
 import { EventForm, type EventFormData } from '@/components/calendar/event-form';
+import { ShootingPanel } from '@/components/calendar/shooting-panel';
 import { DayEvents } from '@/components/calendar/day-events';
 import { SyncSettings } from '@/components/calendar/sync-settings';
 import type { CalendarEvent, TeamAbsence } from '@/types/database';
@@ -36,6 +37,9 @@ export default function CalendarioPage() {
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
   const [deletingEventId, setDeletingEventId] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
+  // Shooting mensile: pre-compilato evento + trigger di refresh del pannello
+  const [shootingInitial, setShootingInitial] = useState<Partial<EventFormData> | null>(null);
+  const [panelReload, setPanelReload] = useState(0);
 
   const isAdmin = profile?.role === 'admin';
 
@@ -165,6 +169,8 @@ export default function CalendarioPage() {
 
       toast.success(synced ? 'Evento creato e sincronizzato' : 'Evento creato');
       setShowEventForm(false);
+      setShootingInitial(null);
+      setPanelReload((n) => n + 1);
       fetchEvents();
     } catch {
       toast.error('Errore nella creazione dell\'evento');
@@ -285,13 +291,30 @@ export default function CalendarioPage() {
             {isAdmin && (
               <SyncSettings onSync={handleSync} syncing={syncing} />
             )}
-            <Button variant="primary" onClick={() => setShowEventForm(true)}>
+            <Button variant="primary" onClick={() => { setShootingInitial(null); setShowEventForm(true); }}>
               <Plus size={14} />
               Nuovo evento
             </Button>
           </>
         }
       />
+
+      {/* Shooting mensile da programmare (solo admin) */}
+      {isAdmin && (
+        <ShootingPanel
+          month={currentMonth}
+          reloadKey={panelReload}
+          onProgram={(client) => {
+            setShootingInitial({
+              title: `Shooting ${client.company || client.name}`,
+              client_id: client.id,
+              event_type: 'shooting',
+              color: '#ec4899',
+            });
+            setShowEventForm(true);
+          }}
+        />
+      )}
 
       {/* Calendar + Day events */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -321,14 +344,15 @@ export default function CalendarioPage() {
       {/* Create event modal */}
       <Modal
         open={showEventForm}
-        onClose={() => setShowEventForm(false)}
-        title="Nuovo evento"
+        onClose={() => { setShowEventForm(false); setShootingInitial(null); }}
+        title={shootingInitial ? 'Programma shooting' : 'Nuovo evento'}
         size="lg"
       >
         <EventForm
           defaultDate={selectedDate ? format(selectedDate, 'yyyy-MM-dd') : undefined}
+          initial={shootingInitial ?? undefined}
           onSubmit={handleCreate}
-          onCancel={() => setShowEventForm(false)}
+          onCancel={() => { setShowEventForm(false); setShootingInitial(null); }}
         />
       </Modal>
 

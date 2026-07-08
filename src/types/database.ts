@@ -211,6 +211,7 @@ export interface Client {
   sector: string | null;
   service_types: string | null;
   relationship_start: string | null;
+  needs_monthly_shooting?: boolean;
   created_by: string;
   created_at: string;
   updated_at: string;

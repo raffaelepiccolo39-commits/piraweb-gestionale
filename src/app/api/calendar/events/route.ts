@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'JSON non valido' }, { status: 400 });
   }
 
-  const { title, description, start_time, end_time, location, all_day, color, assigned_to } = body;
+  const { title, description, start_time, end_time, location, all_day, color, assigned_to, client_id, event_type } = body;
 
   if (!title || !start_time || !end_time) {
     return NextResponse.json({ error: 'Titolo, data inizio e fine sono obbligatori' }, { status: 400 });
@@ -46,6 +46,7 @@ export async function POST(request: NextRequest) {
   // Validazione color: solo formato esadecimale #RRGGBB o #RGB
   const HEX_COLOR_REGEX = /^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/;
   const safeColor = typeof color === 'string' && HEX_COLOR_REGEX.test(color) ? color : '#FFD108';
+  const safeType = event_type === 'shooting' ? 'shooting' : 'general';
 
   const { data, error } = await supabase
     .from('calendar_events')
@@ -58,6 +59,8 @@ export async function POST(request: NextRequest) {
       all_day: all_day || false,
       color: safeColor,
       assigned_to: assigned_to || [],
+      client_id: client_id || null,
+      event_type: safeType,
       created_by: user.id,
     })
     .select('*, creator:profiles!calendar_events_created_by_fkey(id, full_name)')

@@ -36,6 +36,7 @@ import {
   Paperclip,
   X,
   Loader2,
+  Archive,
 } from 'lucide-react';
 import { STATUS_LABELS, PRIORITY_LABELS } from '@/lib/constants';
 
@@ -166,6 +167,14 @@ export default function BachecaPage() {
     fetchData();
   };
 
+  // Archivia una singola task (reversibile dalla sezione Task → archiviate)
+  const handleArchiveOne = async (taskId: string) => {
+    const { error } = await supabase.from('tasks').update({ archived_at: new Date().toISOString() }).eq('id', taskId);
+    if (error) { toast.error('Errore durante l\'archiviazione'); return; }
+    toast.success('Task archiviata');
+    fetchData();
+  };
+
   const totalDone = tasks.filter((t) => t.status === 'done').length;
 
   const openAddTask = (memberId: string | null) => {
@@ -253,6 +262,14 @@ export default function BachecaPage() {
               {task.title}
             </p>
           </div>
+          <button
+            onClick={(e) => { e.stopPropagation(); handleArchiveOne(task.id); }}
+            className="shrink-0 -mt-0.5 -mr-0.5 p-1 rounded-md text-pw-text-dim hover:text-pw-text hover:bg-pw-surface-3 transition-colors"
+            title="Archivia task"
+            aria-label="Archivia task"
+          >
+            <Archive size={13} />
+          </button>
         </div>
 
         {/* Footer: scadenza + STATO + urgente */}

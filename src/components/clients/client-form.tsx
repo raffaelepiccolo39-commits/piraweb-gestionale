@@ -35,6 +35,7 @@ export interface ClientFormData {
   service_types: string;
   relationship_start: string;
   monthly_fee?: number;
+  needs_monthly_shooting?: boolean;
   logo?: File;
 }
 
@@ -92,6 +93,7 @@ export function ClientForm({ client, monthlyFee, onSubmit, onCancel }: ClientFor
     sector: client?.sector || '',
     service_types: client?.service_types || '',
     relationship_start: client?.relationship_start || '',
+    needs_monthly_shooting: client?.needs_monthly_shooting || false,
   });
 
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -127,7 +129,7 @@ export function ClientForm({ client, monthlyFee, onSubmit, onCancel }: ClientFor
     }
   };
 
-  const update = (field: string, value: string) =>
+  const update = (field: string, value: string | boolean) =>
     setForm((prev) => ({ ...prev, [field]: value }));
 
   const hasFiscalData = !!(client?.partita_iva || client?.codice_fiscale || client?.ragione_sociale);
@@ -270,6 +272,18 @@ export function ClientForm({ client, monthlyFee, onSubmit, onCancel }: ClientFor
           value={form.relationship_start}
           onChange={(e) => update('relationship_start', e.target.value)}
         />
+        <label className="flex items-center gap-2.5 cursor-pointer pt-1">
+          <input
+            type="checkbox"
+            checked={form.needs_monthly_shooting}
+            onChange={(e) => update('needs_monthly_shooting', e.target.checked)}
+            className="w-4 h-4 rounded border-pw-border accent-pw-accent"
+          />
+          <span className="text-sm text-pw-text">Fa shooting ogni mese</span>
+        </label>
+        <p className="text-xs text-pw-text-dim -mt-2">
+          Comparirà nel Calendario tra gli shooting da programmare, ogni mese.
+        </p>
       </Section>
 
       {/* Mensilità - visibile solo in edit mode con contratto attivo */}
