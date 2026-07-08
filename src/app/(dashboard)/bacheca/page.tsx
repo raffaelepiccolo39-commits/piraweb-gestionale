@@ -63,7 +63,8 @@ export default function BachecaPage() {
       supabase
         .from('tasks')
         .select(`
-          *,
+          id, title, description, status, priority, deadline, position, assigned_to, project_id,
+          delivery_url, estimated_hours, logged_hours, updated_at, created_at, ai_generated,
           project:projects(id, name, color, client_id, client:clients(id, name, company, logo_url)),
           assignee:profiles!tasks_assigned_to_fkey(id, full_name, color),
           task_assignees(user_id)
@@ -73,12 +74,12 @@ export default function BachecaPage() {
         .limit(2000),
       supabase
         .from('profiles')
-        .select('*')
+        .select('id, full_name, role, color')
         .eq('is_active', true)
         .order('full_name'),
       supabase
         .from('clients')
-        .select('*')
+        .select('id, name, company, logo_url')
         .eq('is_active', true)
         .order('company'),
     ]);
