@@ -15,10 +15,12 @@ import { SkeletonStats, SkeletonList } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
 import { formatDate, todayLocal } from '@/lib/utils';
 import { TIME_OFF_TYPE_LABELS, TIME_OFF_STATUS_LABELS } from '@/lib/constants';
+import { STATUS_TONE, TYPE_ICON, fmtDays, dateRangeLabel } from '@/lib/time-off';
 import { notifyTimeOffDecision } from '@/lib/time-off-notifications';
 import { TeamAbsenceCalendar } from '@/components/ferie/team-absence-calendar';
+import { TeamRequestsByUser } from '@/components/ferie/team-requests-by-user';
 import type { TimeOffRequest, TeamAbsence, TimeOffType } from '@/types/database';
-import { Plus, Check, X, Plane, Clock, Stethoscope, Users, CalendarDays, AlertTriangle, Hourglass, Info } from 'lucide-react';
+import { Plus, Check, X, Plane, Clock, Users, CalendarDays, AlertTriangle, Hourglass, Info } from 'lucide-react';
 
 interface TeamVacationRow {
   user_id: string;
@@ -28,19 +30,6 @@ interface TeamVacationRow {
   used: number;
   available: number;
 }
-
-const STATUS_TONE: Record<string, 'warning' | 'success' | 'danger' | 'neutral'> = {
-  pending: 'warning',
-  approved: 'success',
-  rejected: 'danger',
-  cancelled: 'neutral',
-};
-
-const TYPE_ICON: Record<TimeOffType, React.ElementType> = {
-  ferie: Plane,
-  permesso: Clock,
-  malattia: Stethoscope,
-};
 
 function addDays(iso: string, days: number): string {
   const d = new Date(iso + 'T00:00:00');
@@ -70,8 +59,6 @@ function computeTotalDays(start: string, end: string, startHalf: boolean, endHal
   }
   return Math.max(0, days);
 }
-
-const fmtDays = (n: number) => (Number.isInteger(n) ? `${n}` : n.toFixed(1));
 
 export default function FeriePage() {
   const { profile } = useAuth();
@@ -272,13 +259,6 @@ export default function FeriePage() {
     } catch (e) {
       toast.error((e as { message?: string } | undefined)?.message || 'Errore durante il rifiuto');
     }
-  };
-
-  const dateRangeLabel = (r: { start_date: string; end_date: string; start_half: boolean; end_half: boolean }) => {
-    if (r.start_date === r.end_date) {
-      return `${formatDate(r.start_date)}${r.start_half ? ' (mezza giornata)' : ''}`;
-    }
-    return `${formatDate(r.start_date)}${r.start_half ? ' (½)' : ''} → ${formatDate(r.end_date)}${r.end_half ? ' (½)' : ''}`;
   };
 
   if (loading) {
@@ -499,32 +479,7 @@ export default function FeriePage() {
           {allRequests.length === 0 ? (
             <EmptyState icon={Plane} title="Nessuna richiesta" description="Quando i collaboratori chiederanno ferie o permessi, le richieste compariranno qui." />
           ) : (
-            <div className="space-y-2">
-              {allRequests.map((r) => {
-                const Icon = TYPE_ICON[r.type];
-                return (
-                  <Card key={r.id}>
-                    <CardContent className="px-4 py-3 flex items-center justify-between gap-4">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <span className="w-8 h-8 rounded-lg bg-pw-surface-2 flex items-center justify-center shrink-0" style={r.user?.color ? { color: r.user.color } : undefined}>
-                          <Icon size={16} />
-                        </span>
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium text-pw-text truncate">
-                            {r.user?.full_name || 'Dipendente'} · {TIME_OFF_TYPE_LABELS[r.type]} · {fmtDays(Number(r.total_days))} gg
-                          </p>
-                          <p className="text-xs text-pw-text-muted truncate">{dateRangeLabel(r)}{r.reason ? ` · ${r.reason}` : ''}</p>
-                          {r.status === 'rejected' && r.review_note && (
-                            <p className="text-xs text-pw-danger mt-0.5">Motivo rifiuto: {r.review_note}</p>
-                          )}
-                        </div>
-                      </div>
-                      <Badge tone={STATUS_TONE[r.status]} dot>{TIME_OFF_STATUS_LABELS[r.status]}</Badge>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
+            <TeamRequestsByUser requests={allRequests} />
           )}
         </div>
       )}
