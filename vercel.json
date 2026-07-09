@@ -38,7 +38,7 @@
     },
     {
       "path": "/api/cron/auto-lunch-break",
-      "schedule": "30 11,12 * * 1-5"
+      "schedule": "30 11 * * 1-5"
     }
   ]
 }

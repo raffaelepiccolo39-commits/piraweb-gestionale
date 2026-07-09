@@ -59,9 +59,16 @@ async function handleCron(request: NextRequest) {
 
   const { date: today, hour } = romeParts();
 
-  // Guard ora legale: dei due firing UTC (11:30/12:30) procede solo quello che
-  // a Roma è le 13:xx. L'altro esce senza fare nulla.
+  // Guard ora legale. Il piano Hobby di Vercel ammette un solo cron al giorno,
+  // quindi lo schedule è fisso a 11:30 UTC = 13:30 a Roma solo con l'ora legale.
+  // Dal 25 ottobre 2026 (ora solare) firerà alle 12:30 di Roma e questa guardia
+  // lo scarterà: la pausa automatica smetterebbe di aprirsi. Segnaliamo a Sentry
+  // invece di uscire in silenzio — altrimenti nessuno se ne accorge fino a marzo.
   if (hour !== 13) {
+    Sentry.captureMessage(
+      `auto-lunch-break: scattato alle ${hour}:xx ora di Roma, non alle 13. Probabile passaggio all'ora solare: lo schedule in vercel.json va portato a "30 12 * * 1-5".`,
+      'warning',
+    );
     return NextResponse.json({ success: true, skipped: true, reason: `Non sono le 13 a Roma (ora Roma: ${hour})` });
   }
 
