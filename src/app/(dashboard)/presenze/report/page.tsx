@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ReportTable } from '@/components/attendance/report-table';
 import { AttendanceCalendar } from '@/components/attendance/attendance-calendar';
+import { AttendanceEditModal } from '@/components/attendance/attendance-edit-modal';
 import { formatHours } from '@/lib/utils';
 import type { AttendanceWeeklyRow, AttendanceMonthlyReport, Profile } from '@/types/database';
 import { ArrowLeft, BarChart3, Clock, Calendar, AlertTriangle, TrendingUp } from 'lucide-react';
@@ -45,6 +46,7 @@ export default function ReportPresenzePage() {
   const [monthlyData, setMonthlyData] = useState<AttendanceMonthlyReport[]>([]);
   const [calendarData, setCalendarData] = useState<AttendanceWeeklyRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState<{ userId: string; userName: string; date: string } | null>(null);
 
   const isAdmin = profile?.role === 'admin';
 
@@ -267,10 +269,19 @@ export default function ReportPresenzePage() {
         </div>
       ) : (
         <>
+          {mode === 'weekly' && (
+            <p className="text-xs text-pw-text-dim">
+              Clicca su un giorno per correggere gli orari di un collaboratore o aggiungere una timbratura dimenticata.
+            </p>
+          )}
+
           <ReportTable
             mode={mode}
             weeklyData={weeklyData}
             monthlyData={monthlyData}
+            employees={selectedUserId ? employees.filter((e) => e.id === selectedUserId) : employees}
+            weekStart={weekStart}
+            onEditDay={(userId, userName, date) => setEditing({ userId, userName, date })}
           />
 
           {mode === 'monthly' && calendarData.length > 0 && (
@@ -281,6 +292,17 @@ export default function ReportPresenzePage() {
             />
           )}
         </>
+      )}
+
+      {editing && (
+        <AttendanceEditModal
+          open
+          onClose={() => setEditing(null)}
+          userId={editing.userId}
+          userName={editing.userName}
+          date={editing.date}
+          onSaved={fetchReport}
+        />
       )}
     </div>
   );

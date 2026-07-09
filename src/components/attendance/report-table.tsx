@@ -3,7 +3,7 @@
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { formatTime, formatHours, getInitials, getRoleLabel, getRoleTone } from '@/lib/utils';
-import type { AttendanceWeeklyRow, AttendanceMonthlyReport } from '@/types/database';
+import type { AttendanceWeeklyRow, AttendanceMonthlyReport, Profile } from '@/types/database';
 
 const DAY_LABELS = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'];
 
@@ -11,6 +11,19 @@ interface ReportTableProps {
   mode: 'weekly' | 'monthly';
   weeklyData?: AttendanceWeeklyRow[];
   monthlyData?: AttendanceMonthlyReport[];
+  /** Collaboratori da mostrare in settimanale anche senza timbrature */
+  employees?: Profile[];
+  /** Lunedì della settimana, YYYY-MM-DD */
+  weekStart?: string;
+  /** Se presente, ogni cella diventa cliccabile per correggere la giornata */
+  onEditDay?: (userId: string, userName: string, date: string) => void;
+}
+
+/** Data del giorno i-esimo (0=lunedì) della settimana, YYYY-MM-DD */
+function dayOfWeekDate(weekStart: string, index: number): string {
+  const [y, m, d] = weekStart.split('-').map(Number);
+  const date = new Date(y, m - 1, d + index);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 }
 
 function getHoursColor(hours: number): string {
@@ -20,10 +33,15 @@ function getHoursColor(hours: number): string {
   return 'text-pw-text-dim';
 }
 
-export function ReportTable({ mode, weeklyData, monthlyData }: ReportTableProps) {
+export function ReportTable({ mode, weeklyData, monthlyData, employees, weekStart, onEditDay }: ReportTableProps) {
   if (mode === 'weekly') {
-    // Group by user
+    // Group by user. Partiamo dall'elenco dei collaboratori, non dalle timbrature:
+    // chi ha dimenticato di timbrare non ha righe e sparirebbe dalla tabella —
+    // proprio la persona che l'admin deve poter correggere.
     const userMap = new Map<string, { name: string; role: string; days: Map<string, AttendanceWeeklyRow> }>();
+    employees?.forEach((e) => {
+      userMap.set(e.id, { name: e.full_name, role: e.role, days: new Map() });
+    });
     weeklyData?.forEach((row) => {
       if (!userMap.has(row.user_id)) {
         userMap.set(row.user_id, { name: row.full_name, role: row.role, days: new Map() });
@@ -71,19 +89,34 @@ export function ReportTable({ mode, weeklyData, monthlyData }: ReportTableProps)
                         const day = user.days.get(String(i));
                         const hours = Number(day?.total_hours || 0);
                         weekTotal += hours;
+                        const editable = onEditDay && weekStart;
+
+                        const content = day ? (
+                          <div>
+                            <p className={`font-semibold ${getHoursColor(hours)}`}>
+                              {hours > 0 ? formatHours(hours) : '--'}
+                            </p>
+                            <p className="text-[10px] text-pw-text-dim mt-0.5">
+                              {formatTime(day.clock_in)} - {formatTime(day.clock_out)}
+                            </p>
+                          </div>
+                        ) : (
+                          <span className="text-pw-text-dim">--</span>
+                        );
+
                         return (
-                          <td key={i} className="text-center px-3 py-3">
-                            {day ? (
-                              <div>
-                                <p className={`font-semibold ${getHoursColor(hours)}`}>
-                                  {hours > 0 ? formatHours(hours) : '--'}
-                                </p>
-                                <p className="text-[10px] text-pw-text-dim mt-0.5">
-                                  {formatTime(day.clock_in)} - {formatTime(day.clock_out)}
-                                </p>
-                              </div>
+                          <td key={i} className="text-center px-3 py-1">
+                            {editable ? (
+                              <button
+                                type="button"
+                                onClick={() => onEditDay(userId, user.name, dayOfWeekDate(weekStart, i))}
+                                title={`Modifica presenza di ${user.name} — ${DAY_LABELS[i]}`}
+                                className="w-full px-2 py-2 rounded-lg transition-colors duration-200 ease-out hover:bg-pw-surface-2 focus:outline-none focus:ring-2 focus:ring-pw-accent/40"
+                              >
+                                {content}
+                              </button>
                             ) : (
-                              <span className="text-pw-text-dim">--</span>
+                              <div className="py-2">{content}</div>
                             )}
                           </td>
                         );
