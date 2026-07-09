@@ -8,6 +8,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
 import { ClockButtons } from '@/components/attendance/clock-buttons';
 import { TeamStatus } from '@/components/attendance/team-status';
+import { ATTENDANCE_CHANGED } from '@/components/layout/attendance-gate';
 import type { AttendanceRecord, TeamAttendanceToday } from '@/types/database';
 import { BarChart3, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
@@ -116,6 +117,8 @@ export default function PresenzePage() {
       }
 
       await fetchData();
+      // Pausa e uscita chiudono il cancello: il gate deve accorgersene subito
+      window.dispatchEvent(new Event(ATTENDANCE_CHANGED));
       toast.success(actionLabels[action]);
     } catch {
       toast.error('Errore nella registrazione della presenza');
