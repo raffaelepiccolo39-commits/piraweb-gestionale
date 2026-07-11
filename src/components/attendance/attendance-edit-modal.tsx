@@ -9,7 +9,15 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { useToast } from '@/components/ui/toast';
 import type { AttendanceRecord, AttendanceStatus, TimeOffType } from '@/types/database';
-import { Loader2, Save, Stethoscope, MapPin } from 'lucide-react';
+import { Loader2, Save, Stethoscope, MapPin, Trash2 } from 'lucide-react';
+
+/** Assenza (ferie/permesso/malattia) che copre il giorno mostrato */
+interface DayAbsence {
+  id: string;
+  type: TimeOffType;
+  start_date: string;
+  end_date: string;
+}
 
 interface AttendanceEditModalProps {
   open: boolean;
@@ -71,6 +79,8 @@ export function AttendanceEditModal({ open, onClose, userId, userName, date, onS
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savingAbsence, setSavingAbsence] = useState(false);
+  const [deletingAbsence, setDeletingAbsence] = useState(false);
+  const [absence, setAbsence] = useState<DayAbsence | null>(null);
   const [existingId, setExistingId] = useState<string | null>(null);
   const [clockIn, setClockIn] = useState('');
   const [lunchStart, setLunchStart] = useState('');
@@ -90,15 +100,27 @@ export function AttendanceEditModal({ open, onClose, userId, userName, date, onS
     let active = true;
 
     const load = async () => {
-      const { data } = await supabase
-        .from('attendance_records')
-        .select('*')
-        .eq('user_id', userId)
-        .eq('date', date)
-        .maybeSingle();
+      const [recRes, absRes] = await Promise.all([
+        supabase
+          .from('attendance_records')
+          .select('*')
+          .eq('user_id', userId)
+          .eq('date', date)
+          .maybeSingle(),
+        // Assenza approvata/in attesa che copre questo giorno (il trigger di
+        // integrità garantisce che ce ne sia al massimo una).
+        supabase
+          .from('time_off_requests')
+          .select('id, type, start_date, end_date')
+          .eq('user_id', userId)
+          .lte('start_date', date)
+          .gte('end_date', date)
+          .in('status', ['approved', 'pending'])
+          .maybeSingle(),
+      ]);
 
       if (!active) return;
-      const rec = data as AttendanceRecord | null;
+      const rec = recRes.data as AttendanceRecord | null;
       setExistingId(rec?.id ?? null);
       setClockIn(toTimeInput(rec?.clock_in ?? null));
       setLunchStart(toTimeInput(rec?.lunch_start ?? null));
@@ -106,6 +128,7 @@ export function AttendanceEditModal({ open, onClose, userId, userName, date, onS
       setClockOut(toTimeInput(rec?.clock_out ?? null));
       setOffSite(rec?.off_site ?? false);
       setNotes(rec?.notes ?? '');
+      setAbsence((absRes.data as DayAbsence | null) ?? null);
       setLoading(false);
     };
 
@@ -211,6 +234,27 @@ export function AttendanceEditModal({ open, onClose, userId, userName, date, onS
     onClose();
   };
 
+  // Rimuove l'intera richiesta di assenza che copre questo giorno.
+  // Nota: se l'assenza è su più giorni, li elimina tutti (è un'unica richiesta).
+  const handleDeleteAbsence = async () => {
+    if (!absence) return;
+    setError(null);
+    setDeletingAbsence(true);
+    const { error: dbError } = await supabase.from('time_off_requests').delete().eq('id', absence.id);
+    setDeletingAbsence(false);
+
+    if (dbError) {
+      setError(dbError.message || 'Rimozione assenza non riuscita. Riprova.');
+      return;
+    }
+
+    toast.success(`${ABSENCE_LABELS[absence.type]} rimossa per ${userName.split(' ')[0]}`);
+    onSaved();
+    onClose();
+  };
+
+  const absenceMultiDay = absence ? absence.start_date !== absence.end_date : false;
+
   return (
     <Modal open={open} onClose={onClose} title="Modifica presenza" size="md">
       {loading ? (
@@ -268,34 +312,56 @@ export function AttendanceEditModal({ open, onClose, userId, userName, date, onS
             </Button>
           </div>
 
-          {/* Il collaboratore non ha lavorato? Segna un'assenza (malattia/permesso/ferie)
-              già approvata, senza inventare orari di timbratura. */}
-          <div className="border-t border-pw-border pt-4 space-y-3">
-            <div className="flex items-center gap-2 text-sm font-medium text-pw-text">
-              <Stethoscope size={15} className="text-pw-text-muted" />
-              Era assente? Registra malattia o permesso
-            </div>
-            <div className="flex gap-2 items-start">
-              <div className="flex-1">
-                <Select
-                  aria-label="Tipo di assenza"
-                  value={absenceType}
-                  onChange={(e) => setAbsenceType(e.target.value as TimeOffType)}
-                  options={[
-                    { value: 'malattia', label: 'Malattia' },
-                    { value: 'permesso', label: 'Permesso / ROL' },
-                    { value: 'ferie', label: 'Ferie' },
-                  ]}
-                />
+          {/* Assenza già registrata su questo giorno → mostra e permette di rimuoverla.
+              Altrimenti offre di registrarne una (malattia/permesso/ferie), già approvata. */}
+          {absence ? (
+            <div className="border-t border-pw-border pt-4 space-y-3">
+              <div className="flex items-center gap-2 text-sm font-medium text-pw-text">
+                <Stethoscope size={15} className="text-pw-text-muted" />
+                Assenza registrata su questo giorno
               </div>
-              <Button variant="outline" onClick={handleRegisterAbsence} loading={savingAbsence}>
-                Registra
-              </Button>
+              <div className="flex items-center justify-between gap-3 rounded-xl bg-pw-surface-2 px-4 py-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-pw-text">{ABSENCE_LABELS[absence.type]}</p>
+                  {absenceMultiDay && (
+                    <p className="text-xs text-amber-500 mt-0.5">
+                      Assenza su più giorni ({FULL_DATE(absence.start_date)} → {FULL_DATE(absence.end_date)}): rimuovendola si cancella tutto il periodo.
+                    </p>
+                  )}
+                </div>
+                <Button variant="outline" onClick={handleDeleteAbsence} loading={deletingAbsence} className="shrink-0">
+                  <Trash2 size={15} /> Rimuovi
+                </Button>
+              </div>
             </div>
-            <p className="text-xs text-pw-text-dim">
-              L&apos;assenza viene registrata già approvata per questo giorno e comparirà in Ferie &amp; Permessi.
-            </p>
-          </div>
+          ) : (
+            <div className="border-t border-pw-border pt-4 space-y-3">
+              <div className="flex items-center gap-2 text-sm font-medium text-pw-text">
+                <Stethoscope size={15} className="text-pw-text-muted" />
+                Era assente? Registra malattia o permesso
+              </div>
+              <div className="flex gap-2 items-start">
+                <div className="flex-1">
+                  <Select
+                    aria-label="Tipo di assenza"
+                    value={absenceType}
+                    onChange={(e) => setAbsenceType(e.target.value as TimeOffType)}
+                    options={[
+                      { value: 'malattia', label: 'Malattia' },
+                      { value: 'permesso', label: 'Permesso / ROL' },
+                      { value: 'ferie', label: 'Ferie' },
+                    ]}
+                  />
+                </div>
+                <Button variant="outline" onClick={handleRegisterAbsence} loading={savingAbsence}>
+                  Registra
+                </Button>
+              </div>
+              <p className="text-xs text-pw-text-dim">
+                L&apos;assenza viene registrata già approvata per questo giorno e comparirà in Ferie &amp; Permessi.
+              </p>
+            </div>
+          )}
         </div>
       )}
     </Modal>
