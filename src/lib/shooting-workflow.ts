@@ -53,7 +53,7 @@ export const SHOOTING_STEPS: ShootingStep[] = [
     key: 'edit_foto',
     title: 'Edit foto',
     description: 'Seleziona e ritocca le foto dello shooting.',
-    role: 'graphic_social',
+    role: 'admin', // Raffaele (Raffaele Antonio Piccolo) — non Raffaela
     offsetDays: 1,
     defaultHours: 1,
     priority: 'medium',
