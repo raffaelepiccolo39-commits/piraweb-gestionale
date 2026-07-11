@@ -21,6 +21,7 @@ import { ActivityFeed } from '@/components/dashboard/activity-feed';
 import { TeamAttendance } from '@/components/dashboard/team-attendance';
 import { AbsentToday } from '@/components/dashboard/absent-today';
 import { TimeOffInbox } from '@/components/dashboard/time-off-inbox';
+import { PedDeadlines } from '@/components/dashboard/ped-deadlines';
 import { notifyTimeOffDecision } from '@/lib/time-off-notifications';
 import type { TimeOffRequest } from '@/types/database';
 import { PageHeader } from '@/components/ui/page-header';
@@ -460,6 +461,9 @@ export default function DashboardPage() {
 
       {/* KPI row */}
       <StatCards stats={stats} isAdmin={isAdmin} />
+
+      {/* Scadenze piani editoriali — Bernis (social) e admin */}
+      {(isAdmin || profile.role === 'social_media_manager') && <PedDeadlines />}
 
       {/* Widget grid: 2 col main + 1 col side (stile Factorial) */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
