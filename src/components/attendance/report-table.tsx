@@ -2,6 +2,7 @@
 
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { MapPin } from 'lucide-react';
 import { formatTime, formatHours, getInitials, getRoleLabel, getRoleTone } from '@/lib/utils';
 import type { AttendanceWeeklyRow, AttendanceMonthlyReport, Profile } from '@/types/database';
 
@@ -99,6 +100,11 @@ export function ReportTable({ mode, weeklyData, monthlyData, employees, weekStar
                             <p className="text-[10px] text-pw-text-dim mt-0.5">
                               {formatTime(day.clock_in)} - {formatTime(day.clock_out)}
                             </p>
+                            {day.off_site && (
+                              <span className="inline-flex items-center gap-0.5 mt-1 px-1.5 py-0.5 rounded-md bg-indigo-500/15 text-indigo-500 text-[9px] font-medium leading-none">
+                                <MapPin size={9} /> Fuori ufficio
+                              </span>
+                            )}
                           </div>
                         ) : (
                           <span className="text-pw-text-dim">--</span>

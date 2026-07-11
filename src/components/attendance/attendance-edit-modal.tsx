@@ -2,12 +2,14 @@
 
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { useAuth } from '@/hooks/use-auth';
 import { Modal } from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Select } from '@/components/ui/select';
 import { useToast } from '@/components/ui/toast';
-import type { AttendanceRecord, AttendanceStatus } from '@/types/database';
-import { Loader2, Save } from 'lucide-react';
+import type { AttendanceRecord, AttendanceStatus, TimeOffType } from '@/types/database';
+import { Loader2, Save, Stethoscope, MapPin } from 'lucide-react';
 
 interface AttendanceEditModalProps {
   open: boolean;
@@ -41,6 +43,18 @@ function deriveStatus(clockIn: string, lunchStart: string, lunchEnd: string, clo
   return 'absent';
 }
 
+/** 1 giorno se feriale (lun-ven), 0 nel weekend */
+function weekdayCount(date: string): number {
+  const dow = new Date(`${date}T12:00:00`).getDay();
+  return dow === 0 || dow === 6 ? 0 : 1;
+}
+
+const ABSENCE_LABELS: Record<TimeOffType, string> = {
+  malattia: 'Malattia',
+  permesso: 'Permesso / ROL',
+  ferie: 'Ferie',
+};
+
 const FULL_DATE = (date: string) =>
   new Date(`${date}T12:00:00`).toLocaleDateString('it-IT', {
     weekday: 'long',
@@ -51,16 +65,20 @@ const FULL_DATE = (date: string) =>
 
 export function AttendanceEditModal({ open, onClose, userId, userName, date, onSaved }: AttendanceEditModalProps) {
   const supabase = createClient();
+  const { profile } = useAuth();
   const toast = useToast();
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [savingAbsence, setSavingAbsence] = useState(false);
   const [existingId, setExistingId] = useState<string | null>(null);
   const [clockIn, setClockIn] = useState('');
   const [lunchStart, setLunchStart] = useState('');
   const [lunchEnd, setLunchEnd] = useState('');
   const [clockOut, setClockOut] = useState('');
+  const [offSite, setOffSite] = useState(false);
   const [notes, setNotes] = useState('');
+  const [absenceType, setAbsenceType] = useState<TimeOffType>('malattia');
   const [error, setError] = useState<string | null>(null);
 
   // Rileggiamo il record all'apertura: la tabella del report non porta l'id
@@ -86,6 +104,7 @@ export function AttendanceEditModal({ open, onClose, userId, userName, date, onS
       setLunchStart(toTimeInput(rec?.lunch_start ?? null));
       setLunchEnd(toTimeInput(rec?.lunch_end ?? null));
       setClockOut(toTimeInput(rec?.clock_out ?? null));
+      setOffSite(rec?.off_site ?? false);
       setNotes(rec?.notes ?? '');
       setLoading(false);
     };
@@ -123,7 +142,7 @@ export function AttendanceEditModal({ open, onClose, userId, userName, date, onS
     setError(null);
 
     // Nessun record e nessun orario: non c'è niente da salvare
-    if (!existingId && !clockIn && !lunchStart && !lunchEnd && !clockOut) {
+    if (!existingId && !clockIn && !lunchStart && !lunchEnd && !clockOut && !offSite) {
       onClose();
       return;
     }
@@ -135,6 +154,7 @@ export function AttendanceEditModal({ open, onClose, userId, userName, date, onS
       lunch_end: toTimestamp(date, lunchEnd),
       clock_out: toTimestamp(date, clockOut),
       status: deriveStatus(clockIn, lunchStart, lunchEnd, clockOut),
+      off_site: offSite,
       notes: notes.trim() || null,
     };
 
@@ -150,6 +170,40 @@ export function AttendanceEditModal({ open, onClose, userId, userName, date, onS
     }
 
     toast.success(`Presenza di ${userName.split(' ')[0]} aggiornata`);
+    onSaved();
+    onClose();
+  };
+
+  // Registra un'assenza (già approvata) per il collaboratore su questo singolo
+  // giorno, usando il sistema Ferie & Permessi. Utile quando non ha timbrato
+  // perché era in malattia o in permesso.
+  const handleRegisterAbsence = async () => {
+    if (!profile) return;
+    const totalDays = weekdayCount(date);
+    if (totalDays <= 0) {
+      setError('Questo giorno è nel weekend: non è una giornata lavorativa da registrare come assenza.');
+      return;
+    }
+    setError(null);
+    setSavingAbsence(true);
+    const { error: dbError } = await supabase.from('time_off_requests').insert({
+      user_id: userId,
+      type: absenceType,
+      start_date: date,
+      end_date: date,
+      total_days: totalDays,
+      status: 'approved',
+      reviewed_by: profile.id,
+      reviewed_at: new Date().toISOString(),
+    });
+    setSavingAbsence(false);
+
+    if (dbError) {
+      setError('Registrazione assenza non riuscita. Riprova.');
+      return;
+    }
+
+    toast.success(`${ABSENCE_LABELS[absenceType]} registrata per ${userName.split(' ')[0]}`);
     onSaved();
     onClose();
   };
@@ -179,6 +233,17 @@ export function AttendanceEditModal({ open, onClose, userId, userName, date, onS
             <Input label="Fine pausa" type="time" value={lunchEnd} onChange={(e) => setLunchEnd(e.target.value)} />
           </div>
 
+          <label className="flex items-center gap-2 text-sm text-pw-text cursor-pointer">
+            <input
+              type="checkbox"
+              checked={offSite}
+              onChange={(e) => setOffSite(e.target.checked)}
+              className="accent-pw-accent"
+            />
+            <MapPin size={14} className="text-pw-text-muted" />
+            Giornata fuori ufficio (trasferta / da remoto)
+          </label>
+
           <Input
             label="Nota"
             type="text"
@@ -198,6 +263,35 @@ export function AttendanceEditModal({ open, onClose, userId, userName, date, onS
             <Button variant="primary" onClick={handleSave} loading={saving} className="flex-1 justify-center">
               <Save size={16} /> Salva
             </Button>
+          </div>
+
+          {/* Il collaboratore non ha lavorato? Segna un'assenza (malattia/permesso/ferie)
+              già approvata, senza inventare orari di timbratura. */}
+          <div className="border-t border-pw-border pt-4 space-y-3">
+            <div className="flex items-center gap-2 text-sm font-medium text-pw-text">
+              <Stethoscope size={15} className="text-pw-text-muted" />
+              Era assente? Registra malattia o permesso
+            </div>
+            <div className="flex gap-2 items-start">
+              <div className="flex-1">
+                <Select
+                  aria-label="Tipo di assenza"
+                  value={absenceType}
+                  onChange={(e) => setAbsenceType(e.target.value as TimeOffType)}
+                  options={[
+                    { value: 'malattia', label: 'Malattia' },
+                    { value: 'permesso', label: 'Permesso / ROL' },
+                    { value: 'ferie', label: 'Ferie' },
+                  ]}
+                />
+              </div>
+              <Button variant="outline" onClick={handleRegisterAbsence} loading={savingAbsence}>
+                Registra
+              </Button>
+            </div>
+            <p className="text-xs text-pw-text-dim">
+              L&apos;assenza viene registrata già approvata per questo giorno e comparirà in Ferie &amp; Permessi.
+            </p>
           </div>
         </div>
       )}

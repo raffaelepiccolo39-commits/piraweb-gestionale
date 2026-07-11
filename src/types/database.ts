@@ -616,6 +616,8 @@ export interface AttendanceRecord {
   clock_out: string | null;
   status: AttendanceStatus;
   total_hours: number;
+  /** Giornata lavorata fuori ufficio (trasferta/da remoto), registrata dall'admin */
+  off_site: boolean;
   notes: string | null;
   created_at: string;
   updated_at: string;
@@ -644,6 +646,8 @@ export interface AttendanceWeeklyRow {
   lunch_end: string | null;
   total_hours: number;
   status: AttendanceStatus;
+  /** Presente solo nel report settimanale; assente (undefined) altrove */
+  off_site?: boolean;
 }
 
 export interface AttendanceMonthlyReport {

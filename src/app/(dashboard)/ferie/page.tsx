@@ -19,7 +19,7 @@ import { STATUS_TONE, TYPE_ICON, fmtDays, dateRangeLabel } from '@/lib/time-off'
 import { notifyTimeOffDecision } from '@/lib/time-off-notifications';
 import { TeamAbsenceCalendar } from '@/components/ferie/team-absence-calendar';
 import { TeamRequestsByUser } from '@/components/ferie/team-requests-by-user';
-import type { TimeOffRequest, TeamAbsence, TimeOffType } from '@/types/database';
+import type { TimeOffRequest, TeamAbsence, TimeOffType, Profile } from '@/types/database';
 import { Plus, Check, X, Plane, Clock, Users, CalendarDays, AlertTriangle, Hourglass, Info } from 'lucide-react';
 
 interface TeamVacationRow {
@@ -79,6 +79,8 @@ export default function FeriePage() {
   const [teamVacation, setTeamVacation] = useState<TeamVacationRow[]>([]);
   // Admin: tutte le richieste dei collaboratori (non le proprie)
   const [allRequests, setAllRequests] = useState<TimeOffRequest[]>([]);
+  // Admin: collaboratori attivi per registrare un'assenza per conto loro
+  const [employees, setEmployees] = useState<Pick<Profile, 'id' | 'full_name'>[]>([]);
 
   // New request modal
   const [showModal, setShowModal] = useState(false);
@@ -91,6 +93,8 @@ export default function FeriePage() {
     end_half: false,
     reason: '',
   });
+  // Admin: collaboratore per cui si registra l'assenza ('' = nessuno selezionato)
+  const [targetUserId, setTargetUserId] = useState('');
 
   // Reject modal
   const [rejectId, setRejectId] = useState<string | null>(null);
@@ -112,7 +116,7 @@ export default function FeriePage() {
       if (isAdmin) {
         // Le assenze del team le carica SOLO l'admin: i collaboratori non
         // devono vedere le ferie altrui, quindi non le richiediamo nemmeno.
-        const [pendRes, summaryRes, allRes, absRes] = await Promise.all([
+        const [pendRes, summaryRes, allRes, absRes, empRes] = await Promise.all([
           supabase.from('time_off_requests')
             .select('*, user:profiles!time_off_requests_user_id_fkey(id, full_name, color)')
             .eq('status', 'pending')
@@ -123,11 +127,13 @@ export default function FeriePage() {
             .neq('user_id', profile.id)
             .order('start_date', { ascending: false }),
           supabase.rpc('get_team_absences', { p_from: todayLocal(), p_to: addDays(todayLocal(), 90) }),
+          supabase.from('profiles').select('id, full_name').eq('is_active', true).order('full_name'),
         ]);
         setPending((pendRes.data as TimeOffRequest[]) || []);
         setTeamVacation((summaryRes.data as TeamVacationRow[]) || []);
         setAllRequests((allRes.data as TimeOffRequest[]) || []);
         setAbsences((absRes.data as TeamAbsence[]) || []);
+        setEmployees((empRes.data as Pick<Profile, 'id' | 'full_name'>[]) || []);
       }
     } catch {
       setError(true);
@@ -163,12 +169,16 @@ export default function FeriePage() {
   const permessoApproved = sumByTypeStatus('permesso', ['approved']);
   const permessoPending = sumByTypeStatus('permesso', ['pending']);
 
-  const resetForm = () => setForm({
-    type: 'ferie', start_date: todayLocal(), end_date: todayLocal(), start_half: false, end_half: false, reason: '',
-  });
+  const resetForm = () => {
+    setForm({
+      type: 'ferie', start_date: todayLocal(), end_date: todayLocal(), start_half: false, end_half: false, reason: '',
+    });
+    setTargetUserId('');
+  };
 
   const handleSubmit = async () => {
     if (!profile) return;
+    if (isAdmin && !targetUserId) { toast.error('Seleziona il collaboratore'); return; }
     if (!form.start_date || !form.end_date) { toast.error('Inserisci le date'); return; }
     if (form.end_date < form.start_date) { toast.error('La data di fine precede quella di inizio'); return; }
     if (!isAdmin && form.start_date < todayLocal()) {
@@ -180,14 +190,21 @@ export default function FeriePage() {
       return;
     }
     if (formTotal <= 0) { toast.error('Le date selezionate non includono giorni lavorativi'); return; }
-    if (form.type === 'ferie' && (ferieApproved + feriePending + formTotal) > ferieAllowance) {
+    // Il controllo saldo ferie vale solo per la richiesta del collaboratore su di sé.
+    // L'admin registra un fatto (spesso una malattia) e può forzare oltre il monte.
+    if (!isAdmin && form.type === 'ferie' && (ferieApproved + feriePending + formTotal) > ferieAllowance) {
       toast.error(`Saldo ferie insufficiente: prenotabili ${fmtDays(Math.max(0, ferieBookable))} gg`);
       return;
     }
     setSubmitting(true);
     try {
+      // Admin: assenza registrata per conto del collaboratore, già approvata.
+      // Collaboratore: richiesta a proprio nome, in attesa di approvazione.
+      const adminInsert = isAdmin
+        ? { user_id: targetUserId, status: 'approved' as const, reviewed_by: profile.id, reviewed_at: new Date().toISOString() }
+        : { user_id: profile.id, status: 'pending' as const };
       const { error } = await supabase.from('time_off_requests').insert({
-        user_id: profile.id,
+        ...adminInsert,
         type: form.type,
         start_date: form.start_date,
         end_date: form.end_date,
@@ -195,10 +212,9 @@ export default function FeriePage() {
         end_half: sameDay ? false : form.end_half,
         total_days: formTotal,
         reason: form.reason.trim() || null,
-        status: 'pending',
       });
       if (error) throw error;
-      toast.success('Richiesta inviata, in attesa di approvazione');
+      toast.success(isAdmin ? 'Assenza registrata' : 'Richiesta inviata, in attesa di approvazione');
       setShowModal(false);
       resetForm();
       fetchData();
@@ -287,12 +303,10 @@ export default function FeriePage() {
         title="Ferie & Permessi"
         subtitle={`Anno ${year}`}
         actions={
-          isAdmin ? undefined : (
-            <Button variant="primary" onClick={() => { resetForm(); setShowModal(true); }}>
-              <Plus size={14} />
-              Nuova richiesta
-            </Button>
-          )
+          <Button variant="primary" onClick={() => { resetForm(); setShowModal(true); }}>
+            <Plus size={14} />
+            {isAdmin ? 'Registra assenza' : 'Nuova richiesta'}
+          </Button>
         }
       />
 
@@ -539,9 +553,19 @@ export default function FeriePage() {
       </div>
       )}
 
-      {/* Modal nuova richiesta */}
-      <Modal open={showModal} onClose={() => setShowModal(false)} title="Nuova richiesta" size="sm">
+      {/* Modal nuova richiesta / registrazione assenza (admin) */}
+      <Modal open={showModal} onClose={() => setShowModal(false)} title={isAdmin ? 'Registra assenza' : 'Nuova richiesta'} size="sm">
         <div className="space-y-4">
+          {isAdmin && (
+            <Select
+              id="to-user"
+              label="Collaboratore"
+              value={targetUserId}
+              onChange={(e) => setTargetUserId(e.target.value)}
+              placeholder="Seleziona…"
+              options={employees.map(emp => ({ value: emp.id, label: emp.full_name }))}
+            />
+          )}
           <Select
             id="to-type"
             label="Tipo"
@@ -606,7 +630,7 @@ export default function FeriePage() {
             <span className="text-sm text-pw-text-muted">Totale</span>
             <span className="text-lg font-semibold text-pw-text">{fmtDays(formTotal)} gg</span>
           </div>
-          {form.type === 'ferie' && (ferieApproved + feriePending + formTotal) > ferieAllowance && (
+          {!isAdmin && form.type === 'ferie' && (ferieApproved + feriePending + formTotal) > ferieAllowance && (
             <p className="flex items-center gap-1.5 text-xs text-pw-danger">
               <AlertTriangle size={14} /> Supera il saldo prenotabile ({fmtDays(Math.max(0, ferieBookable))} gg disponibili)
             </p>
@@ -615,7 +639,7 @@ export default function FeriePage() {
           <div className="flex gap-2 pt-1">
             <Button variant="outline" onClick={() => setShowModal(false)} className="flex-1">Annulla</Button>
             <Button onClick={handleSubmit} loading={submitting} disabled={formTotal <= 0} className="flex-1">
-              <Check size={14} /> Invia richiesta
+              <Check size={14} /> {isAdmin ? 'Registra assenza' : 'Invia richiesta'}
             </Button>
           </div>
         </div>
