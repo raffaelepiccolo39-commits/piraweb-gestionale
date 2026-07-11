@@ -97,6 +97,9 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
   const [logHours, setLogHours] = useState('');
   const [logNote, setLogNote] = useState('');
   const [loggingHours, setLoggingHours] = useState(false);
+  // Completamento task senza tempo tracciato: chiede le ore (regola B)
+  const [askHours, setAskHours] = useState(false);
+  const [completeHours, setCompleteHours] = useState('');
   // Copertura PED: se questa è la task "Programmare post e storie" di uno shooting,
   // qui si segna fino a quando il cliente è coperto → alimenta l'avviso shooting.
   const [pedClientId, setPedClientId] = useState<string | null>(null);
@@ -261,20 +264,13 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
     return true;
   };
 
-  const handleCompleteTask = async () => {
+  const markDone = async () => {
     if (!task) return;
-    setTimerBusy(true);
-    // Ferma il timer eventualmente in corso (le ore restano registrate)
-    if (runningEntry) {
-      const ok = await stopRunningEntry();
-      if (!ok) { setTimerBusy(false); return; }
-    }
     const { error } = await supabase.from('tasks').update({ status: 'done' }).eq('id', task.id);
-    setTimerBusy(false);
     if (error) {
       console.error('[task-detail] complete task failed:', error);
       toast.error(error.message || 'Errore nel completamento della task');
-      return;
+      return false;
     }
     setStatus('done');
     if (!deliveryUrl.trim() && !task.delivery_url) {
@@ -283,6 +279,44 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
       toast.success('Task completata');
     }
     onUpdate?.();
+    return true;
+  };
+
+  const handleCompleteTask = async () => {
+    if (!task) return;
+    // Regola B: senza tempo tracciato, chiedi le ore prima di completare.
+    const hasTracked = !!runningEntry || timeEntries.length > 0 || Number(task.logged_hours || 0) > 0;
+    if (!hasTracked) { setAskHours(true); return; }
+
+    setTimerBusy(true);
+    if (runningEntry) {
+      const ok = await stopRunningEntry();
+      if (!ok) { setTimerBusy(false); return; }
+    }
+    await markDone();
+    setTimerBusy(false);
+  };
+
+  // Completa registrando le ore inserite a mano (task mai tracciata).
+  const confirmCompleteWithHours = async () => {
+    if (!task || !currentUserId) return;
+    const hours = parseFloat(completeHours.replace(',', '.'));
+    if (!hours || hours <= 0) { toast.error('Inserisci le ore lavorate'); return; }
+    setTimerBusy(true);
+    const now = new Date().toISOString();
+    const { error: e1 } = await supabase.from('time_entries').insert({
+      task_id: task.id,
+      user_id: currentUserId,
+      started_at: now,
+      ended_at: now,
+      duration_minutes: Math.round(hours * 60),
+      is_running: false,
+    });
+    if (e1) { setTimerBusy(false); toast.error(e1.message || 'Errore nella registrazione delle ore'); return; }
+    await fetchTimeEntries(task.id);
+    const ok = await markDone();
+    setTimerBusy(false);
+    if (ok) { setAskHours(false); setCompleteHours(''); }
   };
 
   const handleLogHours = async () => {
@@ -763,28 +797,62 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
                 )}
               </div>
               <div className="mt-3 flex items-center gap-2">
-                {!runningEntry ? (
-                  <button
-                    type="button"
-                    onClick={handleStartTask}
-                    disabled={timerBusy || status === 'done'}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-pw-accent text-[#0A263A] hover:bg-pw-accent-hover disabled:opacity-40 transition-colors"
-                  >
-                    {timerBusy ? <Loader2 size={14} className="animate-spin" /> : <Play size={14} />}
-                    Inizia task
-                  </button>
-                ) : (
-                  <>
+                {askHours ? (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-pw-text-muted">Ore lavorate:</span>
+                    <input
+                      type="number" min="0" step="0.25" autoFocus
+                      value={completeHours}
+                      onChange={(e) => setCompleteHours(e.target.value)}
+                      placeholder="Ore"
+                      className="w-20 px-2 py-1 rounded-lg border border-pw-border bg-pw-surface-2 text-pw-text text-xs outline-none focus:ring-2 focus:ring-pw-accent/30"
+                    />
                     <button
                       type="button"
-                      onClick={handleCompleteTask}
+                      onClick={confirmCompleteWithHours}
                       disabled={timerBusy}
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 transition-colors"
                     >
                       {timerBusy ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
-                      Task completata
+                      Completa
                     </button>
-                  </>
+                    <button type="button" onClick={() => { setAskHours(false); setCompleteHours(''); }} className="text-xs text-pw-text-dim hover:text-pw-text">
+                      Annulla
+                    </button>
+                  </div>
+                ) : !runningEntry ? (
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleStartTask}
+                      disabled={timerBusy || status === 'done'}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-pw-accent text-[#0A263A] hover:bg-pw-accent-hover disabled:opacity-40 transition-colors"
+                    >
+                      {timerBusy ? <Loader2 size={14} className="animate-spin" /> : <Play size={14} />}
+                      Inizia task
+                    </button>
+                    {status !== 'done' && (
+                      <button
+                        type="button"
+                        onClick={handleCompleteTask}
+                        disabled={timerBusy}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 transition-colors"
+                      >
+                        {timerBusy ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
+                        Task completata
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleCompleteTask}
+                    disabled={timerBusy}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 transition-colors"
+                  >
+                    {timerBusy ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
+                    Task completata
+                  </button>
                 )}
               </div>
 

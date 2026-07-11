@@ -119,7 +119,8 @@ export default function BachecaPage() {
     const { error } = await supabase.from('tasks').update(updates).eq('id', draggableId);
     if (error) {
       Sentry.captureException(error, { tags: { route: 'bacheca', stage: 'drag_drop' } });
-      toast.error('Errore nello spostamento della task');
+      // Mostra il messaggio reale del DB (es. blocco "registra le ore prima di completare").
+      toast.error(error.message || 'Errore nello spostamento della task');
     } else if (newAssigneeId) {
       // Spostando su una persona la task viene riassegnata interamente a lei:
       // allineo la junction così non resta anche nelle colonne dei vecchi assegnatari.

@@ -8,6 +8,7 @@ import {
   type DropResult,
 } from '@hello-pangea/dnd';
 import { createClient } from '@/lib/supabase/client';
+import { useToast } from '@/components/ui/toast';
 import { cn, getPriorityTone, getInitials, formatDate } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import type { Task, TaskStatus } from '@/types/database';
@@ -22,6 +23,7 @@ interface KanbanBoardProps {
 
 export function KanbanBoard({ tasks, onTaskClick, onTasksUpdate }: KanbanBoardProps) {
   const supabase = createClient();
+  const toast = useToast();
 
   const getColumnTasks = useCallback(
     (status: TaskStatus) =>
@@ -56,7 +58,7 @@ export function KanbanBoard({ tasks, onTaskClick, onTasksUpdate }: KanbanBoardPr
     }));
 
     // Batch parallel updates instead of sequential loop
-    await Promise.all(
+    const responses = await Promise.all(
       updates.map((update) =>
         supabase
           .from('tasks')
@@ -64,6 +66,13 @@ export function KanbanBoard({ tasks, onTaskClick, onTasksUpdate }: KanbanBoardPr
           .eq('id', update.id)
       )
     );
+
+    // Se il DB blocca il completamento (task senza ore tracciate), avvisa.
+    const movedIdx = updates.findIndex((u) => u.id === draggableId);
+    const movedErr = movedIdx >= 0 ? responses[movedIdx]?.error : null;
+    if (movedErr) {
+      toast.error(movedErr.message || 'Aggiornamento non riuscito');
+    }
 
     onTasksUpdate();
   };

@@ -60,6 +60,15 @@ async function handleCron(request: NextRequest) {
     results.tasks_archived_error = err instanceof Error ? err.message : 'unknown';
   }
 
+  // 4. Chiude i timer lasciati aperti (anti-runaway, cap 8h)
+  try {
+    const { data: closedCount } = await supabase.rpc('close_stale_time_entries');
+    results.stale_timers_closed = closedCount ?? 0;
+  } catch (err) {
+    Sentry.captureException(err, { tags: { route: 'cron', stage: 'close_stale_timers' } });
+    results.stale_timers_error = err instanceof Error ? err.message : 'unknown';
+  }
+
   return NextResponse.json({
     success: true,
     timestamp: new Date().toISOString(),
