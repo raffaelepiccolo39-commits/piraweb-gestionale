@@ -97,6 +97,11 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
   const [logHours, setLogHours] = useState('');
   const [logNote, setLogNote] = useState('');
   const [loggingHours, setLoggingHours] = useState(false);
+  // Copertura PED: se questa è la task "Programmare post e storie" di uno shooting,
+  // qui si segna fino a quando il cliente è coperto → alimenta l'avviso shooting.
+  const [pedClientId, setPedClientId] = useState<string | null>(null);
+  const [pedCoveredUntil, setPedCoveredUntil] = useState('');
+  const [pedSaving, setPedSaving] = useState(false);
 
   useEffect(() => {
     if (task) {
@@ -125,6 +130,48 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
     supabase.auth.getUser().then(({ data }) => setCurrentUserId(data.user?.id ?? null));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Rileva se la task è la "Programmare post e storie" di uno shooting e carica
+  // la copertura PED già impostata per il cliente.
+  useEffect(() => {
+    if (!task) { setPedClientId(null); setPedCoveredUntil(''); return; }
+    let active = true;
+    (async () => {
+      const { data: link } = await supabase
+        .from('shooting_workflow_tasks')
+        .select('client_id')
+        .eq('task_id', task.id)
+        .eq('step_key', 'programmazione')
+        .maybeSingle();
+      if (!active) return;
+      const cid = (link as { client_id: string } | null)?.client_id ?? null;
+      setPedClientId(cid);
+      if (cid) {
+        const { data: cov } = await supabase
+          .from('client_ped_coverage')
+          .select('covered_until')
+          .eq('client_id', cid)
+          .maybeSingle();
+        if (active) setPedCoveredUntil((cov as { covered_until: string | null } | null)?.covered_until ?? '');
+      } else {
+        setPedCoveredUntil('');
+      }
+    })();
+    return () => { active = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [task]);
+
+  const savePedCoverage = async () => {
+    if (!pedClientId || !pedCoveredUntil) return;
+    setPedSaving(true);
+    const { error } = await supabase.rpc('set_ped_coverage', {
+      p_client_id: pedClientId,
+      p_covered_until: pedCoveredUntil,
+    });
+    setPedSaving(false);
+    if (error) { toast.error(error.message || 'Salvataggio non riuscito'); return; }
+    toast.success('Copertura piano editoriale salvata');
+  };
 
   // Timer: carica l'eventuale sessione in corso dell'utente su questa task
   useEffect(() => {
@@ -655,6 +702,30 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
                 </a>
               )}
             </div>
+
+            {/* Copertura PED: solo sulla task "Programmare post e storie" di uno shooting */}
+            {pedClientId && (
+              <div className="mt-3 rounded-xl border border-pink-500/30 bg-pink-500/[0.05] p-3">
+                <label className="text-[11px] font-semibold text-pw-text flex items-center gap-1.5 mb-1.5">
+                  <Calendar size={13} className="text-pink-400" />
+                  Fino a quando hai programmato i contenuti?
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="date"
+                    value={pedCoveredUntil}
+                    onChange={(e) => setPedCoveredUntil(e.target.value)}
+                    className="flex-1 px-3 py-2 rounded-lg border border-pw-border bg-pw-surface-2 text-pw-text text-xs focus:ring-2 focus:ring-pw-accent/30 focus:border-pw-accent/50 outline-none"
+                  />
+                  <Button variant="outline" size="sm" onClick={savePedCoverage} loading={pedSaving}>
+                    <Save size={14} /> Salva
+                  </Button>
+                </div>
+                <p className="text-[10px] text-pw-text-dim mt-1.5">
+                  Serve ad avvisare l&apos;admin di programmare il prossimo shooting prima che il cliente resti senza contenuti.
+                </p>
+              </div>
+            )}
 
             {/* Client info — nome cliente/progetto cliccabile → apre il progetto */}
             {clientName && (
