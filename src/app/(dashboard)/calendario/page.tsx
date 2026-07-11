@@ -15,6 +15,7 @@ import { SkeletonStats, SkeletonList } from '@/components/ui/skeleton';
 import { CalendarMonthView } from '@/components/calendar/calendar-month-view';
 import { EventForm, type EventFormData } from '@/components/calendar/event-form';
 import { ShootingPanel } from '@/components/calendar/shooting-panel';
+import { ShootingTasksModal } from '@/components/calendar/shooting-tasks-modal';
 import { DayEvents } from '@/components/calendar/day-events';
 import { SyncSettings } from '@/components/calendar/sync-settings';
 import type { CalendarEvent, TeamAbsence } from '@/types/database';
@@ -40,6 +41,8 @@ export default function CalendarioPage() {
   // Shooting mensile: pre-compilato evento + trigger di refresh del pannello
   const [shootingInitial, setShootingInitial] = useState<Partial<EventFormData> | null>(null);
   const [panelReload, setPanelReload] = useState(0);
+  // Dopo aver salvato uno shooting, propone i task di produzione da generare.
+  const [shootingTasksEventId, setShootingTasksEventId] = useState<string | null>(null);
 
   const isAdmin = profile?.role === 'admin';
 
@@ -172,6 +175,10 @@ export default function CalendarioPage() {
       setShootingInitial(null);
       setPanelReload((n) => n + 1);
       fetchEvents();
+      // Shooting collegato a un cliente → proponi i task di produzione.
+      if (event?.event_type === 'shooting' && event?.client_id) {
+        setShootingTasksEventId(event.id);
+      }
     } catch {
       toast.error('Errore nella creazione dell\'evento');
     }
@@ -355,6 +362,14 @@ export default function CalendarioPage() {
           onCancel={() => { setShowEventForm(false); setShootingInitial(null); }}
         />
       </Modal>
+
+      {/* Task produzione dopo aver registrato uno shooting */}
+      <ShootingTasksModal
+        open={!!shootingTasksEventId}
+        calendarEventId={shootingTasksEventId}
+        onClose={() => setShootingTasksEventId(null)}
+        onGenerated={() => fetchEvents()}
+      />
 
       {/* Edit event modal */}
       <Modal
