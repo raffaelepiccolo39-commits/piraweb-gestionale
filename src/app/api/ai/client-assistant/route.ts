@@ -9,7 +9,7 @@ import { checkRateLimit, AI_RATE_LIMIT } from '@/lib/rate-limit';
 const OUTPUT_SCHEMA = {
   type: 'object',
   additionalProperties: false,
-  required: ['summary', 'risks', 'next_actions', 'proposed_actions'],
+  required: ['summary', 'risks', 'next_actions', 'proposed_actions', 'editorial_plan'],
   properties: {
     summary: { type: 'string' },
     risks: {
@@ -50,6 +50,20 @@ const OUTPUT_SCHEMA = {
           description: { type: 'string' },
           priority: { type: 'string', enum: ['low', 'medium', 'high', 'urgent'] },
           estimated_hours: { type: 'number' },
+        },
+      },
+    },
+    editorial_plan: {
+      type: 'array',
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['title', 'caption', 'platform', 'scheduled_date'],
+        properties: {
+          title: { type: 'string' },
+          caption: { type: 'string' },
+          platform: { type: 'string', enum: ['instagram', 'facebook', 'tiktok', 'linkedin', 'youtube', 'twitter', 'pinterest', 'other'] },
+          scheduled_date: { type: 'string', description: 'Data suggerita di pubblicazione, formato YYYY-MM-DD' },
         },
       },
     },
@@ -113,21 +127,30 @@ export async function POST(request: NextRequest) {
     tasks = t ?? [];
   }
 
-  const { data: social } = await supabase
+  // Knowledge base (strategia, target, tono) per pianificare il piano editoriale.
+  const { data: kb } = await supabase
+    .from('client_knowledge_base')
+    .select('strategy, objectives, target_audience, tone_of_voice, brand_guidelines, services, competitors, keywords, additional_notes')
+    .eq('client_id', client_id)
+    .maybeSingle();
+
+  // Titoli dei post recenti: solo per NON duplicare i temi nel piano editoriale.
+  const { data: recentPosts } = await supabase
     .from('social_posts')
-    .select('title, status, scheduled_at, published_at, platforms')
+    .select('title, scheduled_at')
     .eq('client_id', client_id)
     .order('created_at', { ascending: false })
-    .limit(25);
+    .limit(15);
 
   const today = new Date().toISOString().slice(0, 10);
 
   const context = {
     oggi: today,
     cliente: client,
+    knowledge_base: kb ?? null,
     progetti: projects ?? [],
     task: tasks,
-    post_social: social ?? [],
+    post_recenti_da_non_duplicare: (recentPosts ?? []).map((p) => p.title),
   };
 
   const systemPrompt = `Sei il direttore operativo di PiraWeb, un'agenzia creativa italiana.
@@ -138,7 +161,8 @@ Regole:
 - Segnala rischi reali e specifici (scadenze vicine o superate, task fermi da tempo, cliente inattivo, poca produzione di contenuti), con severità onesta.
 - Le "prossime azioni" devono essere passi operativi concreti, non generici.
 - Nelle "azioni proposte" suggerisci al massimo 3 task davvero utili da creare per questo cliente; ognuna con titolo, descrizione operativa, priorità e ore stimate realistiche.
-- Non inventare dati che non ci sono. Se i dati sono pochi, dillo nel riepilogo e proponi meno azioni.`;
+- Nel "piano editoriale" proponi un calendario di post social per le prossime 3-4 settimane (di norma 6-10 post), coerente con il settore del cliente e con la knowledge base (strategia, target, tono di voce). Ogni post: titolo, bozza di caption pronta all'uso nel tono del brand, UNA piattaforma adatta, e una data di pubblicazione suggerita (formato YYYY-MM-DD, distribuita nel tempo). NON ripetere i temi già presenti in "post_recenti_da_non_duplicare".
+- Non inventare dati che non ci sono. Se mancano strategia/target, proponi comunque un piano editoriale ragionevole per il settore, ma dillo nel riepilogo.`;
 
   const prompt = `Ecco i dati del cliente in formato JSON:
 
@@ -187,11 +211,16 @@ Analizza la situazione e restituisci l'esito nello schema richiesto.`;
       return NextResponse.json({ error: 'Risposta AI non in formato valido' }, { status: 502 });
     }
 
-    // Ogni azione proposta riceve un id stabile + stato per la conferma in UI.
+    // Ogni azione/voce riceve un id stabile + stato per la conferma in UI.
     const proposedActions = (parsed.proposed_actions ?? []).map((a: Record<string, unknown>, i: number) => ({
       id: `a${i}`,
       status: 'pending',
       ...a,
+    }));
+    const editorialPlan = (parsed.editorial_plan ?? []).map((p: Record<string, unknown>, i: number) => ({
+      id: `e${i}`,
+      status: 'pending',
+      ...p,
     }));
 
     const { data: inserted, error: insErr } = await supabase
@@ -202,6 +231,7 @@ Analizza la situazione e restituisci l'esito nello schema richiesto.`;
         risks: parsed.risks ?? [],
         next_actions: parsed.next_actions ?? [],
         proposed_actions: proposedActions,
+        editorial_plan: editorialPlan,
         model: 'claude-opus-4-8',
         generated_by: user.id,
       })

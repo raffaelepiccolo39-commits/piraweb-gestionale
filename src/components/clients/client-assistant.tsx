@@ -8,8 +8,13 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/components/ui/toast';
 import { formatDate } from '@/lib/utils';
-import type { ClientInsight, ClientProposedAction } from '@/types/database';
-import { Sparkles, Loader2, AlertTriangle, ArrowRight, Check, X, Plus } from 'lucide-react';
+import type { ClientInsight, ClientProposedAction, ClientEditorialEntry } from '@/types/database';
+import { Sparkles, Loader2, AlertTriangle, ArrowRight, Check, X, Plus, CalendarClock } from 'lucide-react';
+
+const PLATFORM_LABEL: Record<string, string> = {
+  instagram: 'Instagram', facebook: 'Facebook', tiktok: 'TikTok', linkedin: 'LinkedIn',
+  youtube: 'YouTube', twitter: 'X/Twitter', pinterest: 'Pinterest', other: 'Altro',
+};
 
 const SEVERITY_TONE: Record<string, string> = {
   alta: 'bg-red-500/15 text-red-600 dark:text-red-400',
@@ -132,6 +137,55 @@ export function ClientAssistant({ clientId }: { clientId: string }) {
     }
   };
 
+  // Aggiorna lo stato di una voce del piano editoriale.
+  const patchEditorial = async (entryId: string, status: ClientEditorialEntry['status']) => {
+    if (!insight) return;
+    const updated = (insight.editorial_plan ?? []).map((e) => (e.id === entryId ? { ...e, status } : e));
+    const { error } = await supabase
+      .from('client_insights')
+      .update({ editorial_plan: updated })
+      .eq('id', insight.id);
+    if (error) throw error;
+    setInsight({ ...insight, editorial_plan: updated });
+  };
+
+  const programPost = async (entry: ClientEditorialEntry) => {
+    if (!profile) return;
+    setActionBusy(entry.id);
+    try {
+      const scheduledAt = entry.scheduled_date
+        ? new Date(`${entry.scheduled_date}T10:00:00`).toISOString()
+        : null;
+      const { error } = await supabase.from('social_posts').insert({
+        title: entry.title,
+        caption: entry.caption || null,
+        platforms: [entry.platform],
+        status: 'draft',
+        scheduled_at: scheduledAt,
+        client_id: clientId,
+        created_by: profile.id,
+      });
+      if (error) throw error;
+      await patchEditorial(entry.id, 'done');
+      toast.success('Post aggiunto al calendario');
+    } catch (e) {
+      toast.error((e as { message?: string })?.message || 'Creazione post non riuscita');
+    } finally {
+      setActionBusy(null);
+    }
+  };
+
+  const dismissEntry = async (entry: ClientEditorialEntry) => {
+    setActionBusy(entry.id);
+    try {
+      await patchEditorial(entry.id, 'dismissed');
+    } catch {
+      toast.error('Operazione non riuscita');
+    } finally {
+      setActionBusy(null);
+    }
+  };
+
   return (
     <Card>
       <CardContent className="p-5 space-y-5">
@@ -201,6 +255,52 @@ export function ClientAssistant({ clientId }: { clientId: string }) {
                       <div className="min-w-0">
                         <p className="text-sm font-medium text-pw-text">{a.title}</p>
                         <p className="text-xs text-pw-text-muted">{a.detail}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {(insight.editorial_plan ?? []).length > 0 && (
+              <div>
+                <h3 className="text-xs uppercase tracking-wide font-semibold text-pw-text-muted mb-2 flex items-center gap-1.5">
+                  <CalendarClock size={13} /> Piano editoriale proposto
+                </h3>
+                <div className="space-y-2">
+                  {(insight.editorial_plan ?? []).map((e) => (
+                    <div key={e.id} className="rounded-xl border border-pw-border bg-pw-surface-2 px-4 py-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Badge tone="info" size="sm">{PLATFORM_LABEL[e.platform] || e.platform}</Badge>
+                            {e.scheduled_date && (
+                              <span className="text-[11px] text-pw-text-dim tabular-nums">{formatDate(e.scheduled_date)}</span>
+                            )}
+                            <p className="text-sm font-medium text-pw-text">{e.title}</p>
+                          </div>
+                          {e.caption && (
+                            <p className="text-xs text-pw-text-muted mt-1 whitespace-pre-wrap">{e.caption}</p>
+                          )}
+                        </div>
+                        <div className="shrink-0">
+                          {e.status === 'done' ? (
+                            <span className="inline-flex items-center gap-1 text-green-500 text-xs font-medium">
+                              <Check size={14} /> In calendario
+                            </span>
+                          ) : e.status === 'dismissed' ? (
+                            <span className="text-xs text-pw-text-dim">Scartato</span>
+                          ) : (
+                            <div className="flex gap-1.5">
+                              <Button variant="outline" size="sm" onClick={() => programPost(e)} loading={actionBusy === e.id}>
+                                <CalendarClock size={14} /> Programma
+                              </Button>
+                              <Button variant="ghost" size="sm" onClick={() => dismissEntry(e)} disabled={actionBusy === e.id} title="Scarta">
+                                <X size={14} />
+                              </Button>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   ))}

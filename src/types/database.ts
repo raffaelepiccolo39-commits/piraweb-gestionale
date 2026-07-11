@@ -238,6 +238,14 @@ export interface ClientProposedAction {
   estimated_hours: number;
   status: 'pending' | 'done' | 'dismissed';
 }
+export interface ClientEditorialEntry {
+  id: string;
+  title: string;
+  caption: string;
+  platform: SocialPlatform;
+  scheduled_date: string;
+  status: 'pending' | 'done' | 'dismissed';
+}
 export interface ClientInsight {
   id: string;
   client_id: string;
@@ -245,6 +253,7 @@ export interface ClientInsight {
   risks: ClientInsightRisk[];
   next_actions: ClientInsightNextAction[];
   proposed_actions: ClientProposedAction[];
+  editorial_plan: ClientEditorialEntry[];
   model: string | null;
   generated_by: string | null;
   created_at: string;
