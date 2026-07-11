@@ -218,6 +218,38 @@ export interface Client {
   knowledge_base?: ClientKnowledgeBase;
 }
 
+// ── Assistente AI per cliente (Fase 1) ──
+export interface ClientInsightRisk {
+  severity: 'bassa' | 'media' | 'alta';
+  title: string;
+  detail: string;
+}
+export interface ClientInsightNextAction {
+  title: string;
+  detail: string;
+  priority: 'bassa' | 'media' | 'alta' | 'urgente';
+}
+export interface ClientProposedAction {
+  id: string;
+  type: 'create_task';
+  title: string;
+  description: string;
+  priority: TaskPriority;
+  estimated_hours: number;
+  status: 'pending' | 'done' | 'dismissed';
+}
+export interface ClientInsight {
+  id: string;
+  client_id: string;
+  summary: string | null;
+  risks: ClientInsightRisk[];
+  next_actions: ClientInsightNextAction[];
+  proposed_actions: ClientProposedAction[];
+  model: string | null;
+  generated_by: string | null;
+  created_at: string;
+}
+
 export interface ClientSocialCredentials {
   id: string;
   client_id: string;

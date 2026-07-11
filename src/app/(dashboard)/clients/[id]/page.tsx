@@ -18,6 +18,7 @@ import { KnowledgeBaseForm } from '@/components/clients/knowledge-base-form';
 import { OnboardingSection } from '@/components/clients/onboarding-section';
 import { AssetLibrary } from '@/components/clients/asset-library';
 import { InstallmentsManager } from '@/components/clients/installments-manager';
+import { ClientAssistant } from '@/components/clients/client-assistant';
 import { formatDate, formatCurrency } from '@/lib/utils';
 import type { Client, ClientContract, ClientPayment, ClientFinancialSummary, PaymentLog, ClientKnowledgeBase } from '@/types/database';
 import {
@@ -380,6 +381,9 @@ export default function ClientDetailPage({
           </Button>
         </div>
       </div>
+
+      {/* Assistente AI (admin) */}
+      {isAdmin && <ClientAssistant clientId={id} />}
 
       {/* Expiry alert */}
       {isAdmin && expiry && expiry.status !== 'ok' && (
