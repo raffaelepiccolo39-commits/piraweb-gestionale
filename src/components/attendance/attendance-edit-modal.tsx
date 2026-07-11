@@ -80,6 +80,7 @@ export function AttendanceEditModal({ open, onClose, userId, userName, date, onS
   const [saving, setSaving] = useState(false);
   const [savingAbsence, setSavingAbsence] = useState(false);
   const [deletingAbsence, setDeletingAbsence] = useState(false);
+  const [confirmRemove, setConfirmRemove] = useState(false);
   const [absence, setAbsence] = useState<DayAbsence | null>(null);
   const [existingId, setExistingId] = useState<string | null>(null);
   const [clockIn, setClockIn] = useState('');
@@ -320,18 +321,37 @@ export function AttendanceEditModal({ open, onClose, userId, userName, date, onS
                 <Stethoscope size={15} className="text-pw-text-muted" />
                 Assenza registrata su questo giorno
               </div>
-              <div className="flex items-center justify-between gap-3 rounded-xl bg-pw-surface-2 px-4 py-3">
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-pw-text">{ABSENCE_LABELS[absence.type]}</p>
-                  {absenceMultiDay && (
-                    <p className="text-xs text-amber-500 mt-0.5">
-                      Assenza su più giorni ({FULL_DATE(absence.start_date)} → {FULL_DATE(absence.end_date)}): rimuovendola si cancella tutto il periodo.
-                    </p>
+              <div className="rounded-xl bg-pw-surface-2 px-4 py-3 space-y-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-pw-text">{ABSENCE_LABELS[absence.type]}</p>
+                    {absenceMultiDay && (
+                      <p className="text-xs text-amber-500 mt-0.5">
+                        Assenza su più giorni ({FULL_DATE(absence.start_date)} → {FULL_DATE(absence.end_date)}): rimuovendola si cancella tutto il periodo.
+                      </p>
+                    )}
+                  </div>
+                  {!confirmRemove && (
+                    <Button variant="outline" onClick={() => setConfirmRemove(true)} className="shrink-0">
+                      <Trash2 size={15} /> Rimuovi
+                    </Button>
                   )}
                 </div>
-                <Button variant="outline" onClick={handleDeleteAbsence} loading={deletingAbsence} className="shrink-0">
-                  <Trash2 size={15} /> Rimuovi
-                </Button>
+                {confirmRemove && (
+                  <div className="flex items-center justify-between gap-3 border-t border-pw-border pt-3">
+                    <p className="text-sm text-pw-text">
+                      {absenceMultiDay ? 'Rimuovere tutto il periodo?' : 'Confermi la rimozione?'}
+                    </p>
+                    <div className="flex gap-2 shrink-0">
+                      <Button variant="ghost" onClick={() => setConfirmRemove(false)} disabled={deletingAbsence}>
+                        Annulla
+                      </Button>
+                      <Button variant="danger" onClick={handleDeleteAbsence} loading={deletingAbsence}>
+                        <Trash2 size={15} /> Sì, rimuovi
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           ) : (
