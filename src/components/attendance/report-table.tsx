@@ -4,13 +4,24 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { MapPin } from 'lucide-react';
 import { formatTime, formatHours, getInitials, getRoleLabel, getRoleTone } from '@/lib/utils';
-import type { AttendanceWeeklyRow, AttendanceMonthlyReport, Profile } from '@/types/database';
+import { TYPE_ICON } from '@/lib/time-off';
+import type { AttendanceWeeklyRow, AttendanceMonthlyReport, Profile, TeamAbsence, TimeOffType } from '@/types/database';
 
 const DAY_LABELS = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'];
+
+/** Etichette e colori compatti per le assenze mostrate nelle celle vuote */
+const ABSENCE_LABEL: Record<TimeOffType, string> = { ferie: 'Ferie', permesso: 'Permesso', malattia: 'Malattia' };
+const ABSENCE_PILL: Record<TimeOffType, string> = {
+  ferie: 'bg-blue-500/15 text-blue-600 dark:text-blue-400',
+  permesso: 'bg-indigo-500/15 text-indigo-500',
+  malattia: 'bg-amber-500/15 text-amber-600 dark:text-amber-400',
+};
 
 interface ReportTableProps {
   mode: 'weekly' | 'monthly';
   weeklyData?: AttendanceWeeklyRow[];
+  /** Assenze approvate (ferie/permessi/malattia) da mostrare nelle celle senza timbratura */
+  absences?: TeamAbsence[];
   monthlyData?: AttendanceMonthlyReport[];
   /** Collaboratori da mostrare in settimanale anche senza timbrature */
   employees?: Profile[];
@@ -34,8 +45,12 @@ function getHoursColor(hours: number): string {
   return 'text-pw-text-dim';
 }
 
-export function ReportTable({ mode, weeklyData, monthlyData, employees, weekStart, onEditDay }: ReportTableProps) {
+export function ReportTable({ mode, weeklyData, absences, monthlyData, employees, weekStart, onEditDay }: ReportTableProps) {
   if (mode === 'weekly') {
+    // Assenza approvata che copre una certa data per un collaboratore.
+    // Le date sono in formato YYYY-MM-DD, quindi il confronto tra stringhe basta.
+    const findAbsence = (userId: string, date: string): TeamAbsence | undefined =>
+      absences?.find((a) => a.user_id === userId && a.start_date <= date && date <= a.end_date);
     // Group by user. Partiamo dall'elenco dei collaboratori, non dalle timbrature:
     // chi ha dimenticato di timbrare non ha righe e sparirebbe dalla tabella —
     // proprio la persona che l'admin deve poter correggere.
@@ -92,23 +107,41 @@ export function ReportTable({ mode, weeklyData, monthlyData, employees, weekStar
                         weekTotal += hours;
                         const editable = onEditDay && weekStart;
 
-                        const content = day ? (
-                          <div>
-                            <p className={`font-semibold ${getHoursColor(hours)}`}>
-                              {hours > 0 ? formatHours(hours) : '--'}
-                            </p>
-                            <p className="text-[10px] text-pw-text-dim mt-0.5">
-                              {formatTime(day.clock_in)} - {formatTime(day.clock_out)}
-                            </p>
-                            {day.off_site && (
-                              <span className="inline-flex items-center gap-0.5 mt-1 px-1.5 py-0.5 rounded-md bg-indigo-500/15 text-indigo-500 text-[9px] font-medium leading-none">
-                                <MapPin size={9} /> Fuori ufficio
-                              </span>
-                            )}
-                          </div>
-                        ) : (
-                          <span className="text-pw-text-dim">--</span>
-                        );
+                        // Giornata "lavorata" se ci sono ore o almeno l'entrata.
+                        const worked = !!day && (hours > 0 || !!day.clock_in);
+                        const dateStr = weekStart ? dayOfWeekDate(weekStart, i) : null;
+                        const absence = !worked && dateStr ? findAbsence(userId, dateStr) : undefined;
+
+                        let content: React.ReactNode;
+                        if (worked) {
+                          content = (
+                            <div>
+                              <p className={`font-semibold ${getHoursColor(hours)}`}>
+                                {hours > 0 ? formatHours(hours) : '--'}
+                              </p>
+                              <p className="text-[10px] text-pw-text-dim mt-0.5">
+                                {formatTime(day!.clock_in)} - {formatTime(day!.clock_out)}
+                              </p>
+                              {day!.off_site && (
+                                <span className="inline-flex items-center gap-0.5 mt-1 px-1.5 py-0.5 rounded-md bg-indigo-500/15 text-indigo-500 text-[9px] font-medium leading-none">
+                                  <MapPin size={9} /> Fuori ufficio
+                                </span>
+                              )}
+                            </div>
+                          );
+                        } else if (absence) {
+                          const Icon = TYPE_ICON[absence.type];
+                          const half =
+                            (absence.start_date === dateStr && absence.start_half) ||
+                            (absence.end_date === dateStr && absence.end_half);
+                          content = (
+                            <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium leading-none ${ABSENCE_PILL[absence.type]}`}>
+                              <Icon size={10} /> {ABSENCE_LABEL[absence.type]}{half ? ' ½' : ''}
+                            </span>
+                          );
+                        } else {
+                          content = <span className="text-pw-text-dim">--</span>;
+                        }
 
                         return (
                           <td key={i} className="text-center px-3 py-1">

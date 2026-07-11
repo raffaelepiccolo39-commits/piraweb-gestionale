@@ -12,7 +12,7 @@ import { ReportTable } from '@/components/attendance/report-table';
 import { AttendanceCalendar } from '@/components/attendance/attendance-calendar';
 import { AttendanceEditModal } from '@/components/attendance/attendance-edit-modal';
 import { formatHours } from '@/lib/utils';
-import type { AttendanceWeeklyRow, AttendanceMonthlyReport, Profile } from '@/types/database';
+import type { AttendanceWeeklyRow, AttendanceMonthlyReport, Profile, TeamAbsence } from '@/types/database';
 import { ArrowLeft, BarChart3, Clock, Calendar, AlertTriangle, TrendingUp } from 'lucide-react';
 
 const MONTHS_IT = ['Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno', 'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre'];
@@ -43,6 +43,7 @@ export default function ReportPresenzePage() {
   const [selectedUserId, setSelectedUserId] = useState<string>('');
   const [employees, setEmployees] = useState<Profile[]>([]);
   const [weeklyData, setWeeklyData] = useState<AttendanceWeeklyRow[]>([]);
+  const [weekAbsences, setWeekAbsences] = useState<TeamAbsence[]>([]);
   const [monthlyData, setMonthlyData] = useState<AttendanceMonthlyReport[]>([]);
   const [calendarData, setCalendarData] = useState<AttendanceWeeklyRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -68,11 +69,18 @@ export default function ReportPresenzePage() {
     const userId = selectedUserId || null;
 
     if (mode === 'weekly') {
-      const { data } = await supabase.rpc('get_attendance_weekly_report', {
-        p_user_id: userId,
-        p_week_start: weekStart,
-      });
-      setWeeklyData((data as AttendanceWeeklyRow[]) || []);
+      // Fine settimana (domenica) = lunedì + 6 giorni
+      const wEnd = new Date(weekStart);
+      wEnd.setDate(wEnd.getDate() + 6);
+      const weekEnd = `${wEnd.getFullYear()}-${String(wEnd.getMonth() + 1).padStart(2, '0')}-${String(wEnd.getDate()).padStart(2, '0')}`;
+
+      const [reportRes, absRes] = await Promise.all([
+        supabase.rpc('get_attendance_weekly_report', { p_user_id: userId, p_week_start: weekStart }),
+        supabase.rpc('get_team_absences', { p_from: weekStart, p_to: weekEnd }),
+      ]);
+      setWeeklyData((reportRes.data as AttendanceWeeklyRow[]) || []);
+      const abs = (absRes.data as TeamAbsence[]) || [];
+      setWeekAbsences(userId ? abs.filter((a) => a.user_id === userId) : abs);
     } else {
       const [reportRes, calendarRes] = await Promise.all([
         supabase.rpc('get_attendance_monthly_report', {
@@ -278,6 +286,7 @@ export default function ReportPresenzePage() {
           <ReportTable
             mode={mode}
             weeklyData={weeklyData}
+            absences={weekAbsences}
             monthlyData={monthlyData}
             employees={selectedUserId ? employees.filter((e) => e.id === selectedUserId) : employees}
             weekStart={weekStart}
