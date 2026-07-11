@@ -165,7 +165,7 @@ export function AttendanceEditModal({ open, onClose, userId, userName, date, onS
     setSaving(false);
 
     if (dbError) {
-      setError('Salvataggio non riuscito. Riprova.');
+      setError(dbError.message || 'Salvataggio non riuscito. Riprova.');
       return;
     }
 
@@ -199,7 +199,10 @@ export function AttendanceEditModal({ open, onClose, userId, userName, date, onS
     setSavingAbsence(false);
 
     if (dbError) {
-      setError('Registrazione assenza non riuscita. Riprova.');
+      // I messaggi del trigger di integrità sono già in italiano e chiari
+      // (es. "Le date si sovrappongono a un'altra richiesta del dipendente"):
+      // mostrarli evita di far credere a un errore quando l'assenza esiste già.
+      setError(dbError.message || 'Registrazione assenza non riuscita. Riprova.');
       return;
     }
 
