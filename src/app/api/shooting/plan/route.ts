@@ -11,6 +11,7 @@ interface ProposedTask {
   role: string;
   assigned_to: string | null;
   assignee_name: string | null;
+  extra_assignees: { id: string; name: string }[];
   deadline: string;
   estimated_hours: number;
   priority: string;
@@ -75,6 +76,10 @@ export async function POST(request: NextRequest) {
     const proposed: ProposedTask[] = [];
     for (const step of SHOOTING_STEPS) {
       const assignee = byRole.get(step.role) ?? null;
+      const extra = (step.extraRoles ?? [])
+        .map((r) => byRole.get(r))
+        .filter((p): p is { id: string; full_name: string } => !!p && p.id !== assignee?.id)
+        .map((p) => ({ id: p.id, name: p.full_name }));
       const { data: learned } = await supabase.rpc('shooting_learned_hours', {
         p_step_key: step.key,
         p_client_id: event.client_id,
@@ -87,6 +92,7 @@ export async function POST(request: NextRequest) {
         role: step.role,
         assigned_to: assignee?.id ?? null,
         assignee_name: assignee?.full_name ?? null,
+        extra_assignees: extra,
         deadline: offsetDate(event.start_time, step.offsetDays),
         estimated_hours: Number(learned) || step.defaultHours,
         priority: step.priority,
@@ -132,6 +138,16 @@ export async function POST(request: NextRequest) {
         .select('id')
         .single();
       if (taskErr || !task) continue;
+
+      // Task condiviso: imposta l'elenco completo di assegnatari (principale + extra).
+      const extraIds: string[] = Array.isArray(t.extra_assignees)
+        ? t.extra_assignees.map((x: { id?: string } | string) => (typeof x === 'string' ? x : x?.id)).filter(Boolean)
+        : [];
+      if (extraIds.length && t.assigned_to) {
+        const ids = Array.from(new Set([t.assigned_to, ...extraIds]));
+        await supabase.rpc('set_task_assignees', { p_task_id: task.id, p_user_ids: ids });
+      }
+
       await supabase.from('shooting_workflow_tasks').insert({
         calendar_event_id,
         client_id: event.client_id,

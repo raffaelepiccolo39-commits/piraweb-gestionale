@@ -11,7 +11,10 @@ export interface ShootingStep {
   key: string;
   title: string;
   description: string;
+  /** Ruolo dell'assegnatario principale */
   role: string;
+  /** Ruoli di eventuali co-assegnatari (task condiviso) */
+  extraRoles?: string[];
   offsetDays: number;
   defaultHours: number;
   priority: TaskPriority;
@@ -23,6 +26,7 @@ export const SHOOTING_STEPS: ShootingStep[] = [
     title: 'Moodboard da mandare al cliente',
     description: 'Prepara la moodboard di riferimento per lo shooting e inviala al cliente per conferma.',
     role: 'social_media_manager',
+    extraRoles: ['graphic_social'],
     offsetDays: -3,
     defaultHours: 2,
     priority: 'high',

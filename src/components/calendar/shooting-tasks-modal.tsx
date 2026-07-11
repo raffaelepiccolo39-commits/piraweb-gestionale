@@ -16,6 +16,7 @@ interface PreviewTask {
   role: string;
   assigned_to: string | null;
   assignee_name: string | null;
+  extra_assignees: { id: string; name: string }[];
   deadline: string;
   estimated_hours: number;
   priority: string;
@@ -90,6 +91,7 @@ export function ShootingTasksModal({ open, calendarEventId, onClose, onGenerated
             title: r.title,
             description: r.description,
             assigned_to: r.assigned_to,
+            extra_assignees: r.extra_assignees,
             deadline: r.deadline,
             estimated_hours: r.estimated_hours,
             priority: r.priority,
@@ -152,6 +154,11 @@ export function ShootingTasksModal({ open, calendarEventId, onClose, onGenerated
                   />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-pw-text">{r.title}</p>
+                    {r.extra_assignees.length > 0 && (
+                      <p className="text-[11px] text-pw-text-dim mt-0.5">
+                        Anche: {r.extra_assignees.map((e) => e.name).join(', ')}
+                      </p>
+                    )}
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-2">
                       <Select
                         aria-label="Assegnatario"
