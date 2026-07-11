@@ -184,6 +184,41 @@ export default function CalendarioPage() {
     }
   };
 
+  // Apre la registrazione shooting pre-compilata per un cliente. Usato da:
+  // pannello shooting, link notifica (?program_shooting=), promemoria calendario.
+  const openShootingForClient = useCallback(async (clientId: string) => {
+    const { data } = await supabase.from('clients').select('id, name, company').eq('id', clientId).maybeSingle();
+    if (!data) { toast.error('Cliente non trovato'); return; }
+    const cl = data as { id: string; name: string; company: string | null };
+    setShootingInitial({
+      title: `Shooting ${cl.company || cl.name}`,
+      client_id: cl.id,
+      event_type: 'shooting',
+      color: '#ec4899',
+    });
+    setShowEventForm(true);
+  }, [supabase, toast]);
+
+  // Notifica "programma shooting" → apre la registrazione per quel cliente.
+  useEffect(() => {
+    const cid = new URLSearchParams(window.location.search).get('program_shooting');
+    if (cid) {
+      openShootingForClient(cid);
+      window.history.replaceState({}, '', '/calendario');
+    }
+  }, [openShootingForClient]);
+
+  // Click su un evento: se è un promemoria shooting apre la registrazione,
+  // altrimenti apre la modifica evento.
+  const handleEventClick = useCallback((ev: CalendarEvent) => {
+    const e = ev as CalendarEvent & { event_type?: string; client_id?: string | null };
+    if (e.event_type === 'shooting_reminder' && e.client_id) {
+      openShootingForClient(e.client_id);
+      return;
+    }
+    setEditingEvent(ev);
+  }, [openShootingForClient]);
+
   const handleUpdate = async (data: EventFormData) => {
     if (!editingEvent) return;
     try {
@@ -311,15 +346,7 @@ export default function CalendarioPage() {
         <ShootingPanel
           month={currentMonth}
           reloadKey={panelReload}
-          onProgram={(client) => {
-            setShootingInitial({
-              title: `Shooting ${client.company || client.name}`,
-              client_id: client.id,
-              event_type: 'shooting',
-              color: '#ec4899',
-            });
-            setShowEventForm(true);
-          }}
+          onProgram={(client) => openShootingForClient(client.id)}
         />
       )}
 
@@ -340,7 +367,7 @@ export default function CalendarioPage() {
               date={selectedDate}
               events={selectedDayEvents}
               onCreateEvent={() => setShowEventForm(true)}
-              onEditEvent={setEditingEvent}
+              onEditEvent={handleEventClick}
               onDeleteEvent={setDeletingEventId}
               canManage={canManage}
             />

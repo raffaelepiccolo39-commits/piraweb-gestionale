@@ -57,7 +57,8 @@ async function handleCron(request: NextRequest) {
         type: 'deadline_approaching',
         title: 'Programma uno shooting',
         message: `Il piano editoriale di ${label} è coperto fino al ${dataStr}. Programma uno shooting.`,
-        link: '/calendario',
+        // Link diretto: apre la registrazione dello shooting per questo cliente.
+        link: `/calendario?program_shooting=${client.id}`,
         metadata: { client_id: client.id, covered_until: row.covered_until },
       });
     }
@@ -77,7 +78,8 @@ async function handleCron(request: NextRequest) {
       end_time: slotEnd,
       all_day: true,
       color: '#ec4899',
-      event_type: 'general',
+      // Tipo dedicato: cliccando il promemoria si apre la registrazione shooting.
+      event_type: 'shooting_reminder',
       client_id: client.id,
       assigned_to: adminIds,
       created_by: adminIds[0] ?? null,
