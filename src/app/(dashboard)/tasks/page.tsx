@@ -152,21 +152,22 @@ export default function TasksPage() {
   }, [fetchTasks, fetchClients, fetchTeamMembers]);
 
   const handleStatusChange = async (taskId: string, newStatus: string) => {
-    try {
-      const { error } = await supabase.from('tasks').update({ status: newStatus }).eq('id', taskId);
-      if (error) throw error;
-      if (newStatus === 'done') {
-        const task = tasks.find(t => t.id === taskId);
-        toast.success(task?.delivery_url
-          ? 'Task completata'
-          : 'Task completata — se vuoi, aggiungi il link al lavoro dal dettaglio');
-      } else {
-        toast.success('Stato aggiornato');
-      }
-      fetchTasks();
-    } catch {
-      toast.error('Errore durante l\'aggiornamento dello stato');
+    const { error } = await supabase.from('tasks').update({ status: newStatus }).eq('id', taskId);
+    if (error) {
+      // Mostra il messaggio reale del DB (es. blocco "registra le ore prima di
+      // completare"), altrimenti l'utente non capisce perché non riesce.
+      toast.error(error.message || 'Errore durante l\'aggiornamento dello stato');
+      return;
     }
+    if (newStatus === 'done') {
+      const task = tasks.find(t => t.id === taskId);
+      toast.success(task?.delivery_url
+        ? 'Task completata'
+        : 'Task completata — se vuoi, aggiungi il link al lavoro dal dettaglio');
+    } else {
+      toast.success('Stato aggiornato');
+    }
+    fetchTasks();
   };
 
   const handleArchive = async (taskId: string) => {
