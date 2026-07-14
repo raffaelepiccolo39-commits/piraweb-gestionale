@@ -34,6 +34,7 @@ import {
   Sparkles,
   Crown,
   NotebookPen,
+  ScrollText,
 } from 'lucide-react';
 
 interface NavItem {
@@ -97,6 +98,7 @@ const navSections: NavSection[] = [
     adminOnly: true,
     items: [
       { label: 'Gestione', href: '/gestione', icon: Crown },
+      { label: 'Log errori', href: '/log', icon: ScrollText },
       { label: 'Impostazioni', href: '/settings', icon: Settings },
     ],
   },

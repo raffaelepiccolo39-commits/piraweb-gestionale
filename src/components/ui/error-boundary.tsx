@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { reportUnknown } from '@/lib/report-error';
 
 interface ErrorBoundaryProps {
   children: React.ReactNode;
@@ -23,6 +24,12 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     console.error('ErrorBoundary caught:', error, errorInfo);
+
+    // Prima finiva qui e basta: l'errore restava nella console del browser
+    // dell'utente e non lo vedeva nessuno. Ora arriva in error_logs.
+    reportUnknown(error, 'boundary', {
+      componentStack: errorInfo.componentStack?.slice(0, 4000) ?? null,
+    });
   }
 
   render() {

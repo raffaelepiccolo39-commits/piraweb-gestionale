@@ -1300,3 +1300,44 @@ export interface CalendarSyncConfig {
   created_at: string;
   updated_at: string;
 }
+
+// === LOG ERRORI ===
+export type ErrorLevel = 'error' | 'warning' | 'info';
+export type ErrorSource = 'client' | 'server' | 'api' | 'cron' | 'boundary';
+
+export interface ErrorLog {
+  id: string;
+  level: ErrorLevel;
+  source: ErrorSource;
+  message: string;
+  stack: string | null;
+  route: string | null;
+  fingerprint: string;
+  user_id: string | null;
+  user_email: string | null;
+  context: Record<string, unknown>;
+  user_agent: string | null;
+  build_id: string | null;
+  created_at: string;
+  resolved_at: string | null;
+  resolved_by: string | null;
+}
+
+/** Riga della vista error_log_groups: un problema, non una singola occorrenza. */
+export interface ErrorLogGroup {
+  fingerprint: string;
+  last_id: string;
+  message: string;
+  stack: string | null;
+  level: ErrorLevel;
+  source: ErrorSource;
+  route: string | null;
+  context: Record<string, unknown>;
+  build_id: string | null;
+  last_user_email: string | null;
+  occurrences: number;
+  users_affected: number;
+  first_seen: string;
+  last_seen: string;
+  resolved: boolean;
+}
