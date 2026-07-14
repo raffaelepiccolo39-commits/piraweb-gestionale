@@ -11,15 +11,18 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { PageHeader } from '@/components/ui/page-header';
 import { SkeletonList } from '@/components/ui/skeleton';
 import { useToast } from '@/components/ui/toast';
-import { formatDate } from '@/lib/utils';
+import { formatDate, cn } from '@/lib/utils';
+import { PerfPanel } from '@/components/log/perf-panel';
 import type { ErrorLogGroup, ErrorSource } from '@/types/database';
 import {
   AlertOctagon,
   CheckCircle2,
   ChevronDown,
   ChevronRight,
+  Gauge,
   RotateCw,
   ShieldCheck,
+  TriangleAlert,
   Users,
 } from 'lucide-react';
 
@@ -77,6 +80,7 @@ export default function LogPage() {
 
   const [sourceFilter, setSourceFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('open');
+  const [tab, setTab] = useState<'errors' | 'perf'>('errors');
 
   const isAdmin = profile?.role === 'admin';
 
@@ -155,20 +159,52 @@ export default function LogPage() {
     <div>
       <PageHeader
         eyebrow="Admin"
-        title="Log errori"
+        title="Log"
         subtitle={
-          loading
-            ? 'Carico…'
-            : `${openCount} ${openCount === 1 ? 'problema aperto' : 'problemi aperti'} · ${totalOccurrences} occorrenze totali`
+          tab === 'perf'
+            ? 'Cosa rallenta il gestionale, misurato sugli ultimi 7 giorni'
+            : loading
+              ? 'Carico…'
+              : `${openCount} ${openCount === 1 ? 'problema aperto' : 'problemi aperti'} · ${totalOccurrences} occorrenze totali`
         }
         actions={
-          <Button variant="secondary" onClick={() => void fetchGroups()} disabled={loading}>
-            <RotateCw className="h-4 w-4" />
-            Aggiorna
-          </Button>
+          tab === 'errors' ? (
+            <Button variant="secondary" onClick={() => void fetchGroups()} disabled={loading}>
+              <RotateCw className="h-4 w-4" />
+              Aggiorna
+            </Button>
+          ) : undefined
         }
       />
 
+      {/* Errori = cosa si è rotto. Lentezza = cosa funziona ma fa aspettare.
+          Sono due domande diverse e vanno guardate separatamente. */}
+      <div className="mb-5 flex gap-1 border-b border-pw-border">
+        {([
+          { key: 'errors', label: 'Errori', icon: TriangleAlert },
+          { key: 'perf', label: 'Lentezza', icon: Gauge },
+        ] as const).map(({ key, label, icon: Icon }) => (
+          <button
+            key={key}
+            onClick={() => setTab(key)}
+            className={cn(
+              '-mb-px flex items-center gap-2 border-b-2 px-4 py-2.5 text-sm font-medium transition-colors',
+              tab === key
+                ? 'border-pw-accent text-pw-text'
+                : 'border-transparent text-pw-text-dim hover:text-pw-text-muted',
+            )}
+            aria-current={tab === key}
+          >
+            <Icon className="h-4 w-4" />
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'perf' && <PerfPanel />}
+
+      {tab === 'errors' && (
+      <>
       <div className="mb-5 flex flex-wrap gap-3">
         <Select
           value={statusFilter}
@@ -328,6 +364,8 @@ export default function LogPage() {
             );
           })}
         </div>
+      )}
+      </>
       )}
     </div>
   );
