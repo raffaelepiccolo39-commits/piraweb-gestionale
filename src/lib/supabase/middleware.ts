@@ -1,6 +1,24 @@
 import { createServerClient } from '@supabase/ssr';
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { NextResponse, type NextRequest } from 'next/server';
+
+/**
+ * Client di servizio riusato tra le richieste che finiscono sullo stesso
+ * isolate. Prima ne veniva costruito uno nuovo per ogni singolo controllo
+ * (onboarding, 2FA, ruolo): tre client per navigazione, buttati subito dopo.
+ */
+let serviceClientSingleton: SupabaseClient | null = null;
+
+function getServiceClient(): SupabaseClient {
+  if (!serviceClientSingleton) {
+    serviceClientSingleton = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      { auth: { persistSession: false, autoRefreshToken: false } },
+    );
+  }
+  return serviceClientSingleton;
+}
 
 // Pagine accessibili SOLO agli admin. I non-admin che provano questi URL
 // vengono rimbalzati su /dashboard dal middleware.
@@ -85,33 +103,58 @@ export async function updateSession(request: NextRequest) {
     return redirectResponse;
   }
 
-  // Onboarding gate: utente autenticato che non ha completato il wizard primo
-  // accesso viene forzato su /onboarding. Eseguito prima di 2FA/admin guard
-  // perché il wizard stesso include lo step 2FA (impostarla è parte del flow).
-  if (user && !isAuthPage && !isApiRoute && !isPublicPage && !isOnboardingPage) {
+  const path = request.nextUrl.pathname;
+  const isAdminRoute = ADMIN_ROUTES.some((r) => path === r || path.startsWith(r + '/'));
+  const isGuardedPage = !!user && !isAuthPage && !isApiRoute && !isPublicPage;
+  const needsOnboardingGate = isGuardedPage && !isOnboardingPage;
+
+  // L'onboarding, una volta completato, non si "s-completa" più. Il cookie ci
+  // risparmia una query al DB a OGNI navigazione, per sempre. Non è un confine
+  // di sicurezza — è un wizard di benvenuto — quindi un cookie è adeguato.
+  const onboardingAlreadyDone = !!user && request.cookies.get('onb')?.value === user.id;
+
+  // UNA query per entrambi i controlli (onboarding + ruolo), e solo se serve.
+  // Prima erano due query separate, ognuna con un client di servizio nuovo.
+  const needsProfile = !!user
+    && ((needsOnboardingGate && !onboardingAlreadyDone) || (isGuardedPage && isAdminRoute));
+
+  let profileRow: { onboarded_at: string | null; role: string | null } | null = null;
+
+  if (needsProfile && user) {
     try {
-      const serviceClient = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!
-      );
-      const { data: prof } = await serviceClient
+      const { data } = await getServiceClient()
         .from('profiles')
-        .select('onboarded_at')
+        .select('onboarded_at, role')
         .eq('id', user.id)
         .single();
-      if (prof && prof.onboarded_at === null) {
-        const url = request.nextUrl.clone();
-        url.pathname = '/onboarding';
-        url.search = '';
-        const redirectResponse = NextResponse.redirect(url);
-        supabaseResponse.cookies.getAll().forEach((cookie) => {
-          redirectResponse.cookies.set(cookie.name, cookie.value, cookie);
-        });
-        return redirectResponse;
-      }
+      profileRow = data as { onboarded_at: string | null; role: string | null } | null;
     } catch {
-      // Se la query fallisce, lascia passare (fail-open per non bloccare l'app)
+      // Fail-open: se il profilo non è leggibile non blocchiamo l'app.
     }
+  }
+
+  // Onboarding gate: chi non ha finito il wizard viene forzato su /onboarding.
+  // Prima di 2FA/admin guard, perché il wizard include lo step 2FA.
+  if (needsOnboardingGate && profileRow && profileRow.onboarded_at === null) {
+    const url = request.nextUrl.clone();
+    url.pathname = '/onboarding';
+    url.search = '';
+    const redirectResponse = NextResponse.redirect(url);
+    supabaseResponse.cookies.getAll().forEach((cookie) => {
+      redirectResponse.cookies.set(cookie.name, cookie.value, cookie);
+    });
+    return redirectResponse;
+  }
+
+  // Onboarding fatto: da ora in poi salta la query.
+  if (needsOnboardingGate && user && profileRow?.onboarded_at && !onboardingAlreadyDone) {
+    supabaseResponse.cookies.set('onb', user.id, {
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production',
+      path: '/',
+      maxAge: 60 * 60 * 24 * 30,
+    });
   }
 
   // 2FA check: utente autenticato che cerca di accedere alla dashboard
@@ -122,11 +165,7 @@ export async function updateSession(request: NextRequest) {
     if (!isTfaVerified) {
       // Controlla se l'utente ha la 2FA abilitata usando service role
       try {
-        const serviceClient = createClient(
-          process.env.NEXT_PUBLIC_SUPABASE_URL!,
-          process.env.SUPABASE_SERVICE_ROLE_KEY!
-        );
-        const { data: totp } = await serviceClient
+        const { data: totp } = await getServiceClient()
           .from('user_totp')
           .select('enabled')
           .eq('user_id', user.id)
@@ -156,39 +195,18 @@ export async function updateSession(request: NextRequest) {
   }
 
   // ── Guard URL admin-only ──
-  // I non-admin che provano ad aprire una pagina admin via URL diretto
-  // vengono rimbalzati su /dashboard. Eseguito solo se la rotta è davvero
-  // admin (evita una query profiles inutile su ogni navigazione).
-  if (user && !isAuthPage && !isApiRoute && !isPublicPage) {
-    const path = request.nextUrl.pathname;
-    const isAdminRoute = ADMIN_ROUTES.some(
-      (r) => path === r || path.startsWith(r + '/')
-    );
-    if (isAdminRoute) {
-      try {
-        const serviceClient = createClient(
-          process.env.NEXT_PUBLIC_SUPABASE_URL!,
-          process.env.SUPABASE_SERVICE_ROLE_KEY!
-        );
-        const { data: profileRow } = await serviceClient
-          .from('profiles')
-          .select('role')
-          .eq('id', user.id)
-          .single();
-        if (profileRow?.role !== 'admin') {
-          const url = request.nextUrl.clone();
-          url.pathname = '/dashboard';
-          url.search = '';
-          const redirectResponse = NextResponse.redirect(url);
-          supabaseResponse.cookies.getAll().forEach((cookie) => {
-            redirectResponse.cookies.set(cookie.name, cookie.value, cookie);
-          });
-          return redirectResponse;
-        }
-      } catch {
-        // Se il profilo non è recuperabile non blocchiamo, log lato server
-      }
-    }
+  // I non-admin che aprono una pagina admin via URL diretto finiscono su
+  // /dashboard. Il ruolo è già stato letto sopra, nella query unica: qui non
+  // si tocca più il database.
+  if (isGuardedPage && isAdminRoute && profileRow && profileRow.role !== 'admin') {
+    const url = request.nextUrl.clone();
+    url.pathname = '/dashboard';
+    url.search = '';
+    const redirectResponse = NextResponse.redirect(url);
+    supabaseResponse.cookies.getAll().forEach((cookie) => {
+      redirectResponse.cookies.set(cookie.name, cookie.value, cookie);
+    });
+    return redirectResponse;
   }
 
   // Redirect authenticated users away from login (solo se non stanno verificando 2FA)
@@ -203,6 +221,22 @@ export async function updateSession(request: NextRequest) {
       });
       return redirectResponse;
     }
+  }
+
+  // L'utente è già stato validato qui sopra con getUser(). Lo passiamo alle
+  // pagine in un header, così il layout della dashboard può caricare il profilo
+  // lato server senza che il browser debba rifare getUser() + fetch del profilo
+  // dopo aver scaricato tutto il bundle. Sono i due giri di rete che rendevano
+  // lenta ogni apertura a freddo.
+  if (user) {
+    const headers = new Headers(request.headers);
+    headers.set('x-user-id', user.id);
+
+    const finalResponse = NextResponse.next({ request: { headers } });
+    supabaseResponse.cookies.getAll().forEach((cookie) => {
+      finalResponse.cookies.set(cookie.name, cookie.value, cookie);
+    });
+    return finalResponse;
   }
 
   return supabaseResponse;
