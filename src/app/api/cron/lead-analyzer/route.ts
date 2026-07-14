@@ -2,8 +2,8 @@ export const dynamic = 'force-dynamic';
 export const maxDuration = 300; // 5 minuti max
 
 import { NextRequest, NextResponse } from 'next/server';
-import * as Sentry from '@sentry/nextjs';
 import { createServiceRoleClient } from '@/lib/supabase/server';
+import { logError } from '@/lib/logger';
 
 /**
  * LEAD ANALYZER AGENT
@@ -120,7 +120,7 @@ async function handleCron(request: NextRequest) {
     });
 
   } catch (err) {
-    Sentry.captureException(err, { tags: { route: 'cron/lead-analyzer', stage: 'fatal' }, extra: { runId } });
+    await logError({ error: err, route: 'cron/lead-analyzer', source: 'cron', context: { stage: 'fatal', runId } });
     await supabase.from('agent_runs').update({
       status: 'failed',
       completed_at: new Date().toISOString(),

@@ -1,6 +1,6 @@
-import * as Sentry from '@sentry/nextjs';
 import type { NextRequest } from 'next/server';
 import { createServiceRoleClient } from '@/lib/supabase/server';
+import { logError } from '@/lib/logger';
 
 export type AuditAction =
   | 'user.created'
@@ -32,7 +32,7 @@ export interface AuditEntry {
 
 /**
  * Scrive un record nell'audit log. Non blocca mai la chiamata principale:
- * se il log fallisce, manda l'errore a Sentry e continua.
+ * se il log fallisce, lo registra in error_logs e continua.
  *
  * Usa il service role per bypassare RLS (la tabella ha solo policy SELECT
  * per admin).
@@ -56,6 +56,6 @@ export async function logAudit(entry: AuditEntry): Promise<void> {
       user_agent: ua,
     });
   } catch (err) {
-    Sentry.captureException(err, { tags: { stage: 'audit_log_write' }, extra: { action: entry.action } });
+    await logError({ error: err, route: 'src/lib/audit.ts', source: 'server', context: { stage: 'audit_log_write', action: entry.action } });
   }
 }

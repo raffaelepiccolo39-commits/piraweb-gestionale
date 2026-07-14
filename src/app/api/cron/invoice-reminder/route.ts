@@ -2,10 +2,10 @@ export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
 import { NextRequest, NextResponse } from 'next/server';
-import * as Sentry from '@sentry/nextjs';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { sendInvoiceReminder, generateWhatsAppReminderLink } from '@/lib/email-invoice';
 import { withRetry, isTransientEmailError } from '@/lib/retry';
+import { logError } from '@/lib/logger';
 
 /**
  * INVOICE REMINDER CRON
@@ -55,9 +55,7 @@ async function handleCron(request: NextRequest) {
     .limit(20);
 
   if (fetchError) {
-    Sentry.captureException(new Error(`invoice-reminder fetch failed: ${fetchError.message}`), {
-      tags: { route: 'cron/invoice-reminder', stage: 'fetch' },
-    });
+    await logError({ error: new Error(`invoice-reminder fetch failed: ${fetchError.message}`), route: 'cron/invoice-reminder', source: 'cron', context: { stage: 'fetch' } });
     return NextResponse.json({ error: fetchError.message }, { status: 500 });
   }
 
@@ -105,10 +103,7 @@ async function handleCron(request: NextRequest) {
         });
         emailsSent++;
       } catch (err) {
-        Sentry.captureException(err, {
-          tags: { route: 'cron/invoice-reminder' },
-          extra: { invoiceId: invoice.id, invoiceNumber: invoice.invoice_number, clientEmail: client.email },
-        });
+        await logError({ error: err, route: 'cron/invoice-reminder', source: 'cron', context: { invoiceId: invoice.id, invoiceNumber: invoice.invoice_number, clientEmail: client.email } });
         errors.push(`Email ${invoice.invoice_number}: ${err instanceof Error ? err.message : 'errore'}`);
       }
     }

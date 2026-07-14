@@ -1,6 +1,5 @@
 'use client';
 
-import * as Sentry from '@sentry/nextjs';
 
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
@@ -44,6 +43,7 @@ import {
   Pencil,
   Trash2,
 } from 'lucide-react';
+import { reportUnknown } from '@/lib/report-error';
 
 const STAGES: { id: DealStage; label: string; color: string; bgColor: string }[] = [
   { id: 'lead', label: 'Lead', color: 'text-pw-text-dim', bgColor: 'bg-pw-border' },
@@ -174,7 +174,7 @@ export default function CRMPage() {
 
     const { error } = await supabase.from('deals').update({ stage: newStage }).eq('id', dealId);
     if (error) {
-      Sentry.captureException(error, { tags: { route: 'crm', stage: 'update_deal_stage' } });
+      reportUnknown(error, 'client', { stage: 'update_deal_stage' });
       toast.error('Errore nello spostamento del deal');
       return;
     }
@@ -237,7 +237,7 @@ export default function CRMPage() {
       owner_id: values.owner_id || editingDeal.owner_id,
     }).eq('id', editingDeal.id);
     if (error) {
-      Sentry.captureException(error, { tags: { route: 'crm', stage: 'update_deal' }, extra: { dealId: editingDeal.id } });
+      reportUnknown(error, 'client', { stage: 'update_deal', dealId: editingDeal.id });
       toast.error(error.message || 'Errore aggiornamento deal');
       return;
     }
@@ -259,7 +259,7 @@ export default function CRMPage() {
     if (!deletingDeal) return;
     const { error } = await supabase.from('deals').delete().eq('id', deletingDeal.id);
     if (error) {
-      Sentry.captureException(error, { tags: { route: 'crm', stage: 'delete_deal' }, extra: { dealId: deletingDeal.id } });
+      reportUnknown(error, 'client', { stage: 'delete_deal', dealId: deletingDeal.id });
       toast.error('Errore eliminazione deal');
       return;
     }
@@ -282,7 +282,7 @@ export default function CRMPage() {
       description: editForm.description.trim() || null,
     }).eq('id', editingActivity.id);
     if (error) {
-      Sentry.captureException(error, { tags: { route: 'crm', stage: 'edit_activity' } });
+      reportUnknown(error, 'client', { stage: 'edit_activity' });
       toast.error('Errore modifica attività');
       return;
     }
@@ -295,7 +295,7 @@ export default function CRMPage() {
     if (!deletingActivityId || !selectedDeal) return;
     const { error } = await supabase.from('deal_activities').delete().eq('id', deletingActivityId);
     if (error) {
-      Sentry.captureException(error, { tags: { route: 'crm', stage: 'delete_activity' } });
+      reportUnknown(error, 'client', { stage: 'delete_activity' });
       toast.error('Errore eliminazione');
       return;
     }
@@ -324,7 +324,7 @@ export default function CRMPage() {
     });
     setSavingNote(false);
     if (error) {
-      Sentry.captureException(error, { tags: { route: 'crm', stage: 'quick_note' }, extra: { dealId: selectedDeal.id } });
+      reportUnknown(error, 'client', { stage: 'quick_note', dealId: selectedDeal.id });
       toast.error('Errore salvataggio nota');
       return;
     }

@@ -2,8 +2,8 @@ export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
 import { NextRequest, NextResponse } from 'next/server';
-import * as Sentry from '@sentry/nextjs';
 import { createServiceRoleClient } from '@/lib/supabase/server';
+import { logError } from '@/lib/logger';
 
 /**
  * AUTO LUNCH BREAK CRON
@@ -62,13 +62,10 @@ async function handleCron(request: NextRequest) {
   // Guard ora legale. Il piano Hobby di Vercel ammette un solo cron al giorno,
   // quindi lo schedule è fisso a 11:30 UTC = 13:30 a Roma solo con l'ora legale.
   // Dal 25 ottobre 2026 (ora solare) firerà alle 12:30 di Roma e questa guardia
-  // lo scarterà: la pausa automatica smetterebbe di aprirsi. Segnaliamo a Sentry
+  // lo scarterà: la pausa automatica smetterebbe di aprirsi. Lo registriamo nel log
   // invece di uscire in silenzio — altrimenti nessuno se ne accorge fino a marzo.
   if (hour !== 13) {
-    Sentry.captureMessage(
-      `auto-lunch-break: scattato alle ${hour}:xx ora di Roma, non alle 13. Probabile passaggio all'ora solare: lo schedule in vercel.json va portato a "30 12 * * 1-5".`,
-      'warning',
-    );
+    await logError({ error: `auto-lunch-break: scattato alle ${hour}:xx ora di Roma, non alle 13. Probabile passaggio all'ora solare: lo schedule in vercel.json va portato a "30 12 * * 1-5".`, route: '/api/cron/auto-lunch-break', source: 'cron', level: 'warning' });
     return NextResponse.json({ success: true, skipped: true, reason: `Non sono le 13 a Roma (ora Roma: ${hour})` });
   }
 
@@ -83,9 +80,7 @@ async function handleCron(request: NextRequest) {
     .is('lunch_start', null);
 
   if (fetchError) {
-    Sentry.captureException(new Error(`auto-lunch-break fetch failed: ${fetchError.message}`), {
-      tags: { route: 'cron/auto-lunch-break', stage: 'fetch' },
-    });
+    await logError({ error: new Error(`auto-lunch-break fetch failed: ${fetchError.message}`), route: 'cron/auto-lunch-break', source: 'cron', context: { stage: 'fetch' } });
     return NextResponse.json({ error: fetchError.message }, { status: 500 });
   }
 
@@ -106,9 +101,7 @@ async function handleCron(request: NextRequest) {
     .is('lunch_start', null);
 
   if (updateError) {
-    Sentry.captureException(new Error(`auto-lunch-break update failed: ${updateError.message}`), {
-      tags: { route: 'cron/auto-lunch-break', stage: 'update' },
-    });
+    await logError({ error: new Error(`auto-lunch-break update failed: ${updateError.message}`), route: 'cron/auto-lunch-break', source: 'cron', context: { stage: 'update' } });
     return NextResponse.json({ error: updateError.message }, { status: 500 });
   }
 

@@ -1,6 +1,5 @@
 'use client';
 
-import * as Sentry from '@sentry/nextjs';
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
@@ -21,6 +20,7 @@ import {
   Plus, FileText, AlertTriangle, Paperclip, ExternalLink, Trash2,
   Calendar, Hourglass, Check, Files,
 } from 'lucide-react';
+import { reportUnknown } from '@/lib/report-error';
 
 const ACCEPTED_TYPES = [
   'image/jpeg', 'image/png', 'image/webp', 'image/heic',
@@ -206,7 +206,7 @@ export default function DocumentiPage() {
       // (evita di lasciare il file orfano in caso di errore policy storage)
       const { error: storageErr } = await supabase.storage.from('employee-documents').remove([doc.file_path]);
       if (storageErr) {
-        Sentry.captureException(new Error(`documenti storage remove: ${storageErr.message}`), { tags: { route: 'documenti', stage: 'storage_remove' } });
+        reportUnknown(new Error(`documenti storage remove: ${storageErr.message}`), 'client', { stage: 'storage_remove' });
       }
       const { error } = await supabase.from('employee_documents').delete().eq('id', doc.id);
       if (error) throw error;

@@ -1,6 +1,5 @@
 'use client';
 
-import * as Sentry from '@sentry/nextjs';
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { addMonths, subMonths, format, startOfMonth, endOfMonth, isSameDay } from 'date-fns';
 import { it } from 'date-fns/locale';
@@ -21,6 +20,7 @@ import { SyncSettings } from '@/components/calendar/sync-settings';
 import type { CalendarEvent, TeamAbsence } from '@/types/database';
 import { TIME_OFF_TYPE_LABELS } from '@/lib/constants';
 import { ChevronLeft, ChevronRight, Plus, AlertTriangle } from 'lucide-react';
+import { reportUnknown } from '@/lib/report-error';
 
 export default function CalendarioPage() {
   const { profile } = useAuth();
@@ -145,7 +145,7 @@ export default function CalendarioPage() {
     if (res.status === 400) return false;
     // Altri errori (auth iCloud, network, server CalDAV) → log ma non blocco UX
     const body = await res.json().catch(() => ({}));
-    Sentry.captureException(new Error(`calendario CalDAV push failed: ${res.status}`), { tags: { route: 'calendario', stage: 'push_caldav' }, extra: { status: res.status, body } });
+    reportUnknown(new Error(`calendario CalDAV push failed: ${res.status}`), 'client', { stage: 'push_caldav', status: res.status, body });
     return false;
   };
 

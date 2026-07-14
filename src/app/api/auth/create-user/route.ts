@@ -1,11 +1,11 @@
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
-import * as Sentry from '@sentry/nextjs';
 import { randomBytes } from 'crypto';
 import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { sendInviteEmail } from '@/lib/email';
 import { logAudit } from '@/lib/audit';
 import type { UserRole } from '@/types/database';
+import { logError } from '@/lib/logger';
 
 const VALID_ROLES: UserRole[] = ['admin', 'social_media_manager', 'content_creator', 'graphic_social', 'graphic_brand'];
 
@@ -108,10 +108,7 @@ export async function POST(request: NextRequest) {
   } catch (err) {
     emailSent = false;
     emailError = err instanceof Error ? err.message : 'invio email fallito';
-    Sentry.captureException(err, {
-      tags: { route: 'auth/create-user', stage: 'send_invite_email' },
-      extra: { email, userId: newUser.user.id, role },
-    });
+    await logError({ error: err, route: 'auth/create-user', source: 'api', context: { stage: 'send_invite_email', email, userId: newUser.user.id, role } });
     console.error('Failed to send invite email:', err);
   }
 

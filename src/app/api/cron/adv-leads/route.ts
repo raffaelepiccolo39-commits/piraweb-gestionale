@@ -2,8 +2,8 @@ export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
 
 import { NextRequest, NextResponse } from 'next/server';
-import * as Sentry from '@sentry/nextjs';
 import { createServiceRoleClient } from '@/lib/supabase/server';
+import { logError } from '@/lib/logger';
 
 /**
  * ADV LEADS — sync lead ADV → CRM. Due fonti supportate (in ordine):
@@ -139,7 +139,7 @@ async function handle(request: NextRequest) {
   try {
     leads = csvUrl ? await leadsFromCsv(csvUrl) : await leadsFromMeta(token as string, formId);
   } catch (e) {
-    Sentry.captureException(e);
+    await logError({ error: e, route: '/api/cron/adv-leads', source: 'cron' });
     return NextResponse.json({ ok: false, reason: 'fetch fonte fallito', detail: String(e) }, { status: 200 });
   }
 

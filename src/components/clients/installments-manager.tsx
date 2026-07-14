@@ -1,6 +1,5 @@
 'use client';
 
-import * as Sentry from '@sentry/nextjs';
 import { useCallback, useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
@@ -17,6 +16,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { formatDate, todayLocal } from '@/lib/utils';
 import { Plus, Check, Pencil, Trash2, Wallet, AlertTriangle } from 'lucide-react';
 import type { ClientInstallment, InstallmentPaymentMethod } from '@/types/database';
+import { reportUnknown } from '@/lib/report-error';
 
 const formatEur = (n: number | null | undefined) =>
   n == null ? '—' : new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(n);
@@ -93,7 +93,7 @@ export function InstallmentsManager({ clientId, projectId, projectBudget, readon
     }
     const { data, error } = await q;
     if (error) {
-      Sentry.captureException(error, { tags: { route: 'installments-manager', stage: 'fetch' } });
+      reportUnknown(error, 'client', { stage: 'fetch' });
       toast.error('Errore caricamento acconti');
     } else {
       setItems((data as ClientInstallment[]) || []);
@@ -158,7 +158,7 @@ export function InstallmentsManager({ clientId, projectId, projectBudget, readon
       setShowForm(false);
       fetchData();
     } catch (e) {
-      Sentry.captureException(e, { tags: { route: 'installments-manager', stage: 'save' } });
+      reportUnknown(e, 'client', { stage: 'save' });
       toast.error((e as { message?: string })?.message || 'Errore salvataggio');
     } finally {
       setSaving(false);
@@ -177,7 +177,7 @@ export function InstallmentsManager({ clientId, projectId, projectBudget, readon
       setMarkingPaid(null);
       fetchData();
     } catch (e) {
-      Sentry.captureException(e, { tags: { route: 'installments-manager', stage: 'mark_paid' } });
+      reportUnknown(e, 'client', { stage: 'mark_paid' });
       toast.error((e as { message?: string })?.message || 'Errore aggiornamento');
     }
   };
@@ -191,7 +191,7 @@ export function InstallmentsManager({ clientId, projectId, projectBudget, readon
       toast.success('Acconto rimesso in attesa');
       fetchData();
     } catch (e) {
-      Sentry.captureException(e, { tags: { route: 'installments-manager', stage: 'unpaid' } });
+      reportUnknown(e, 'client', { stage: 'unpaid' });
       toast.error('Errore');
     }
   };
@@ -205,7 +205,7 @@ export function InstallmentsManager({ clientId, projectId, projectBudget, readon
       setDeletingId(null);
       fetchData();
     } catch (e) {
-      Sentry.captureException(e, { tags: { route: 'installments-manager', stage: 'delete' } });
+      reportUnknown(e, 'client', { stage: 'delete' });
       toast.error('Errore eliminazione');
     }
   };

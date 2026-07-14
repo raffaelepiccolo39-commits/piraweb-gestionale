@@ -1,9 +1,9 @@
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 import { NextRequest, NextResponse } from 'next/server';
-import * as Sentry from '@sentry/nextjs';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { syncCalendarForConfig, type CalDavConfig } from '@/lib/calendar-sync';
+import { logError } from '@/lib/logger';
 
 /**
  * Cron di background: sincronizza il calendario CalDAV di TUTTI gli utenti che
@@ -52,10 +52,7 @@ async function handleCron(request: NextRequest) {
       // Un fallimento di un utente non deve bloccare gli altri. Lo stato d'errore
       // è già scritto su calendar_sync_config dalla funzione condivisa.
       failed++;
-      Sentry.captureException(err, {
-        tags: { route: 'cron/calendar-sync', stage: 'sync_user' },
-        extra: { userId: config.user_id },
-      });
+      await logError({ error: err, route: 'cron/calendar-sync', source: 'cron', context: { stage: 'sync_user', userId: config.user_id } });
     }
   }
 

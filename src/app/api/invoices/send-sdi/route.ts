@@ -1,11 +1,11 @@
 export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
-import * as Sentry from '@sentry/nextjs';
 import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { uploadInvoice, getArubaConfigFromEnv } from '@/lib/aruba/client';
 import { generateFatturapaXml, generateFatturapaFilename, type FatturapaData } from '@/lib/aruba/fatturapa';
 import { logAudit } from '@/lib/audit';
+import { logError } from '@/lib/logger';
 
 /**
  * POST /api/invoices/send-sdi
@@ -153,10 +153,7 @@ export async function POST(request: NextRequest) {
   } catch (err) {
     const errorMsg = err instanceof Error ? err.message : 'Errore sconosciuto';
 
-    Sentry.captureException(err, {
-      tags: { route: 'invoices/send-sdi' },
-      extra: { invoiceId, invoiceNumber: invoice.invoice_number, env: arubaConfig.env },
-    });
+    await logError({ error: err, route: 'invoices/send-sdi', source: 'api', context: { invoiceId, invoiceNumber: invoice.invoice_number, env: arubaConfig.env } });
 
     await serviceClient.from('invoices').update({
       sdi_status: 'error',

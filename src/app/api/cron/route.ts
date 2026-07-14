@@ -1,7 +1,6 @@
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 import { NextRequest, NextResponse } from 'next/server';
-import * as Sentry from '@sentry/nextjs';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { logError } from '@/lib/logger';
 
@@ -42,7 +41,7 @@ async function handleCron(request: NextRequest) {
     if (rpcError) throw new Error(`generate_recurring_tasks: ${rpcError.message}`);
     results.recurring_tasks_generated = recurringCount ?? 0;
   } catch (err) {
-    Sentry.captureException(err, { tags: { route: 'cron', stage: 'recurring_tasks' } });
+    await logError({ error: err, route: 'cron', source: 'cron', context: { stage: 'recurring_tasks' } });
     await logError({ error: err, route: 'cron:recurring_tasks', source: 'cron' });
     results.recurring_tasks_error = err instanceof Error ? err.message : 'unknown';
   }
@@ -55,7 +54,7 @@ async function handleCron(request: NextRequest) {
     if (rpcError) throw new Error(`generate_deadline_alerts: ${rpcError.message}`);
     results.deadline_alerts_generated = alertCount ?? 0;
   } catch (err) {
-    Sentry.captureException(err, { tags: { route: 'cron', stage: 'deadline_alerts' } });
+    await logError({ error: err, route: 'cron', source: 'cron', context: { stage: 'deadline_alerts' } });
     await logError({ error: err, route: 'cron:deadline_alerts', source: 'cron' });
     results.deadline_alerts_error = err instanceof Error ? err.message : 'unknown';
   }
@@ -68,7 +67,7 @@ async function handleCron(request: NextRequest) {
     if (rpcError) throw new Error(`archive_done_tasks: ${rpcError.message}`);
     results.tasks_archived = archivedCount ?? 0;
   } catch (err) {
-    Sentry.captureException(err, { tags: { route: 'cron', stage: 'archive_done' } });
+    await logError({ error: err, route: 'cron', source: 'cron', context: { stage: 'archive_done' } });
     await logError({ error: err, route: 'cron:archive_done', source: 'cron' });
     results.tasks_archived_error = err instanceof Error ? err.message : 'unknown';
   }
@@ -81,7 +80,7 @@ async function handleCron(request: NextRequest) {
     if (rpcError) throw new Error(`close_stale_time_entries: ${rpcError.message}`);
     results.stale_timers_closed = closedCount ?? 0;
   } catch (err) {
-    Sentry.captureException(err, { tags: { route: 'cron', stage: 'close_stale_timers' } });
+    await logError({ error: err, route: 'cron', source: 'cron', context: { stage: 'close_stale_timers' } });
     await logError({ error: err, route: 'cron:close_stale_timers', source: 'cron' });
     results.stale_timers_error = err instanceof Error ? err.message : 'unknown';
   }

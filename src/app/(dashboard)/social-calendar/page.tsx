@@ -1,6 +1,5 @@
 'use client';
 
-import * as Sentry from '@sentry/nextjs';
 
 import { useEffect, useState, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
@@ -33,6 +32,7 @@ import {
   CheckCircle,
   Loader2,
 } from 'lucide-react';
+import { reportUnknown } from '@/lib/report-error';
 
 const PLATFORM_ICONS: Record<string, typeof Hash> = {
   instagram: AtSign,
@@ -193,7 +193,7 @@ export default function SocialCalendarPage() {
       } catch (err) {
         // Errore di rete: differente dal "non configurato". Logghiamo per debug ma
         // non blocchiamo: mostriamo "Collega Meta" come fallback safe.
-        Sentry.captureException(err, { tags: { route: 'social-calendar', stage: 'fetch_meta_pages' } });
+        reportUnknown(err, 'client', { stage: 'fetch_meta_pages' });
         setMetaConnected(false);
       }
     })();
@@ -249,7 +249,7 @@ export default function SocialCalendarPage() {
     if (newStatus === 'published') updates.published_at = new Date().toISOString();
     const { error } = await supabase.from('social_posts').update(updates).eq('id', postId);
     if (error) {
-      Sentry.captureException(error, { tags: { route: 'social-calendar', stage: 'update_status' } });
+      reportUnknown(error, 'client', { stage: 'update_status' });
       toast.error('Errore nel cambio di stato del post');
       return;
     }

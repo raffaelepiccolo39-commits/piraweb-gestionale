@@ -1,6 +1,5 @@
 'use client';
 
-import * as Sentry from '@sentry/nextjs';
 import { useEffect, useState, useCallback } from 'react';
 import {
   DragDropContext,
@@ -39,6 +38,7 @@ import {
   Archive,
 } from 'lucide-react';
 import { STATUS_LABELS, PRIORITY_LABELS } from '@/lib/constants';
+import { reportUnknown } from '@/lib/report-error';
 
 export default function BachecaPage() {
   const { profile } = useAuth();
@@ -118,7 +118,7 @@ export default function BachecaPage() {
 
     const { error } = await supabase.from('tasks').update(updates).eq('id', draggableId);
     if (error) {
-      Sentry.captureException(error, { tags: { route: 'bacheca', stage: 'drag_drop' } });
+      reportUnknown(error, 'client', { stage: 'drag_drop' });
       // Mostra il messaggio reale del DB (es. blocco "registra le ore prima di completare").
       toast.error(error.message || 'Errore nello spostamento della task');
     } else if (newAssigneeId) {

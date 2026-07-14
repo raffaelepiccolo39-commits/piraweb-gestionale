@@ -1,6 +1,5 @@
 'use client';
 
-import * as Sentry from '@sentry/nextjs';
 import { useEffect, useState, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
@@ -40,6 +39,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
 import { PRIORITY_LABELS } from '@/lib/constants';
+import { reportUnknown } from '@/lib/report-error';
 
 export default function NoteDevPage() {
   const { profile } = useAuth();
@@ -86,7 +86,7 @@ export default function NoteDevPage() {
 
       const { data, error: queryError } = await query;
       if (queryError) {
-        Sentry.captureException(new Error(`note-dev fetch: ${queryError.message}`), { tags: { route: 'note-dev', stage: 'query' } });
+        reportUnknown(new Error(`note-dev fetch: ${queryError.message}`), 'client', { stage: 'query' });
         setError(true);
         return;
       }
@@ -95,7 +95,7 @@ export default function NoteDevPage() {
       const rows = (Array.isArray(data) ? data : []) as DeveloperNote[];
       setNotes(rows);
     } catch (err) {
-      Sentry.captureException(err, { tags: { route: 'note-dev', stage: 'fetch' } });
+      reportUnknown(err, 'client', { stage: 'fetch' });
       setError(true);
     } finally {
       setLoading(false);

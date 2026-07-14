@@ -1,6 +1,5 @@
 'use client';
 
-import * as Sentry from '@sentry/nextjs';
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
@@ -36,6 +35,7 @@ import {
   Eye,
   FileText,
 } from 'lucide-react';
+import { reportUnknown } from '@/lib/report-error';
 
 function ScoreDot({ score, label }: { score: number; label: string }) {
   const color = score >= 70 ? 'bg-green-500 shadow-green-500/40' :
@@ -289,7 +289,7 @@ export default function LeadFinderPage() {
   const handleStatusChange = async (prospectId: string, status: OutreachStatus) => {
     const { error } = await supabase.from('lead_prospects').update({ outreach_status: status }).eq('id', prospectId);
     if (error) {
-      Sentry.captureException(error, { tags: { route: 'lead-finder', stage: 'update_outreach_status' } });
+      reportUnknown(error, 'client', { stage: 'update_outreach_status' });
       toast.error('Errore nel cambio di stato del lead');
       return;
     }
