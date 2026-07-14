@@ -1,46 +1,59 @@
-import { headers } from 'next/headers';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
-import { DashboardShell } from '@/components/layout/dashboard-shell';
-import type { Profile } from '@/types/database';
+'use client';
 
-/**
- * Layout della dashboard — Server Component.
- *
- * Carica il profilo QUI, sul server, e lo consegna già pronto al guscio client.
- *
- * Prima questo layout era 'use client' e il profilo veniva recuperato dal
- * browser: getUser() (giro di rete ai server auth di Supabase) e poi il fetch
- * del profilo, entrambi solo DOPO che il bundle JS era stato scaricato ed
- * eseguito. Siccome tutte le pagine sono protette da `if (!profile) return`,
- * per tutto quel tempo non partiva nessuna query e l'utente guardava una
- * schermata vuota.
- *
- * L'utente è già stato validato dal middleware, che ce lo passa nell'header
- * x-user-id: qui non serve rifare getUser().
- */
-export default async function DashboardLayout({
+import { useState } from 'react';
+import { Sidebar } from '@/components/layout/sidebar';
+import { Header } from '@/components/layout/header';
+import { ToastProvider } from '@/components/ui/toast';
+import { ErrorBoundary } from '@/components/ui/error-boundary';
+import { ErrorReporter } from '@/components/error-reporter';
+import { VersionWatcher } from '@/components/version-watcher';
+import { AttendanceGate } from '@/components/layout/attendance-gate';
+import { cn } from '@/lib/utils';
+
+export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const headerList = await headers();
-  const userId = headerList.get('x-user-id');
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
-  let profile: Profile | null = null;
+  return (
+    <ToastProvider>
+    <div className="min-h-screen bg-pw-bg">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[60] focus:px-4 focus:py-2 focus:rounded-xl focus:bg-pw-accent focus:text-pw-bg focus:font-semibold focus:text-sm"
+      >
+        Vai al contenuto principale
+      </a>
 
-  if (userId) {
-    const supabase = await createServerSupabaseClient();
-    const { data } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .single();
+      {/* Desktop sidebar */}
+      <div className="hidden lg:block">
+        <Sidebar
+          collapsed={sidebarCollapsed}
+          onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
+        />
+      </div>
 
-    profile = (data as Profile | null) ?? null;
-  }
+      {/* Il menu mobile è ora autonomo dentro l'Header (MobileMenu) */}
 
-  // Se il profilo non arriva (utente nuovo senza riga, o query fallita) il
-  // guscio parte comunque: useAuth fa da rete di sicurezza e lo recupera dal
-  // browser, esattamente come faceva prima.
-  return <DashboardShell initialProfile={profile}>{children}</DashboardShell>;
+      {/* Main content */}
+      <div
+        className={cn(
+          'sidebar-transition',
+          sidebarCollapsed ? 'lg:ml-[68px]' : 'lg:ml-[240px]'
+        )}
+      >
+        <Header />
+        <main id="main-content" className="p-4 lg:p-6 xl:p-8 min-w-0">
+          <ErrorBoundary>
+            <AttendanceGate>{children}</AttendanceGate>
+          </ErrorBoundary>
+        </main>
+      </div>
+      <VersionWatcher />
+      <ErrorReporter />
+    </div>
+    </ToastProvider>
+  );
 }

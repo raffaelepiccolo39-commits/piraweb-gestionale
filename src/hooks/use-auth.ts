@@ -16,15 +16,9 @@ export function useAuth() {
     setLoading(true);
 
     try {
-      // getSession() legge la sessione dal cookie: nessun giro di rete.
-      // getUser() invece interroga ogni volta i server auth di Supabase, e lo
-      // faceva a ogni caricamento a freddo, in mezzo al percorso critico.
-      // Qui non è un confine di sicurezza — chi decide cosa può vedere è la RLS
-      // di Postgres, e il middleware valida comunque l'utente lato server.
-      const { data: { session } } = await supabase.auth.getSession();
-      const user = session?.user;
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
 
-      if (!user) {
+      if (userError || !user) {
         setProfile(null);
         return;
       }

@@ -1341,19 +1341,3 @@ export interface ErrorLogGroup {
   last_seen: string;
   resolved: boolean;
 }
-
-/** Riga della vista perf_summary: la classifica di cosa ottimizzare. */
-export interface PerfSummary {
-  kind: 'query' | 'route' | 'page';
-  name: string;
-  route: string | null;
-  samples: number;
-  avg_ms: number;
-  p50_ms: number;
-  p95_ms: number;
-  max_ms: number;
-  /** Secondi di attesa totali generati: è questo che pesa sul team. */
-  total_seconds: number;
-  failures: number;
-  last_seen: string;
-}
