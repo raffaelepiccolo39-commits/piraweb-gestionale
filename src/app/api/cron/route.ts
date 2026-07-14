@@ -95,6 +95,16 @@ async function handleCron(request: NextRequest) {
     results.error_logs_purge_error = err instanceof Error ? err.message : 'unknown';
   }
 
+  // 6. Retention metriche di lentezza (14 giorni: sono tante e invecchiano presto).
+  try {
+    const { data: purgedPerf, error: rpcError } = await supabase.rpc('purge_old_perf_logs');
+    if (rpcError) throw new Error(`purge_old_perf_logs: ${rpcError.message}`);
+    results.perf_logs_purged = purgedPerf ?? 0;
+  } catch (err) {
+    await logError({ error: err, route: 'cron:purge_perf_logs', source: 'cron' });
+    results.perf_logs_purge_error = err instanceof Error ? err.message : 'unknown';
+  }
+
   return NextResponse.json({
     success: true,
     timestamp: new Date().toISOString(),
