@@ -41,6 +41,11 @@ export function AttendanceGate({ children }: { children: React.ReactNode }) {
   const [submitting, setSubmitting] = useState(false);
   const [clock, setClock] = useState('');
 
+  // Se è in ferie oggi il cancello non si applica e non c'è nulla da
+  // ricontrollare: lo stato ferie non cambia a metà giornata. Lo teniamo qui
+  // per far saltare del tutto il poll delle presenze in quel caso.
+  const onLeaveRef = useRef(false);
+
   // Orologio live nella schermata di timbratura
   useEffect(() => {
     const tick = () => setClock(new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
@@ -49,24 +54,47 @@ export function AttendanceGate({ children }: { children: React.ReactNode }) {
     return () => clearInterval(id);
   }, []);
 
+  // Check completo: ferie + presenze. Le due query sono indipendenti, quindi
+  // vanno in parallelo (prima erano in sequenza: l'utente pagava la somma).
   const check = useCallback(async () => {
     if (!profile) return;
     if (isAdmin) { setState('allowed'); return; }
 
     const today = todayLocal();
 
-    // Se è in ferie/permesso/malattia approvato oggi → niente cancello
-    const { data: off } = await supabase
-      .from('time_off_requests')
-      .select('id')
-      .eq('user_id', profile.id)
-      .eq('status', 'approved')
-      .lte('start_date', today)
-      .gte('end_date', today)
-      .limit(1);
+    const [offRes, attRes] = await Promise.all([
+      // Se è in ferie/permesso/malattia approvato oggi → niente cancello
+      supabase
+        .from('time_off_requests')
+        .select('id')
+        .eq('user_id', profile.id)
+        .eq('status', 'approved')
+        .lte('start_date', today)
+        .gte('end_date', today)
+        .limit(1),
+      supabase
+        .from('attendance_records')
+        .select('*')
+        .eq('user_id', profile.id)
+        .eq('date', today)
+        .maybeSingle(),
+    ]);
 
-    if (off && off.length > 0) { setState('allowed'); return; }
+    const onLeave = !!(offRes.data && offRes.data.length > 0);
+    onLeaveRef.current = onLeave;
+    if (onLeave) { setRecord(null); setState('allowed'); return; }
 
+    const rec = (attRes.data as AttendanceRecord | null) ?? null;
+    setRecord(rec);
+    setState(stateFromRecord(rec));
+  }, [profile, isAdmin, supabase]);
+
+  // Poll leggero: ricontrolla solo le presenze (cron pausa pranzo, timbrature
+  // dalla pagina Presenze). Salta se in ferie: lo stato non può cambiare.
+  const refreshAttendance = useCallback(async () => {
+    if (!profile || isAdmin || onLeaveRef.current) return;
+
+    const today = todayLocal();
     const { data } = await supabase
       .from('attendance_records')
       .select('*')
@@ -82,21 +110,27 @@ export function AttendanceGate({ children }: { children: React.ReactNode }) {
   // Il gate deve reagire a cambi di stato che non nascono da questo componente:
   // il cron della pausa pranzo (13:30) e le timbrature fatte dalla pagina Presenze.
   const checkRef = useRef(check);
+  const refreshRef = useRef(refreshAttendance);
   useEffect(() => { checkRef.current = check; }, [check]);
+  useEffect(() => { refreshRef.current = refreshAttendance; }, [refreshAttendance]);
 
   useEffect(() => {
     if (!profile) return;
     checkRef.current();
 
-    const revalidate = () => checkRef.current();
-    const interval = setInterval(revalidate, 60_000);
-    window.addEventListener('focus', revalidate);
-    window.addEventListener(ATTENDANCE_CHANGED, revalidate);
+    // L'intervallo ricontrolla solo le presenze (query singola). Il focus fa un
+    // check completo, così un'eventuale ferie approvata a metà giornata dall'admin
+    // viene comunque colta al ritorno sulla scheda.
+    const interval = setInterval(() => refreshRef.current(), 60_000);
+    const onFocus = () => checkRef.current();
+    const onAttendanceChanged = () => refreshRef.current();
+    window.addEventListener('focus', onFocus);
+    window.addEventListener(ATTENDANCE_CHANGED, onAttendanceChanged);
 
     return () => {
       clearInterval(interval);
-      window.removeEventListener('focus', revalidate);
-      window.removeEventListener(ATTENDANCE_CHANGED, revalidate);
+      window.removeEventListener('focus', onFocus);
+      window.removeEventListener(ATTENDANCE_CHANGED, onAttendanceChanged);
     };
   }, [profile?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
