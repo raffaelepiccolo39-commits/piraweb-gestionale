@@ -103,7 +103,8 @@ export default function CalendarioPage() {
       }
 
       setEvents([...realEvents, ...absenceEvents]);
-    } catch {
+    } catch (err) {
+      reportUnknown(err, 'client', { op: 'calendario-carica-eventi' });
       setError(true);
     } finally {
       setLoading(false);
@@ -179,7 +180,8 @@ export default function CalendarioPage() {
       if (event?.event_type === 'shooting' && event?.client_id) {
         setShootingTasksEventId(event.id);
       }
-    } catch {
+    } catch (err) {
+      reportUnknown(err, 'client', { op: 'calendario-crea-evento' });
       toast.error('Errore nella creazione dell\'evento');
     }
   };
@@ -241,7 +243,8 @@ export default function CalendarioPage() {
       setEditingEvent(null);
       toast.success(synced ? 'Evento aggiornato e sincronizzato' : 'Evento aggiornato');
       fetchEvents();
-    } catch {
+    } catch (err) {
+      reportUnknown(err, 'client', { op: 'calendario-aggiorna-evento' });
       toast.error('Errore nell\'aggiornamento');
     }
   };
@@ -253,7 +256,8 @@ export default function CalendarioPage() {
       setDeletingEventId(null);
       toast.success('Evento eliminato');
       fetchEvents();
-    } catch {
+    } catch (err) {
+      reportUnknown(err, 'client', { op: 'calendario-elimina-evento' });
       toast.error('Errore nell\'eliminazione');
     }
   };
@@ -267,6 +271,7 @@ export default function CalendarioPage() {
       toast.success(`Sincronizzati ${data.imported} nuovi, ${data.updated} aggiornati`);
       fetchEvents();
     } catch (err) {
+      reportUnknown(err, 'client', { op: 'calendario-sync' });
       toast.error(err instanceof Error ? err.message : 'Errore nella sincronizzazione');
     } finally {
       setSyncing(false);

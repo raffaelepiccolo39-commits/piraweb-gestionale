@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { todayLocal, formatTime } from '@/lib/utils';
 import type { AttendanceRecord } from '@/types/database';
 import { LogIn, Clock, Loader2, UtensilsCrossed, Moon } from 'lucide-react';
+import { reportSupabaseError } from '@/lib/report-error';
 
 /**
  * Cancello timbratura: l'app è utilizzabile solo durante il turno di lavoro
@@ -155,7 +156,7 @@ export function AttendanceGate({ children }: { children: React.ReactNode }) {
       : await supabase.from('attendance_records').insert({ user_id: profile.id, date: today, clock_in: now, status: 'working' });
 
     setSubmitting(false);
-    if (error) { toast.error('Errore nella timbratura, riprova'); return; }
+    if (error) { reportSupabaseError(error, 'timbratura-entrata', { userId: profile.id, date: today }); toast.error('Errore nella timbratura, riprova'); return; }
     await check();
     toast.success('Entrata registrata — buon lavoro!');
   };
@@ -169,7 +170,7 @@ export function AttendanceGate({ children }: { children: React.ReactNode }) {
       .eq('id', record.id);
 
     setSubmitting(false);
-    if (error) { toast.error('Errore nella timbratura, riprova'); return; }
+    if (error) { reportSupabaseError(error, 'timbratura-fine-pausa', { recordId: record.id }); toast.error('Errore nella timbratura, riprova'); return; }
     await check();
     toast.success('Bentornato — pausa terminata');
   };

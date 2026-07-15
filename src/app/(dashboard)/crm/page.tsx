@@ -158,6 +158,7 @@ export default function CRMPage() {
       setShowForm(false);
       fetchDeals();
     } catch (e) {
+      reportUnknown(e, 'client', { op: 'crm-crea-deal' });
       // Prima l'errore era ignorato silenziosamente (audit: "nessuna gestione errore visibile")
       toast.error((e as { message?: string } | undefined)?.message || 'Errore durante la creazione del deal');
     } finally {
@@ -360,6 +361,7 @@ export default function CRMPage() {
       toast.success('Deal convertito in cliente!');
       fetchDeals();
     } catch (e) {
+      reportUnknown(e, 'client', { op: 'crm-converti-deal', dealId: deal.id });
       toast.error((e as { message?: string } | undefined)?.message || 'Errore durante la conversione');
     }
   };

@@ -5,6 +5,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { createClient } from '@/lib/supabase/client';
+import { reportUnknown, reportSupabaseError } from '@/lib/report-error';
 import { useAuth } from '@/hooks/use-auth';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -89,7 +90,8 @@ export default function ClientsPage() {
           setPaymentAlerts(alerts);
         }
       }
-    } catch {
+    } catch (err) {
+      reportUnknown(err, 'client', { op: 'clients-carica' });
       setError(true);
     } finally {
       setLoading(false);
@@ -114,7 +116,7 @@ export default function ClientsPage() {
     const ext = file.name.split('.').pop();
     const fileName = `${clientId}/${Date.now()}.${ext}`;
     const { error } = await supabase.storage.from('client-logos').upload(fileName, file);
-    if (error) return null;
+    if (error) { reportSupabaseError(error, 'clients-upload-logo', { clientId }); return null; }
     const { data } = supabase.storage.from('client-logos').getPublicUrl(fileName);
     return data.publicUrl;
   };
@@ -158,6 +160,7 @@ export default function ClientsPage() {
       else toast.success('Cliente creato con successo');
       fetchClients();
     } catch (e) {
+      reportUnknown(e, 'client', { op: 'clients-crea' });
       toast.error((e as { message?: string } | undefined)?.message || 'Errore durante la creazione del cliente');
     } finally {
       creatingRef.current = false;
@@ -313,7 +316,7 @@ export default function ClientsPage() {
         created_by: profile.id,
       }).select('id').single();
 
-      if (projError || !project) continue;
+      if (projError || !project) { reportSupabaseError(projError, 'clients-crea-progetti', { clientId, service }); continue; }
 
       // Add creator as member
       await supabase.from('project_members').insert({
@@ -393,6 +396,7 @@ export default function ClientsPage() {
       toast.success('Cliente aggiornato con successo');
       fetchClients();
     } catch (e) {
+      reportUnknown(e, 'client', { op: 'clients-aggiorna', clientId: editingClient.id });
       console.error('[clients] update failed:', e);
       const msg = (e as { message?: string } | undefined)?.message;
       toast.error(msg ? `Errore aggiornamento cliente: ${msg}` : 'Errore durante l\'aggiornamento del cliente');
@@ -406,7 +410,8 @@ export default function ClientsPage() {
       setDeleteConfirm(null);
       toast.success('Cliente eliminato con successo');
       fetchClients();
-    } catch {
+    } catch (err) {
+      reportUnknown(err, 'client', { op: 'clients-elimina', id });
       toast.error('Errore durante l\'eliminazione del cliente');
     }
   };
@@ -420,7 +425,8 @@ export default function ClientsPage() {
       if (error) throw error;
       toast.success(client.is_active ? 'Cliente disattivato' : 'Cliente attivato');
       fetchClients();
-    } catch {
+    } catch (err) {
+      reportUnknown(err, 'client', { op: 'clients-toggle-attivo', id: client.id });
       toast.error('Errore durante l\'aggiornamento dello stato');
     }
   };
@@ -436,7 +442,8 @@ export default function ClientsPage() {
       if (error) throw error;
       toast.success(client.paused_at ? 'Cliente riattivato' : 'Cliente messo in pausa');
       fetchClients();
-    } catch {
+    } catch (err) {
+      reportUnknown(err, 'client', { op: 'clients-toggle-pausa', id: client.id });
       toast.error('Errore durante l\'aggiornamento della pausa');
     }
   };

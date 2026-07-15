@@ -15,6 +15,7 @@ import { useToast } from '@/components/ui/toast';
 import { SkeletonStats, SkeletonList } from '@/components/ui/skeleton';
 import { PageHeader } from '@/components/ui/page-header';
 import { todayLocal as getTodayLocal } from '@/lib/utils';
+import { reportUnknown } from '@/lib/report-error';
 
 export default function PresenzePage() {
   const { profile } = useAuth();
@@ -48,7 +49,8 @@ export default function PresenzePage() {
         const { data: teamData } = await supabase.rpc('get_team_attendance_today');
         setTeamStatus((teamData as TeamAttendanceToday[]) || []);
       }
-    } catch {
+    } catch (err) {
+      reportUnknown(err, 'client', { op: 'presenze-fetch' });
       setError(true);
     } finally {
       setLoading(false);
@@ -120,7 +122,8 @@ export default function PresenzePage() {
       // Pausa e uscita chiudono il cancello: il gate deve accorgersene subito
       window.dispatchEvent(new Event(ATTENDANCE_CHANGED));
       toast.success(actionLabels[action]);
-    } catch {
+    } catch (err) {
+      reportUnknown(err, 'client', { op: 'presenze-timbra', action });
       toast.error('Errore nella registrazione della presenza');
     } finally {
       setActionLoading(false);

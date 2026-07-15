@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { reportUnknown } from '@/lib/report-error';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/components/ui/toast';
 import { Button } from '@/components/ui/button';
@@ -107,6 +108,7 @@ export default function AutomationsPage() {
       setForm({ name: '', description: '', trigger_type: 'deal_stage_changed', trigger_config: '', action_type: 'create_notification', action_config: '' });
       fetchAutomations();
     } catch (e) {
+      reportUnknown(e, 'client', { op: 'automazioni-crea' });
       toast.error((e as { message?: string } | undefined)?.message || 'Errore durante la creazione');
     }
   };
@@ -118,6 +120,7 @@ export default function AutomationsPage() {
       toast.success(a.is_active ? 'Automazione disattivata' : 'Automazione attivata');
       fetchAutomations();
     } catch (e) {
+      reportUnknown(e, 'client', { op: 'automazioni-toggle' });
       toast.error((e as { message?: string } | undefined)?.message || 'Errore');
     }
   };
@@ -129,6 +132,7 @@ export default function AutomationsPage() {
       toast.success('Automazione eliminata');
       fetchAutomations();
     } catch (e) {
+      reportUnknown(e, 'client', { op: 'automazioni-elimina' });
       toast.error((e as { message?: string } | undefined)?.message || 'Errore durante l\'eliminazione');
     }
   };

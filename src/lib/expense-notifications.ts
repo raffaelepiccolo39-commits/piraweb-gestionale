@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { EXPENSE_CATEGORY_LABELS } from '@/lib/constants';
+import { logError } from '@/lib/logger';
 import type { EmployeeExpense } from '@/types/database';
 
 type Decision = 'approved' | 'rejected' | 'paid';
@@ -63,6 +64,9 @@ export async function notifyExpenseDecision(
       p_message: adminMessage,
       p_link: '/note-spese',
     });
-    if (rcptErr) console.error('[notifyExpenseDecision admin receipt]', rcptErr.message);
+    if (rcptErr) {
+      await logError({ error: rcptErr, route: 'expense-notifications', source: 'server', context: { op: 'expense-ricevuta-admin' } });
+      console.error('[notifyExpenseDecision admin receipt]', rcptErr.message);
+    }
   }
 }

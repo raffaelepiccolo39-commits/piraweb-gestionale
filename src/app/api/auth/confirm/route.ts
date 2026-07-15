@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import type { EmailOtpType } from '@supabase/supabase-js';
+import { logError } from '@/lib/logger';
 
 /**
  * Conferma magic link / invite / recovery / signup generati lato admin via
@@ -51,6 +52,7 @@ export async function GET(request: NextRequest) {
   const { error } = await supabase.auth.verifyOtp({ token_hash, type });
 
   if (error) {
+    await logError({ error, route: '/api/auth/confirm', source: 'api', context: { op: 'confirm' } });
     return NextResponse.redirect(new URL(`/login?error=${encodeURIComponent(error.message)}`, url));
   }
 

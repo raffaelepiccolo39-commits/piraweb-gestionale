@@ -3,6 +3,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { reportUnknown, reportSupabaseError } from '@/lib/report-error';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/components/ui/toast';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -125,7 +126,8 @@ export default function AiPage() {
       } else {
         setGeneratedResult(`Errore: ${data.error}`);
       }
-    } catch {
+    } catch (err) {
+      reportUnknown(err, 'client', { op: 'ai-genera-script' });
       setGeneratedResult('Errore di connessione');
     } finally {
       setLoading(false);
@@ -154,7 +156,8 @@ export default function AiPage() {
       } else {
         setTaskError(data.error || 'Errore nella generazione dei task');
       }
-    } catch {
+    } catch (err) {
+      reportUnknown(err, 'client', { op: 'ai-parse-task' });
       setTaskError('Errore di connessione');
     } finally {
       setTaskLoading(false);
@@ -180,6 +183,7 @@ export default function AiPage() {
 
     const { error } = await supabase.from('tasks').insert(tasksToInsert);
     if (error) {
+      reportSupabaseError(error, 'ai-salva-task');
       // Prima falliva in silenzio: l'admin cliccava "Salva" e non succedeva nulla.
       toast.error(error.message || 'Errore nel salvataggio dei task');
     } else {

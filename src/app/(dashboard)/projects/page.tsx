@@ -17,6 +17,7 @@ import { useToast } from '@/components/ui/toast';
 import { SkeletonList, SkeletonStats } from '@/components/ui/skeleton';
 import { DataTable } from '@/components/ui/data-table';
 import { Plus, FolderKanban, Calendar, Users, ArrowRight, AlertTriangle } from 'lucide-react';
+import { reportUnknown } from '@/lib/report-error';
 
 const statusLabels: Record<string, string> = {
   draft: 'Bozza',
@@ -79,7 +80,8 @@ export default function ProjectsPage() {
         return { ...p, _teamCount: memberIds.size, _taskAssignees: taskAssignees };
       });
       setProjects(projects as Project[]);
-    } catch {
+    } catch (err) {
+      reportUnknown(err, 'client', { op: 'projects-fetch' });
       setError(true);
     } finally {
       setLoading(false);
@@ -126,6 +128,7 @@ export default function ProjectsPage() {
       toast.success('Progetto creato con successo');
       fetchProjects();
     } catch (e) {
+      reportUnknown(e, 'client', { op: 'projects-crea' });
       toast.error((e as { message?: string } | undefined)?.message || 'Errore durante la creazione del progetto');
     } finally {
       creatingRef.current = false;

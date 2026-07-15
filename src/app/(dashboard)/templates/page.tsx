@@ -26,6 +26,7 @@ import {
   Clock,
   User,
 } from 'lucide-react';
+import { reportSupabaseError } from '@/lib/report-error';
 
 const CATEGORY_LABELS: Record<string, string> = {
   social_media: 'Social Media',
@@ -91,6 +92,7 @@ export default function TemplatesPage() {
       name: form.name, description: form.description || null, category: form.category, created_by: profile.id,
     });
     if (error) {
+      reportSupabaseError(error, 'template-crea');
       toast.error(error.message || 'Errore nella creazione del template');
     } else {
       toast.success('Template creato');
@@ -113,6 +115,7 @@ export default function TemplatesPage() {
       position: templateTasks.length,
     });
     if (error) {
+      reportSupabaseError(error, 'template-add-task', { templateId: selectedTemplate.id });
       toast.error(error.message || 'Errore nell\'aggiunta della task');
     } else {
       toast.success('Task aggiunta al template');
@@ -125,6 +128,7 @@ export default function TemplatesPage() {
   const handleDeleteTask = async (taskId: string) => {
     const { error } = await supabase.from('template_tasks').delete().eq('id', taskId);
     if (error) {
+      reportSupabaseError(error, 'template-delete-task', { taskId });
       toast.error(error.message || 'Errore nell\'eliminazione della task');
       return;
     }
@@ -140,6 +144,7 @@ export default function TemplatesPage() {
       p_created_by: profile.id,
     });
     if (error) {
+      reportSupabaseError(error, 'template-usa', { templateId: selectedTemplate.id });
       toast.error('Errore nella creazione del progetto');
     } else {
       toast.success('Progetto creato da template!');

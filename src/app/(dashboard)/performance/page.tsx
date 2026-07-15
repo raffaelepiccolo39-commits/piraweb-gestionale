@@ -25,6 +25,7 @@ import {
   Target, ClipboardCheck, Sparkles, MessageSquareHeart,
   Plus, Check, X, Trash2, AlertTriangle, User, Send,
 } from 'lucide-react';
+import { reportUnknown, reportSupabaseError } from '@/lib/report-error';
 
 type Tab = 'obiettivi' | 'review' | 'competenze' | 'feedback';
 
@@ -119,7 +120,8 @@ export default function PerformancePage() {
       setFeedbackReceived((fbRecvRes.data as PeerFeedback[]) || []);
       setFeedbackSent((fbSentRes.data as PeerFeedback[]) || []);
       setEmployees((empRes.data as { id: string; full_name: string; color: string | null }[]) || []);
-    } catch {
+    } catch (err) {
+      reportUnknown(err, 'client', { op: 'performance-fetch' });
       setError(true);
     } finally {
       setLoading(false);
@@ -147,26 +149,27 @@ export default function PerformancePage() {
       setObjForm({ title: '', description: '', target_user_id: '' });
       fetchAll();
     } catch (e) {
+      reportUnknown(e, 'client', { op: 'performance-add-objective' });
       toast.error((e as { message?: string } | undefined)?.message || 'Errore');
     }
   };
 
   const handleProgressChange = async (id: string, progress: number) => {
     const { error } = await supabase.from('employee_objectives').update({ progress }).eq('id', id);
-    if (error) toast.error('Errore aggiornamento');
+    if (error) { reportSupabaseError(error, 'performance-progress', { objectiveId: id }); toast.error('Errore aggiornamento'); }
     else setObjectives(prev => prev.map(o => o.id === id ? { ...o, progress } : o));
   };
 
   const handleStatusChange = async (id: string, status: ObjectiveStatus) => {
     const { error } = await supabase.from('employee_objectives').update({ status }).eq('id', id);
-    if (error) toast.error('Errore aggiornamento');
+    if (error) { reportSupabaseError(error, 'performance-status', { objectiveId: id }); toast.error('Errore aggiornamento'); }
     else { toast.success('Stato aggiornato'); fetchAll(); }
   };
 
   const handleDeleteObjective = async (id: string) => {
     if (!confirm('Eliminare questo obiettivo?')) return;
     const { error } = await supabase.from('employee_objectives').delete().eq('id', id);
-    if (error) toast.error('Errore'); else { toast.success('Eliminato'); fetchAll(); }
+    if (error) { reportSupabaseError(error, 'performance-delete-objective', { objectiveId: id }); toast.error('Errore'); } else { toast.success('Eliminato'); fetchAll(); }
   };
 
   // ─── Review ─────────────────────────────────────────────────
@@ -191,6 +194,7 @@ export default function PerformancePage() {
       setReviewForm({ user_id: '', what_works: '', what_to_improve: '', next_focus: '', notes: '', conducted_on: todayLocal(), finalize: false });
       fetchAll();
     } catch (e) {
+      reportUnknown(e, 'client', { op: 'performance-save-review' });
       toast.error((e as { message?: string } | undefined)?.message || 'Errore');
     }
   };
@@ -209,19 +213,20 @@ export default function PerformancePage() {
       setSkillForm({ skill_name: '', level: 3 });
       fetchAll();
     } catch (e) {
+      reportUnknown(e, 'client', { op: 'performance-add-skill' });
       toast.error((e as { message?: string } | undefined)?.message || 'Errore');
     }
   };
 
   const handleSkillLevel = async (id: string, level: number) => {
     const { error } = await supabase.from('employee_skills').update({ level }).eq('id', id);
-    if (error) toast.error('Errore');
+    if (error) { reportSupabaseError(error, 'performance-skill-level', { skillId: id }); toast.error('Errore'); }
     else setSkills(prev => prev.map(s => s.id === id ? { ...s, level } : s));
   };
 
   const handleDeleteSkill = async (id: string) => {
     const { error } = await supabase.from('employee_skills').delete().eq('id', id);
-    if (error) toast.error('Errore'); else { toast.success('Eliminata'); fetchAll(); }
+    if (error) { reportSupabaseError(error, 'performance-delete-skill', { skillId: id }); toast.error('Errore'); } else { toast.success('Eliminata'); fetchAll(); }
   };
 
   // ─── Feedback ───────────────────────────────────────────────
@@ -242,6 +247,7 @@ export default function PerformancePage() {
       setFeedbackForm({ to_user_id: '', kind: 'kudos', message: '' });
       fetchAll();
     } catch (e) {
+      reportUnknown(e, 'client', { op: 'performance-send-feedback' });
       toast.error((e as { message?: string } | undefined)?.message || 'Errore');
     }
   };
@@ -249,7 +255,7 @@ export default function PerformancePage() {
   const handleDeleteFeedback = async (id: string) => {
     if (!confirm('Eliminare questo feedback?')) return;
     const { error } = await supabase.from('peer_feedback').delete().eq('id', id);
-    if (error) toast.error('Errore'); else { toast.success('Eliminato'); fetchAll(); }
+    if (error) { reportSupabaseError(error, 'performance-delete-feedback', { feedbackId: id }); toast.error('Errore'); } else { toast.success('Eliminato'); fetchAll(); }
   };
 
   // ─── Render ─────────────────────────────────────────────────

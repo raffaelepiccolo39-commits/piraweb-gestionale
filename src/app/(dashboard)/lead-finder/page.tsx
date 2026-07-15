@@ -35,7 +35,7 @@ import {
   Eye,
   FileText,
 } from 'lucide-react';
-import { reportUnknown } from '@/lib/report-error';
+import { reportUnknown, reportSupabaseError } from '@/lib/report-error';
 
 function ScoreDot({ score, label }: { score: number; label: string }) {
   const color = score >= 70 ? 'bg-green-500 shadow-green-500/40' :
@@ -132,7 +132,8 @@ export default function LeadFinderPage() {
       } else {
         toast.error(data.error || 'Errore nella ricerca');
       }
-    } catch {
+    } catch (err) {
+      reportUnknown(err, 'client', { op: 'lead-finder-search' });
       toast.error('Errore di connessione');
     }
     setSearching(false);
@@ -167,7 +168,8 @@ export default function LeadFinderPage() {
       } else {
         toast.error(data.error || 'Errore nell\'analisi');
       }
-    } catch {
+    } catch (err) {
+      reportUnknown(err, 'client', { op: 'lead-finder-analyze-manual' });
       toast.error('Errore di connessione');
     }
     setSearching(false);
@@ -207,6 +209,7 @@ export default function LeadFinderPage() {
     });
 
     if (error) {
+      reportSupabaseError(error, 'lead-finder-salva', { business: result.business_name });
       toast.error(`Errore nel salvataggio: ${error.message}`);
     } else {
       toast.success(`${result.business_name} salvato`);
@@ -237,7 +240,8 @@ export default function LeadFinderPage() {
         const data = await res.json();
         toast.error(data.error || 'Errore nell\'analisi');
       }
-    } catch {
+    } catch (err) {
+      reportUnknown(err, 'client', { op: 'lead-finder-analyze' });
       toast.error('Errore di connessione');
     }
     setAnalyzingId(null);
@@ -259,7 +263,8 @@ export default function LeadFinderPage() {
       } else {
         toast.error(data.error || 'Errore nella generazione');
       }
-    } catch {
+    } catch (err) {
+      reportUnknown(err, 'client', { op: 'lead-finder-report' });
       toast.error('Errore di connessione');
     }
     setGeneratingReport(null);
@@ -280,7 +285,8 @@ export default function LeadFinderPage() {
         const data = await res.json();
         toast.error(data.error || 'Errore nella generazione');
       }
-    } catch {
+    } catch (err) {
+      reportUnknown(err, 'client', { op: 'lead-finder-outreach' });
       toast.error('Errore di connessione');
     }
     setGeneratingId(null);

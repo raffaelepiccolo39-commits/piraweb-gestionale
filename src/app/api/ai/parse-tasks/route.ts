@@ -6,6 +6,7 @@ export const maxDuration = 60;
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { checkRateLimit, AI_RATE_LIMIT } from '@/lib/rate-limit';
+import { logError } from '@/lib/logger';
 
 interface ParsedTask {
   title: string;
@@ -144,10 +145,12 @@ Genera task specifici, actionable. Se l'input menziona più attività, crea un t
   try {
     result = await callClaude(prompt);
   } catch (claudeErr) {
+    await logError({ error: claudeErr, route: '/api/ai/parse-tasks', source: 'api', context: { op: 'parse-tasks' } });
     console.error('[parse-tasks] Claude fallito:', claudeErr);
     try {
       result = await callOpenAI(prompt);
     } catch (openaiErr) {
+      await logError({ error: openaiErr, route: '/api/ai/parse-tasks', source: 'api', context: { op: 'parse-tasks' } });
       console.error('[parse-tasks] OpenAI fallito:', openaiErr);
       return NextResponse.json(
         { error: 'Errore nella generazione AI. Verifica le API key.' },
@@ -184,7 +187,8 @@ Genera task specifici, actionable. Se l'input menziona più attività, crea un t
     }));
 
     return NextResponse.json({ tasks: tasksWithAssignees });
-  } catch {
+  } catch (e) {
+    await logError({ error: e, route: '/api/ai/parse-tasks', source: 'api', context: { op: 'parse-tasks' } });
     return NextResponse.json(
       { error: 'Errore nel parsing della risposta AI', raw: result },
       { status: 500 }

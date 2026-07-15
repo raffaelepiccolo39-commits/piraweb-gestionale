@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { sendInviteEmail } from '@/lib/email';
 import { logAudit } from '@/lib/audit';
+import { logError } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
   const supabase = await createServerSupabaseClient();
@@ -44,6 +45,7 @@ export async function POST(request: NextRequest) {
   });
 
   if (linkError || !linkData?.properties?.hashed_token) {
+    await logError({ error: linkError, route: '/api/admin/resend-invite', source: 'api', context: { op: 'resend-invite-link' } });
     return NextResponse.json(
       { error: `Errore generazione link: ${linkError?.message || 'sconosciuto'}` },
       { status: 500 }
@@ -60,6 +62,7 @@ export async function POST(request: NextRequest) {
       inviteLink,
     });
   } catch (emailErr) {
+    await logError({ error: emailErr, route: '/api/admin/resend-invite', source: 'api', context: { op: 'resend-invite-email' } });
     return NextResponse.json(
       { error: `Errore invio email: ${emailErr instanceof Error ? emailErr.message : 'sconosciuto'}`, inviteLink },
       { status: 500 }

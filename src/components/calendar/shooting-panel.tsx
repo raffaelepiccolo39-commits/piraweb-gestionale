@@ -10,6 +10,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { getInitials } from '@/lib/utils';
 import { Camera, CheckCircle2, Plus, X, RotateCcw } from 'lucide-react';
+import { reportSupabaseError } from '@/lib/report-error';
 
 interface ShootingClient {
   id: string;
@@ -78,7 +79,7 @@ export function ShootingPanel({ month, onProgram, reloadKey }: ShootingPanelProp
     const { error } = await supabase
       .from('client_shooting_skips')
       .insert({ client_id: clientId, month: monthStr, created_by: profile?.id });
-    if (error) { toast.error('Errore, riprova'); fetchData(); return; }
+    if (error) { reportSupabaseError(error, 'shooting-salta', { clientId }); toast.error('Errore, riprova'); fetchData(); return; }
     toast.success('Shooting saltato per questo mese');
   };
 
@@ -89,7 +90,7 @@ export function ShootingPanel({ month, onProgram, reloadKey }: ShootingPanelProp
       .delete()
       .eq('client_id', clientId)
       .eq('month', monthStr);
-    if (error) { toast.error('Errore, riprova'); fetchData(); }
+    if (error) { reportSupabaseError(error, 'shooting-ripristina', { clientId }); toast.error('Errore, riprova'); fetchData(); }
   };
 
   const pending = clients.filter((c) => !scheduled.has(c.id) && !skipped.has(c.id));

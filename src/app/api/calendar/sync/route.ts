@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { syncCalendarForConfig } from '@/lib/calendar-sync';
+import { logError } from '@/lib/logger';
 
 export async function POST() {
   const supabase = await createServerSupabaseClient();
@@ -22,6 +23,7 @@ export async function POST() {
     const result = await syncCalendarForConfig(supabase, config);
     return NextResponse.json({ success: true, ...result });
   } catch (err) {
+    await logError({ error: err, route: '/api/calendar/sync', source: 'api', context: { op: 'calendar-sync' } });
     const errorMessage = err instanceof Error ? err.message : 'Errore sconosciuto';
     return NextResponse.json({ error: `Errore CalDAV: ${errorMessage}` }, { status: 500 });
   }

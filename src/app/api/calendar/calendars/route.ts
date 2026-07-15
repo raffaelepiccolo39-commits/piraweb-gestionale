@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { createDAVClient } from 'tsdav';
+import { logError } from '@/lib/logger';
 
 export async function GET() {
   const supabase = await createServerSupabaseClient();
@@ -39,6 +40,7 @@ export async function GET() {
       selected: config.calendar_path,
     });
   } catch (err) {
+    await logError({ error: err, route: '/api/calendar/calendars', source: 'api', context: { op: 'calendar-list-calendars' } });
     const errorMessage = err instanceof Error ? err.message : 'Errore sconosciuto';
     return NextResponse.json({ error: `Errore CalDAV: ${errorMessage}` }, { status: 500 });
   }

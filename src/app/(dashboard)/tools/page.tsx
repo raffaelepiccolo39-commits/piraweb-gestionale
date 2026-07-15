@@ -28,6 +28,7 @@ import {
   Globe,
   Lock,
 } from 'lucide-react';
+import { reportSupabaseError } from '@/lib/report-error';
 
 const CATEGORIES = [
   { value: 'design', label: 'Design' },
@@ -130,11 +131,11 @@ export default function ToolsPage() {
 
     if (editingTool) {
       const { error } = await supabase.from('team_tools').update(payload).eq('id', editingTool.id);
-      if (error) toast.error('Errore nel salvataggio');
+      if (error) { reportSupabaseError(error, 'tools-modifica', { toolId: editingTool.id }); toast.error('Errore nel salvataggio'); }
       else toast.success('Tool aggiornato');
     } else {
       const { error } = await supabase.from('team_tools').insert({ ...payload, created_by: profile.id });
-      if (error) toast.error('Errore nella creazione');
+      if (error) { reportSupabaseError(error, 'tools-crea'); toast.error('Errore nella creazione'); }
       else toast.success('Tool aggiunto');
     }
 

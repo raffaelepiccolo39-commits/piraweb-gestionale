@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { createDAVClient } from 'tsdav';
 import { randomUUID } from 'crypto';
+import { logError } from '@/lib/logger';
 
 function toICalDate(isoStr: string, allDay: boolean): string {
   const d = new Date(isoStr);
@@ -146,6 +147,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, uid });
   } catch (err) {
+    await logError({ error: err, route: '/api/calendar/push', source: 'api', context: { op: 'calendar-push' } });
     const msg = err instanceof Error ? err.message : 'Errore sconosciuto';
     return NextResponse.json({ error: `Errore CalDAV: ${msg}` }, { status: 500 });
   }

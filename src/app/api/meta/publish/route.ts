@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { checkRateLimit } from '@/lib/rate-limit';
+import { logError } from '@/lib/logger';
 
 /**
  * Publish or schedule a post to Facebook/Instagram via Meta Graph API.
@@ -156,6 +157,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (err) {
+    await logError({ error: err, route: 'meta/publish', source: 'api', context: { op: 'meta-publish' } });
     error = err instanceof Error ? err.message : 'Errore sconosciuto';
 
     // Log failure

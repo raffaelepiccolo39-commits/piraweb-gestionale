@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { generateTOTPSecret } from '@/lib/totp';
 import QRCode from 'qrcode';
+import { logError } from '@/lib/logger';
 
 export async function POST() {
   const supabase = await createServerSupabaseClient();
@@ -33,6 +34,7 @@ export async function POST() {
     }, { onConflict: 'user_id' });
 
   if (error) {
+    await logError({ error, route: '/api/auth/2fa/setup', source: 'api', context: { op: 'setup' } });
     return NextResponse.json({ error: 'Errore nel salvataggio' }, { status: 500 });
   }
 

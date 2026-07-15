@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { checkRateLimit } from '@/lib/rate-limit';
+import { logError } from '@/lib/logger';
 
 const BULK_CONTENT_RATE_LIMIT = {
   maxRequests: 10,
@@ -228,6 +229,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error || !brief) {
+      await logError({ error, route: '/api/ai/bulk-content', source: 'api', context: { op: 'bulk-content' } });
       return NextResponse.json({ error: 'Brief non trovato' }, { status: 404 });
     }
 
@@ -258,11 +260,13 @@ export async function POST(request: NextRequest) {
   try {
     result = await callClaude(userPrompt, system);
     provider = 'claude';
-  } catch {
+  } catch (claudeErr) {
+    await logError({ error: claudeErr, route: '/api/ai/bulk-content', source: 'api', context: { op: 'bulk-content' } });
     try {
       result = await callGemini(userPrompt, system);
       provider = 'gemini';
-    } catch {
+    } catch (geminiErr) {
+      await logError({ error: geminiErr, route: '/api/ai/bulk-content', source: 'api', context: { op: 'bulk-content' } });
       return NextResponse.json(
         { error: 'Errore nella generazione. Verifica le API key configurate.' },
         { status: 500 }
@@ -274,7 +278,8 @@ export async function POST(request: NextRequest) {
   let content: BulkContentResult;
   try {
     content = parseAiResponse(result.text);
-  } catch {
+  } catch (e) {
+    await logError({ error: e, route: '/api/ai/bulk-content', source: 'api', context: { op: 'bulk-content' } });
     return NextResponse.json(
       { error: 'Errore nel parsing della risposta AI. Riprova.' },
       { status: 500 }

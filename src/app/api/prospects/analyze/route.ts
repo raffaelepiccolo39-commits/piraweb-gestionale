@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { checkRateLimit } from '@/lib/rate-limit';
+import { logError } from '@/lib/logger';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -268,7 +269,8 @@ async function analyzeWebsite(siteUrl: string): Promise<{ html: string; score: n
         issues,
       },
     };
-  } catch {
+  } catch (e) {
+    await logError({ error: e, route: '/api/prospects/analyze', source: 'api', context: { op: 'prospects-analyze' } });
     issues.push({ area: 'website', detail: 'Sito web non raggiungibile o non funzionante.', severity: 'critical' });
     return {
       html: '',
@@ -342,7 +344,8 @@ async function checkInstagramProfile(url: string): Promise<Record<string, string
     }
 
     return { description, followers, posts };
-  } catch {
+  } catch (e) {
+    await logError({ error: e, route: '/api/prospects/analyze', source: 'api', context: { op: 'prospects-analyze' } });
     return null;
   }
 }
@@ -354,7 +357,8 @@ async function checkFacebookPageExists(url: string): Promise<boolean> {
     // If Facebook returns the page (not an error page)
     const isError = html.includes('page_not_found') || html.includes('This page isn') || html.includes('non disponibile') || response.status === 404;
     return !isError && response.status === 200;
-  } catch {
+  } catch (e) {
+    await logError({ error: e, route: '/api/prospects/analyze', source: 'api', context: { op: 'prospects-analyze' } });
     return false;
   }
 }
@@ -742,7 +746,8 @@ ${contentSummary}`;
         issues,
       },
     };
-  } catch {
+  } catch (e) {
+    await logError({ error: e, route: '/api/prospects/analyze', source: 'api', context: { op: 'prospects-analyze' } });
     issues.push({ area: 'content', detail: 'Errore nella valutazione AI dei contenuti - analisi basata su euristica.', severity: 'info' });
 
     // Fallback heuristic

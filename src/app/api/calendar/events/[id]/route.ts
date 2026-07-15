@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { createDAVClient } from 'tsdav';
+import { logError } from '@/lib/logger';
 
 export async function PUT(
   request: NextRequest,
@@ -49,7 +50,10 @@ export async function PUT(
     .select('*, creator:profiles!calendar_events_created_by_fkey(id, full_name)')
     .single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    await logError({ error, route: '/api/calendar/events/[id]', source: 'api', context: { op: 'calendar-event-update' } });
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
 
   return NextResponse.json({ event: data });
 }
@@ -119,7 +123,10 @@ export async function DELETE(
     .delete()
     .eq('id', id);
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    await logError({ error, route: '/api/calendar/events/[id]', source: 'api', context: { op: 'calendar-event-delete' } });
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
 
   return NextResponse.json({ success: true });
 }

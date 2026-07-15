@@ -23,6 +23,7 @@ import {
   ExternalLink,
   Copy,
 } from 'lucide-react';
+import { reportUnknown } from '@/lib/report-error';
 
 interface MarketStats {
   total: number;
@@ -108,7 +109,8 @@ export default function MarketResearchPage() {
       } else {
         toast.error(result.error || 'Errore nell\'analisi');
       }
-    } catch {
+    } catch (err) {
+      reportUnknown(err, 'client', { op: 'market-research-search' });
       toast.error('Errore di connessione');
     }
     setLoading(false);

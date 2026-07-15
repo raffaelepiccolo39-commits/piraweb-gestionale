@@ -31,6 +31,7 @@ import {
   Send,
   ArrowRight,
 } from 'lucide-react';
+import { reportUnknown, reportSupabaseError } from '@/lib/report-error';
 
 const REGIONI = [
   'Abruzzo', 'Basilicata', 'Calabria', 'Campania', 'Emilia-Romagna', 'Friuli-Venezia Giulia',
@@ -116,7 +117,8 @@ export default function LeadAIPage() {
       } else {
         toast.error(data.error || 'Errore nella ricerca');
       }
-    } catch {
+    } catch (err) {
+      reportUnknown(err, 'client', { op: 'lead-ai-search' });
       toast.error('Errore di connessione');
     }
     setLoading(false);
@@ -145,6 +147,7 @@ export default function LeadAIPage() {
       created_by: profile.id,
     });
     if (error) {
+      reportSupabaseError(error, 'lead-ai-salva', { business: lead.name });
       toast.error(error.message.includes('duplicate') ? 'Gia\' salvato' : 'Errore nel salvataggio');
     } else {
       toast.success(`${lead.name} salvato nei prospect`);

@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { createServiceRoleClient } from '@/lib/supabase/server';
+import { logError } from '@/lib/logger';
 
 /**
  * Imposta la password dell'utente durante l'onboarding.
@@ -47,6 +48,7 @@ export async function POST(request: NextRequest) {
 
   const { error: pwError } = await supabase.auth.updateUser({ password });
   if (pwError) {
+    await logError({ error: pwError, route: '/api/onboarding/set-password', source: 'api', context: { op: 'set-password' } });
     return NextResponse.json({ error: `Errore aggiornamento password: ${pwError.message}` }, { status: 400 });
   }
 
@@ -56,6 +58,7 @@ export async function POST(request: NextRequest) {
     .update({ must_change_password: false })
     .eq('id', user.id);
   if (profError) {
+    await logError({ error: profError, route: '/api/onboarding/set-password', source: 'api', context: { op: 'set-password' } });
     return NextResponse.json({ error: `Password aggiornata ma errore profilo: ${profError.message}` }, { status: 500 });
   }
 

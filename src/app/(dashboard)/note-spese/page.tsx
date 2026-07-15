@@ -21,6 +21,7 @@ import {
   Plus, Check, X, Receipt, Wallet, AlertTriangle, Paperclip, FileText,
   Banknote, ExternalLink, Hourglass,
 } from 'lucide-react';
+import { reportUnknown, reportSupabaseError } from '@/lib/report-error';
 
 const STATUS_TONE: Record<string, 'warning' | 'success' | 'danger' | 'info'> = {
   pending: 'warning',
@@ -87,7 +88,8 @@ export default function NoteSpesePage() {
         setPending((pendRes.data as EmployeeExpense[]) || []);
         setApproved((approvedRes.data as EmployeeExpense[]) || []);
       }
-    } catch {
+    } catch (err) {
+      reportUnknown(err, 'client', { op: 'note-spese-fetch' });
       setError(true);
     } finally {
       setLoading(false);
@@ -148,6 +150,7 @@ export default function NoteSpesePage() {
       resetForm();
       fetchData();
     } catch (e) {
+      reportUnknown(e, 'client', { op: 'note-spese-invia' });
       if (uploadedPath) {
         await supabase.storage.from('expense-receipts').remove([uploadedPath]).catch(() => {});
       }
@@ -160,6 +163,7 @@ export default function NoteSpesePage() {
   const handleViewReceipt = async (path: string) => {
     const { data, error } = await supabase.storage.from('expense-receipts').createSignedUrl(path, 3600);
     if (error || !data?.signedUrl) {
+      reportSupabaseError(error, 'note-spese-view-receipt');
       toast.error('Impossibile aprire la ricevuta');
       return;
     }
@@ -178,6 +182,7 @@ export default function NoteSpesePage() {
       toast.success('Nota spese annullata');
       fetchData();
     } catch (e) {
+      reportUnknown(e, 'client', { op: 'note-spese-annulla' });
       toast.error((e as { message?: string } | undefined)?.message || 'Errore');
     }
   };
@@ -200,10 +205,11 @@ export default function NoteSpesePage() {
       toast.success('Nota spese approvata');
       if (exp) {
         try { await notifyExpenseDecision(supabase, exp, 'approved', null, profile.id); }
-        catch (n) { toast.error('Notifica al dipendente fallita: ' + (n as { message?: string })?.message); }
+        catch (n) { reportUnknown(n, 'client', { op: 'note-spese-notifica' }); toast.error('Notifica al dipendente fallita: ' + (n as { message?: string })?.message); }
       }
       fetchData();
     } catch (e) {
+      reportUnknown(e, 'client', { op: 'note-spese-approva' });
       toast.error((e as { message?: string } | undefined)?.message || 'Errore');
     }
   };
@@ -228,12 +234,13 @@ export default function NoteSpesePage() {
       toast.success('Nota spese rifiutata');
       if (exp) {
         try { await notifyExpenseDecision(supabase, exp, 'rejected', note, profile.id); }
-        catch (n) { toast.error('Notifica al dipendente fallita: ' + (n as { message?: string })?.message); }
+        catch (n) { reportUnknown(n, 'client', { op: 'note-spese-notifica' }); toast.error('Notifica al dipendente fallita: ' + (n as { message?: string })?.message); }
       }
       setRejectId(null);
       setRejectNote('');
       fetchData();
     } catch (e) {
+      reportUnknown(e, 'client', { op: 'note-spese-rifiuta' });
       toast.error((e as { message?: string } | undefined)?.message || 'Errore');
     }
   };
@@ -256,10 +263,11 @@ export default function NoteSpesePage() {
       toast.success('Rimborso segnato come pagato');
       if (exp) {
         try { await notifyExpenseDecision(supabase, exp, 'paid', null, profile.id); }
-        catch (n) { toast.error('Notifica al dipendente fallita: ' + (n as { message?: string })?.message); }
+        catch (n) { reportUnknown(n, 'client', { op: 'note-spese-notifica' }); toast.error('Notifica al dipendente fallita: ' + (n as { message?: string })?.message); }
       }
       fetchData();
     } catch (e) {
+      reportUnknown(e, 'client', { op: 'note-spese-paga' });
       toast.error((e as { message?: string } | undefined)?.message || 'Errore');
     }
   };

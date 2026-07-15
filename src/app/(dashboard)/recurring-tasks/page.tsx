@@ -27,6 +27,7 @@ import {
   Calendar,
   Clock,
 } from 'lucide-react';
+import { reportUnknown, reportSupabaseError } from '@/lib/report-error';
 
 const RECURRENCE_LABELS: Record<string, string> = {
   daily: 'Giornaliera',
@@ -104,6 +105,7 @@ export default function RecurringTasksPage() {
       setForm({ title: '', description: '', project_id: '', assigned_to: '', priority: 'medium', estimated_hours: '', recurrence_type: 'weekly', recurrence_day: '' });
       fetchTasks();
     } else {
+      reportSupabaseError(error, 'recurring-tasks-crea');
       toast.error('Errore nella creazione');
     }
   };
@@ -115,6 +117,7 @@ export default function RecurringTasksPage() {
       toast.success(task.is_active ? 'Task ricorrente in pausa' : 'Task ricorrente attivato');
       fetchTasks();
     } catch (e) {
+      reportUnknown(e, 'client', { op: 'recurring-tasks-toggle' });
       toast.error((e as { message?: string } | undefined)?.message || 'Errore');
     }
   };
@@ -126,6 +129,7 @@ export default function RecurringTasksPage() {
       toast.success('Task ricorrente eliminato');
       fetchTasks();
     } catch (e) {
+      reportUnknown(e, 'client', { op: 'recurring-tasks-elimina' });
       toast.error((e as { message?: string } | undefined)?.message || 'Errore durante l\'eliminazione');
     }
   };

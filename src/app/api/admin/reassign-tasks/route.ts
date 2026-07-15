@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { logError } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
   const supabase = await createServerSupabaseClient();
@@ -35,6 +36,7 @@ export async function POST(request: NextRequest) {
     .select('id');
 
   if (error) {
+    await logError({ error, route: '/api/admin/reassign-tasks', source: 'api', context: { op: 'reassign-tasks' } });
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 

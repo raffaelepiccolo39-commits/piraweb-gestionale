@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { logError } from '@/lib/logger';
 
 export async function GET(request: NextRequest) {
   const supabase = await createServerSupabaseClient();
@@ -20,7 +21,10 @@ export async function GET(request: NextRequest) {
   if (end) query = query.lte('start_time', end);
 
   const { data, error } = await query;
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    await logError({ error, route: '/api/calendar/events', source: 'api', context: { op: 'calendar-events-list' } });
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
 
   return NextResponse.json({ events: data });
 }
@@ -66,7 +70,10 @@ export async function POST(request: NextRequest) {
     .select('*, creator:profiles!calendar_events_created_by_fkey(id, full_name)')
     .single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    await logError({ error, route: '/api/calendar/events', source: 'api', context: { op: 'calendar-event-create' } });
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
 
   return NextResponse.json({ event: data });
 }

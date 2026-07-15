@@ -13,6 +13,7 @@ import { PageHeader } from '@/components/ui/page-header';
 import { SkeletonList } from '@/components/ui/skeleton';
 import { useToast } from '@/components/ui/toast';
 import { NotebookPen, Plus, Pencil, Trash2, Lock, Check, X } from 'lucide-react';
+import { reportSupabaseError } from '@/lib/report-error';
 
 interface ClientRow { id: string; name: string; company: string | null }
 interface ClientNote {
@@ -81,7 +82,7 @@ export default function NoteClientiPage() {
       .select('*')
       .single();
     setSaving(false);
-    if (error) { toast.error('Errore nel salvare la nota'); return; }
+    if (error) { reportSupabaseError(error, 'note-clienti-crea', { clientId: selected }); toast.error('Errore nel salvare la nota'); return; }
     setNotes((prev) => [data as ClientNote, ...prev]);
     setNewContent('');
     toast.success('Nota aggiunta');
@@ -96,7 +97,7 @@ export default function NoteClientiPage() {
       .eq('id', id)
       .select('*')
       .single();
-    if (error) { toast.error('Errore nel salvare le modifiche'); return; }
+    if (error) { reportSupabaseError(error, 'note-clienti-modifica', { noteId: id }); toast.error('Errore nel salvare le modifiche'); return; }
     setNotes((prev) => prev.map((n) => (n.id === id ? (data as ClientNote) : n)));
     setEditingId(null);
     setEditContent('');
@@ -106,7 +107,7 @@ export default function NoteClientiPage() {
   const handleDelete = async () => {
     if (!deleting) return;
     const { error } = await supabase.from('client_notes').delete().eq('id', deleting.id);
-    if (error) { toast.error('Errore durante l\'eliminazione'); return; }
+    if (error) { reportSupabaseError(error, 'note-clienti-elimina', { noteId: deleting.id }); toast.error('Errore durante l\'eliminazione'); return; }
     setNotes((prev) => prev.filter((n) => n.id !== deleting.id));
     toast.success('Nota eliminata');
   };

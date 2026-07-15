@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { Send } from 'lucide-react';
 import type { Profile } from '@/types/database';
+import { reportUnknown } from '@/lib/report-error';
 
 interface MessageInputProps {
   onSend: (content: string) => Promise<void>;
@@ -30,6 +31,7 @@ export function MessageInput({ onSend, disabled, members = [] }: MessageInputPro
       await onSend(trimmed);
       setContent('');
     } catch (err) {
+      reportUnknown(err, 'client', { op: 'chat-invia' });
       console.error('Error sending message:', err);
     } finally {
       setSending(false);

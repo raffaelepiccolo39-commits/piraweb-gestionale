@@ -10,6 +10,7 @@ import { Select } from '@/components/ui/select';
 import { useToast } from '@/components/ui/toast';
 import type { AttendanceRecord, AttendanceStatus, TimeOffType } from '@/types/database';
 import { Loader2, Save, Stethoscope, MapPin, Trash2 } from 'lucide-react';
+import { reportSupabaseError } from '@/lib/report-error';
 
 /** Assenza (ferie/permesso/malattia) che copre il giorno mostrato */
 interface DayAbsence {
@@ -189,6 +190,7 @@ export function AttendanceEditModal({ open, onClose, userId, userName, date, onS
     setSaving(false);
 
     if (dbError) {
+      reportSupabaseError(dbError, 'presenza-modifica-salva', { userId, date });
       setError(dbError.message || 'Salvataggio non riuscito. Riprova.');
       return;
     }
@@ -226,6 +228,7 @@ export function AttendanceEditModal({ open, onClose, userId, userName, date, onS
       // I messaggi del trigger di integrità sono già in italiano e chiari
       // (es. "Le date si sovrappongono a un'altra richiesta del dipendente"):
       // mostrarli evita di far credere a un errore quando l'assenza esiste già.
+      reportSupabaseError(dbError, 'presenza-registra-assenza', { userId, date, type: absenceType });
       setError(dbError.message || 'Registrazione assenza non riuscita. Riprova.');
       return;
     }
@@ -245,6 +248,7 @@ export function AttendanceEditModal({ open, onClose, userId, userName, date, onS
     setDeletingAbsence(false);
 
     if (dbError) {
+      reportSupabaseError(dbError, 'presenza-rimuovi-assenza', { userId, absenceId: absence.id });
       setError(dbError.message || 'Rimozione assenza non riuscita. Riprova.');
       return;
     }

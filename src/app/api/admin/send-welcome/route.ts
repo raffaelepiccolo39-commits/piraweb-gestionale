@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { sendWelcomeEmail } from '@/lib/email';
 import { logAudit } from '@/lib/audit';
+import { logError } from '@/lib/logger';
 
 /**
  * Invia l'email di benvenuto (magic-link → dashboard) ai membri del team.
@@ -45,6 +46,7 @@ export async function POST(request: NextRequest) {
 
   const { data: targets, error: targetErr } = await query;
   if (targetErr) {
+    await logError({ error: targetErr, route: '/api/admin/send-welcome', source: 'api', context: { op: 'welcome-members-query' } });
     return NextResponse.json({ error: `Errore lettura membri: ${targetErr.message}` }, { status: 500 });
   }
   if (!targets || targets.length === 0) {
@@ -69,6 +71,7 @@ export async function POST(request: NextRequest) {
       await sendWelcomeEmail({ to: t.email, fullName: t.full_name || '', loginLink });
       results.push({ email: t.email, sent: true });
     } catch (err) {
+      await logError({ error: err, route: '/api/admin/send-welcome', source: 'api', context: { op: 'welcome-send' } });
       results.push({ email: t.email, sent: false, error: err instanceof Error ? err.message : 'invio fallito' });
     }
   }

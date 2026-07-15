@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { checkRateLimit, AI_RATE_LIMIT } from '@/lib/rate-limit';
+import { logError } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
   const supabase = await createServerSupabaseClient();
@@ -89,6 +90,7 @@ La descrizione deve spiegare brevemente cosa fare, come farlo e qual è il risul
 
     return NextResponse.json({ error: 'Nessun provider AI configurato' }, { status: 500 });
   } catch (err) {
+    await logError({ error: err, route: '/api/ai/describe-task', source: 'api', context: { op: 'describe-task' } });
     const msg = err instanceof Error ? err.message : 'Errore sconosciuto';
     return NextResponse.json({ error: msg }, { status: 500 });
   }

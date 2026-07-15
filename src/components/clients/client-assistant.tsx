@@ -10,6 +10,7 @@ import { useToast } from '@/components/ui/toast';
 import { formatDate } from '@/lib/utils';
 import type { ClientInsight, ClientProposedAction, ClientEditorialEntry } from '@/types/database';
 import { Sparkles, Loader2, AlertTriangle, ArrowRight, Check, X, Plus, CalendarClock } from 'lucide-react';
+import { reportUnknown } from '@/lib/report-error';
 
 const PLATFORM_LABEL: Record<string, string> = {
   instagram: 'Instagram', facebook: 'Facebook', tiktok: 'TikTok', linkedin: 'LinkedIn',
@@ -71,7 +72,8 @@ export function ClientAssistant({ clientId }: { clientId: string }) {
       }
       setInsight(json.insight as ClientInsight);
       toast.success('Analisi completata');
-    } catch {
+    } catch (err) {
+      reportUnknown(err, 'client', { op: 'client-assistant-genera' });
       toast.error('Errore di rete durante l\'analisi');
     } finally {
       setGenerating(false);
@@ -120,6 +122,7 @@ export function ClientAssistant({ clientId }: { clientId: string }) {
       await patchAction(action.id, 'done');
       toast.success('Task creato');
     } catch (e) {
+      reportUnknown(e, 'client', { op: 'client-assistant-crea-task' });
       toast.error((e as { message?: string })?.message || 'Creazione task non riuscita');
     } finally {
       setActionBusy(null);
@@ -130,7 +133,8 @@ export function ClientAssistant({ clientId }: { clientId: string }) {
     setActionBusy(action.id);
     try {
       await patchAction(action.id, 'dismissed');
-    } catch {
+    } catch (err) {
+      reportUnknown(err, 'client', { op: 'client-assistant-scarta-azione' });
       toast.error('Operazione non riuscita');
     } finally {
       setActionBusy(null);
@@ -169,6 +173,7 @@ export function ClientAssistant({ clientId }: { clientId: string }) {
       await patchEditorial(entry.id, 'done');
       toast.success('Post aggiunto al calendario');
     } catch (e) {
+      reportUnknown(e, 'client', { op: 'client-assistant-programma-post' });
       toast.error((e as { message?: string })?.message || 'Creazione post non riuscita');
     } finally {
       setActionBusy(null);
@@ -179,7 +184,8 @@ export function ClientAssistant({ clientId }: { clientId: string }) {
     setActionBusy(entry.id);
     try {
       await patchEditorial(entry.id, 'dismissed');
-    } catch {
+    } catch (err) {
+      reportUnknown(err, 'client', { op: 'client-assistant-scarta-post' });
       toast.error('Operazione non riuscita');
     } finally {
       setActionBusy(null);

@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { SHOOTING_STEPS, offsetDate } from '@/lib/shooting-workflow';
+import { logError } from '@/lib/logger';
 
 interface ProposedTask {
   step_key: string;
@@ -44,7 +45,10 @@ export async function POST(request: NextRequest) {
     .select('id, client_id, start_time, event_type')
     .eq('id', calendar_event_id)
     .single();
-  if (evErr || !event) return NextResponse.json({ error: 'Evento non trovato' }, { status: 404 });
+  if (evErr || !event) {
+    await logError({ error: evErr, route: '/api/shooting/plan', source: 'api', context: { op: 'shooting-plan-event-lookup' } });
+    return NextResponse.json({ error: 'Evento non trovato' }, { status: 404 });
+  }
   if (event.event_type !== 'shooting' || !event.client_id) {
     return NextResponse.json({ error: 'L\'evento non è uno shooting collegato a un cliente' }, { status: 400 });
   }
@@ -116,6 +120,7 @@ export async function POST(request: NextRequest) {
       p_created_by: user.id,
     });
     if (projErr || !projectId) {
+      await logError({ error: projErr, route: '/api/shooting/plan', source: 'api', context: { op: 'shooting-plan-project' } });
       return NextResponse.json({ error: 'Impossibile risolvere il progetto del cliente' }, { status: 500 });
     }
 

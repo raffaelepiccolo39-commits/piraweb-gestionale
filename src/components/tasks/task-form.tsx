@@ -9,6 +9,7 @@ import { Select } from '@/components/ui/select';
 import { AssigneeMultiSelect } from '@/components/tasks/assignee-multi-select';
 import type { Profile, Client } from '@/types/database';
 import { Sparkles, Loader2, Paperclip, X } from 'lucide-react';
+import { reportUnknown } from '@/lib/report-error';
 
 interface TaskFormProps {
   /** Se fornito, carica solo i membri del progetto */
@@ -157,7 +158,7 @@ export function TaskForm({
       } else {
         setAiError(true); setTimeout(() => setAiError(false), 3000);
       }
-    } catch { setAiError(true); setTimeout(() => setAiError(false), 3000); }
+    } catch (err) { reportUnknown(err, 'client', { op: 'task-ai-descrizione' }); setAiError(true); setTimeout(() => setAiError(false), 3000); }
     setGeneratingAi(false);
   };
 

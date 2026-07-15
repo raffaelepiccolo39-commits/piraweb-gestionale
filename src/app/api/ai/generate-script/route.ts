@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { checkRateLimit, AI_RATE_LIMIT } from '@/lib/rate-limit';
+import { logError } from '@/lib/logger';
 
 async function callClaude(prompt: string, systemPrompt: string): Promise<{ text: string; model: string; tokens: number }> {
   const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -169,7 +170,8 @@ export async function POST(request: NextRequest) {
   try {
     result = await callMap[primary](fullPrompt, systemPrompt);
     provider = primary;
-  } catch {
+  } catch (e) {
+    await logError({ error: e, route: '/api/ai/generate-script', source: 'api', context: { op: 'generate-script' } });
     let succeeded = false;
     for (const fb of fallbacks) {
       try {
@@ -208,6 +210,7 @@ export async function POST(request: NextRequest) {
     .single();
 
   if (error) {
+    await logError({ error, route: '/api/ai/generate-script', source: 'api', context: { op: 'generate-script' } });
     return NextResponse.json({ error: 'Errore nel salvataggio' }, { status: 500 });
   }
 

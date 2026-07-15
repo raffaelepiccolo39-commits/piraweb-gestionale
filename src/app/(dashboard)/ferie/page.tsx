@@ -17,6 +17,7 @@ import { formatDate, todayLocal } from '@/lib/utils';
 import { TIME_OFF_TYPE_LABELS, TIME_OFF_STATUS_LABELS } from '@/lib/constants';
 import { STATUS_TONE, TYPE_ICON, fmtDays, dateRangeLabel } from '@/lib/time-off';
 import { notifyTimeOffDecision } from '@/lib/time-off-notifications';
+import { reportUnknown } from '@/lib/report-error';
 import { TeamAbsenceCalendar } from '@/components/ferie/team-absence-calendar';
 import { TeamRequestsByUser } from '@/components/ferie/team-requests-by-user';
 import type { TimeOffRequest, TeamAbsence, TimeOffType, Profile } from '@/types/database';
@@ -135,7 +136,8 @@ export default function FeriePage() {
         setAbsences((absRes.data as TeamAbsence[]) || []);
         setEmployees((empRes.data as Pick<Profile, 'id' | 'full_name'>[]) || []);
       }
-    } catch {
+    } catch (err) {
+      reportUnknown(err, 'client', { op: 'ferie-fetch' });
       setError(true);
     } finally {
       setLoading(false);
@@ -219,6 +221,7 @@ export default function FeriePage() {
       resetForm();
       fetchData();
     } catch (e) {
+      reportUnknown(e, 'client', { op: 'ferie-invio-richiesta' });
       toast.error((e as { message?: string } | undefined)?.message || 'Errore durante l\'invio della richiesta');
     } finally {
       setSubmitting(false);
@@ -232,6 +235,7 @@ export default function FeriePage() {
       toast.success('Richiesta annullata');
       fetchData();
     } catch (e) {
+      reportUnknown(e, 'client', { op: 'ferie-annulla' });
       toast.error((e as { message?: string } | undefined)?.message || 'Errore durante l\'annullamento');
     }
   };
@@ -251,6 +255,7 @@ export default function FeriePage() {
       }
       fetchData();
     } catch (e) {
+      reportUnknown(e, 'client', { op: 'ferie-approva' });
       toast.error((e as { message?: string } | undefined)?.message || 'Errore durante l\'approvazione');
     }
   };
@@ -273,6 +278,7 @@ export default function FeriePage() {
       setRejectNote('');
       fetchData();
     } catch (e) {
+      reportUnknown(e, 'client', { op: 'ferie-rifiuta' });
       toast.error((e as { message?: string } | undefined)?.message || 'Errore durante il rifiuto');
     }
   };

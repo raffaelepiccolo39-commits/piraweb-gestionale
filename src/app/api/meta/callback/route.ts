@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server';
+import { logError } from '@/lib/logger';
 
 /**
  * Meta OAuth callback.
@@ -105,7 +106,8 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/social-calendar?meta_connected=true`);
-  } catch {
+  } catch (e) {
+    await logError({ error: e, route: '/api/meta/callback', source: 'api', context: { op: 'meta-callback' } });
     return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/social-calendar?meta_error=token_exchange`);
   }
 }

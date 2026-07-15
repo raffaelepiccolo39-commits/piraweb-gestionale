@@ -32,7 +32,7 @@ import {
   CheckCircle,
   Loader2,
 } from 'lucide-react';
-import { reportUnknown } from '@/lib/report-error';
+import { reportUnknown, reportSupabaseError } from '@/lib/report-error';
 
 const PLATFORM_ICONS: Record<string, typeof Hash> = {
   instagram: AtSign,
@@ -219,6 +219,7 @@ export default function SocialCalendarPage() {
       ? await supabase.from('social_posts').update(payload).eq('id', editingPostId)
       : await supabase.from('social_posts').insert({ ...payload, created_by: profile.id });
     if (error) {
+      reportSupabaseError(error, editingPostId ? 'social-post-modifica' : 'social-post-crea');
       toast.error(editingPostId ? 'Errore nel salvataggio' : 'Errore nella creazione');
     } else {
       toast.success(editingPostId ? 'Post aggiornato' : 'Post pianificato');
@@ -680,7 +681,8 @@ export default function SocialCalendarPage() {
                     } else {
                       toast.error(data.error || 'Errore nella pubblicazione');
                     }
-                  } catch {
+                  } catch (err) {
+                    reportUnknown(err, 'client', { op: 'social-meta-publish' });
                     toast.error('Errore di connessione');
                   }
                   setPublishingId(null);

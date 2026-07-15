@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { formatDate } from '@/lib/utils';
 import { TIME_OFF_TYPE_LABELS } from '@/lib/constants';
+import { logError } from '@/lib/logger';
 import type { TimeOffRequest } from '@/types/database';
 
 type Decision = 'approved' | 'rejected';
@@ -57,6 +58,9 @@ export async function notifyTimeOffDecision(
       p_message: adminMessage,
       p_link: '/ferie',
     });
-    if (rcptErr) console.error('[notifyTimeOffDecision admin receipt]', rcptErr.message);
+    if (rcptErr) {
+      await logError({ error: rcptErr, route: 'time-off-notifications', source: 'server', context: { op: 'time-off-ricevuta-admin' } });
+      console.error('[notifyTimeOffDecision admin receipt]', rcptErr.message);
+    }
   }
 }

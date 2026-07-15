@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { logAudit } from '@/lib/audit';
+import { logError } from '@/lib/logger';
 
 /**
  * POST /api/admin/update-member
@@ -56,6 +57,7 @@ export async function POST(request: NextRequest) {
       .eq('id', targetUserId);
 
     if (error) {
+      await logError({ error, route: '/api/admin/update-member', source: 'api', context: { op: 'update-role' } });
       return NextResponse.json({ error: 'Errore aggiornamento ruolo' }, { status: 500 });
     }
 
@@ -86,6 +88,7 @@ export async function POST(request: NextRequest) {
       .eq('id', targetUserId);
 
     if (error) {
+      await logError({ error, route: '/api/admin/update-member', source: 'api', context: { op: 'toggle-active' } });
       return NextResponse.json({ error: 'Errore aggiornamento stato' }, { status: 500 });
     }
 
@@ -120,6 +123,7 @@ export async function POST(request: NextRequest) {
       .eq('id', targetUserId);
 
     if (error) {
+      await logError({ error, route: '/api/admin/update-member', source: 'api', context: { op: 'update-employee' } });
       return NextResponse.json({ error: 'Errore aggiornamento dipendente' }, { status: 500 });
     }
 
@@ -138,6 +142,7 @@ export async function POST(request: NextRequest) {
       ban_duration: '876600h',
     });
     if (banError) {
+      await logError({ error: banError, route: '/api/admin/update-member', source: 'api', context: { op: 'terminate-ban' } });
       return NextResponse.json({ error: 'Errore nel blocco dell\'accesso' }, { status: 500 });
     }
 
@@ -147,6 +152,7 @@ export async function POST(request: NextRequest) {
       .update({ is_active: false, terminated_at: new Date().toISOString() })
       .eq('id', targetUserId);
     if (profError) {
+      await logError({ error: profError, route: '/api/admin/update-member', source: 'api', context: { op: 'terminate-profile' } });
       return NextResponse.json({ error: 'Errore aggiornamento profilo' }, { status: 500 });
     }
 
@@ -176,6 +182,7 @@ export async function POST(request: NextRequest) {
       ban_duration: 'none',
     });
     if (unbanError) {
+      await logError({ error: unbanError, route: '/api/admin/update-member', source: 'api', context: { op: 'reinstate-unban' } });
       return NextResponse.json({ error: 'Errore nello sblocco dell\'accesso' }, { status: 500 });
     }
 
@@ -184,6 +191,7 @@ export async function POST(request: NextRequest) {
       .update({ is_active: true, terminated_at: null })
       .eq('id', targetUserId);
     if (profError) {
+      await logError({ error: profError, route: '/api/admin/update-member', source: 'api', context: { op: 'reinstate-profile' } });
       return NextResponse.json({ error: 'Errore aggiornamento profilo' }, { status: 500 });
     }
 

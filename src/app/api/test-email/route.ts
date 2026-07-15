@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { sendOutreachEmail } from '@/lib/email-outreach';
+import { logError } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
   const supabase = await createServerSupabaseClient();
@@ -67,6 +68,7 @@ Se volete, sono disponibile per una consulenza gratuita di 15 minuti in cui vi m
       message: 'Email di test inviata! Controlla la posta.',
     });
   } catch (err) {
+    await logError({ error: err, route: '/api/test-email', source: 'api', context: { op: 'test-email' } });
     return NextResponse.json({
       error: err instanceof Error ? err.message : 'Errore invio',
     }, { status: 500 });

@@ -39,7 +39,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
 import { PRIORITY_LABELS } from '@/lib/constants';
-import { reportUnknown } from '@/lib/report-error';
+import { reportUnknown, reportSupabaseError } from '@/lib/report-error';
 
 export default function NoteDevPage() {
   const { profile } = useAuth();
@@ -121,7 +121,10 @@ export default function NoteDevPage() {
     const ext = file.name.split('.').pop();
     const path = `${profile.id}/${crypto.randomUUID()}.${ext}`;
     const { error } = await supabase.storage.from('dev-note-screenshots').upload(path, file);
-    if (error) return null;
+    if (error) {
+      reportSupabaseError(error, 'note-dev-upload-screenshot');
+      return null;
+    }
     const { data } = supabase.storage.from('dev-note-screenshots').getPublicUrl(path);
     return data.publicUrl;
   };
@@ -148,7 +151,8 @@ export default function NoteDevPage() {
       setShowForm(false);
       fetchNotes();
       toast.success('Nota creata con successo');
-    } catch {
+    } catch (err) {
+      reportUnknown(err, 'client', { op: 'note-dev-crea' });
       toast.error('Errore nella creazione della nota');
     }
   };
@@ -177,7 +181,8 @@ export default function NoteDevPage() {
       setEditingNote(null);
       fetchNotes();
       toast.success('Nota aggiornata con successo');
-    } catch {
+    } catch (err) {
+      reportUnknown(err, 'client', { op: 'note-dev-modifica' });
       toast.error('Errore nell\'aggiornamento della nota');
     }
   };
@@ -189,7 +194,8 @@ export default function NoteDevPage() {
       setDeletingNoteId(null);
       fetchNotes();
       toast.success('Nota eliminata');
-    } catch {
+    } catch (err) {
+      reportUnknown(err, 'client', { op: 'note-dev-elimina' });
       toast.error('Errore nell\'eliminazione della nota');
     }
   };
@@ -200,7 +206,8 @@ export default function NoteDevPage() {
       if (error) throw error;
       fetchNotes();
       toast.success('Stato aggiornato');
-    } catch {
+    } catch (err) {
+      reportUnknown(err, 'client', { op: 'note-dev-stato' });
       toast.error('Errore nell\'aggiornamento dello stato');
     }
   };
@@ -219,7 +226,8 @@ export default function NoteDevPage() {
       if (error) throw error;
       fetchNotes();
       toast.success('Segnalazione risolta');
-    } catch {
+    } catch (err) {
+      reportUnknown(err, 'client', { op: 'note-dev-risolvi-diretto' });
       toast.error('Errore nel segnare come risolto');
     }
   };
@@ -264,7 +272,8 @@ export default function NoteDevPage() {
       setResolveAssignee('');
       fetchNotes();
       toast.success('Nota risolta e task creato');
-    } catch {
+    } catch (err) {
+      reportUnknown(err, 'client', { op: 'note-dev-risolvi-task' });
       toast.error('Errore nella risoluzione della nota');
     } finally {
       setResolveLoading(false);

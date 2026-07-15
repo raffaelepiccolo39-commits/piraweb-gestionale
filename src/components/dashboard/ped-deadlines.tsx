@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { useToast } from '@/components/ui/toast';
 import { getInitials, todayLocal } from '@/lib/utils';
 import { CalendarClock, Loader2, Check } from 'lucide-react';
+import { reportSupabaseError } from '@/lib/report-error';
 
 interface Row {
   client_id: string;
@@ -65,7 +66,7 @@ export function PedDeadlines() {
     setSavingId(clientId);
     const { error } = await supabase.rpc('set_ped_coverage', { p_client_id: clientId, p_covered_until: date });
     setSavingId(null);
-    if (error) { toast.error(error.message || 'Salvataggio non riuscito'); return; }
+    if (error) { reportSupabaseError(error, 'ped-salva-copertura', { clientId }); toast.error(error.message || 'Salvataggio non riuscito'); return; }
     setSavedId(clientId);
     setTimeout(() => setSavedId((s) => (s === clientId ? null : s)), 1500);
   };

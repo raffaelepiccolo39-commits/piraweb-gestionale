@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
+import { reportUnknown, reportSupabaseError } from '@/lib/report-error';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/components/ui/toast';
 import { Button } from '@/components/ui/button';
@@ -122,6 +123,7 @@ export default function BriefsPage() {
     });
 
     if (error) {
+      reportSupabaseError(error, 'briefs-crea');
       toast.error('Errore nella creazione');
     } else {
       toast.success('Brief creato');
@@ -146,6 +148,7 @@ export default function BriefsPage() {
         setSelectedBrief((b) => b ? { ...b, status: 'approved' } : null);
       }
     } catch (e) {
+      reportUnknown(e, 'client', { op: 'briefs-approva', briefId });
       // Prima: nessun check di error. Se RLS bloccava o vincolo falliva,
       // toast.success e UI locale cambiavano stato a "approved" mentre il
       // DB restava draft → divergenza permanente.

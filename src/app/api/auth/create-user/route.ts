@@ -53,6 +53,7 @@ export async function POST(request: NextRequest) {
   });
 
   if (authError) {
+    await logError({ error: authError, route: '/api/auth/create-user', source: 'api', context: { op: 'create-user-auth' } });
     const message = authError.message.includes('already been registered')
       ? 'Esiste già un utente con questa email'
       : `Errore nella creazione: ${authError.message}`;
@@ -75,6 +76,7 @@ export async function POST(request: NextRequest) {
     }, { onConflict: 'id' });
 
   if (profileError) {
+    await logError({ error: profileError, route: '/api/auth/create-user', source: 'api', context: { op: 'create-user-profile' } });
     return NextResponse.json(
       { error: `Utente creato ma errore profilo: ${profileError.message}` },
       { status: 400 }

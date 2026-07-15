@@ -32,6 +32,7 @@ import {
   AlertTriangle,
   Zap,
 } from 'lucide-react';
+import { reportUnknown, reportSupabaseError } from '@/lib/report-error';
 
 const STATUS_CONFIG: Record<InvoiceStatus, { label: string; color: string; icon: typeof Clock }> = {
   draft: { label: 'Bozza', color: 'bg-gray-100 text-gray-700 dark:bg-pw-surface-2 dark:text-pw-text-muted', icon: FileText },
@@ -79,6 +80,7 @@ export default function InvoicesPage() {
       .select('*, client:clients(id, name, company, ragione_sociale, partita_iva)')
       .order('issue_date', { ascending: false });
     if (error) {
+      reportSupabaseError(error, 'invoices-fetch');
       setFetchError(error.message);
       return;
     }
@@ -89,6 +91,7 @@ export default function InvoicesPage() {
   const fetchItems = useCallback(async (invoiceId: string) => {
     const { data, error } = await supabase.from('invoice_items').select('*').eq('invoice_id', invoiceId).order('created_at');
     if (error) {
+      reportSupabaseError(error, 'invoices-fetch-items', { invoiceId });
       toast.error(`Errore caricamento voci: ${error.message}`);
       return;
     }
@@ -99,7 +102,7 @@ export default function InvoicesPage() {
     Promise.all([
       fetchInvoices(),
       supabase.from('clients').select('id, name, company, ragione_sociale, partita_iva').eq('is_active', true).is('paused_at', null).order('company').then((r) => {
-        if (r.error) setFetchError(r.error.message);
+        if (r.error) { reportSupabaseError(r.error, 'invoices-fetch-clients'); setFetchError(r.error.message); }
         else setClients((r.data as Client[]) || []);
       }),
     ]).finally(() => setLoading(false));
@@ -125,6 +128,7 @@ export default function InvoicesPage() {
         created_by: profile.id,
       }).select().single();
       if (error || !data) {
+        reportSupabaseError(error, 'invoices-crea', { clientId: form.client_id });
         toast.error(error?.message || 'Errore creazione fattura');
         return;
       }
@@ -150,6 +154,7 @@ export default function InvoicesPage() {
       total: qty * price,
     });
     if (error) {
+      reportSupabaseError(error, 'invoices-add-item', { invoiceId: selectedInvoice.id });
       toast.error(`Errore aggiunta voce: ${error.message}`);
       return;
     }
@@ -163,6 +168,7 @@ export default function InvoicesPage() {
   const handleDeleteItem = async (itemId: string) => {
     const { error } = await supabase.from('invoice_items').delete().eq('id', itemId);
     if (error) {
+      reportSupabaseError(error, 'invoices-delete-item', { itemId });
       toast.error(`Errore eliminazione: ${error.message}`);
       return;
     }
@@ -182,6 +188,7 @@ export default function InvoicesPage() {
     if (status === 'paid') updates.paid_at = new Date().toISOString();
     const { error } = await supabase.from('invoices').update(updates).eq('id', invoiceId);
     if (error) {
+      reportSupabaseError(error, 'invoices-status-change', { invoiceId, status });
       toast.error(`Errore aggiornamento: ${error.message}`);
       return;
     }
@@ -208,7 +215,8 @@ export default function InvoicesPage() {
       } else {
         toast.error(data.error || 'Errore invio SDI');
       }
-    } catch {
+    } catch (err) {
+      reportUnknown(err, 'client', { op: 'invoices-send-sdi' });
       toast.error('Errore di connessione');
     } finally {
       setSdiLoading(false);
@@ -233,7 +241,8 @@ export default function InvoicesPage() {
       } else {
         toast.error(data.error || 'Errore controllo stato');
       }
-    } catch {
+    } catch (err) {
+      reportUnknown(err, 'client', { op: 'invoices-check-sdi' });
       toast.error('Errore di connessione');
     } finally {
       setSdiLoading(false);

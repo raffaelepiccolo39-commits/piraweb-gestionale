@@ -3,6 +3,7 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { reportUnknown, reportSupabaseError } from '@/lib/report-error';
 import { useAuth } from '@/hooks/use-auth';
 import { ChannelList } from '@/components/chat/channel-list';
 import { MessageList } from '@/components/chat/message-list';
@@ -150,7 +151,8 @@ export default function ChatPage() {
       if (!selectedChannelId && enriched.length > 0) {
         setSelectedChannelId(enriched[0].id);
       }
-    } catch {
+    } catch (err) {
+      reportUnknown(err, 'client', { op: 'chat-carica-canali' });
       setError(true);
     } finally {
       setLoading(false);
@@ -254,7 +256,8 @@ export default function ChatPage() {
         content,
       });
       if (error) throw error;
-    } catch {
+    } catch (err) {
+      reportUnknown(err, 'client', { op: 'chat-invia-messaggio' });
       toast.error('Errore nell\'invio del messaggio');
     }
   };
@@ -298,7 +301,7 @@ export default function ChatPage() {
         .select()
         .single();
 
-      if (error || !newChannel) { setCreatingGroup(false); return; }
+      if (error || !newChannel) { reportSupabaseError(error, 'chat-crea-gruppo'); setCreatingGroup(false); return; }
 
       // Add members (including self)
       const allMembers = [...new Set([profile.id, ...groupMembers])];
@@ -314,7 +317,8 @@ export default function ChatPage() {
       setSelectedChannelId(newChannel.id);
       setShowChannels(false);
       toast.success('Gruppo creato con successo');
-    } catch {
+    } catch (err) {
+      reportUnknown(err, 'client', { op: 'chat-crea-gruppo' });
       toast.error('Errore nella creazione del gruppo');
       setCreatingGroup(false);
     }

@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { checkRateLimit, AI_RATE_LIMIT } from '@/lib/rate-limit';
+import { logError } from '@/lib/logger';
 
 /**
  * Market research: analyze an entire sector in a city.
@@ -48,7 +49,8 @@ export async function POST(request: NextRequest) {
         mapsUrl: (p.googleMapsUri as string) || null,
       }));
     }
-  } catch {
+  } catch (e) {
+    await logError({ error: e, route: '/api/prospects/market-research', source: 'api', context: { op: 'market-research' } });
     return NextResponse.json({ error: 'Errore nella ricerca Google Places' }, { status: 500 });
   }
 

@@ -21,6 +21,7 @@ import {
   Copy,
   FolderOpen,
 } from 'lucide-react';
+import { reportSupabaseError } from '@/lib/report-error';
 
 interface AssetLibraryProps {
   clientId: string;
@@ -105,6 +106,7 @@ export function AssetLibrary({ clientId }: AssetLibraryProps) {
     });
 
     if (error) {
+      reportSupabaseError(error, 'asset-aggiungi', { clientId });
       toast.error('Errore nel salvataggio');
     } else {
       toast.success('Asset aggiunto');

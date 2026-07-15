@@ -4,6 +4,7 @@ export const maxDuration = 30;
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { getArubaConfigFromEnv } from '@/lib/aruba/client';
+import { logError } from '@/lib/logger';
 
 type CheckResult = { status: 'ok' | 'fail' | 'skipped'; detail?: string };
 
@@ -46,6 +47,7 @@ async function checkAruba(): Promise<CheckResult> {
     if (!data.access_token) return { status: 'fail', detail: `nessun access_token nella risposta (${config.env})` };
     return { status: 'ok', detail: `auth ${config.env} riuscita, token expires_in=${data.expires_in}s` };
   } catch (err) {
+    await logError({ error: err, route: 'health/integrations', source: 'api', context: { op: 'health-aruba' } });
     return { status: 'fail', detail: err instanceof Error ? err.message : String(err) };
   }
 }
@@ -65,6 +67,7 @@ async function checkMeta(): Promise<CheckResult> {
     }
     return { status: 'ok', detail: 'app access token ottenuto, credentials valide' };
   } catch (err) {
+    await logError({ error: err, route: 'health/integrations', source: 'api', context: { op: 'health-meta' } });
     return { status: 'fail', detail: err instanceof Error ? err.message : String(err) };
   }
 }

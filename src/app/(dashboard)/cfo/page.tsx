@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { reportUnknown, reportSupabaseError } from '@/lib/report-error';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/components/ui/toast';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -321,6 +322,7 @@ export default function CFOPage() {
       : await supabase.from('operating_expenses').insert({ ...payload, created_by: profile.id });
     setSavingExpense(false);
     if (error) {
+      reportSupabaseError(error, 'cfo-salva-spesa', { editing: !!editingExpense });
       toast.error(`Errore salvataggio spesa: ${error.message}`);
       return;
     }
@@ -333,6 +335,7 @@ export default function CFOPage() {
   const handleDeleteExpense = async (id: string) => {
     const { error } = await supabase.from('operating_expenses').update({ is_active: false }).eq('id', id);
     if (error) {
+      reportSupabaseError(error, 'cfo-elimina-spesa', { id });
       toast.error(`Errore eliminazione: ${error.message}`);
       return;
     }
@@ -363,7 +366,8 @@ export default function CFOPage() {
       } else {
         toast.error(data.error || 'Errore nell\'analisi del documento');
       }
-    } catch {
+    } catch (err) {
+      reportUnknown(err, 'client', { op: 'cfo-parse-payslip' });
       toast.error('Errore di connessione');
     } finally {
       setParsingPayslip(false);
@@ -380,7 +384,8 @@ export default function CFOPage() {
       if (result.saved && result.saved > 0) toast.success(`${result.saved} buste paga salvate`);
       if (result.errors && result.errors > 0) toast.error(`${result.errors} buste paga non salvate (dipendente non trovato)`);
       if (result.error) toast.error(result.error);
-    } catch {
+    } catch (err) {
+      reportUnknown(err, 'client', { op: 'cfo-salva-payslip' });
       toast.error('Errore nel salvataggio');
     }
 
@@ -394,6 +399,7 @@ export default function CFOPage() {
   const handleDeletePayslip = async (id: string) => {
     const { error } = await supabase.from('payslips').delete().eq('id', id);
     if (error) {
+      reportSupabaseError(error, 'cfo-elimina-payslip', { id });
       toast.error(`Errore eliminazione: ${error.message}`);
       return;
     }

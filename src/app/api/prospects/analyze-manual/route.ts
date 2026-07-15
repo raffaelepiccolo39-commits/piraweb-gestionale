@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { checkRateLimit } from '@/lib/rate-limit';
+import { logError } from '@/lib/logger';
 
 /**
  * Analyze a business from manually provided data (website, social, etc.)
@@ -226,7 +227,8 @@ export async function POST(request: NextRequest) {
         result.website_issues = ['Sito non raggiungibile'];
         result.score_website = 5;
       }
-    } catch {
+    } catch (e) {
+      await logError({ error: e, route: '/api/prospects/analyze-manual', source: 'api', context: { op: 'analyze-manual' } });
       result.website_issues = ['Errore nell\'analisi del sito'];
       result.score_website = 5;
     }
@@ -281,7 +283,8 @@ async function fetchWithTimeout(url: string, ms: number): Promise<Response | nul
     });
     clearTimeout(timer);
     return res;
-  } catch {
+  } catch (e) {
+    await logError({ error: e, route: '/api/prospects/analyze-manual', source: 'api', context: { op: 'analyze-manual' } });
     return null;
   }
 }

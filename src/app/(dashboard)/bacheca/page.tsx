@@ -38,7 +38,7 @@ import {
   Archive,
 } from 'lucide-react';
 import { STATUS_LABELS, PRIORITY_LABELS } from '@/lib/constants';
-import { reportUnknown } from '@/lib/report-error';
+import { reportUnknown, reportSupabaseError } from '@/lib/report-error';
 
 export default function BachecaPage() {
   const { profile } = useAuth();
@@ -171,7 +171,7 @@ export default function BachecaPage() {
   // Archivia una singola task (reversibile dalla sezione Task → archiviate)
   const handleArchiveOne = async (taskId: string) => {
     const { error } = await supabase.from('tasks').update({ archived_at: new Date().toISOString() }).eq('id', taskId);
-    if (error) { toast.error('Errore durante l\'archiviazione'); return; }
+    if (error) { reportSupabaseError(error, 'bacheca-archivia-task', { taskId }); toast.error('Errore durante l\'archiviazione'); return; }
     toast.success('Task archiviata');
     fetchData();
   };
@@ -595,6 +595,7 @@ export default function BachecaPage() {
               setAttachFiles([]);
               fetchData();
             } catch (e) {
+              reportUnknown(e, 'client', { op: 'bacheca-crea-task' });
               // Prima l'errore veniva ingoiato: il modal si chiudeva senza dire nulla.
               const msg = (e as { message?: string } | undefined)?.message || '';
               const friendly = /row-level security|permission|policy|not authorized/i.test(msg)

@@ -25,6 +25,7 @@ import { STATUS_LABELS, PRIORITY_LABELS } from '@/lib/constants';
 import type { Task, TaskComment, TaskAttachment, ContentApproval, Profile } from '@/types/database';
 import { Modal } from '@/components/ui/modal';
 import { Input } from '@/components/ui/input';
+import { reportSupabaseError } from '@/lib/report-error';
 import {
   ArrowLeft,
   Calendar,
@@ -89,6 +90,7 @@ export default function TaskDetailPage({
       .single();
 
     if (error || !data) {
+      reportSupabaseError(error, 'task-detail-fetch', { taskId });
       router.push('/tasks');
       return;
     }
@@ -150,6 +152,7 @@ export default function TaskDetailPage({
       content: newComment.trim(),
     });
     if (error) {
+      reportSupabaseError(error, 'task-add-comment', { taskId });
       toast.error('Errore nell\'invio del commento');
     } else {
       setNewComment('');
@@ -178,6 +181,8 @@ export default function TaskDetailPage({
     if (!error) {
       toast.success(`Stato aggiornato: ${STATUS_LABELS[newStatus]}`);
       fetchTask();
+    } else {
+      reportSupabaseError(error, 'task-detail-status', { taskId: task.id, newStatus });
     }
   };
 
@@ -198,6 +203,8 @@ export default function TaskDetailPage({
       setPendingDoneStatus(false);
       setDriveUrl('');
       fetchTask();
+    } else {
+      reportSupabaseError(error, 'task-detail-confirm-done', { taskId: task.id });
     }
   };
 
@@ -211,6 +218,8 @@ export default function TaskDetailPage({
       setShowDriveModal(false);
       setDriveUrl('');
       fetchTask();
+    } else {
+      reportSupabaseError(error, 'task-detail-delivery-url', { taskId: task.id });
     }
   };
 

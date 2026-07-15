@@ -8,6 +8,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { SkeletonList } from '@/components/ui/skeleton';
 import { Gauge } from 'lucide-react';
 import type { PerfSummary } from '@/types/database';
+import { reportSupabaseError } from '@/lib/report-error';
 
 /**
  * Classifica di cosa ottimizzare, dagli ultimi 7 giorni.
@@ -47,6 +48,7 @@ export function PerfPanel() {
       .limit(60);
 
     if (error) {
+      reportSupabaseError(error, 'perf-carica-metriche');
       setLoadError(error.message);
       setLoading(false);
       return;

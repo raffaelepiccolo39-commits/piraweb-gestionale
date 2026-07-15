@@ -11,6 +11,7 @@ import { SkeletonList } from '@/components/ui/skeleton';
 import { getInitials, getRoleLabel, todayLocal, formatDateLocal } from '@/lib/utils';
 import type { Profile } from '@/types/database';
 import { X, Clock, ChevronLeft, ChevronRight, Plus, Coffee, Utensils } from 'lucide-react';
+import { reportSupabaseError } from '@/lib/report-error';
 
 // Struttura giornata: 16 slot da 30 min (8h) + pause non riempibili.
 type Row =
@@ -173,7 +174,7 @@ export default function PianificazionePage() {
       created_by: profile.id,
     }));
     const { error } = await supabase.from('task_plan_slots').insert(toInsert);
-    if (error) { toast.error(error.message || 'Errore nella pianificazione'); return; }
+    if (error) { reportSupabaseError(error, 'pianificazione-assegna-task'); toast.error(error.message || 'Errore nella pianificazione'); return; }
     if (free < want) {
       toast.success(`Inseriti ${free} slot su ${want}: spazio consecutivo insufficiente`);
     } else {
@@ -205,7 +206,7 @@ export default function PianificazionePage() {
       created_by: profile.id,
     }));
     const { error } = await supabase.from('task_plan_slots').insert(toInsert);
-    if (error) { toast.error(error.message || 'Errore nella pianificazione'); return; }
+    if (error) { reportSupabaseError(error, 'pianificazione-assegna-manuale'); toast.error(error.message || 'Errore nella pianificazione'); return; }
     toast.success(`Aggiunta attività (${(free * 0.5).toFixed(1)}h)`);
     setManualText('');
     setManualHours('0.5');
@@ -228,7 +229,7 @@ export default function PianificazionePage() {
     }
     if (ids.length === 0) return;
     const { error } = await supabase.from('task_plan_slots').delete().in('id', ids);
-    if (error) { toast.error(error.message || 'Errore nella rimozione'); return; }
+    if (error) { reportSupabaseError(error, 'pianificazione-rimuovi'); toast.error(error.message || 'Errore nella rimozione'); return; }
     fetchData();
   };
 

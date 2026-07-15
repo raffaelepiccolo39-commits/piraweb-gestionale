@@ -36,6 +36,7 @@ import {
   Play,
   CheckCircle2,
 } from 'lucide-react';
+import { reportSupabaseError, reportUnknown } from '@/lib/report-error';
 
 interface TaskDetailModalProps {
   task: Task | null;
@@ -172,7 +173,7 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
       p_covered_until: pedCoveredUntil,
     });
     setPedSaving(false);
-    if (error) { toast.error(error.message || 'Salvataggio non riuscito'); return; }
+    if (error) { reportSupabaseError(error, 'task-ped-copertura', { clientId: pedClientId }); toast.error(error.message || 'Salvataggio non riuscito'); return; }
     toast.success('Copertura piano editoriale salvata');
   };
 
@@ -233,6 +234,7 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
       .select('id, started_at')
       .single();
     if (error || !data) {
+      reportSupabaseError(error, 'task-avvia-timer', { taskId: task.id });
       console.error('[task-detail] start timer failed:', error);
       toast.error(error?.message || 'Errore nell\'avvio della task');
       setTimerBusy(false);
@@ -242,7 +244,7 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
     // La task passa "In corso" (se non lo è già)
     if (status !== 'in_progress') {
       const { error: stErr } = await supabase.from('tasks').update({ status: 'in_progress' }).eq('id', task.id);
-      if (stErr) { toast.error(stErr.message || 'Timer avviato ma stato non aggiornato'); }
+      if (stErr) { reportSupabaseError(stErr, 'task-avvia-aggiorna-stato', { taskId: task.id }); toast.error(stErr.message || 'Timer avviato ma stato non aggiornato'); }
       else { setStatus('in_progress'); }
     }
     setTimerBusy(false);
@@ -256,6 +258,7 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
       .update({ ended_at: new Date().toISOString(), is_running: false })
       .eq('id', runningEntry.id);
     if (error) {
+      reportSupabaseError(error, 'task-stop-timer', { entryId: runningEntry.id });
       console.error('[task-detail] stop timer failed:', error);
       toast.error(error.message || 'Errore nello stop del timer');
       return false;
@@ -268,6 +271,7 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
     if (!task) return;
     const { error } = await supabase.from('tasks').update({ status: 'done' }).eq('id', task.id);
     if (error) {
+      reportSupabaseError(error, 'task-completa', { taskId: task.id });
       console.error('[task-detail] complete task failed:', error);
       toast.error(error.message || 'Errore nel completamento della task');
       return false;
@@ -312,7 +316,7 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
       duration_minutes: Math.round(hours * 60),
       is_running: false,
     });
-    if (e1) { setTimerBusy(false); toast.error(e1.message || 'Errore nella registrazione delle ore'); return; }
+    if (e1) { reportSupabaseError(e1, 'task-completa-con-ore', { taskId: task.id }); setTimerBusy(false); toast.error(e1.message || 'Errore nella registrazione delle ore'); return; }
     await fetchTimeEntries(task.id);
     const ok = await markDone();
     setTimerBusy(false);
@@ -339,6 +343,7 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
     });
     setLoggingHours(false);
     if (error) {
+      reportSupabaseError(error, 'task-registra-ore', { taskId: task.id });
       console.error('[task-detail] log hours failed:', error);
       toast.error(error.message || 'Errore nella registrazione delle ore');
       return;
@@ -354,6 +359,7 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
     if (!task) return;
     const { error } = await supabase.from('time_entries').delete().eq('id', entryId);
     if (error) {
+      reportSupabaseError(error, 'task-elimina-registrazione', { taskId: task.id, entryId });
       toast.error(error.message || 'Errore nell\'eliminazione della registrazione');
       return;
     }
@@ -425,6 +431,7 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
       const path = `${task.id}/${Date.now()}_${safeStorageName(file.name)}`;
       const { error: uploadError } = await supabase.storage.from('attachments').upload(path, file);
       if (uploadError) {
+        reportSupabaseError(uploadError, 'task-upload-allegato', { taskId: task.id, file: file.name });
         console.error('[task-detail] upload failed:', file.name, uploadError);
         failed++;
         continue;
@@ -439,6 +446,7 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
         uploaded_by: user.id,
       });
       if (insertError) {
+        reportSupabaseError(insertError, 'task-salva-allegato', { taskId: task.id, file: file.name });
         console.error('[task-detail] save attachment failed:', file.name, insertError);
         failed++;
       } else {
@@ -455,6 +463,7 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
   const handleDeleteAttachment = async (att: TaskAttachment) => {
     const { error } = await supabase.from('task_attachments').delete().eq('id', att.id);
     if (error) {
+      reportSupabaseError(error, 'task-elimina-allegato', { attachmentId: att.id });
       console.error('[task-detail] delete attachment failed:', error);
       toast.error('Errore nella rimozione dell\'allegato');
       return;
@@ -486,6 +495,7 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
       a.remove();
       URL.revokeObjectURL(url);
     } catch (e) {
+      reportUnknown(e, 'client', { op: 'task-download-allegato', attachmentId: att.id });
       console.error('[task-detail] download attachment failed:', e);
       toast.error('Errore nel download dell\'allegato');
     }
@@ -506,7 +516,7 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
       } else {
         setAiError(true); setTimeout(() => setAiError(false), 3000);
       }
-    } catch { setAiError(true); setTimeout(() => setAiError(false), 3000); }
+    } catch (err) { reportUnknown(err, 'client', { op: 'task-ai-descrizione' }); setAiError(true); setTimeout(() => setAiError(false), 3000); }
     setGeneratingAi(false);
   };
 
@@ -527,6 +537,7 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
     }).eq('id', task.id).select('id');
     setSaving(false);
     if (error) {
+      reportSupabaseError(error, 'task-salva', { taskId: task.id });
       console.error('[task-detail] update task failed:', error);
       toast.error('Errore nel salvataggio della task');
       return;
@@ -547,6 +558,7 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
     if (!task) return;
     const { data, error } = await supabase.from('tasks').delete().eq('id', task.id).select('id');
     if (error) {
+      reportSupabaseError(error, 'task-elimina', { taskId: task.id });
       console.error('[task-detail] delete task failed:', error);
       toast.error('Errore nella rimozione della task');
       return;
@@ -582,6 +594,7 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
       const path = `comments/${task.id}/${Date.now()}_${commentImage.name}`;
       const { error: upErr } = await supabase.storage.from('attachments').upload(path, commentImage);
       if (upErr) {
+        reportSupabaseError(upErr, 'task-commento-upload-immagine', { taskId: task.id });
         console.error('[task-detail] comment image upload failed:', upErr);
         toast.error('Errore nel caricamento dell\'immagine');
         setSendingComment(false);
@@ -596,6 +609,7 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
       image_path: imagePath,
     });
     if (error) {
+      reportSupabaseError(error, 'task-invia-commento', { taskId: task.id });
       console.error('[task-detail] add comment failed:', error);
       toast.error('Errore nell\'invio del commento');
       setSendingComment(false);
@@ -626,6 +640,7 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
       .eq('id', commentId);
     setSavingEdit(false);
     if (error) {
+      reportSupabaseError(error, 'task-modifica-commento', { commentId });
       console.error('[task-detail] edit comment failed:', error);
       toast.error('Errore nella modifica del commento');
       return;
@@ -638,6 +653,7 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
     if (!task) return;
     const { error } = await supabase.from('task_comments').delete().eq('id', commentId);
     if (error) {
+      reportSupabaseError(error, 'task-elimina-commento', { commentId });
       console.error('[task-detail] delete comment failed:', error);
       toast.error('Errore nell\'eliminazione del commento');
       return;

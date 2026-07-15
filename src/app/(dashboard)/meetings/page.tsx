@@ -29,6 +29,7 @@ import {
   Sparkles,
   Trash2,
 } from 'lucide-react';
+import { reportUnknown, reportSupabaseError } from '@/lib/report-error';
 
 export default function MeetingsPage() {
   const { profile } = useAuth();
@@ -84,7 +85,7 @@ export default function MeetingsPage() {
       supabase.from('clients').select('id, name, company').eq('is_active', true).order('company').then((r) => setClients((r.data as Client[]) || [])),
       supabase.from('projects').select('id, name, client_id').order('name').then((r) => setProjects((r.data as Project[]) || [])),
       supabase.from('profiles').select('*').eq('is_active', true).order('full_name').then((r) => setTeamMembers((r.data as Profile[]) || [])),
-    ]).catch(() => setError(true)).finally(() => setLoading(false));
+    ]).catch((err) => { reportUnknown(err, 'client', { op: 'meetings-fetch' }); setError(true); }).finally(() => setLoading(false));
   }, [fetchMeetings, supabase]);
 
   useEffect(() => {
@@ -112,6 +113,7 @@ export default function MeetingsPage() {
       created_by: profile.id,
     });
     if (error) {
+      reportSupabaseError(error, 'meeting-crea');
       toast.error('Errore nella creazione');
     } else {
       toast.success('Meeting creato');
@@ -132,6 +134,7 @@ export default function MeetingsPage() {
       setNewAction('');
       fetchActionItems(selectedMeeting.id);
     } catch (e) {
+      reportUnknown(e, 'client', { op: 'meeting-add-action' });
       toast.error((e as { message?: string } | undefined)?.message || 'Errore');
     }
   };
@@ -144,6 +147,7 @@ export default function MeetingsPage() {
       if (error) throw error;
       fetchActionItems(selectedMeeting!.id);
     } catch (e) {
+      reportUnknown(e, 'client', { op: 'meeting-toggle-action' });
       toast.error((e as { message?: string } | undefined)?.message || 'Errore');
     }
   };
@@ -185,6 +189,7 @@ export default function MeetingsPage() {
       toast.success('Task creata dall\'action item');
       fetchActionItems(selectedMeeting.id);
     } catch (e) {
+      reportUnknown(e, 'client', { op: 'meeting-task-from-action' });
       toast.error((e as { message?: string } | undefined)?.message || 'Errore durante la creazione della task');
     }
   };
@@ -196,6 +201,7 @@ export default function MeetingsPage() {
       if (error) throw error;
       toast.success('Note salvate');
     } catch (e) {
+      reportUnknown(e, 'client', { op: 'meeting-salva-note' });
       toast.error((e as { message?: string } | undefined)?.message || 'Errore durante il salvataggio');
     }
   };

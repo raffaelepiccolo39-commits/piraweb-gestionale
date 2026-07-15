@@ -20,7 +20,7 @@ import {
   Plus, FileText, AlertTriangle, Paperclip, ExternalLink, Trash2,
   Calendar, Hourglass, Check, Files,
 } from 'lucide-react';
-import { reportUnknown } from '@/lib/report-error';
+import { reportUnknown, reportSupabaseError } from '@/lib/report-error';
 
 const ACCEPTED_TYPES = [
   'image/jpeg', 'image/png', 'image/webp', 'image/heic',
@@ -96,7 +96,8 @@ export default function DocumentiPage() {
           .order('full_name');
         setEmployees((empRes.data as { id: string; full_name: string }[]) || []);
       }
-    } catch {
+    } catch (err) {
+      reportUnknown(err, 'client', { op: 'documenti-fetch' });
       setError(true);
     } finally {
       setLoading(false);
@@ -181,6 +182,7 @@ export default function DocumentiPage() {
       resetForm();
       fetchData();
     } catch (e) {
+      reportUnknown(e, 'client', { op: 'documenti-upload' });
       if (uploadedPath) {
         await supabase.storage.from('employee-documents').remove([uploadedPath]).catch(() => {});
       }
@@ -193,6 +195,7 @@ export default function DocumentiPage() {
   const handleView = async (path: string) => {
     const { data, error } = await supabase.storage.from('employee-documents').createSignedUrl(path, 3600);
     if (error || !data?.signedUrl) {
+      reportSupabaseError(error, 'documenti-view');
       toast.error('Impossibile aprire il documento');
       return;
     }
@@ -213,6 +216,7 @@ export default function DocumentiPage() {
       toast.success('Documento eliminato');
       fetchData();
     } catch (e) {
+      reportUnknown(e, 'client', { op: 'documenti-elimina' });
       toast.error((e as { message?: string } | undefined)?.message || 'Errore durante l\'eliminazione');
     }
   };

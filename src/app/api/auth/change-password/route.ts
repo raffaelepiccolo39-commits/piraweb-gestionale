@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { logError } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
   const supabase = await createServerSupabaseClient();
@@ -36,6 +37,7 @@ export async function POST(request: NextRequest) {
 
   const { error } = await supabase.auth.updateUser({ password: new_password });
   if (error) {
+    await logError({ error, route: '/api/auth/change-password', source: 'api', context: { op: 'change-password' } });
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 

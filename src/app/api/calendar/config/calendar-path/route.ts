@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { logError } from '@/lib/logger';
 
 export async function PUT(request: NextRequest) {
   const supabase = await createServerSupabaseClient();
@@ -28,6 +29,7 @@ export async function PUT(request: NextRequest) {
     .eq('user_id', user.id);
 
   if (error) {
+    await logError({ error, route: '/api/calendar/config/calendar-path', source: 'api', context: { op: 'calendar-path-update' } });
     return NextResponse.json({ error: 'Errore nel salvataggio' }, { status: 500 });
   }
 

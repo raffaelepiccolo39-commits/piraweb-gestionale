@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { applyRateLimit } from '@/lib/rate-limit';
+import { logError } from '@/lib/logger';
 
 const BOOKING_RATE_LIMIT = { maxRequests: 5, windowSeconds: 3600 };
 
@@ -89,6 +90,7 @@ export async function POST(request: NextRequest) {
   }).select('id').single();
 
   if (eventError || !newEvent) {
+    await logError({ error: eventError, route: '/api/booking/book', source: 'api', context: { op: 'booking-book' } });
     return NextResponse.json({ error: 'Errore nella creazione dell\'evento' }, { status: 500 });
   }
 

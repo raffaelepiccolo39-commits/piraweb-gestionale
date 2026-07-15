@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic';
 import crypto from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceRoleClient } from '@/lib/supabase/server';
+import { logError } from '@/lib/logger';
 
 /**
  * POST /api/webhook/contact-form
@@ -98,6 +99,7 @@ export async function POST(request: NextRequest) {
     .single();
 
   if (dealError) {
+    await logError({ error: dealError, route: '/api/webhook/contact-form', source: 'api', context: { op: 'webhook-contact-form' } });
     return NextResponse.json({ error: 'Errore creazione deal' }, { status: 500, headers });
   }
 

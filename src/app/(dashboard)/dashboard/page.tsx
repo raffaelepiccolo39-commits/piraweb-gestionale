@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
+import { reportUnknown } from '@/lib/report-error';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/components/ui/toast';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -241,7 +242,8 @@ export default function DashboardPage() {
         setTeamAttendance((results[13].data as typeof teamAttendance) || []);
         setPendingTimeOff((results[14]?.data as TimeOffRequest[]) || []);
       }
-    } catch {
+    } catch (err) {
+      reportUnknown(err, 'client', { op: 'dashboard-carica' });
       setError(true);
     } finally {
       setLoading(false);
@@ -316,7 +318,8 @@ export default function DashboardPage() {
       // Refresh attendance
       const { data } = await supabase.from('attendance_records').select('*').eq('user_id', profile.id).eq('date', todayStr).maybeSingle();
       setAttendance(data as AttendanceRecord | null);
-    } catch {
+    } catch (err) {
+      reportUnknown(err, 'client', { op: 'dashboard-attendance' });
       toast.error('Errore nella registrazione');
     } finally {
       setAttendanceLoading(false);
@@ -334,10 +337,11 @@ export default function DashboardPage() {
       toast.success('Richiesta approvata');
       if (req) {
         try { await notifyTimeOffDecision(supabase, req, 'approved', null, profile.id); }
-        catch (n) { toast.error('Notifica al dipendente fallita: ' + (n as { message?: string })?.message); }
+        catch (n) { reportUnknown(n, 'client', { op: 'dashboard-notifica-ferie-approva', requestId: id }); toast.error('Notifica al dipendente fallita: ' + (n as { message?: string })?.message); }
       }
       fetchDashboardData();
     } catch (e) {
+      reportUnknown(e, 'client', { op: 'dashboard-approva-ferie', requestId: id });
       toast.error((e as { message?: string } | undefined)?.message || 'Errore durante l\'approvazione');
     }
   };
@@ -353,10 +357,11 @@ export default function DashboardPage() {
       toast.success('Richiesta rifiutata');
       if (req) {
         try { await notifyTimeOffDecision(supabase, req, 'rejected', null, profile.id); }
-        catch (n) { toast.error('Notifica al dipendente fallita: ' + (n as { message?: string })?.message); }
+        catch (n) { reportUnknown(n, 'client', { op: 'dashboard-notifica-ferie-rifiuta', requestId: id }); toast.error('Notifica al dipendente fallita: ' + (n as { message?: string })?.message); }
       }
       fetchDashboardData();
     } catch (e) {
+      reportUnknown(e, 'client', { op: 'dashboard-rifiuta-ferie', requestId: id });
       toast.error((e as { message?: string } | undefined)?.message || 'Errore durante il rifiuto');
     }
   };

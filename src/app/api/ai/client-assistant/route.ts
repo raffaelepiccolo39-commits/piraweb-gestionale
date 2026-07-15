@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { checkRateLimit, AI_RATE_LIMIT } from '@/lib/rate-limit';
+import { logError } from '@/lib/logger';
 
 // Schema dell'output: JSON garantito valido (structured outputs di Opus 4.8),
 // indispensabile perché le "azioni proposte" vengono poi eseguite dalla UI.
@@ -106,6 +107,7 @@ export async function POST(request: NextRequest) {
     .eq('id', client_id)
     .single();
   if (clientErr || !client) {
+    await logError({ error: clientErr, route: '/api/ai/client-assistant', source: 'api', context: { op: 'client-assistant' } });
     return NextResponse.json({ error: 'Cliente non trovato' }, { status: 404 });
   }
 
@@ -207,7 +209,8 @@ Analizza la situazione e restituisci l'esito nello schema richiesto.`;
     let parsed;
     try {
       parsed = JSON.parse(textBlock.text);
-    } catch {
+    } catch (e) {
+      await logError({ error: e, route: '/api/ai/client-assistant', source: 'api', context: { op: 'client-assistant' } });
       return NextResponse.json({ error: 'Risposta AI non in formato valido' }, { status: 502 });
     }
 
@@ -239,11 +242,13 @@ Analizza la situazione e restituisci l'esito nello schema richiesto.`;
       .single();
 
     if (insErr) {
+      await logError({ error: insErr, route: '/api/ai/client-assistant', source: 'api', context: { op: 'client-assistant' } });
       return NextResponse.json({ error: `Salvataggio non riuscito: ${insErr.message}` }, { status: 500 });
     }
 
     return NextResponse.json({ insight: inserted });
   } catch (e) {
+    await logError({ error: e, route: '/api/ai/client-assistant', source: 'api', context: { op: 'client-assistant' } });
     return NextResponse.json(
       { error: (e as { message?: string })?.message || 'Errore imprevisto' },
       { status: 500 },

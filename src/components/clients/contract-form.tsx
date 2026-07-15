@@ -7,6 +7,7 @@ import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { FileText, Upload, X } from 'lucide-react';
 import { todayLocal } from '@/lib/utils';
+import { reportUnknown } from '@/lib/report-error';
 
 export interface ContractFormData {
   no_contract: boolean;
@@ -66,6 +67,7 @@ export function ContractForm({ onSubmit, onCancel }: ContractFormProps) {
         attachment: attachment || undefined,
       });
     } catch (err) {
+      reportUnknown(err, 'client', { op: 'contratto-submit' });
       console.error('Contract form error:', err);
     } finally {
       setLoading(false);

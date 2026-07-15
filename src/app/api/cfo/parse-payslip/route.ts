@@ -7,6 +7,7 @@ export const bodyParser = false;
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { applyRateLimit, AI_RATE_LIMIT } from '@/lib/rate-limit';
+import { logError } from '@/lib/logger';
 
 /**
  * POST /api/cfo/parse-payslip
@@ -137,6 +138,7 @@ Rispondi SOLO con un JSON valido, un array di oggetti. Nessun testo prima o dopo
     });
 
   } catch (err) {
+    await logError({ error: err, route: 'cfo/parse-payslip', source: 'api', context: { op: 'parse-payslip' } });
     const msg = err instanceof Error ? err.message : 'Errore sconosciuto';
     return NextResponse.json({ error: `Errore analisi documento: ${msg}` }, { status: 500 });
   }

@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { checkRateLimit } from '@/lib/rate-limit';
+import { logError } from '@/lib/logger';
 
 /**
  * Search businesses AND analyze their digital presence in one step.
@@ -59,7 +60,8 @@ export async function POST(request: NextRequest) {
     }
     const data = await res.json();
     places = data.places || [];
-  } catch {
+  } catch (e) {
+    await logError({ error: e, route: '/api/prospects/search', source: 'api', context: { op: 'prospects-search' } });
     return NextResponse.json({ error: 'Errore nella connessione a Google Places' }, { status: 500 });
   }
 
@@ -311,7 +313,8 @@ export async function POST(request: NextRequest) {
         else if (advCount === 1) scoreA = 35;
         result.score_advertising = scoreA;
 
-      } catch {
+      } catch (e) {
+        await logError({ error: e, route: '/api/prospects/search', source: 'api', context: { op: 'prospects-search' } });
         result.website_issues = ['Sito non raggiungibile o troppo lento'];
         result.score_website = 5;
       }
@@ -582,7 +585,8 @@ async function analyzeInstagramProfile(profileUrl: string): Promise<{
     }
 
     return { followers, posts, recentPostsLastMonth, isCurated, verdict };
-  } catch {
+  } catch (e) {
+    await logError({ error: e, route: '/api/prospects/search', source: 'api', context: { op: 'prospects-search' } });
     return { followers: null, posts: null, recentPostsLastMonth: null, isCurated: null, verdict: 'Errore nell\'analisi del profilo' };
   }
 }

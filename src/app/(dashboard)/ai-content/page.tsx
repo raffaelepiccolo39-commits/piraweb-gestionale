@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { reportUnknown } from '@/lib/report-error';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/components/ui/toast';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -155,7 +156,8 @@ export default function AiContentPage() {
       } else {
         toast.error(data.error || 'Errore nella generazione');
       }
-    } catch {
+    } catch (err) {
+      reportUnknown(err, 'client', { op: 'ai-content-genera' });
       toast.error('Errore di connessione');
     } finally {
       setLoading(false);
@@ -268,6 +270,7 @@ export default function AiContentPage() {
       toast.success(`${posts.length} post salvati nel piano editoriale!`);
       setSavedResultId(resultFingerprint);
     } catch (e) {
+      reportUnknown(e, 'client', { op: 'ai-content-salva-piano' });
       toast.error((e as { message?: string } | undefined)?.message || 'Errore nel salvataggio');
     } finally {
       setSaving(false);

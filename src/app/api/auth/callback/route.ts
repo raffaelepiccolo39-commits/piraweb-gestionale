@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
+import { logError } from '@/lib/logger';
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
@@ -16,6 +17,7 @@ export async function GET(request: Request) {
     if (!error) {
       return NextResponse.redirect(`${origin}${next}`);
     }
+    await logError({ error, route: '/api/auth/callback', source: 'api', context: { op: 'callback' } });
   }
 
   return NextResponse.redirect(`${origin}/login?error=auth`);

@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { useToast } from '@/components/ui/toast';
 import { Loader2, Camera, Check } from 'lucide-react';
+import { reportUnknown } from '@/lib/report-error';
 
 interface PreviewTask {
   step_key: string;
@@ -62,7 +63,8 @@ export function ShootingTasksModal({ open, calendarEventId, onClose, onGenerated
       setAlreadyGenerated(!!prev.already_generated);
       setRows(((prev.tasks as PreviewTask[]) || []).map((t) => ({ ...t, include: true })));
       setPeople((peopleRes.data as { id: string; full_name: string }[]) || []);
-    } catch {
+    } catch (err) {
+      reportUnknown(err, 'client', { op: 'shooting-anteprima' });
       setError('Errore di rete');
     } finally {
       setLoading(false);
@@ -103,7 +105,8 @@ export function ShootingTasksModal({ open, calendarEventId, onClose, onGenerated
       toast.success(`${json.created} task creati e assegnati`);
       onGenerated?.();
       onClose();
-    } catch {
+    } catch (err) {
+      reportUnknown(err, 'client', { op: 'shooting-conferma' });
       toast.error('Errore di rete');
     } finally {
       setSaving(false);

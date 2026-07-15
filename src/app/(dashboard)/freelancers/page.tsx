@@ -30,6 +30,7 @@ import {
   CheckCircle,
   Clock,
 } from 'lucide-react';
+import { reportUnknown, reportSupabaseError } from '@/lib/report-error';
 
 const SPECIALTY_LABELS: Record<string, string> = {
   graphic_designer: 'Graphic Designer',
@@ -107,12 +108,12 @@ export default function FreelancersPage() {
 
     if (editingId) {
       const { error } = await supabase.from('freelancers').update(data).eq('id', editingId);
-      if (error) { toast.error('Errore nell\'aggiornamento'); return; }
+      if (error) { reportSupabaseError(error, 'freelancer-modifica', { freelancerId: editingId }); toast.error('Errore nell\'aggiornamento'); return; }
       toast.success('Freelancer aggiornato');
     } else {
       if (!profile) return;
       const { error } = await supabase.from('freelancers').insert({ ...data, created_by: profile.id });
-      if (error) { toast.error('Errore nella creazione'); return; }
+      if (error) { reportSupabaseError(error, 'freelancer-crea'); toast.error('Errore nella creazione'); return; }
       toast.success('Freelancer aggiunto');
     }
 
@@ -143,6 +144,7 @@ export default function FreelancersPage() {
       toast.success('Freelancer eliminato');
       fetchFreelancers();
     } catch (e) {
+      reportUnknown(e, 'client', { op: 'freelancer-elimina' });
       // Prima toast.success appariva sempre — anche se DELETE bloccava per
       // FK constraint (assignment storici) o RLS.
       toast.error((e as { message?: string } | undefined)?.message || 'Errore durante l\'eliminazione');
@@ -156,6 +158,7 @@ export default function FreelancersPage() {
       toast.success(f.is_active ? 'Freelancer disattivato' : 'Freelancer riattivato');
       fetchFreelancers();
     } catch (e) {
+      reportUnknown(e, 'client', { op: 'freelancer-toggle-active' });
       toast.error((e as { message?: string } | undefined)?.message || 'Errore');
     }
   };

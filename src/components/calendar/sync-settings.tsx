@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { formatDateTime } from '@/lib/utils';
 import { RefreshCw, Settings2, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { reportUnknown } from '@/lib/report-error';
 
 interface SyncSettingsProps {
   onSync: () => Promise<void>;
@@ -80,7 +81,8 @@ export function SyncSettings({ onSync, syncing }: SyncSettingsProps) {
       } else {
         setCalendarError(data.error || 'Impossibile recuperare i calendari');
       }
-    } catch {
+    } catch (err) {
+      reportUnknown(err, 'client', { op: 'calendar-fetch-calendari' });
       setCalendarError('Errore di connessione');
     }
     setLoadingCalendars(false);
@@ -113,7 +115,8 @@ export function SyncSettings({ onSync, syncing }: SyncSettingsProps) {
       if (res.ok) {
         await refreshConfig();
       }
-    } catch {
+    } catch (err) {
+      reportUnknown(err, 'client', { op: 'calendar-seleziona-calendario' });
       // revert
       setSelectedCalendar(config?.calendar_path || '');
     }

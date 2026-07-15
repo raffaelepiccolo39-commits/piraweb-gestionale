@@ -7,6 +7,7 @@ import { useToast } from '@/components/ui/toast';
 import { Button } from '@/components/ui/button';
 import type { TimeEntry } from '@/types/database';
 import { Play, Square, Clock, Plus, Trash2 } from 'lucide-react';
+import { reportSupabaseError } from '@/lib/report-error';
 
 interface TimeTrackerProps {
   taskId: string;
@@ -83,6 +84,7 @@ export function TimeTracker({ taskId, estimatedHours, loggedHours, onUpdate }: T
       is_running: true,
     });
     if (error) {
+      reportSupabaseError(error, 'timer-avvia', { taskId });
       toast.error('Errore nell\'avvio del timer');
     } else {
       toast.success('Timer avviato');
@@ -100,6 +102,7 @@ export function TimeTracker({ taskId, estimatedHours, loggedHours, onUpdate }: T
       .update({ ended_at: new Date().toISOString(), is_running: false })
       .eq('id', runningEntry.id);
     if (error) {
+      reportSupabaseError(error, 'timer-stop', { taskId });
       toast.error('Errore nello stop del timer');
     } else {
       toast.success('Timer fermato');
@@ -130,6 +133,7 @@ export function TimeTracker({ taskId, estimatedHours, loggedHours, onUpdate }: T
       is_running: false,
     });
     if (error) {
+      reportSupabaseError(error, 'timer-log-manuale', { taskId });
       toast.error('Errore nel log manuale');
     } else {
       toast.success('Ore registrate');
@@ -145,6 +149,7 @@ export function TimeTracker({ taskId, estimatedHours, loggedHours, onUpdate }: T
 
   const handleDelete = async (entryId: string) => {
     const { error } = await supabase.from('time_entries').delete().eq('id', entryId);
+    if (error) reportSupabaseError(error, 'timer-elimina', { taskId, entryId });
     if (!error) {
       fetchEntries();
       onUpdate?.();

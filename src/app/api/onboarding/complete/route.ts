@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server';
+import { logError } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
   const supabase = await createServerSupabaseClient();
@@ -47,6 +48,7 @@ export async function POST(request: NextRequest) {
 
   const { error } = await service.from('profiles').update(update).eq('id', user.id);
   if (error) {
+    await logError({ error, route: '/api/onboarding/complete', source: 'api', context: { op: 'onboarding-complete' } });
     return NextResponse.json({ error: `Errore completamento onboarding: ${error.message}` }, { status: 500 });
   }
 

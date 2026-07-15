@@ -8,6 +8,8 @@
  * - Prod:  auth=https://auth.fatturazioneelettronica.aruba.it      ws=https://ws.fatturazioneelettronica.aruba.it
  */
 
+import { logError } from '@/lib/logger';
+
 export interface ArubaConfig {
   username: string;
   password: string;
@@ -123,7 +125,8 @@ async function getToken(config: ArubaConfig): Promise<string> {
         };
         return cachedTokens.access_token;
       }
-    } catch {
+    } catch (e) {
+      await logError({ error: e, route: 'aruba-client', source: 'server', context: { op: 'aruba-token-refresh' } });
       // Fall through to full sign-in
     }
   }

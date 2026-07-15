@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { getInvoiceStatus, getArubaConfigFromEnv, SDI_STATUS_MAP } from '@/lib/aruba/client';
+import { logError } from '@/lib/logger';
 
 /**
  * POST /api/invoices/sdi-status
@@ -69,6 +70,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (err) {
+    await logError({ error: err, route: 'invoices/sdi-status', source: 'api', context: { op: 'sdi-status' } });
     const errorMsg = err instanceof Error ? err.message : 'Errore sconosciuto';
     return NextResponse.json({ error: `Errore controllo stato: ${errorMsg}` }, { status: 500 });
   }

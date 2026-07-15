@@ -4,6 +4,7 @@
 import { useEffect, useState, useCallback, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { reportUnknown, reportSupabaseError } from '@/lib/report-error';
 import { useAuth } from '@/hooks/use-auth';
 import { Card, CardContent } from '@/components/ui/card';
 import { Breadcrumb } from '@/components/ui/breadcrumb';
@@ -216,6 +217,7 @@ export default function ClientDetailPage({
       setKnowledgeBase(kbData as ClientKnowledgeBase | null);
       toast.success('Knowledge base aggiornata');
     } catch (e) {
+      reportUnknown(e, 'client', { op: 'client-kb-salva', clientId: id });
       toast.error((e as { message?: string } | undefined)?.message || 'Errore durante il salvataggio della knowledge base');
     }
   };
@@ -224,7 +226,7 @@ export default function ClientDetailPage({
     const fileExt = file.name.split('.').pop();
     const fileName = `${id}/${Date.now()}.${fileExt}`;
     const { error } = await supabase.storage.from('contracts').upload(fileName, file);
-    if (error) return null;
+    if (error) { reportSupabaseError(error, 'client-upload-allegato', { clientId: id }); return null; }
     const { data: urlData } = supabase.storage.from('contracts').getPublicUrl(fileName);
     return { url: urlData.publicUrl, name: file.name };
   };
@@ -260,6 +262,7 @@ export default function ClientDetailPage({
       .single();
 
     if (error || !newContract) {
+      reportSupabaseError(error, 'client-crea-contratto', { clientId: id });
       setContractError(error?.message || 'Contratto non creato');
       return;
     }
@@ -304,6 +307,7 @@ export default function ClientDetailPage({
     });
 
     if (error) {
+      reportSupabaseError(error, 'client-rinnova-contratto', { clientId: id, contractId: contract.id });
       setContractError(error.message || 'Rinnovo non riuscito');
       return;
     }
@@ -325,6 +329,7 @@ export default function ClientDetailPage({
       p_paid_at: paidAt ?? null,
     });
     if (error) {
+      reportSupabaseError(error, 'client-toggle-pagamento', { paymentId: payment.id });
       toast.error(error.message || 'Errore durante l\'aggiornamento del pagamento');
       return;
     }

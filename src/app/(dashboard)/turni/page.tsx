@@ -16,6 +16,7 @@ import { formatDateLocal, getInitials, getUserColor } from '@/lib/utils';
 import { SHIFT_TYPE_LABELS, SHIFT_TYPE_COLOR } from '@/lib/constants';
 import type { Shift, ShiftType } from '@/types/database';
 import { ChevronLeft, ChevronRight, Plus, Calendar, AlertTriangle, Trash2, Clock, MapPin, Pencil } from 'lucide-react';
+import { reportUnknown } from '@/lib/report-error';
 
 const DAY_LABELS = ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica'];
 const DAY_SHORT = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'];
@@ -84,7 +85,8 @@ export default function TurniPage() {
       if (shRes.error) throw shRes.error;
       setShifts((shRes.data as Shift[]) || []);
       setEmployees((empRes.data as { id: string; full_name: string; color: string | null }[]) || []);
-    } catch {
+    } catch (err) {
+      reportUnknown(err, 'client', { op: 'turni-fetch' });
       setError(true);
     } finally {
       setLoading(false);
@@ -158,6 +160,7 @@ export default function TurniPage() {
       setShowModal(false);
       fetchData();
     } catch (e) {
+      reportUnknown(e, 'client', { op: 'turni-salva' });
       toast.error((e as { message?: string } | undefined)?.message || 'Errore');
     } finally {
       submittingRef.current = false;
@@ -174,6 +177,7 @@ export default function TurniPage() {
       setShowModal(false);
       fetchData();
     } catch (e) {
+      reportUnknown(e, 'client', { op: 'turni-elimina' });
       toast.error((e as { message?: string } | undefined)?.message || 'Errore');
     }
   };

@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { checkRateLimit, AI_RATE_LIMIT } from '@/lib/rate-limit';
+import { logError } from '@/lib/logger';
 
 /**
  * Build score-based diagnostic lines.
@@ -237,7 +238,10 @@ Scrivi SOLO il messaggio finale, niente altro.`;
     try {
       message = await provider.fn();
       if (message) break;
-    } catch { continue; }
+    } catch (e) {
+      await logError({ error: e, route: '/api/prospects/outreach', source: 'api', context: { op: 'outreach' } });
+      continue;
+    }
   }
 
   if (!message) {

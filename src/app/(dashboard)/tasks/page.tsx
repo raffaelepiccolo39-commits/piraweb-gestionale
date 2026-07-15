@@ -22,6 +22,7 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { ListTodo, Calendar, Clock, ArrowRight, Sparkles, Brain, Check, Send, AlertTriangle, Archive, ArchiveRestore, ExternalLink } from 'lucide-react';
 import { STATUS_LABELS, PRIORITY_LABELS } from '@/lib/constants';
 import { TaskViewSwitcher } from '@/components/tasks/view-switcher';
+import { reportUnknown, reportSupabaseError } from '@/lib/report-error';
 
 interface ParsedTask {
   title: string;
@@ -120,7 +121,8 @@ export default function TasksPage() {
       const { data, error } = await query;
       if (error) throw error;
       setTasks((data as Task[]) || []);
-    } catch {
+    } catch (err) {
+      reportUnknown(err, 'client', { op: 'tasks-fetch' });
       setError(true);
     } finally {
       setLoading(false);
@@ -154,6 +156,7 @@ export default function TasksPage() {
   const handleStatusChange = async (taskId: string, newStatus: string) => {
     const { error } = await supabase.from('tasks').update({ status: newStatus }).eq('id', taskId);
     if (error) {
+      reportSupabaseError(error, 'tasks-status-change', { taskId, newStatus });
       // Mostra il messaggio reale del DB (es. blocco "registra le ore prima di
       // completare"), altrimenti l'utente non capisce perché non riesce.
       toast.error(error.message || 'Errore durante l\'aggiornamento dello stato');
@@ -172,14 +175,14 @@ export default function TasksPage() {
 
   const handleArchive = async (taskId: string) => {
     const { error } = await supabase.from('tasks').update({ archived_at: new Date().toISOString() }).eq('id', taskId);
-    if (error) { toast.error('Errore durante l\'archiviazione'); return; }
+    if (error) { reportSupabaseError(error, 'tasks-archive', { taskId }); toast.error('Errore durante l\'archiviazione'); return; }
     toast.success('Task archiviata');
     fetchTasks();
   };
 
   const handleRestore = async (taskId: string) => {
     const { error } = await supabase.from('tasks').update({ archived_at: null }).eq('id', taskId);
-    if (error) { toast.error('Errore durante il ripristino'); return; }
+    if (error) { reportSupabaseError(error, 'tasks-restore', { taskId }); toast.error('Errore durante il ripristino'); return; }
     toast.success('Task ripristinata');
     fetchTasks();
   };
@@ -203,6 +206,7 @@ export default function TasksPage() {
       });
 
       if (rpcError || !projectId) {
+        reportSupabaseError(rpcError, 'tasks-ai-get-project', { clientId: aiClientId });
         toast.error('Impossibile creare il progetto per il cliente selezionato');
         return;
       }
@@ -220,6 +224,7 @@ export default function TasksPage() {
         toast.error(data.error || 'Errore nell\'analisi AI dei task');
       }
     } catch (err) {
+      reportUnknown(err, 'client', { op: 'tasks-ai-parse' });
       if (err instanceof DOMException && err.name === 'AbortError') {
         toast.error('L\'AI ci sta mettendo troppo. Riprova con una richiesta più breve.');
       } else {
@@ -273,6 +278,7 @@ export default function TasksPage() {
         setTasksSaved(false);
       }, 1500);
     } else {
+      reportSupabaseError(error, 'tasks-ai-salva');
       toast.error('Errore durante il salvataggio dei task');
     }
     setAiLoading(false);

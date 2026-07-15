@@ -29,6 +29,7 @@ import {
   ChevronDown,
   ChevronRight,
 } from 'lucide-react';
+import { reportUnknown, reportSupabaseError } from '@/lib/report-error';
 
 const statusLabels: Record<string, string> = {
   draft: 'Bozza',
@@ -108,7 +109,7 @@ export default function ProjectDetailPage({
 
   const handleRestoreTask = async (taskId: string) => {
     const { error } = await supabase.from('tasks').update({ archived_at: null }).eq('id', taskId);
-    if (error) { toast.error('Errore durante il ripristino'); return; }
+    if (error) { reportSupabaseError(error, 'project-restore-task', { taskId }); toast.error('Errore durante il ripristino'); return; }
     toast.success('Task ripristinata');
     fetchTasks();
     fetchArchivedTasks();
@@ -150,6 +151,7 @@ export default function ProjectDetailPage({
       setShowTaskForm(false);
       fetchTasks();
     } catch (e) {
+      reportUnknown(e, 'client', { op: 'project-crea-task', projectId: id });
       // Prima errori silenti: il modal restava aperto senza feedback → utente confuso
       toast.error((e as { message?: string } | undefined)?.message || 'Errore durante la creazione del task');
     } finally {
@@ -172,6 +174,7 @@ export default function ProjectDetailPage({
       p_member_ids: data.member_ids,
     });
     if (error) {
+      reportSupabaseError(error, 'project-modifica', { projectId: id });
       toast.error(error.message || 'Errore durante l\'aggiornamento del progetto');
       return;
     }
@@ -181,6 +184,7 @@ export default function ProjectDetailPage({
       .update({ budget_amount: data.budget_amount ? Number(data.budget_amount) : null })
       .eq('id', id);
     if (budgetErr) {
+      reportSupabaseError(budgetErr, 'project-budget', { projectId: id });
       toast.error('Progetto aggiornato ma budget non salvato: ' + budgetErr.message);
       return;
     }
@@ -221,6 +225,7 @@ export default function ProjectDetailPage({
       toast.success('Progetto eliminato');
       router.push('/projects');
     } catch (e) {
+      reportUnknown(e, 'client', { op: 'project-elimina', projectId: id });
       toast.error((e as { message?: string } | undefined)?.message || 'Errore durante l\'eliminazione');
       setDeletingProject(false);
     }

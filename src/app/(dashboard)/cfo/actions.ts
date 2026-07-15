@@ -1,6 +1,7 @@
 'use server';
 
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { logError } from '@/lib/logger';
 
 /**
  * Server Action to parse payslip PDF via Gemini AI.
@@ -91,6 +92,7 @@ Tutti importi come NUMERI. Rispondi SOLO con un JSON array valido, nessun testo.
     return { success: true, payslips, count: payslips.length };
 
   } catch (err) {
+    await logError({ error: err, route: '/cfo', source: 'server', context: { op: 'cfo-parse-payslip' } });
     return { success: false, error: err instanceof Error ? err.message : 'Errore sconosciuto' };
   }
 }
@@ -145,7 +147,10 @@ export async function savePayslipsAction(payslips: Record<string, unknown>[]): P
       created_by: user.id,
     }, { onConflict: 'employee_id,month' });
 
-    if (error) errors++;
+    if (error) {
+      await logError({ error, route: '/cfo', source: 'server', context: { op: 'cfo-salva-payslip', employeeId: p.employee_id, month: p.month } });
+      errors++;
+    }
     else saved++;
   }
 

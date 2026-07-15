@@ -14,6 +14,7 @@ import { cn, getInitials, getUserColor, getRoleLabel, formatCurrency, formatDate
 import { STATUS_LABELS } from '@/lib/constants';
 import type { EmployeeContractType } from '@/types/database';
 import { Clock, ListTodo, Plane, Wallet, Activity, Mail, Briefcase, Calendar, ChevronRight, AlertTriangle, Check } from 'lucide-react';
+import { reportUnknown } from '@/lib/report-error';
 
 const COLOR_PALETTE = [
   '#ef4444', '#f97316', '#f59e0b', '#eab308',
@@ -120,6 +121,7 @@ export default function ProfiloPage() {
       toast.success('Profilo aggiornato');
       retryLoadProfile();
     } catch (e) {
+      reportUnknown(e, 'client', { op: 'profilo-salva' });
       toast.error((e as { message?: string } | undefined)?.message || 'Errore durante il salvataggio');
     } finally {
       setSaving(false);
@@ -163,7 +165,8 @@ export default function ProfiloPage() {
       } catch {
         setFerie(null);
       }
-    } catch {
+    } catch (err) {
+      reportUnknown(err, 'client', { op: 'profilo-fetch' });
       setError(true);
     } finally {
       setLoading(false);

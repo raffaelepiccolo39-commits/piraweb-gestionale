@@ -63,6 +63,27 @@ export function reportError(payload: ReportPayload): void {
   }
 }
 
+/**
+ * Errore Supabase (o PostgREST) inghiottito: lo manda al log SENZA cambiare la
+ * UX. Da usare accanto al toast esistente, dove prima `error` finiva ignorato.
+ *
+ * ```ts
+ * const { error } = await supabase.from('tasks').update(...);
+ * if (error) { reportSupabaseError(error, 'aggiorna-task', { taskId }); toast.error('...'); return; }
+ * ```
+ */
+export function reportSupabaseError(
+  error: { message?: string; code?: string; details?: string; hint?: string } | null | undefined,
+  op: string,
+  context?: Record<string, unknown>,
+): void {
+  if (!error) return;
+  reportError({
+    message: `${op}: ${error.message ?? 'errore sconosciuto'}`,
+    context: { op, code: error.code, details: error.details, hint: error.hint, ...context },
+  });
+}
+
 /** Normalizza qualunque cosa arrivi da un handler globale. */
 export function reportUnknown(
   error: unknown,

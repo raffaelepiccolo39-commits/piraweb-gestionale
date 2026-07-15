@@ -17,6 +17,7 @@ import type { Profile, UserRole } from '@/types/database';
 import { Settings, Users, Shield, ShieldCheck, ShieldOff, Save, UserPlus, Eye, EyeOff, Pencil, Lock, ArrowRightLeft, AlertTriangle, Loader2, Copy, Check, UserX, UserCheck } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
 import { SkeletonStats, SkeletonList } from '@/components/ui/skeleton';
+import { reportUnknown, reportSupabaseError } from '@/lib/report-error';
 
 const roleOptions = [
   { value: 'admin', label: 'Admin' },
@@ -128,7 +129,8 @@ export default function SettingsPage() {
         const res = await fetch('/api/auth/2fa/status');
         const data = await res.json();
         setTwoFAEnabled(data.enabled);
-      } catch {
+      } catch (err) {
+        reportUnknown(err, 'client', { op: 'settings-2fa-status' });
         // ignore
       }
       setTwoFALoading(false);
@@ -148,7 +150,8 @@ export default function SettingsPage() {
       } else {
         toast.error(data.error || 'Errore nel setup 2FA');
       }
-    } catch {
+    } catch (err) {
+      reportUnknown(err, 'client', { op: 'settings-2fa-setup' });
       toast.error('Errore di connessione');
     }
     setSetupLoading(false);
@@ -177,7 +180,8 @@ export default function SettingsPage() {
       } else {
         toast.error(data.error || 'Codice non valido');
       }
-    } catch {
+    } catch (err) {
+      reportUnknown(err, 'client', { op: 'settings-2fa-verify-setup' });
       toast.error('Errore di connessione');
     }
     setSetupLoading(false);
@@ -204,7 +208,8 @@ export default function SettingsPage() {
       } else {
         toast.error(data.error || 'Codice non valido');
       }
-    } catch {
+    } catch (err) {
+      reportUnknown(err, 'client', { op: 'settings-2fa-disable' });
       toast.error('Errore di connessione');
     }
     setDisableLoading(false);
@@ -235,7 +240,8 @@ export default function SettingsPage() {
       } else {
         toast.error(data.error || 'Errore nel cambio password');
       }
-    } catch {
+    } catch (err) {
+      reportUnknown(err, 'client', { op: 'settings-change-password' });
       toast.error('Errore di connessione');
     }
     setPasswordLoading(false);
@@ -259,7 +265,8 @@ export default function SettingsPage() {
       } else {
         toast.error(data.error || 'Errore nella riassegnazione');
       }
-    } catch {
+    } catch (err) {
+      reportUnknown(err, 'client', { op: 'settings-reassign-tasks' });
       toast.error('Errore di connessione');
     }
     setReassignLoading(false);
@@ -292,6 +299,7 @@ export default function SettingsPage() {
       .update({ full_name: profileForm.full_name })
       .eq('id', profile.id);
     if (error) {
+      reportSupabaseError(error, 'settings-update-profile', { userId: profile.id });
       toast.error('Errore nel salvataggio del profilo');
     } else {
       toast.success('Profilo aggiornato');
@@ -311,7 +319,8 @@ export default function SettingsPage() {
         toast.error(data.error || 'Errore aggiornamento ruolo');
         return;
       }
-    } catch {
+    } catch (err) {
+      reportUnknown(err, 'client', { op: 'settings-update-role' });
       toast.error('Errore di connessione');
       return;
     }
@@ -331,7 +340,8 @@ export default function SettingsPage() {
         return;
       }
       toast.success('Invito reinviato via email');
-    } catch {
+    } catch (err) {
+      reportUnknown(err, 'client', { op: 'settings-resend-invite' });
       toast.error('Errore di connessione');
     }
   };
@@ -348,7 +358,8 @@ export default function SettingsPage() {
         toast.error(data.error || 'Errore aggiornamento stato');
         return;
       }
-    } catch {
+    } catch (err) {
+      reportUnknown(err, 'client', { op: 'settings-toggle-active' });
       toast.error('Errore di connessione');
       return;
     }
@@ -368,7 +379,8 @@ export default function SettingsPage() {
         return;
       }
       toast.success('Membro licenziato: accesso bloccato e task liberate');
-    } catch {
+    } catch (err) {
+      reportUnknown(err, 'client', { op: 'settings-terminate-member' });
       toast.error('Errore di connessione');
       return;
     }
@@ -388,7 +400,8 @@ export default function SettingsPage() {
         return;
       }
       toast.success('Membro riassunto: accesso ripristinato');
-    } catch {
+    } catch (err) {
+      reportUnknown(err, 'client', { op: 'settings-reinstate-member' });
       toast.error('Errore di connessione');
       return;
     }
@@ -427,7 +440,8 @@ export default function SettingsPage() {
           setCreateSuccess(false);
         }, 1500));
       }
-    } catch {
+    } catch (err) {
+      reportUnknown(err, 'client', { op: 'settings-create-user' });
       setCreateError('Errore di connessione');
     } finally {
       setCreateLoading(false);
@@ -467,7 +481,8 @@ export default function SettingsPage() {
         const data = await res.json();
         toast.error(data.error || 'Errore salvataggio dipendente');
       }
-    } catch {
+    } catch (err) {
+      reportUnknown(err, 'client', { op: 'settings-save-employee' });
       toast.error('Errore di connessione');
     }
     setEditLoading(false);

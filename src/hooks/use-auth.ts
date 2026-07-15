@@ -3,6 +3,7 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useAuthStore } from '@/store/auth-store';
+import { reportUnknown, reportSupabaseError } from '@/lib/report-error';
 import type { Profile } from '@/types/database';
 
 export function useAuth() {
@@ -38,6 +39,7 @@ export function useAuth() {
       // Profile missing — try RPC auto-create
       if (error?.code === 'PGRST116' /* no rows */) {
         const { data: synced, error: rpcError } = await supabase.rpc('ensure_my_profile');
+        if (rpcError) reportSupabaseError(rpcError, 'use-auth-ensure-profile');
         if (!rpcError && synced) {
           setProfile(synced as Profile);
           return;
@@ -45,7 +47,8 @@ export function useAuth() {
       }
 
       setProfile(null);
-    } catch {
+    } catch (err) {
+      reportUnknown(err, 'client', { op: 'use-auth-load-profile' });
       setProfile(null);
     } finally {
       fetchingRef.current = false;
