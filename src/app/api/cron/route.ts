@@ -6,7 +6,6 @@ import { logError } from '@/lib/logger';
 
 /**
  * Cron endpoint to run scheduled tasks:
- * - Generate recurring tasks
  * - Generate deadline alerts
  *
  * Call this via Vercel Cron or external scheduler every hour:
@@ -33,20 +32,10 @@ async function handleCron(request: NextRequest) {
 
   const results: Record<string, unknown> = {};
 
-  // 1. Generate recurring tasks
-  try {
-    const { data: recurringCount, error: rpcError } = await supabase.rpc('generate_recurring_tasks');
-    // supabase.rpc non lancia: senza questo check un fallimento passava per
-    // "0 elementi elaborati" e il cron rispondeva success: true.
-    if (rpcError) throw new Error(`generate_recurring_tasks: ${rpcError.message}`);
-    results.recurring_tasks_generated = recurringCount ?? 0;
-  } catch (err) {
-    await logError({ error: err, route: 'cron', source: 'cron', context: { stage: 'recurring_tasks' } });
-    await logError({ error: err, route: 'cron:recurring_tasks', source: 'cron' });
-    results.recurring_tasks_error = err instanceof Error ? err.message : 'unknown';
-  }
+  // Le task ricorrenti sono state rimosse (feature mai usata, tabella vuota):
+  // qui c'era la chiamata a generate_recurring_tasks.
 
-  // 2. Generate deadline alerts
+  // 1. Generate deadline alerts
   try {
     const { data: alertCount, error: rpcError } = await supabase.rpc('generate_deadline_alerts');
     // supabase.rpc non lancia: senza questo check un fallimento passava per
@@ -59,7 +48,7 @@ async function handleCron(request: NextRequest) {
     results.deadline_alerts_error = err instanceof Error ? err.message : 'unknown';
   }
 
-  // 3. Auto-archive done tasks older than 7 days
+  // 2. Auto-archive done tasks older than 7 days
   try {
     const { data: archivedCount, error: rpcError } = await supabase.rpc('archive_done_tasks');
     // supabase.rpc non lancia: senza questo check un fallimento passava per
@@ -72,7 +61,7 @@ async function handleCron(request: NextRequest) {
     results.tasks_archived_error = err instanceof Error ? err.message : 'unknown';
   }
 
-  // 4. Chiude i timer lasciati aperti (anti-runaway, cap 8h)
+  // 3. Chiude i timer lasciati aperti (anti-runaway, cap 8h)
   try {
     const { data: closedCount, error: rpcError } = await supabase.rpc('close_stale_time_entries');
     // supabase.rpc non lancia: senza questo check un fallimento passava per
@@ -85,7 +74,7 @@ async function handleCron(request: NextRequest) {
     results.stale_timers_error = err instanceof Error ? err.message : 'unknown';
   }
 
-  // 5. Retention log errori: tiene 60 giorni, la tabella non deve gonfiarsi.
+  // 4. Retention log errori: tiene 60 giorni, la tabella non deve gonfiarsi.
   try {
     const { data: purgedCount, error: rpcError } = await supabase.rpc('purge_old_error_logs');
     if (rpcError) throw new Error(`purge_old_error_logs: ${rpcError.message}`);
@@ -95,7 +84,7 @@ async function handleCron(request: NextRequest) {
     results.error_logs_purge_error = err instanceof Error ? err.message : 'unknown';
   }
 
-  // 6. Retention metriche di lentezza (14 giorni: sono tante e invecchiano presto).
+  // 5. Retention metriche di lentezza (14 giorni: sono tante e invecchiano presto).
   try {
     const { data: purgedPerf, error: rpcError } = await supabase.rpc('purge_old_perf_logs');
     if (rpcError) throw new Error(`purge_old_perf_logs: ${rpcError.message}`);

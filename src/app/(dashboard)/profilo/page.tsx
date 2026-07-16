@@ -209,8 +209,8 @@ export default function ProfiloPage() {
         <div
           className="w-16 h-16 rounded-2xl flex items-center justify-center text-xl font-bold shrink-0"
           style={{
-            background: `linear-gradient(135deg, #E0431A, ${getUserColor(profile)})`,
-            color: getContrastTextColor(['#E0431A', getUserColor(profile)]),
+            backgroundColor: getUserColor(profile),
+            color: getContrastTextColor(getUserColor(profile)),
           }}
         >
           {getInitials(profile.full_name)}

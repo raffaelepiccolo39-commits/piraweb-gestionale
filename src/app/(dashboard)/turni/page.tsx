@@ -12,7 +12,7 @@ import { PageHeader } from '@/components/ui/page-header';
 import { useToast } from '@/components/ui/toast';
 import { SkeletonList } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
-import { formatDateLocal, getInitials, getUserColor } from '@/lib/utils';
+import { formatDateLocal, getInitials, getUserColor, getContrastTextColor } from '@/lib/utils';
 import { SHIFT_TYPE_LABELS, SHIFT_TYPE_COLOR } from '@/lib/constants';
 import type { Shift, ShiftType } from '@/types/database';
 import { ChevronLeft, ChevronRight, Plus, Calendar, AlertTriangle, Trash2, Clock, MapPin, Pencil } from 'lucide-react';
@@ -257,8 +257,11 @@ export default function TurniPage() {
                           style={{ borderLeftWidth: '3px', borderLeftColor: SHIFT_TYPE_COLOR[s.type] }}
                         >
                           <span
-                            className="w-7 h-7 rounded-md flex items-center justify-center text-white text-[10px] font-bold shrink-0"
-                            style={{ background: `linear-gradient(135deg, #E0431A, ${s.user?.color || getUserColor(null)})` }}
+                            className="w-7 h-7 rounded-md flex items-center justify-center text-[10px] font-bold shrink-0"
+                            style={{
+                              backgroundColor: s.user?.color || getUserColor(null),
+                              color: getContrastTextColor(s.user?.color || getUserColor(null)),
+                            }}
                           >
                             {s.user?.full_name ? getInitials(s.user.full_name) : '?'}
                           </span>

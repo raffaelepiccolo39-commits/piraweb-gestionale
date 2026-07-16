@@ -21,7 +21,6 @@ import { DataTable } from '@/components/ui/data-table';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { ListTodo, Calendar, Clock, ArrowRight, Sparkles, Brain, Check, Send, AlertTriangle, Archive, ArchiveRestore, ExternalLink } from 'lucide-react';
 import { STATUS_LABELS, PRIORITY_LABELS } from '@/lib/constants';
-import { TaskViewSwitcher } from '@/components/tasks/view-switcher';
 import { reportUnknown, reportSupabaseError } from '@/lib/report-error';
 
 interface ParsedTask {
@@ -341,7 +340,6 @@ export default function TasksPage() {
           </div>
         }
       />
-      <TaskViewSwitcher active={groupMode === 'sector' ? 'raggruppata' : 'lista'} />
 
       <div className="flex flex-wrap items-end gap-3 mb-6 mt-6">
         <div className="w-52">

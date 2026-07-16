@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
 import { cn } from '@/lib/utils';
 import { PageHeader } from '@/components/ui/page-header';
-import { Calendar, FileEdit, Sparkles, Layers, LayoutTemplate, Repeat } from 'lucide-react'; // Zap rimosso con la tab Automazioni nascosta
+import { Calendar, FileEdit, Sparkles, Layers, LayoutTemplate } from 'lucide-react'; // Zap e Repeat rimossi con le tab Automazioni e Task Ricorrenti
 
 // Lazy import delle pagine esistenti
 import SocialCalendarPage from '../social-calendar/page';
@@ -14,7 +14,6 @@ import AIPage from '../ai/page';
 import AIContentPage from '../ai-content/page';
 // import AutomationsPage from '../automations/page'; // tab nascosta: nessun motore esecuzione
 import TemplatesPage from '../templates/page';
-import RecurringTasksPage from '../recurring-tasks/page';
 
 const tabs = [
   { id: 'piano', label: 'Piano Editoriale', icon: Calendar },
@@ -23,7 +22,6 @@ const tabs = [
   { id: 'ai-bulk', label: 'AI Contenuti', icon: Layers },
   // { id: 'automazioni', label: 'Automazioni', icon: Zap }, // nascosta: manca il motore di esecuzione
   { id: 'template', label: 'Template', icon: LayoutTemplate },
-  { id: 'ricorrenti', label: 'Task Ricorrenti', icon: Repeat },
 ];
 
 function ContenutiContent() {
@@ -69,7 +67,6 @@ function ContenutiContent() {
         {activeTab === 'ai-bulk' && <AIContentPage />}
         {/* {activeTab === 'automazioni' && <AutomationsPage />} */}
         {activeTab === 'template' && <TemplatesPage />}
-        {activeTab === 'ricorrenti' && <RecurringTasksPage />}
       </div>
     </div>
   );

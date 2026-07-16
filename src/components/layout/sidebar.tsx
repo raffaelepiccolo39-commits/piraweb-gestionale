@@ -318,8 +318,8 @@ export function Sidebar({ collapsed, onToggle, onNavigate }: SidebarProps) {
             <div
               className="w-8 h-8 rounded-md flex items-center justify-center text-xs font-bold shrink-0"
               style={{
-                background: `linear-gradient(135deg, #E0431A, ${getUserColor(profile)})`,
-                color: getContrastTextColor(['#E0431A', getUserColor(profile)]),
+                backgroundColor: getUserColor(profile),
+                color: getContrastTextColor(getUserColor(profile)),
               }}
             >
               {getInitials(profile.full_name)}

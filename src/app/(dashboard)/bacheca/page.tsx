@@ -22,7 +22,6 @@ import { PageHeader } from '@/components/ui/page-header';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { TaskDetailModal } from '@/components/tasks/task-detail-modal';
 import { TaskForm } from '@/components/tasks/task-form';
-import { TaskViewSwitcher } from '@/components/tasks/view-switcher';
 import { formatDate, getInitials, getStatusBarColor, getStatusColor, safeStorageName, getContrastTextColor } from '@/lib/utils';
 import type { Task, Profile, Client } from '@/types/database';
 import {
@@ -328,8 +327,6 @@ export default function BachecaPage() {
           )
         }
       />
-
-      <TaskViewSwitcher active="kanban" />
 
       {/* Legenda colori stato: la striscia a sinistra di ogni card ne indica lo stato */}
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[11px] text-pw-text-muted">

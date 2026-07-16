@@ -105,7 +105,7 @@ function relativeLuminance(hex: string): number | null {
 }
 
 /**
- * Colore di testo leggibile sopra uno sfondo (avatar con le iniziali).
+ * Colore di testo leggibile sopra uno sfondo pieno (avatar con le iniziali).
  *
  * Il bianco fisso non basta: tutti i colori profilo scelti dal team stanno
  * sotto la soglia WCAG AA (4.5:1) contro il bianco — il gold #D4A800 arriva a
@@ -113,20 +113,18 @@ function relativeLuminance(hex: string): number | null {
  * su alcuni colori (es. viola #8B5CF6) nessuno dei due raggiunge 4.5:1, quindi
  * vince comunque il meno peggio invece di un default cieco.
  *
- * Accetta più colori (le fermate di un gradiente): in quel caso vince il testo
- * che massimizza il contrasto PEGGIORE, così regge su tutta la sfumatura e non
- * solo su un estremo.
+ * Vuole un colore PIENO: su un gradiente il punto peggiore della sfumatura non
+ * può mai battere l'ottimo del colore singolo, quindi gli avatar usano tutti
+ * uno sfondo pieno.
  */
-export function getContrastTextColor(hex: string | string[]): string {
+export function getContrastTextColor(hex: string): string {
   const DARK = '#0A263A';
-  const stops = (Array.isArray(hex) ? hex : [hex])
-    .map(relativeLuminance)
-    .filter((l): l is number => l !== null);
-  if (stops.length === 0) return '#ffffff';
+  const l = relativeLuminance(hex);
+  if (l === null) return '#ffffff';
   const darkL = relativeLuminance(DARK) ?? 0;
-  const worstWhite = Math.min(...stops.map((l) => 1.05 / (l + 0.05)));
-  const worstDark = Math.min(...stops.map((l) => (l + 0.05) / (darkL + 0.05)));
-  return worstDark > worstWhite ? DARK : '#ffffff';
+  const withWhite = 1.05 / (l + 0.05);
+  const withDark = (l + 0.05) / (darkL + 0.05);
+  return withDark > withWhite ? DARK : '#ffffff';
 }
 
 export function getRoleLabel(role: string): string {

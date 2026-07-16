@@ -94,7 +94,7 @@ export function recordTiming(timing: Timing): void {
 /**
  * Trasforma l'URL PostgREST in un nome leggibile e raggruppabile.
  *   /rest/v1/tasks?select=*&status=eq.done  →  GET tasks
- *   /rest/v1/rpc/generate_recurring_tasks   →  POST rpc.generate_recurring_tasks
+ *   /rest/v1/rpc/generate_deadline_alerts   →  POST rpc.generate_deadline_alerts
  *   /auth/v1/user                           →  GET auth.user
  */
 export function describeSupabaseCall(
