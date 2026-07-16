@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { cn, getRoleLabel, getInitials, getUserColor } from '@/lib/utils';
+import { cn, getRoleLabel, getInitials, getUserColor, getContrastTextColor } from '@/lib/utils';
 import { useTheme } from '@/components/theme-provider';
 import { useAuth } from '@/hooks/use-auth';
 import { createClient } from '@/lib/supabase/client';
@@ -316,9 +316,10 @@ export function Sidebar({ collapsed, onToggle, onNavigate }: SidebarProps) {
             className={cn('flex items-center gap-2.5 min-w-0 rounded-md transition-opacity hover:opacity-80', collapsed ? '' : 'flex-1')}
           >
             <div
-              className="w-8 h-8 rounded-md flex items-center justify-center text-white text-xs font-bold shrink-0"
+              className="w-8 h-8 rounded-md flex items-center justify-center text-xs font-bold shrink-0"
               style={{
                 background: `linear-gradient(135deg, #E0431A, ${getUserColor(profile)})`,
+                color: getContrastTextColor(['#E0431A', getUserColor(profile)]),
               }}
             >
               {getInitials(profile.full_name)}

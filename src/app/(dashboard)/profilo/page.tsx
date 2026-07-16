@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/components/ui/toast';
 import { SkeletonStats } from '@/components/ui/skeleton';
-import { cn, getInitials, getUserColor, getRoleLabel, formatCurrency, formatDate, todayLocal } from '@/lib/utils';
+import { cn, getInitials, getUserColor, getRoleLabel, formatCurrency, formatDate, todayLocal, getContrastTextColor } from '@/lib/utils';
 import { STATUS_LABELS } from '@/lib/constants';
 import type { EmployeeContractType } from '@/types/database';
 import { Clock, ListTodo, Plane, Wallet, Activity, Mail, Briefcase, Calendar, ChevronRight, AlertTriangle, Check } from 'lucide-react';
@@ -207,8 +207,11 @@ export default function ProfiloPage() {
       {/* Header identità */}
       <div className="flex items-center gap-4">
         <div
-          className="w-16 h-16 rounded-2xl flex items-center justify-center text-white text-xl font-bold shrink-0"
-          style={{ background: `linear-gradient(135deg, #E0431A, ${getUserColor(profile)})` }}
+          className="w-16 h-16 rounded-2xl flex items-center justify-center text-xl font-bold shrink-0"
+          style={{
+            background: `linear-gradient(135deg, #E0431A, ${getUserColor(profile)})`,
+            color: getContrastTextColor(['#E0431A', getUserColor(profile)]),
+          }}
         >
           {getInitials(profile.full_name)}
         </div>
