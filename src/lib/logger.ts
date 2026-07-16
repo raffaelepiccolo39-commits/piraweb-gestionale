@@ -1,5 +1,8 @@
 // Modulo server-only: usa il service role di Supabase. Dal browser gli errori
 // non si scrivono a mano — passano da POST /api/logs, che poi chiama logError().
+// Guardia: se un modulo client importa (e usa) questo file, il build fallisce
+// indicando questa riga invece di supabase/server.ts, che è solo una dipendenza.
+import 'server-only';
 import type { NextRequest } from 'next/server';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 
