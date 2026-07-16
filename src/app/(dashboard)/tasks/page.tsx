@@ -89,8 +89,19 @@ export default function TasksPage() {
   const isAdmin = profile?.role === 'admin';
   const toast = useToast();
 
+  // Le fetch partono in parallelo quando cambia il filtro (per gli admin
+  // assigneeFilter passa da 'me' ad 'all' appena arriva il profilo). Senza
+  // questo contatore vinceva l'ULTIMA risposta arrivata, non l'ultima
+  // richiesta: la fetch 'me' poteva atterrare dopo quella 'all' e sovrascrivere
+  // tutte le task con il proprio risultato (per un admin con task solo
+  // archiviate: zero). Scrive nello stato solo la richiesta più recente.
+  const fetchSeq = useRef(0);
+
   const fetchTasks = useCallback(async () => {
     if (!profile) return;
+
+    const seq = ++fetchSeq.current;
+    const isStale = () => seq !== fetchSeq.current;
 
     try {
       let query = supabase
@@ -120,12 +131,14 @@ export default function TasksPage() {
 
       const { data, error } = await query;
       if (error) throw error;
+      if (isStale()) return;
       setTasks((data as Task[]) || []);
     } catch (err) {
+      if (isStale()) return;
       reportUnknown(err, 'client', { op: 'tasks-fetch' });
       setError(true);
     } finally {
-      setLoading(false);
+      if (!isStale()) setLoading(false);
     }
   }, [profile, isAdmin, assigneeFilter, showArchived]);
 
