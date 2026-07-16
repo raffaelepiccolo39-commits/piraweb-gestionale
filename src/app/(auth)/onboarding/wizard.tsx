@@ -165,7 +165,7 @@ export default function OnboardingWizard(props: Props) {
             return (
               <div key={s.id} className="flex items-center flex-1 last:flex-none">
                 <div className="flex flex-col items-center gap-1">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${done ? 'bg-pw-accent text-white' : active ? 'bg-pw-accent/15 text-pw-accent border-2 border-pw-accent' : 'bg-pw-surface text-pw-text-muted border border-pw-border'}`}>
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${done ? 'bg-pw-accent text-[#0A263A]' : active ? 'bg-pw-accent/15 text-pw-accent border-2 border-pw-accent' : 'bg-pw-surface text-pw-text-muted border border-pw-border'}`}>
                     {done ? <Check className="w-5 h-5" /> : <Icon className="w-5 h-5" />}
                   </div>
                   <span className={`text-xs ${active ? 'text-pw-text font-medium' : 'text-pw-text-muted'}`}>{s.label}</span>
@@ -225,7 +225,7 @@ export default function OnboardingWizard(props: Props) {
               <button
                 type="submit"
                 disabled={pwLoading}
-                className="w-full bg-pw-accent text-white rounded-lg py-2.5 font-medium hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
+                className="w-full bg-pw-accent text-[#0A263A] rounded-lg py-2.5 font-medium hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {pwLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Continua <ArrowRight className="w-4 h-4" /></>}
               </button>
@@ -268,7 +268,7 @@ export default function OnboardingWizard(props: Props) {
                 <button
                   onClick={() => setStep('2fa')}
                   disabled={!name.trim()}
-                  className="flex-1 bg-pw-accent text-white rounded-lg py-2.5 font-medium hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
+                  className="flex-1 bg-pw-accent text-[#0A263A] rounded-lg py-2.5 font-medium hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   Continua <ArrowRight className="w-4 h-4" />
                 </button>
@@ -293,7 +293,7 @@ export default function OnboardingWizard(props: Props) {
                 <button
                   onClick={setupTfa}
                   disabled={tfaLoading}
-                  className="w-full bg-pw-accent text-white rounded-lg py-2.5 font-medium hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
+                  className="w-full bg-pw-accent text-[#0A263A] rounded-lg py-2.5 font-medium hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   {tfaLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Configura 2FA <ShieldCheck className="w-4 h-4" /></>}
                 </button>
@@ -323,7 +323,7 @@ export default function OnboardingWizard(props: Props) {
                   <button
                     onClick={verifyTfa}
                     disabled={tfaLoading || code.length !== 6}
-                    className="w-full bg-pw-accent text-white rounded-lg py-2.5 font-medium hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
+                    className="w-full bg-pw-accent text-[#0A263A] rounded-lg py-2.5 font-medium hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
                   >
                     {tfaLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Verifica e attiva'}
                   </button>
@@ -353,7 +353,7 @@ export default function OnboardingWizard(props: Props) {
                 <button
                   onClick={() => complete(false)}
                   disabled={completing || (isAdmin && !tfaEnabled)}
-                  className="flex-1 bg-pw-accent text-white rounded-lg py-2.5 font-medium hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
+                  className="flex-1 bg-pw-accent text-[#0A263A] rounded-lg py-2.5 font-medium hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   {completing ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Completa <Check className="w-4 h-4" /></>}
                 </button>

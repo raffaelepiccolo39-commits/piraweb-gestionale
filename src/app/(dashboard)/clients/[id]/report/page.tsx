@@ -7,7 +7,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Breadcrumb } from '@/components/ui/breadcrumb';
 import { Badge } from '@/components/ui/badge';
-import { formatCurrency, getInitials, getUserColor } from '@/lib/utils';
+import { formatCurrency, getInitials, getUserColor, getContrastTextColor } from '@/lib/utils';
 import { STATUS_LABELS } from '@/lib/constants';
 import type { Client, Task, Profile } from '@/types/database';
 import {
@@ -344,7 +344,7 @@ export default function ClientReportPage({ params }: { params: Promise<{ id: str
                   className="w-7 h-7 rounded-full flex items-center justify-center shrink-0"
                   style={{ backgroundColor: getUserColor(member) }}
                 >
-                  <span className="text-white text-[9px] font-bold">{getInitials(member.full_name)}</span>
+                  <span className="text-[9px] font-bold" style={{ color: getContrastTextColor(getUserColor(member)) }}>{getInitials(member.full_name)}</span>
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-pw-text truncate">{member.full_name}</p>

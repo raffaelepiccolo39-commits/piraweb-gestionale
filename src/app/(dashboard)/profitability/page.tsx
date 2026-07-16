@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { SkeletonStats, SkeletonList } from '@/components/ui/skeleton';
 import { PageHeader } from '@/components/ui/page-header';
-import { formatCurrency, getInitials, getUserColor, getRoleLabel } from '@/lib/utils';
+import { formatCurrency, getInitials, getUserColor, getRoleLabel, getContrastTextColor } from '@/lib/utils';
 import type { Profile, Client } from '@/types/database';
 import {
   TrendingUp,
@@ -372,7 +372,7 @@ export default function ProfitabilityPage() {
                   className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
                   style={{ backgroundColor: getUserColor(emp.profile) }}
                 >
-                  <span className="text-white text-[10px] font-bold">{getInitials(emp.profile.full_name)}</span>
+                  <span className="text-[10px] font-bold" style={{ color: getContrastTextColor(getUserColor(emp.profile)) }}>{getInitials(emp.profile.full_name)}</span>
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-pw-text truncate">{emp.profile.full_name}</p>
@@ -525,7 +525,7 @@ export default function ProfitabilityPage() {
                                         className="w-6 h-6 rounded-full flex items-center justify-center shrink-0"
                                         style={{ backgroundColor: getUserColor(eb.employee.profile) }}
                                       >
-                                        <span className="text-white text-[8px] font-bold">{getInitials(eb.employee.profile.full_name).charAt(0)}</span>
+                                        <span className="text-[8px] font-bold" style={{ color: getContrastTextColor(getUserColor(eb.employee.profile)) }}>{getInitials(eb.employee.profile.full_name).charAt(0)}</span>
                                       </div>
                                       <span className="text-pw-text text-xs">{eb.employee.profile.full_name}</span>
                                     </div>

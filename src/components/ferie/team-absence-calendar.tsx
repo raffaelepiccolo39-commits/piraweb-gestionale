@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
-import { getInitials } from '@/lib/utils';
+import { getInitials, getContrastTextColor } from '@/lib/utils';
 import { TIME_OFF_TYPE_LABELS } from '@/lib/constants';
 import type { TeamAbsence } from '@/types/database';
 import { ChevronLeft, ChevronRight, Plane, Clock, Stethoscope } from 'lucide-react';
@@ -117,7 +117,7 @@ export function TeamAbsenceCalendar() {
                         className="flex items-center gap-1 rounded px-1 py-0.5 min-w-0"
                         style={{ backgroundColor: (a.color || '#0A263A') + '22' }}
                       >
-                        <span className="w-3.5 h-3.5 rounded-full flex items-center justify-center text-[7px] font-bold text-white shrink-0" style={{ backgroundColor: a.color || '#0A263A' }}>
+                        <span className="w-3.5 h-3.5 rounded-full flex items-center justify-center text-[7px] font-bold shrink-0" style={{ backgroundColor: a.color || '#0A263A', color: getContrastTextColor(a.color || '#0A263A') }}>
                           {getInitials(a.full_name)}
                         </span>
                         <span className="text-[10px] text-pw-text truncate hidden sm:inline">{a.full_name.split(' ')[0]}</span>

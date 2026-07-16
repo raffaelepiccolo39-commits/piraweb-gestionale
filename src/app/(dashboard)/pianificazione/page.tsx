@@ -8,7 +8,7 @@ import { PageHeader } from '@/components/ui/page-header';
 import { Modal } from '@/components/ui/modal';
 import { Input } from '@/components/ui/input';
 import { SkeletonList } from '@/components/ui/skeleton';
-import { getInitials, getRoleLabel, todayLocal, formatDateLocal } from '@/lib/utils';
+import { getInitials, getRoleLabel, todayLocal, formatDateLocal, getContrastTextColor } from '@/lib/utils';
 import type { Profile } from '@/types/database';
 import { X, Clock, ChevronLeft, ChevronRight, Plus, Coffee, Utensils } from 'lucide-react';
 import { reportSupabaseError } from '@/lib/report-error';
@@ -301,7 +301,7 @@ export default function PianificazionePage() {
               {members.map((m) => (
                 <th key={m.id} className="min-w-[150px] px-2 py-2 text-left border-b border-pw-border bg-pw-surface-2">
                   <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] font-bold shrink-0" style={{ backgroundColor: m.color || '#ff4d1c' }}>
+                    <div className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold shrink-0" style={{ backgroundColor: m.color || '#ff4d1c', color: getContrastTextColor(m.color || '#ff4d1c') }}>
                       {getInitials(m.full_name)}
                     </div>
                     <div className="min-w-0">

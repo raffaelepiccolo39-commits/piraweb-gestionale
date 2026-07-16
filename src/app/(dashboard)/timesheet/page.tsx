@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/ui/page-header';
 import { SkeletonRow } from '@/components/ui/skeleton';
-import { getInitials, getUserColor, formatCurrency, formatDateLocal } from '@/lib/utils';
+import { getInitials, getUserColor, formatCurrency, formatDateLocal, getContrastTextColor } from '@/lib/utils';
 import type { Profile, TimeEntry } from '@/types/database';
 import {
   ChevronLeft,
@@ -91,7 +91,7 @@ function HoursTable({ rows, weekDates, variant }: { rows: MemberWeek[]; weekDate
               <td className="px-4 py-3 sticky left-0 bg-pw-surface z-10">
                 <div className="flex items-center gap-2">
                   <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: getUserColor(member.profile) }}>
-                    <span className="text-white text-[9px] font-bold">{getInitials(member.profile.full_name)}</span>
+                    <span className="text-[9px] font-bold" style={{ color: getContrastTextColor(getUserColor(member.profile)) }}>{getInitials(member.profile.full_name)}</span>
                   </div>
                   <div>
                     <p className="text-sm font-medium text-pw-text">{member.profile.full_name}</p>

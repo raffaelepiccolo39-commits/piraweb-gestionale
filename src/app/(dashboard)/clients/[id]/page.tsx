@@ -43,6 +43,10 @@ import {
   ChevronDown,
   FolderOpen,
   Wallet,
+  Briefcase,
+  Tag,
+  CalendarDays,
+  Camera,
 } from 'lucide-react';
 
 function CollapsibleSection({
@@ -455,6 +459,38 @@ export default function ClientDetailPage({
               </p>
             )}
           </CollapsibleSection>
+
+          {/* Dettagli rapporto: campi già raccolti dal form ma finora non mostrati qui */}
+          {(client.sector || client.service_types || client.relationship_start || client.needs_monthly_shooting) && (
+            <CollapsibleSection title="Dettagli Rapporto" icon={Briefcase} defaultOpen>
+              <div className="grid grid-cols-1 gap-3">
+                {client.sector && (
+                  <div className="flex items-center gap-2 text-sm text-pw-text-muted">
+                    <Tag size={16} className="text-pw-text-dim shrink-0" />
+                    <span>{client.sector}</span>
+                  </div>
+                )}
+                {client.service_types && (
+                  <div className="flex items-center gap-2 text-sm text-pw-text-muted">
+                    <Briefcase size={16} className="text-pw-text-dim shrink-0" />
+                    <span>{client.service_types}</span>
+                  </div>
+                )}
+                {client.relationship_start && (
+                  <div className="flex items-center gap-2 text-sm text-pw-text-muted">
+                    <CalendarDays size={16} className="text-pw-text-dim shrink-0" />
+                    <span>Cliente dal {new Date(client.relationship_start).toLocaleDateString('it-IT')}</span>
+                  </div>
+                )}
+                {client.needs_monthly_shooting && (
+                  <div className="flex items-center gap-2 text-sm text-pw-text-muted">
+                    <Camera size={16} className="text-pw-text-dim shrink-0" />
+                    <span>Shooting mensile</span>
+                  </div>
+                )}
+              </div>
+            </CollapsibleSection>
+          )}
 
           {/* Dati fiscali */}
           {(client.partita_iva || client.codice_fiscale || client.ragione_sociale) && (

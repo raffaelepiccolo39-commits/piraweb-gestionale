@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { PageHeader } from '@/components/ui/page-header';
 import { SkeletonStats, SkeletonList } from '@/components/ui/skeleton';
-import { formatCurrency, getInitials, getUserColor, formatDateLocal } from '@/lib/utils';
+import { formatCurrency, getInitials, getUserColor, formatDateLocal, getContrastTextColor } from '@/lib/utils';
 import type { ClientHealth, Profile } from '@/types/database';
 import {
   Crown,
@@ -341,7 +341,7 @@ export default function DirectionPage() {
               <div key={p.name} className="flex items-center gap-3">
                 <span className="text-xs font-bold text-pw-text-dim w-4">{i + 1}</span>
                 <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: p.color }}>
-                  <span className="text-white text-[9px] font-bold">{getInitials(p.name)}</span>
+                  <span className="text-[9px] font-bold" style={{ color: getContrastTextColor(p.color) }}>{getInitials(p.name)}</span>
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-pw-text truncate">{p.name}</p>

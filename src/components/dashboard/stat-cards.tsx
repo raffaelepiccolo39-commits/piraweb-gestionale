@@ -9,6 +9,7 @@ interface DashboardStats {
   totalClients: number;
   activeProjects: number;
   totalTasks: number;
+  todoTasks: number;
   completedTasks: number;
   inProgressTasks: number;
   overdueTasks: number;
@@ -54,7 +55,7 @@ const ACCENT_STYLES: Record<Accent, { iconBg: string; iconFg: string; sparkStrok
 export const StatCards = memo(function StatCards({ stats }: StatCardsProps) {
   const cards: StatDef[] = useMemo(() => [
     { label: 'Task totali', value: stats.totalTasks, icon: ListTodo, accent: 'neutral', href: '/tasks' },
-    { label: 'Da fare', value: stats.totalTasks - stats.completedTasks - stats.inProgressTasks, icon: ListTodo, accent: 'blue', href: '/tasks?status=todo' },
+    { label: 'Da fare', value: stats.todoTasks, icon: ListTodo, accent: 'blue', href: '/tasks?status=todo' },
     { label: 'Completate', value: stats.completedTasks, icon: CheckCircle2, accent: 'gold', href: '/tasks?status=done' },
     { label: 'In ritardo', value: stats.overdueTasks, icon: AlertTriangle, accent: 'blue', href: '/tasks?deadline=overdue' },
   ], [stats]);

@@ -23,7 +23,7 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { TaskDetailModal } from '@/components/tasks/task-detail-modal';
 import { TaskForm } from '@/components/tasks/task-form';
 import { TaskViewSwitcher } from '@/components/tasks/view-switcher';
-import { formatDate, getInitials, getStatusBarColor, getStatusColor, safeStorageName } from '@/lib/utils';
+import { formatDate, getInitials, getStatusBarColor, getStatusColor, safeStorageName, getContrastTextColor } from '@/lib/utils';
 import type { Task, Profile, Client } from '@/types/database';
 import {
   LayoutGrid,
@@ -245,8 +245,8 @@ export default function BachecaPage() {
             />
           ) : (
             <div
-              className="mt-0.5 shrink-0 w-10 h-10 rounded-md flex items-center justify-center text-[11px] font-bold text-white"
-              style={{ backgroundColor: getProjectColor(task) }}
+              className="mt-0.5 shrink-0 w-10 h-10 rounded-md flex items-center justify-center text-[11px] font-bold"
+              style={{ backgroundColor: getProjectColor(task), color: getContrastTextColor(getProjectColor(task)) }}
               title={getClientName(task)}
             >
               {getInitials(getClientName(task) || '—')}
@@ -357,7 +357,7 @@ export default function BachecaPage() {
                 <div className="flex items-center justify-between mb-3 px-1">
                   <div className="flex items-center gap-2">
                     <div className="w-7 h-7 rounded-full flex items-center justify-center" style={{ backgroundColor: member.color || '#ff4d1c' }}>
-                      <span className="text-white text-[9px] font-bold">{getInitials(member.full_name)}</span>
+                      <span className="text-[9px] font-bold" style={{ color: getContrastTextColor(member.color || '#ff4d1c') }}>{getInitials(member.full_name)}</span>
                     </div>
                     <div>
                       <p className="text-sm font-semibold text-pw-text uppercase tracking-wide">

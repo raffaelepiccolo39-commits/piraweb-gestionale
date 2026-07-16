@@ -33,6 +33,7 @@ import {
   Briefcase,
   CalendarDays,
   Tag,
+  ArrowUpDown,
 } from 'lucide-react';
 
 export default function ClientsPage() {
@@ -45,6 +46,7 @@ export default function ClientsPage() {
   const [editingMonthlyFee, setEditingMonthlyFee] = useState<number | undefined>();
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [error, setError] = useState(false);
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const [paymentAlerts, setPaymentAlerts] = useState<Record<string, 'warning' | 'danger'>>({});
 
   const router = useRouter();
@@ -105,11 +107,11 @@ export default function ClientsPage() {
   // Extract unique sectors for filter dropdown
   const sectors = [...new Set(clients.map((c) => c.sector).filter(Boolean))] as string[];
 
-  // Default sort: alfabetico per ragione sociale o nome
+  // Ordine alfabetico per ragione sociale o nome, invertibile con il toggle A-Z / Z-A
   const sortedClients = [...clients].sort((a, b) => {
     const nameA = (a.company || a.name).toLowerCase();
     const nameB = (b.company || b.name).toLowerCase();
-    return nameA.localeCompare(nameB);
+    return sortDir === 'asc' ? nameA.localeCompare(nameB) : nameB.localeCompare(nameA);
   });
 
   const uploadLogo = async (file: File, clientId: string): Promise<string | null> => {
@@ -474,12 +476,22 @@ export default function ClientsPage() {
         title="Clienti"
         subtitle={`${clients.length} clienti ${isAdmin ? 'totali' : 'attivi'}`}
         actions={
-          isAdmin && (
-            <Button variant="primary" onClick={() => setShowForm(true)}>
-              <Plus size={14} />
-              Nuovo Cliente
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))}
+              title={sortDir === 'asc' ? 'Ordina Z-A' : 'Ordina A-Z'}
+            >
+              <ArrowUpDown size={14} />
+              {sortDir === 'asc' ? 'A-Z' : 'Z-A'}
             </Button>
-          )
+            {isAdmin && (
+              <Button variant="primary" onClick={() => setShowForm(true)}>
+                <Plus size={14} />
+                Nuovo Cliente
+              </Button>
+            )}
+          </div>
         }
       />
       <DataTable

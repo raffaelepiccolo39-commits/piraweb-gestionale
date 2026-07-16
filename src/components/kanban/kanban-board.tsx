@@ -9,7 +9,7 @@ import {
 } from '@hello-pangea/dnd';
 import { createClient } from '@/lib/supabase/client';
 import { useToast } from '@/components/ui/toast';
-import { cn, getPriorityTone, getInitials, formatDate } from '@/lib/utils';
+import { cn, getPriorityTone, getInitials, formatDate, getContrastTextColor } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import type { Task, TaskStatus } from '@/types/database';
 import { KANBAN_COLUMNS, PRIORITY_LABELS } from '@/lib/constants';
@@ -159,7 +159,7 @@ export function KanbanBoard({ tasks, onTaskClick, onTasksUpdate }: KanbanBoardPr
                                   style={{ backgroundColor: (task.assignee as { color?: string }).color || '#ff4d1c' }}
                                   title={task.assignee.full_name}
                                 >
-                                  <span className="text-white text-[10px] font-semibold">
+                                  <span className="text-[10px] font-semibold" style={{ color: getContrastTextColor((task.assignee as { color?: string }).color || '#ff4d1c') }}>
                                     {getInitials(task.assignee.full_name)}
                                   </span>
                                 </div>

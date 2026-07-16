@@ -104,7 +104,7 @@ export function AttendanceCalendar({ data, month, year }: AttendanceCalendarProp
                     <td className="px-3 py-2 sticky left-0 bg-pw-surface z-10">
                       <div className="flex items-center gap-1.5">
                         <div className="w-6 h-6 rounded-full bg-pw-accent flex items-center justify-center shrink-0">
-                          <span className="text-white text-[8px] font-semibold">{getInitials(user.name)}</span>
+                          <span className="text-[#0A263A] text-[8px] font-semibold">{getInitials(user.name)}</span>
                         </div>
                         <span className="font-medium text-pw-text truncate">{user.name}</span>
                       </div>

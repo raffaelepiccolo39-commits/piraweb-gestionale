@@ -18,6 +18,10 @@ interface AttendanceWidgetProps {
 
 export const AttendanceWidget = memo(function AttendanceWidget({ record, loading, onClockIn, onLunchBreak, onClockOut }: AttendanceWidgetProps) {
   const status = record?.status || 'absent';
+  // Una sola pausa pranzo al giorno, come in /presenze e nel cron auto-lunch-break:
+  // il record ha una sola coppia lunch_start/lunch_end, quindi una seconda pausa
+  // sovrascriverebbe l'orario di inizio falsando le ore.
+  const canLunchStart = status === 'working' && !record?.lunch_start;
 
   return (
     <Card className="relative overflow-hidden">
@@ -52,9 +56,11 @@ export const AttendanceWidget = memo(function AttendanceWidget({ record, loading
             )}
             {status === 'working' && (
               <>
-                <Button size="sm" variant="outline" onClick={onLunchBreak} loading={loading}>
-                  <Coffee size={14} />
-                </Button>
+                {canLunchStart && (
+                  <Button size="sm" variant="outline" onClick={onLunchBreak} loading={loading} title="Pausa pranzo">
+                    <Coffee size={14} />
+                  </Button>
+                )}
                 <Button size="sm" variant="secondary" onClick={onClockOut} loading={loading}>
                   <LogOut size={14} />
                   Esci

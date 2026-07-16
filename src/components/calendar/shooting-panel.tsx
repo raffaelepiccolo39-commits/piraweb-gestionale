@@ -8,7 +8,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/components/ui/toast';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { getInitials } from '@/lib/utils';
+import { getInitials, getContrastTextColor } from '@/lib/utils';
 import { Camera, CheckCircle2, Plus, X, RotateCcw } from 'lucide-react';
 import { reportSupabaseError } from '@/lib/report-error';
 
@@ -105,7 +105,7 @@ export function ShootingPanel({ month, onProgram, reloadKey }: ShootingPanelProp
       // eslint-disable-next-line @next/next/no-img-element
       <img src={c.logo_url} alt={label(c)} className="w-8 h-8 rounded-md object-contain p-0.5 border border-pw-border bg-white shrink-0" />
     ) : (
-      <span className="w-8 h-8 rounded-md flex items-center justify-center text-[10px] font-bold text-white shrink-0" style={{ backgroundColor: c.color || '#0A263A' }}>
+      <span className="w-8 h-8 rounded-md flex items-center justify-center text-[10px] font-bold shrink-0" style={{ backgroundColor: c.color || '#0A263A', color: getContrastTextColor(c.color || '#0A263A') }}>
         {getInitials(label(c))}
       </span>
     );

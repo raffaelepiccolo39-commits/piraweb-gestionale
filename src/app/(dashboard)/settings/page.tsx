@@ -1042,7 +1042,7 @@ export default function SettingsPage() {
           <div className="space-y-4">
             <div className="flex items-center gap-4">
               <div className="w-14 h-14 rounded-full bg-pw-accent flex items-center justify-center">
-                <span className="text-white text-lg font-bold">{getInitials(viewingMember.full_name)}</span>
+                <span className="text-[#0A263A] text-lg font-bold">{getInitials(viewingMember.full_name)}</span>
               </div>
               <div>
                 <p className="text-base font-semibold text-pw-text">{viewingMember.full_name}</p>

@@ -14,7 +14,7 @@ import { KanbanBoard } from '@/components/kanban/kanban-board';
 import { TaskForm, type TaskFormData } from '@/components/tasks/task-form';
 import { TaskDetailModal } from '@/components/tasks/task-detail-modal';
 import { ProjectForm, type ProjectFormData } from '@/components/projects/project-form';
-import { formatDate, getStatusTone, getInitials } from '@/lib/utils';
+import { formatDate, getStatusTone, getInitials, getContrastTextColor } from '@/lib/utils';
 import { STATUS_LABELS } from '@/lib/constants';
 import type { Project, Task, Profile, Client } from '@/types/database';
 import {
@@ -315,14 +315,15 @@ export default function ProjectDetailPage({
           <div className="flex -space-x-2">
             {project.members.map((member) => {
               const memberProfile = member.profile as { full_name: string; role: string } | undefined;
+              const memberColor = (member.profile as { color?: string })?.color || '#ff4d1c';
               return (
                 <div
                   key={member.id}
                   className="w-8 h-8 rounded-full flex items-center justify-center border-2 border-white dark:border-pw-surface"
-                  style={{ backgroundColor: (member.profile as { color?: string })?.color || '#ff4d1c' }}
+                  style={{ backgroundColor: memberColor }}
                   title={memberProfile?.full_name || 'Membro'}
                 >
-                  <span className="text-white text-[10px] font-semibold">
+                  <span className="text-[10px] font-semibold" style={{ color: getContrastTextColor(memberColor) }}>
                     {memberProfile ? getInitials(memberProfile.full_name) : '?'}
                   </span>
                 </div>

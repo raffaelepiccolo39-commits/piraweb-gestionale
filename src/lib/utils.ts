@@ -91,6 +91,38 @@ export function getUserColor(profile?: { color?: string | null } | null): string
   return profile?.color || '#ff4d1c';
 }
 
+/** Luminanza relativa WCAG di un colore #rrggbb (0 = nero, 1 = bianco). */
+function relativeLuminance(hex: string): number | null {
+  if (typeof hex !== 'string') return null;
+  const h = hex.trim().replace('#', '');
+  const full = h.length === 3 ? h.split('').map((c) => c + c).join('') : h;
+  if (!/^[0-9a-fA-F]{6}$/.test(full)) return null;
+  const [r, g, b] = [0, 2, 4].map((i) => {
+    const c = parseInt(full.slice(i, i + 2), 16) / 255;
+    return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  });
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+/**
+ * Colore di testo leggibile sopra uno sfondo pieno (avatar con le iniziali).
+ *
+ * Il bianco fisso non basta: tutti i colori profilo scelti dal team stanno
+ * sotto la soglia WCAG AA (4.5:1) contro il bianco — il gold #D4A800 arriva a
+ * 2.2:1. Sceglie fra bianco e blu scuro quello che dà il contrasto migliore:
+ * su alcuni colori (es. viola #8B5CF6) nessuno dei due raggiunge 4.5:1, quindi
+ * vince comunque il meno peggio invece di un default cieco.
+ */
+export function getContrastTextColor(hex: string): string {
+  const DARK = '#0A263A';
+  const l = relativeLuminance(hex);
+  if (l === null) return '#ffffff';
+  const withWhite = 1.05 / (l + 0.05);
+  const darkL = relativeLuminance(DARK) ?? 0;
+  const withDark = (l + 0.05) / (darkL + 0.05);
+  return withDark > withWhite ? DARK : '#ffffff';
+}
+
 export function getRoleLabel(role: string): string {
   const labels: Record<string, string> = {
     admin: 'Admin',

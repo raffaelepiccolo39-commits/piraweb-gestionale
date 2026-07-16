@@ -14,7 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { SkeletonStats, SkeletonList } from '@/components/ui/skeleton';
 import { PageHeader } from '@/components/ui/page-header';
 import { DataTable } from '@/components/ui/data-table';
-import { formatDate, formatDateTime, getInitials, getUserColor } from '@/lib/utils';
+import { formatDate, formatDateTime, getInitials, getUserColor, getContrastTextColor } from '@/lib/utils';
 import type { Meeting, MeetingActionItem, Client, Profile, Project } from '@/types/database';
 import {
   Video,
@@ -507,7 +507,7 @@ export default function MeetingsPage() {
                     className="w-4 h-4 rounded-full flex items-center justify-center"
                     style={{ backgroundColor: getUserColor(m) }}
                   >
-                    <span className="text-white text-[6px] font-bold">{getInitials(m.full_name).charAt(0)}</span>
+                    <span className="text-[6px] font-bold" style={{ color: getContrastTextColor(getUserColor(m)) }}>{getInitials(m.full_name).charAt(0)}</span>
                   </div>
                   {m.full_name}
                 </button>

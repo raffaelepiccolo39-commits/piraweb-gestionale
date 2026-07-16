@@ -33,6 +33,7 @@ interface DashboardStats {
   totalClients: number;
   activeProjects: number;
   totalTasks: number;
+  todoTasks: number;
   completedTasks: number;
   inProgressTasks: number;
   overdueTasks: number;
@@ -53,7 +54,7 @@ export default function DashboardPage() {
   const toast = useToast();
 
   const [stats, setStats] = useState<DashboardStats>({
-    totalClients: 0, activeProjects: 0, totalTasks: 0,
+    totalClients: 0, activeProjects: 0, totalTasks: 0, todoTasks: 0,
     completedTasks: 0, inProgressTasks: 0, overdueTasks: 0,
   });
   const [teamStats, setTeamStats] = useState<TeamMemberStats[]>([]);
@@ -106,12 +107,13 @@ export default function DashboardPage() {
       const tomorrowStr = formatDateLocal(new Date(now.getTime() + 86400000));
       const currentMonth = todayStr.slice(0, 7);
 
-      // Multi-assegnatario: id delle task in cui l'utente è assegnato (per i dipendenti)
+      // Multi-assegnatario: id delle task in cui l'utente è assegnato.
+      // Serve a tutti, admin compresi: "Le mie task" (query 3) filtra sempre su
+      // questi id, quindi lasciando il sentinella agli admin la sezione restava
+      // sempre vuota anche con task assegnate.
       let myTaskIds: string[] = ['00000000-0000-0000-0000-000000000000'];
-      if (!isAdmin) {
-        const { data: taRows } = await supabase.from('task_assignees').select('task_id').eq('user_id', profile.id);
-        if (taRows && taRows.length > 0) myTaskIds = taRows.map((r) => r.task_id as string);
-      }
+      const { data: taRows } = await supabase.from('task_assignees').select('task_id').eq('user_id', profile.id);
+      if (taRows && taRows.length > 0) myTaskIds = taRows.map((r) => r.task_id as string);
 
       // Build all queries
       const queries: Promise<unknown>[] = [
@@ -195,6 +197,9 @@ export default function DashboardPage() {
         totalClients: results[0].count || 0,
         activeProjects: results[1].count || 0,
         totalTasks: allTasks.length,
+        // Solo 'todo': la card linka a /tasks?status=todo, quindi contare anche
+        // le 'review' faceva sparire task dalla lista rispetto al numero.
+        todoTasks: allTasks.filter((t) => t.status === 'todo').length,
         completedTasks: allTasks.filter((t) => t.status === 'done').length,
         inProgressTasks: allTasks.filter((t) => t.status === 'in_progress').length,
         // In ritardo = deadline STRETTAMENTE precedente a oggi (le scadenze di oggi
@@ -296,6 +301,14 @@ export default function DashboardPage() {
         toast.success(attendance?.status === 'lunch_break' ? 'Bentornato!' : 'Entrata registrata');
       } else if (action === 'lunch_break') {
         if (attendance) {
+          // Stessa regola di /presenze: una sola pausa al giorno. Senza questo
+          // controllo la seconda pausa sovrascrive lunch_start lasciando il
+          // vecchio lunch_end, e a fine giornata la durata pranzo risulta
+          // negativa → ore lavorate gonfiate.
+          if (attendance.lunch_start) {
+            toast.error('Pausa pranzo già registrata oggi');
+            return;
+          }
           const { error } = await supabase.from('attendance_records').update({ status: 'lunch_break', lunch_start: nowTime }).eq('id', attendance.id);
           if (error) throw error;
           toast.success('Buon pranzo!');

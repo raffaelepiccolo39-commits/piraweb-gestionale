@@ -94,7 +94,7 @@ export function ReportTable({ mode, weeklyData, absences, monthlyData, employees
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
                           <div className="w-7 h-7 rounded-full bg-pw-accent flex items-center justify-center shrink-0">
-                            <span className="text-white text-[10px] font-semibold">{getInitials(user.name)}</span>
+                            <span className="text-[#0A263A] text-[10px] font-semibold">{getInitials(user.name)}</span>
                           </div>
                           <div>
                             <p className="font-medium text-pw-text text-xs">{user.name}</p>
@@ -209,7 +209,7 @@ export function ReportTable({ mode, weeklyData, absences, monthlyData, employees
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         <div className="w-7 h-7 rounded-full bg-pw-accent flex items-center justify-center shrink-0">
-                          <span className="text-white text-[10px] font-semibold">{getInitials(row.full_name)}</span>
+                          <span className="text-[#0A263A] text-[10px] font-semibold">{getInitials(row.full_name)}</span>
                         </div>
                         <p className="font-medium text-pw-text text-xs">{row.full_name}</p>
                       </div>

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
-import { getInitials, todayLocal } from '@/lib/utils';
+import { getInitials, todayLocal, getContrastTextColor } from '@/lib/utils';
 import { TIME_OFF_TYPE_LABELS } from '@/lib/constants';
 import type { TeamAbsence, TimeOffType } from '@/types/database';
 import { Plane, Clock, Stethoscope, CalendarCheck } from 'lucide-react';
@@ -47,8 +47,8 @@ export function AbsentToday() {
               return (
                 <div key={a.request_id} className="flex items-center gap-3">
                   <span
-                    className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold text-white shrink-0"
-                    style={{ backgroundColor: a.color || '#0A263A' }}
+                    className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0"
+                    style={{ backgroundColor: a.color || '#0A263A', color: getContrastTextColor(a.color || '#0A263A') }}
                   >
                     {getInitials(a.full_name)}
                   </span>

@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { SkeletonStats, SkeletonList } from '@/components/ui/skeleton';
 import { PageHeader } from '@/components/ui/page-header';
-import { getInitials, getUserColor, getRoleLabel } from '@/lib/utils';
+import { getInitials, getUserColor, getRoleLabel, getContrastTextColor } from '@/lib/utils';
 import type { Profile } from '@/types/database';
 import { Users, AlertTriangle, CheckCircle, Clock, BarChart3, TrendingUp } from 'lucide-react';
 
@@ -181,7 +181,7 @@ export default function CapacityPage() {
               <CardContent className="p-4">
                 <div className="flex items-center gap-4">
                   <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: getUserColor(m.profile) }}>
-                    <span className="text-white text-sm font-bold">{getInitials(m.profile.full_name)}</span>
+                    <span className="text-sm font-bold" style={{ color: getContrastTextColor(getUserColor(m.profile)) }}>{getInitials(m.profile.full_name)}</span>
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">

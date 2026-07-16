@@ -15,7 +15,7 @@ import { LostReasonForm } from '@/components/crm/lost-reason-form';
 import { DataTable } from '@/components/ui/data-table';
 import { EmptyState } from '@/components/ui/empty-state';
 import { SkeletonStats, SkeletonList } from '@/components/ui/skeleton';
-import { formatCurrency, formatDate, formatDateTime, getInitials, getUserColor, todayLocal } from '@/lib/utils';
+import { formatCurrency, formatDate, formatDateTime, getInitials, getUserColor, todayLocal, getContrastTextColor } from '@/lib/utils';
 import type { Deal, DealStage, DealActivity, DealActivityType, Profile } from '@/types/database';
 import { SERVICE_CATEGORIES } from '@/types/database';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
@@ -577,7 +577,7 @@ export default function CRMPage() {
                                 style={{ backgroundColor: getUserColor(owner) }}
                                 title={owner.full_name}
                               >
-                                <span className="text-white text-[7px] font-bold">{getInitials(owner.full_name).charAt(0)}</span>
+                                <span className="text-[7px] font-bold" style={{ color: getContrastTextColor(getUserColor(owner)) }}>{getInitials(owner.full_name).charAt(0)}</span>
                               </div>
                             )}
                             <Badge className="text-[8px]">{SOURCE_LABELS[deal.source]}</Badge>
@@ -946,6 +946,7 @@ export default function CRMPage() {
                         const Icon = ACTIVITY_ICONS[activity.type] || MessageSquare;
                         const canEdit = (activity.created_by === profile?.id || isAdmin) && activity.type !== 'stage_change';
                         const creator = activity.creator as { id: string; full_name: string; color?: string } | undefined;
+                        const creatorColor = creator ? (creator.color || getUserColor({ id: creator.id, color: creator.color } as Profile)) : undefined;
                         return (
                           <div key={activity.id} className="flex gap-2 group">
                             <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${
@@ -962,8 +963,8 @@ export default function CRMPage() {
                                 {creator && (
                                   <span className="inline-flex items-center gap-1">
                                     <span
-                                      className="w-3.5 h-3.5 rounded-full flex items-center justify-center text-white text-[7px] font-bold"
-                                      style={{ backgroundColor: creator.color || getUserColor({ id: creator.id, color: creator.color } as Profile) }}
+                                      className="w-3.5 h-3.5 rounded-full flex items-center justify-center text-[7px] font-bold"
+                                      style={{ backgroundColor: creatorColor, color: getContrastTextColor(creatorColor as string) }}
                                     >
                                       {getInitials(creator.full_name).charAt(0)}
                                     </span>

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { cn, getInitials } from '@/lib/utils';
+import { cn, getInitials, getContrastTextColor } from '@/lib/utils';
 import { Check, ChevronDown, X, Users } from 'lucide-react';
 
 export interface AssigneeOption {
@@ -55,8 +55,8 @@ export function AssigneeMultiSelect({ value, onChange, members, label, placehold
             selected.map((m) => (
               <span key={m.id} className="inline-flex items-center gap-1 pl-0.5 pr-1.5 py-0.5 rounded-full bg-pw-surface text-xs">
                 <span
-                  className="w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-bold text-white"
-                  style={{ backgroundColor: m.color || 'var(--pw-navy)' }}
+                  className="w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-bold"
+                  style={{ backgroundColor: m.color || 'var(--pw-navy)', color: getContrastTextColor(m.color || 'var(--pw-navy)') }}
                 >
                   {getInitials(m.full_name)}
                 </span>
@@ -91,8 +91,8 @@ export function AssigneeMultiSelect({ value, onChange, members, label, placehold
                   className="w-full flex items-center gap-2.5 px-3 py-2 text-sm hover:bg-pw-surface-2 transition-colors text-left"
                 >
                   <span
-                    className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold text-white shrink-0"
-                    style={{ backgroundColor: m.color || 'var(--pw-navy)' }}
+                    className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold shrink-0"
+                    style={{ backgroundColor: m.color || 'var(--pw-navy)', color: getContrastTextColor(m.color || 'var(--pw-navy)') }}
                   >
                     {getInitials(m.full_name)}
                   </span>
