@@ -34,6 +34,18 @@ function LoginContent() {
     }
   }, [searchParams]);
 
+  useEffect(() => {
+    const errorParam = searchParams.get('error');
+    if (!errorParam) return;
+    if (errorParam === 'link_expired') {
+      setError('Il link non è più valido o è scaduto. Richiedi un nuovo accesso.');
+    } else if (errorParam === 'invalid_link') {
+      setError('Link di accesso non valido.');
+    } else {
+      setError(decodeURIComponent(errorParam));
+    }
+  }, [searchParams]);
+
   const handleLogin = async (e: React.FormEvent) => {
     const supabase = createClient();
     e.preventDefault();

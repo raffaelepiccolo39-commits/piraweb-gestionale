@@ -52,8 +52,22 @@ export async function GET(request: NextRequest) {
   const { error } = await supabase.auth.verifyOtp({ token_hash, type });
 
   if (error) {
-    await logError({ error, route: '/api/auth/confirm', source: 'api', context: { op: 'confirm' } });
-    return NextResponse.redirect(new URL(`/login?error=${encodeURIComponent(error.message)}`, url));
+    // Un link scaduto o già usato è comportamento normale dell'utente, non un
+    // guasto del sistema: lo registriamo come 'warning' così /log resta pulita
+    // e mostra solo le cose davvero rotte. Al login mandiamo un codice stabile
+    // (link_expired) invece del messaggio grezzo di Supabase, che è in inglese.
+    const isExpiredLink = error.status === 401 || error.status === 403 || /expired|invalid/i.test(error.message);
+
+    await logError({
+      error,
+      route: '/api/auth/confirm',
+      source: 'api',
+      level: isExpiredLink ? 'warning' : 'error',
+      context: { op: 'confirm', type },
+    });
+
+    const reason = isExpiredLink ? 'link_expired' : encodeURIComponent(error.message);
+    return NextResponse.redirect(new URL(`/login?error=${reason}`, url));
   }
 
   return response;
