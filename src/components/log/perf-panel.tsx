@@ -23,10 +23,27 @@ function ms(value: number): string {
   return `${value}ms`;
 }
 
-/** Sopra il secondo l'utente se ne accorge; sopra i tre, se ne lamenta. */
-function toneFor(p95: number): 'danger' | 'warning' | 'success' {
-  if (p95 >= 3000) return 'danger';
-  if (p95 >= 1000) return 'warning';
+// Sotto questa soglia di campioni il p95 è solo "la 2ª richiesta più lenta di
+// pochissime": rumore statistico, non un segnale. Non lo coloriamo.
+const MIN_SAMPLES = 30;
+
+// Oltre i 10s non è quasi mai il database: è un tab andato in sospensione o la
+// rete caduta a metà richiesta (il timer del browser continua a correre). Lo
+// mostriamo, ma segnalato come tale e senza farlo pesare sul colore.
+const SUSPENDED_MS = 10_000;
+
+/**
+ * Il colore segue la MEDIANA, non il p95: la mediana è l'esperienza tipica del
+ * team, mentre il p95 è la coda sfortunata (1 richiesta su 20), spesso un cold
+ * start o un tab in background — cose che nessun indice sistema. Colorare per
+ * mediana rende il pannello onesto: verde = davvero veloce per chi lo usa.
+ *
+ * Sopra il secondo l'utente se ne accorge; sopra i tre, se ne lamenta.
+ */
+function toneForMedian(p50: number, samples: number): 'danger' | 'warning' | 'success' | 'neutral' {
+  if (samples < MIN_SAMPLES) return 'neutral';
+  if (p50 >= 3000) return 'danger';
+  if (p50 >= 1000) return 'warning';
   return 'success';
 }
 
@@ -104,6 +121,14 @@ export function PerfPanel() {
             Ordinato per tempo totale generato, non per la singola chiamata più lenta:
             è quello che si sente davvero usando la piattaforma.
           </p>
+          <p className="mt-2 text-xs text-pw-text-dim">
+            Il colore segue la <span className="font-medium text-pw-text-muted">mediana</span>,
+            l&apos;esperienza tipica del team: verde = veloce per chi lo usa. Il{' '}
+            <span className="font-medium text-pw-text-muted">p95</span> e il{' '}
+            <span className="font-medium text-pw-text-muted">peggiore</span> sono la coda —
+            picchi occasionali, spesso cold start o tab lasciati in background, che non
+            indicano un problema da risolvere.
+          </p>
         </CardContent>
       </Card>
 
@@ -116,8 +141,8 @@ export function PerfPanel() {
                   <th className="px-4 py-3 font-medium">Chiamata</th>
                   <th className="px-4 py-3 font-medium">Pagina</th>
                   <th className="px-4 py-3 text-right font-medium">Chiamate</th>
-                  <th className="px-4 py-3 text-right font-medium">Mediana</th>
-                  <th className="px-4 py-3 text-right font-medium">p95</th>
+                  <th className="px-4 py-3 text-right font-medium">Mediana (tipico)</th>
+                  <th className="px-4 py-3 text-right font-medium">p95 (coda)</th>
                   <th className="px-4 py-3 text-right font-medium">Peggiore</th>
                   <th className="px-4 py-3 text-right font-medium">Totale</th>
                 </tr>
@@ -146,16 +171,33 @@ export function PerfPanel() {
                     <td className="px-4 py-3 text-right text-xs text-pw-text-muted">
                       {row.samples}
                     </td>
-                    <td className="px-4 py-3 text-right text-xs text-pw-text-muted">
-                      {ms(row.p50_ms)}
-                    </td>
                     <td className="px-4 py-3 text-right">
-                      <Badge tone={toneFor(row.p95_ms)} size="sm">
-                        {ms(row.p95_ms)}
+                      <Badge tone={toneForMedian(row.p50_ms, row.samples)} size="sm">
+                        {ms(row.p50_ms)}
                       </Badge>
                     </td>
                     <td className="px-4 py-3 text-right text-xs text-pw-text-dim">
-                      {ms(row.max_ms)}
+                      <span
+                        title={
+                          row.samples < MIN_SAMPLES
+                            ? `Solo ${row.samples} campioni: la coda è ancora poco affidabile.`
+                            : 'Coda: 1 richiesta su 20. Picchi occasionali sono spesso cold start o tab in background, non lentezza del database.'
+                        }
+                      >
+                        {ms(row.p95_ms)}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-right text-xs text-pw-text-dim">
+                      {row.max_ms >= SUSPENDED_MS ? (
+                        <span
+                          className="cursor-help text-pw-text-muted"
+                          title="Probabile tab in sospensione o rete interrotta a metà richiesta: il timer del browser continua a correre. Non è lentezza del database."
+                        >
+                          {ms(row.max_ms)} ⚠
+                        </span>
+                      ) : (
+                        ms(row.max_ms)
+                      )}
                     </td>
                     <td className="px-4 py-3 text-right text-xs font-semibold text-pw-text">
                       {row.total_seconds}s
