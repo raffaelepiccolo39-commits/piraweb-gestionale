@@ -13,6 +13,8 @@ interface ClientFormProps {
   monthlyFee?: number;
   onSubmit: (data: ClientFormData) => Promise<void>;
   onCancel: () => void;
+  /** Valore iniziale di "gestiamo il piano editoriale". I clienti "solo sito" partono da false. */
+  defaultNeedsPed?: boolean;
 }
 
 export interface ClientFormData {
@@ -36,6 +38,7 @@ export interface ClientFormData {
   relationship_start: string;
   monthly_fee?: number;
   needs_monthly_shooting?: boolean;
+  needs_ped?: boolean;
   logo?: File;
 }
 
@@ -69,7 +72,7 @@ function Section({
   );
 }
 
-export function ClientForm({ client, monthlyFee, onSubmit, onCancel }: ClientFormProps) {
+export function ClientForm({ client, monthlyFee, onSubmit, onCancel, defaultNeedsPed = true }: ClientFormProps) {
   const [loading, setLoading] = useState(false);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(client?.logo_url || null);
@@ -94,6 +97,7 @@ export function ClientForm({ client, monthlyFee, onSubmit, onCancel }: ClientFor
     service_types: client?.service_types || '',
     relationship_start: client?.relationship_start || '',
     needs_monthly_shooting: client?.needs_monthly_shooting || false,
+    needs_ped: client?.needs_ped ?? defaultNeedsPed,
   });
 
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -283,6 +287,18 @@ export function ClientForm({ client, monthlyFee, onSubmit, onCancel }: ClientFor
         </label>
         <p className="text-xs text-pw-text-dim -mt-2">
           Comparirà nel Calendario tra gli shooting da programmare, ogni mese.
+        </p>
+        <label className="flex items-center gap-2.5 cursor-pointer pt-1">
+          <input
+            type="checkbox"
+            checked={form.needs_ped}
+            onChange={(e) => update('needs_ped', e.target.checked)}
+            className="w-4 h-4 rounded border-pw-border accent-pw-accent"
+          />
+          <span className="text-sm text-pw-text">Gestiamo il piano editoriale (social)</span>
+        </label>
+        <p className="text-xs text-pw-text-dim -mt-2">
+          Se disattivo (es. cliente solo sito), non comparirà tra le scadenze piani editoriali.
         </p>
       </Section>
 

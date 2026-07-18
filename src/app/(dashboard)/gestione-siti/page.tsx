@@ -356,7 +356,7 @@ export default function GestioneSitiPage() {
 
       {/* Anagrafica cliente completa, aperta durante l'inserimento del sito. */}
       <Modal open={clientFormOpen} onClose={backToSite} title="Nuovo cliente" size="lg">
-        <ClientForm onSubmit={handleCreateClientInline} onCancel={backToSite} />
+        <ClientForm onSubmit={handleCreateClientInline} onCancel={backToSite} defaultNeedsPed={false} />
       </Modal>
     </div>
   );

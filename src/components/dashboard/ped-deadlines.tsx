@@ -36,6 +36,7 @@ export function PedDeadlines() {
         .from('clients')
         .select('id, name, company')
         .eq('is_active', true)
+        .eq('needs_ped', true)
         .is('paused_at', null)
         .order('company'),
       supabase.from('client_ped_coverage').select('client_id, covered_until'),

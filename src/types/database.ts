@@ -212,6 +212,8 @@ export interface Client {
   service_types: string | null;
   relationship_start: string | null;
   needs_monthly_shooting?: boolean;
+  /** Gestiamo il piano editoriale (social) per questo cliente? I "solo sito" = false. */
+  needs_ped?: boolean;
   created_by: string;
   created_at: string;
   updated_at: string;
