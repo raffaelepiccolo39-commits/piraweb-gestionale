@@ -122,7 +122,15 @@ export function AttendanceGate({ children }: { children: React.ReactNode }) {
     // L'intervallo ricontrolla solo le presenze (query singola). Il focus fa un
     // check completo, così un'eventuale ferie approvata a metà giornata dall'admin
     // viene comunque colta al ritorno sulla scheda.
-    const interval = setInterval(() => refreshRef.current(), 60_000);
+    //
+    // Salta il poll se il tab è in background: senza nessuno che guarda non c'è
+    // motivo di interrogare il DB (il gate è montato su tutta l'app, quindi
+    // questo poll era la prima fonte di query in assoluto). Al ritorno sul tab
+    // ci pensa 'focus' a rifare il check. Intervallo a 2 min: la pausa pranzo
+    // delle 13:30 viene comunque colta entro poco, appena l'utente è attivo.
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible') refreshRef.current();
+    }, 120_000);
     const onFocus = () => checkRef.current();
     const onAttendanceChanged = () => refreshRef.current();
     window.addEventListener('focus', onFocus);
