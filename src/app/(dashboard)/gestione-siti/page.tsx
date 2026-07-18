@@ -17,6 +17,7 @@ import { useToast } from '@/components/ui/toast';
 import { formatDate, todayLocal } from '@/lib/utils';
 import { reportSupabaseError } from '@/lib/report-error';
 import type { WebsiteManagement, WebsiteRenewal } from '@/types/database';
+import { ClientForm, type ClientFormData } from '@/components/clients/client-form';
 import { Globe, Plus, ShieldCheck, Pencil, CheckCircle2 } from 'lucide-react';
 
 /**
@@ -65,11 +66,9 @@ export default function GestioneSitiPage() {
   const [fRenewal, setFRenewal] = useState('');
   const [fStatus, setFStatus] = useState<'active' | 'cancelled'>('active');
   const [fNotes, setFNotes] = useState('');
-  // Cliente: esistente dalla lista, oppure creato al volo (cliente "solo sito").
-  const [clientMode, setClientMode] = useState<'existing' | 'new'>('existing');
-  const [fNewName, setFNewName] = useState('');
-  const [fNewEmail, setFNewEmail] = useState('');
-  const [fNewPhone, setFNewPhone] = useState('');
+  // Creazione cliente con anagrafica completa "al volo", durante l'inserimento
+  // del sito: apre il form cliente standard in un secondo modale.
+  const [clientFormOpen, setClientFormOpen] = useState(false);
 
   const fetchData = useCallback(async () => {
     if (!isAdmin) return;
@@ -101,7 +100,6 @@ export default function GestioneSitiPage() {
   function openCreate() {
     setEditing(null);
     setFClient(''); setFUrl(''); setFFee('150'); setFRenewal(''); setFStatus('active'); setFNotes('');
-    setClientMode('existing'); setFNewName(''); setFNewEmail(''); setFNewPhone('');
     setModalOpen(true);
   }
 
@@ -118,39 +116,17 @@ export default function GestioneSitiPage() {
   }
 
   async function save() {
-    if (!profile) return;
     const fee = Number(fFee);
-    const creatingNew = !editing && clientMode === 'new';
     if (!editing) {
-      if (creatingNew ? !fNewName.trim() : !fClient) {
-        toast.error(creatingNew ? 'Inserisci il nome del cliente' : 'Scegli un cliente');
-        return;
-      }
+      if (!fClient) { toast.error('Scegli o crea un cliente'); return; }
       if (!fRenewal) { toast.error('Indica la data del primo rinnovo'); return; }
     }
     if (!Number.isFinite(fee) || fee <= 0) { toast.error('Canone non valido'); return; }
     setSaving(true);
 
     if (!editing) {
-      // Cliente "solo sito" creato al volo: prima il cliente, poi il sito.
-      let clientId = fClient;
-      if (creatingNew) {
-        const { data: nc, error: cErr } = await supabase
-          .from('clients')
-          .insert({ name: fNewName.trim(), email: fNewEmail.trim() || null, phone: fNewPhone.trim() || null, created_by: profile.id })
-          .select('id')
-          .single();
-        if (cErr || !nc) {
-          setSaving(false);
-          reportSupabaseError(cErr, 'gestione-siti-create-client');
-          toast.error('Errore nella creazione del cliente');
-          return;
-        }
-        clientId = nc.id;
-      }
-
       const { error } = await supabase.rpc('create_website_management', {
-        p_client_id: clientId,
+        p_client_id: fClient,
         p_site_url: fUrl,
         p_annual_fee: fee,
         p_first_renewal: fRenewal,
@@ -158,7 +134,7 @@ export default function GestioneSitiPage() {
       });
       setSaving(false);
       if (error) { reportSupabaseError(error, 'gestione-siti-create'); toast.error('Errore nel salvataggio'); return; }
-      toast.success(creatingNew ? 'Cliente e sito aggiunti' : 'Sito aggiunto');
+      toast.success('Sito aggiunto');
     } else {
       const { error } = await supabase
         .from('website_managements')
@@ -185,6 +161,52 @@ export default function GestioneSitiPage() {
     if (error) { reportSupabaseError(error, 'gestione-siti-pay', { renewalId }); toast.error('Errore, riprova'); return; }
     toast.success('Rinnovo incassato — prossimo anno programmato');
     void fetchData();
+  }
+
+  function backToSite() {
+    setClientFormOpen(false);
+    setModalOpen(true);
+  }
+
+  async function uploadLogo(file: File, clientId: string): Promise<string | null> {
+    const ext = file.name.split('.').pop();
+    const fileName = `${clientId}/${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from('client-logos').upload(fileName, file);
+    if (error) { reportSupabaseError(error, 'gestione-siti-upload-logo', { clientId }); return null; }
+    const { data } = supabase.storage.from('client-logos').getPublicUrl(fileName);
+    return data.publicUrl;
+  }
+
+  // Crea un cliente con anagrafica completa (stesso form della sezione Clienti),
+  // poi lo seleziona nel form del sito e torna lì. onSubmit di ClientForm gestisce
+  // da sé lo stato di caricamento del bottone.
+  async function handleCreateClientInline(data: ClientFormData) {
+    if (!profile) return;
+    const { logo, monthly_fee, ...fields } = data;
+    void monthly_fee; // non è una colonna di clients (vive sui contratti)
+
+    const { data: nc, error } = await supabase
+      .from('clients')
+      .insert({ ...fields, relationship_start: fields.relationship_start || null, created_by: profile.id })
+      .select('id, name, company')
+      .single();
+
+    if (error || !nc) {
+      reportSupabaseError(error, 'gestione-siti-create-client');
+      toast.error('Errore nella creazione del cliente');
+      return;
+    }
+
+    if (logo) {
+      const url = await uploadLogo(logo, nc.id);
+      if (url) await supabase.from('clients').update({ logo_url: url }).eq('id', nc.id);
+    }
+
+    setClients((prev) => [{ id: nc.id, name: nc.name, company: nc.company }, ...prev]);
+    setFClient(nc.id);
+    setClientFormOpen(false);
+    setModalOpen(true);
+    toast.success('Cliente creato');
   }
 
   if (!isAdmin) {
@@ -288,44 +310,21 @@ export default function GestioneSitiPage() {
               disabled
             />
           ) : (
-            <div className="space-y-3">
-              <div className="flex gap-1 rounded-lg bg-pw-surface-2/60 p-1">
-                <button
-                  type="button"
-                  onClick={() => setClientMode('existing')}
-                  className={clientMode === 'existing'
-                    ? 'flex-1 rounded-md bg-pw-accent px-3 py-1.5 text-xs font-semibold text-[#0A263A]'
-                    : 'flex-1 rounded-md px-3 py-1.5 text-xs font-medium text-pw-text-muted hover:text-pw-text'}
-                >
-                  Cliente esistente
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setClientMode('new')}
-                  className={clientMode === 'new'
-                    ? 'flex-1 rounded-md bg-pw-accent px-3 py-1.5 text-xs font-semibold text-[#0A263A]'
-                    : 'flex-1 rounded-md px-3 py-1.5 text-xs font-medium text-pw-text-muted hover:text-pw-text'}
-                >
-                  Nuovo cliente
-                </button>
-              </div>
-
-              {clientMode === 'existing' ? (
-                <Select
-                  placeholder="Scegli un cliente"
-                  options={clientOptions}
-                  value={fClient}
-                  onChange={(e) => setFClient(e.target.value)}
-                />
-              ) : (
-                <div className="space-y-3">
-                  <Input label="Nome cliente" placeholder="es. Mario Rossi / Azienda Srl" value={fNewName} onChange={(e) => setFNewName(e.target.value)} />
-                  <div className="grid grid-cols-2 gap-3">
-                    <Input label="Email (facolt.)" type="email" value={fNewEmail} onChange={(e) => setFNewEmail(e.target.value)} />
-                    <Input label="Telefono (facolt.)" value={fNewPhone} onChange={(e) => setFNewPhone(e.target.value)} />
-                  </div>
-                </div>
-              )}
+            <div className="space-y-2">
+              <Select
+                label="Cliente"
+                placeholder="Scegli un cliente"
+                options={clientOptions}
+                value={fClient}
+                onChange={(e) => setFClient(e.target.value)}
+              />
+              <button
+                type="button"
+                onClick={() => { setModalOpen(false); setClientFormOpen(true); }}
+                className="inline-flex items-center gap-1.5 text-xs font-medium text-pw-accent hover:underline"
+              >
+                <Plus size={13} /> Nuovo cliente (anagrafica completa)
+              </button>
             </div>
           )}
           <Input label="Indirizzo del sito" placeholder="es. www.cliente.it" value={fUrl} onChange={(e) => setFUrl(e.target.value)} />
@@ -353,6 +352,11 @@ export default function GestioneSitiPage() {
             <Button variant="primary" loading={saving} onClick={save}>{editing ? 'Salva' : 'Aggiungi'}</Button>
           </div>
         </div>
+      </Modal>
+
+      {/* Anagrafica cliente completa, aperta durante l'inserimento del sito. */}
+      <Modal open={clientFormOpen} onClose={backToSite} title="Nuovo cliente" size="lg">
+        <ClientForm onSubmit={handleCreateClientInline} onCancel={backToSite} />
       </Modal>
     </div>
   );
