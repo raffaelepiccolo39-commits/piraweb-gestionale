@@ -6,15 +6,12 @@ import { Suspense } from 'react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
 import { PageHeader } from '@/components/ui/page-header';
-import { Target, Crown, Calculator, Sparkles, Search, BarChart3, Euro, Receipt } from 'lucide-react';
+import { Target, Crown, Calculator, BarChart3, Euro, Receipt } from 'lucide-react';
 
 // Import delle pagine esistenti
 import CRMPage from '../crm/page';
 import DirectionPage from '../direzione/page';
 import CFOPage from '../cfo/page';
-import LeadAIPage from '../lead-ai/page';
-import LeadFinderPage from '../lead-finder/page';
-import MarketResearchPage from '../market-research/page';
 import CapacityPage from '../capacity/page';
 import ProfitabilityPage from '../profitability/page';
 import InvoicesPage from '../invoices/page';
@@ -25,9 +22,6 @@ const tabs = [
   { id: 'crm', label: 'CRM', icon: Target },
   { id: 'direzione', label: 'Direzione', icon: Crown },
   { id: 'cfo', label: 'CFO', icon: Calculator },
-  { id: 'lead-ai', label: 'Lead AI', icon: Sparkles },
-  { id: 'lead-finder', label: 'Lead Finder', icon: Search },
-  { id: 'mercato', label: 'Mercato', icon: BarChart3 },
   { id: 'capacity', label: 'Capacità', icon: BarChart3 },
   { id: 'profitability', label: 'Profitto', icon: Euro },
   { id: 'invoices', label: 'Fatture', icon: Receipt },
@@ -88,9 +82,6 @@ function GestioneContent() {
         {activeTab === 'crm' && <CRMPage />}
         {activeTab === 'direzione' && <DirectionPage />}
         {activeTab === 'cfo' && <CFOPage />}
-        {activeTab === 'lead-ai' && <LeadAIPage />}
-        {activeTab === 'lead-finder' && <LeadFinderPage />}
-        {activeTab === 'mercato' && <MarketResearchPage />}
         {activeTab === 'capacity' && <CapacityPage />}
         {activeTab === 'profitability' && <ProfitabilityPage />}
         {activeTab === 'invoices' && <InvoicesPage />}
