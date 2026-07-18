@@ -68,7 +68,6 @@ export function ContractForm({ onSubmit, onCancel }: ContractFormProps) {
       });
     } catch (err) {
       reportUnknown(err, 'client', { op: 'contratto-submit' });
-      console.error('Contract form error:', err);
     } finally {
       setLoading(false);
     }

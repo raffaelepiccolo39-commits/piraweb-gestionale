@@ -32,7 +32,6 @@ export function MessageInput({ onSend, disabled, members = [] }: MessageInputPro
       setContent('');
     } catch (err) {
       reportUnknown(err, 'client', { op: 'chat-invia' });
-      console.error('Error sending message:', err);
     } finally {
       setSending(false);
       textareaRef.current?.focus();

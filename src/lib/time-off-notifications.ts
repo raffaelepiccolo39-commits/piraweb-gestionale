@@ -42,7 +42,7 @@ export async function notifyTimeOffDecision(
     p_link: '/ferie',
   });
   if (error) {
-    console.error('[notifyTimeOffDecision]', error.message);
+    reportSupabaseError(error, 'time-off-notifica-decisione');
     throw error;
   }
 
@@ -60,7 +60,6 @@ export async function notifyTimeOffDecision(
     });
     if (rcptErr) {
       reportSupabaseError(rcptErr, 'time-off-ricevuta-admin');
-      console.error('[notifyTimeOffDecision admin receipt]', rcptErr.message);
     }
   }
 }

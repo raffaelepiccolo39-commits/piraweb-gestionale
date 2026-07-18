@@ -45,7 +45,7 @@ export async function notifyExpenseDecision(
     p_link: '/note-spese',
   });
   if (error) {
-    console.error('[notifyExpenseDecision]', error.message);
+    reportSupabaseError(error, 'expense-notifica-decisione');
     throw error;
   }
 
@@ -66,7 +66,6 @@ export async function notifyExpenseDecision(
     });
     if (rcptErr) {
       reportSupabaseError(rcptErr, 'expense-ricevuta-admin');
-      console.error('[notifyExpenseDecision admin receipt]', rcptErr.message);
     }
   }
 }
