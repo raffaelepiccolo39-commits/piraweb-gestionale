@@ -393,6 +393,7 @@ export interface Task {
   ai_generated: boolean;
   delivery_url: string | null;
   archived_at: string | null;
+  completed_at: string | null;
   created_by: string;
   created_at: string;
   updated_at: string;
