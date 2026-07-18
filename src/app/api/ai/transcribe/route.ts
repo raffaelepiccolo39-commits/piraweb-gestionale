@@ -7,10 +7,45 @@ import { checkRateLimit, AI_RATE_LIMIT } from '@/lib/rate-limit';
 import { logError } from '@/lib/logger';
 
 /**
- * Trascrizione audio → testo (OpenAI Whisper). L'audio arriva come file nel
- * form-data (dalla Cattura rapida: nota vocale registrata o caricata). Il testo
- * torna al client, che poi lo passa all'agente (capture-action).
+ * Trascrizione audio → testo. Primario: Google Gemini (chiave attiva, accetta
+ * wav/ogg/mp3 — le note vocali WhatsApp sono ogg, il browser invia wav). In
+ * fallback OpenAI Whisper, se un giorno l'account OpenAI torna con credito.
+ * L'audio arriva come file nel form-data.
  */
+
+const PROMPT = 'Trascrivi fedelmente in italiano questo audio. Rispondi SOLO con il testo trascritto, senza commenti.';
+
+async function transcribeGemini(base64: string, mime: string): Promise<string> {
+  const res = await fetch(
+    'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent',
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': process.env.GOOGLE_AI_API_KEY || '' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: PROMPT }, { inline_data: { mime_type: mime, data: base64 } }] }],
+      }),
+    },
+  );
+  if (!res.ok) throw new Error(`Gemini ${res.status}: ${await res.text()}`);
+  const data = await res.json();
+  return data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? '';
+}
+
+async function transcribeWhisper(audio: File): Promise<string> {
+  const upstream = new FormData();
+  upstream.append('file', audio, audio.name || 'audio.wav');
+  upstream.append('model', 'whisper-1');
+  upstream.append('language', 'it');
+  const res = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
+    body: upstream,
+  });
+  if (!res.ok) throw new Error(`Whisper ${res.status}: ${await res.text()}`);
+  const data = await res.json();
+  return data.text ?? '';
+}
+
 export async function POST(request: NextRequest) {
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -31,22 +66,20 @@ export async function POST(request: NextRequest) {
   }
   if (!audio) return NextResponse.json({ error: 'Audio mancante' }, { status: 400 });
 
-  try {
-    const upstream = new FormData();
-    upstream.append('file', audio, audio.name || 'audio.webm');
-    upstream.append('model', 'whisper-1');
-    upstream.append('language', 'it');
+  const mime = audio.type || 'audio/wav';
+  const base64 = Buffer.from(await audio.arrayBuffer()).toString('base64');
 
-    const res = await fetch('https://api.openai.com/v1/audio/transcriptions', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
-      body: upstream,
-    });
-    if (!res.ok) throw new Error(`Whisper ${res.status}: ${await res.text()}`);
-    const data = await res.json();
-    return NextResponse.json({ text: data.text ?? '' });
-  } catch (e) {
-    await logError({ error: e, route: '/api/ai/transcribe', source: 'api', context: { op: 'transcribe' } });
-    return NextResponse.json({ error: 'Errore nella trascrizione audio' }, { status: 500 });
+  try {
+    const text = await transcribeGemini(base64, mime);
+    return NextResponse.json({ text });
+  } catch (geminiErr) {
+    await logError({ error: geminiErr, route: '/api/ai/transcribe', source: 'api', context: { op: 'transcribe', provider: 'gemini' } });
+    try {
+      const text = await transcribeWhisper(audio);
+      return NextResponse.json({ text });
+    } catch (whisperErr) {
+      await logError({ error: whisperErr, route: '/api/ai/transcribe', source: 'api', context: { op: 'transcribe', provider: 'whisper' } });
+      return NextResponse.json({ error: 'Errore nella trascrizione audio' }, { status: 500 });
+    }
   }
 }

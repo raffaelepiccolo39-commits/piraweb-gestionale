@@ -14,6 +14,7 @@ import { useToast } from '@/components/ui/toast';
 import { getRoleLabel, formatDate } from '@/lib/utils';
 import { PRIORITY_OPTIONS } from '@/lib/constants';
 import { reportSupabaseError, reportError } from '@/lib/report-error';
+import { toWav16k } from '@/lib/audio-wav';
 import { Sparkles, ShieldCheck, Wand2, Check, MessageSquarePlus, Mic, Square, Upload, CreditCard, Globe, Bell, AlertTriangle } from 'lucide-react';
 
 /**
@@ -118,8 +119,18 @@ export default function CatturaPage() {
   async function transcribe(blob: Blob, filename: string) {
     setTranscribing(true);
     try {
+      // Converte in WAV 16 kHz (il motore non accetta il webm del browser).
+      // Se la conversione fallisce, invia l'originale.
+      let toSend: Blob = blob;
+      let name = filename;
+      try {
+        toSend = await toWav16k(blob);
+        name = filename.replace(/\.[^.]+$/, '') + '.wav';
+      } catch {
+        // usa l'originale
+      }
       const fd = new FormData();
-      fd.append('audio', blob, filename);
+      fd.append('audio', toSend, name);
       const res = await fetch('/api/ai/transcribe', { method: 'POST', body: fd });
       const data = await res.json();
       if (!res.ok) { toast.error(data.error || 'Trascrizione fallita'); return; }
