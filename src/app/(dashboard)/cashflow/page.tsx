@@ -12,6 +12,13 @@ import { PageHeader } from '@/components/ui/page-header';
 import { SkeletonStats, SkeletonList } from '@/components/ui/skeleton';
 import { formatCurrency, getRoleLabel, formatDateLocal, todayLocal } from '@/lib/utils';
 import type { CashflowMonthly, CashflowSummary, RevenuePerClient, ProfitLossSummary, MonthlyExpenses } from '@/types/database';
+
+/** Righe di get_website_cashflow_monthly: canoni gestione siti per mese. */
+interface WebsiteCashflowMonthly {
+  month: string;
+  expected: number;
+  received: number;
+}
 import { HealthIndicators } from '@/components/cashflow/health-indicators';
 import { ProfitLossChart } from '@/components/cashflow/profit-loss-chart';
 import { PeriodComparison } from '@/components/cashflow/period-comparison';
@@ -113,7 +120,7 @@ export default function CashflowPage() {
     setLoading(true);
     const { start, end } = getDateRange();
 
-    const [monthlyRes, summaryRes, clientsRes, pnlRes, expensesRes, profilesRes, payslipsRes] = await Promise.all([
+    const [monthlyRes, summaryRes, clientsRes, pnlRes, expensesRes, profilesRes, payslipsRes, websiteRes] = await Promise.all([
       supabase.rpc('get_cashflow_monthly', { p_start_date: start, p_end_date: end }),
       supabase.rpc('get_cashflow_summary', { p_start_date: start, p_end_date: end }),
       supabase.rpc('get_revenue_per_client', { p_start_date: start, p_end_date: end }),
@@ -123,11 +130,44 @@ export default function CashflowPage() {
       supabase.from('profiles').select('id, salary, contract_start_date, is_active').gt('salary', 0),
       // Quando esistono payslip storici, usali (verità inattaccabile invece di stima da profile)
       supabase.from('payslips').select('employee_id, month, lordo_mensile').gte('month', start).lte('month', end).limit(500),
+      // Gestione siti: canoni annuali, sommati al fatturato social (atteso dal
+      // rinnovo, incassato quando pagato). Vedi migration 20260718b.
+      supabase.rpc('get_website_cashflow_monthly', { p_start: start, p_end: end }),
     ]);
 
-    if (monthlyRes.data) setMonthly(monthlyRes.data as CashflowMonthly[]);
-    if (summaryRes.data?.length) setCashSummary(summaryRes.data[0] as CashflowSummary);
-    else setCashSummary({ total_expected: 0, total_received: 0, total_pending: 0, active_contracts: 0, active_clients: 0, avg_monthly_revenue: 0 } as CashflowSummary);
+    // Fonde i canoni siti nei dati mensili social, per mese (aggiunge il mese se
+    // non esiste ancora perché quel mese non aveva pagamenti social).
+    const website = (websiteRes.data as WebsiteCashflowMonthly[] | null) ?? [];
+    const byMonth = new Map<string, CashflowMonthly>();
+    for (const m of (monthlyRes.data as CashflowMonthly[] | null) ?? []) {
+      byMonth.set(m.month_date.slice(0, 7), { ...m });
+    }
+    for (const w of website) {
+      const key = w.month.slice(0, 7);
+      const exp = Number(w.expected), rec = Number(w.received);
+      const existing = byMonth.get(key);
+      if (existing) {
+        existing.expected = Number(existing.expected) + exp;
+        existing.received = Number(existing.received) + rec;
+        existing.pending = Number(existing.pending) + (exp - rec);
+      } else {
+        byMonth.set(key, { month_date: w.month, expected: exp, received: rec, pending: exp - rec, num_clients: 0 });
+      }
+    }
+    setMonthly([...byMonth.values()].sort((a, b) => a.month_date.localeCompare(b.month_date)));
+
+    const webExpected = website.reduce((s, w) => s + Number(w.expected), 0);
+    const webReceived = website.reduce((s, w) => s + Number(w.received), 0);
+    if (summaryRes.data?.length) {
+      const s = summaryRes.data[0] as CashflowSummary;
+      setCashSummary({
+        ...s,
+        total_expected: Number(s.total_expected) + webExpected,
+        total_received: Number(s.total_received) + webReceived,
+        total_pending: Number(s.total_pending) + (webExpected - webReceived),
+      });
+    }
+    else setCashSummary({ total_expected: webExpected, total_received: webReceived, total_pending: webExpected - webReceived, active_contracts: 0, active_clients: 0, avg_monthly_revenue: 0 } as CashflowSummary);
     if (pnlRes.data?.[0]) setPnl(pnlRes.data[0] as ProfitLossSummary);
     else setPnl(null);
     if (expensesRes.data?.[0]) setExpenses(expensesRes.data[0] as MonthlyExpenses);
@@ -145,11 +185,23 @@ export default function CashflowPage() {
     const prevStartStr = formatDateLocal(prevStart);
     const prevEndStr = formatDateLocal(prevEnd);
 
-    const [prevSummaryRes, prevPnlRes] = await Promise.all([
+    const [prevSummaryRes, prevPnlRes, prevWebsiteRes] = await Promise.all([
       supabase.rpc('get_cashflow_summary', { p_start_date: prevStartStr, p_end_date: prevEndStr }),
       supabase.rpc('get_profit_loss_summary', { p_start_date: prevStartStr, p_end_date: prevEndStr }),
+      supabase.rpc('get_website_cashflow_monthly', { p_start: prevStartStr, p_end: prevEndStr }),
     ]);
-    if (prevSummaryRes.data?.[0]) setPrevSummary(prevSummaryRes.data[0] as CashflowSummary);
+    if (prevSummaryRes.data?.[0]) {
+      const prevWebsite = (prevWebsiteRes.data as WebsiteCashflowMonthly[] | null) ?? [];
+      const pExp = prevWebsite.reduce((s, w) => s + Number(w.expected), 0);
+      const pRec = prevWebsite.reduce((s, w) => s + Number(w.received), 0);
+      const s = prevSummaryRes.data[0] as CashflowSummary;
+      setPrevSummary({
+        ...s,
+        total_expected: Number(s.total_expected) + pExp,
+        total_received: Number(s.total_received) + pRec,
+        total_pending: Number(s.total_pending) + (pExp - pRec),
+      });
+    }
     else setPrevSummary(null);
     if (prevPnlRes.data?.[0]) setPrevPnl(prevPnlRes.data[0] as ProfitLossSummary);
     else setPrevPnl(null);

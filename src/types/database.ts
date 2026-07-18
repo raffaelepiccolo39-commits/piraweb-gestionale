@@ -1358,3 +1358,30 @@ export interface PerfSummary {
   failures: number;
   last_seen: string;
 }
+
+// Gestione Siti: abbonamento annuale alla gestione di un sito web (un sito per
+// cliente), separato dai contratti social mensili. Vedi 20260718b.
+export interface WebsiteManagement {
+  id: string;
+  client_id: string;
+  site_url: string | null;
+  annual_fee: number;
+  status: 'active' | 'cancelled';
+  notes: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+  client?: Pick<Client, 'id' | 'name' | 'company'>;
+  renewals?: WebsiteRenewal[];
+}
+
+export interface WebsiteRenewal {
+  id: string;
+  website_id: string;
+  due_date: string;
+  amount: number;
+  is_paid: boolean;
+  paid_at: string | null;
+  created_at: string;
+  updated_at: string;
+}

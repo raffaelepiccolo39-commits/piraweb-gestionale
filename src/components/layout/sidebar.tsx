@@ -22,6 +22,7 @@ import {
   // Receipt,        // usato da "Note spese" — voce nascosta
   // FileText,       // usato da "Documenti" — voce nascosta
   Target,
+  Globe,
   // CalendarClock,  // usato da "Turni" — voce nascosta
   Settings,
   ChevronDown,
@@ -91,6 +92,7 @@ const navSections: NavSection[] = [
     items: [
       { label: 'Clienti', href: '/clients', icon: Users },
       { label: 'CRM', href: '/crm', icon: Briefcase, adminOnly: true },
+      { label: 'Gestione Siti', href: '/gestione-siti', icon: Globe, adminOnly: true },
       { label: 'Cashflow', href: '/cashflow', icon: Wallet, adminOnly: true },
     ],
   },
