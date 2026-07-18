@@ -30,6 +30,7 @@ import {
   Moon,
   Sun,
   MessageSquare,
+  MessageSquarePlus,
   MessageSquareWarning,
   CalendarClock,
   Sparkles,
@@ -58,6 +59,7 @@ const navSections: NavSection[] = [
     items: [
       { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
       { label: 'Task', href: '/tasks', icon: ListTodo, badgeKey: 'tasks', adminOnly: true },
+      { label: 'Cattura rapida', href: '/cattura', icon: MessageSquarePlus, adminOnly: true },
       { label: 'Progetti', href: '/projects', icon: FolderKanban },
       { label: 'Calendario', href: '/calendario', icon: Calendar },
       // { label: 'Chat', href: '/chat', icon: MessageCircle, badgeKey: 'chat', dot: true },
