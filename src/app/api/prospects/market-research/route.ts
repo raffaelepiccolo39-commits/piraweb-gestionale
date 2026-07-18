@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { isAdmin } from '@/lib/require-admin';
 import { checkRateLimit, AI_RATE_LIMIT } from '@/lib/rate-limit';
 import { logError } from '@/lib/logger';
 
@@ -13,6 +14,10 @@ export async function POST(request: NextRequest) {
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 });
+
+  if (!(await isAdmin(supabase, user.id))) {
+    return NextResponse.json({ error: 'Riservato agli amministratori' }, { status: 403 });
+  }
 
   const rateLimit = checkRateLimit(`market:${user.id}`, { maxRequests: 5, windowSeconds: 3600 });
   if (!rateLimit.allowed) {
