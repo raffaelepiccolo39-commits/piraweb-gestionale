@@ -12,6 +12,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { PageHeader } from '@/components/ui/page-header';
 import { EmptyState } from '@/components/ui/empty-state';
 import { SkeletonList } from '@/components/ui/skeleton';
+import { Select } from '@/components/ui/select';
 import { getInitials, getUserColor, getContrastTextColor } from '@/lib/utils';
 import { reportSupabaseError } from '@/lib/report-error';
 import { RendimentoCalendar, type DayStat } from '@/components/rendimento/rendimento-calendar';
@@ -63,6 +64,7 @@ export default function RendimentoPage() {
 
   const [currentMonth, setCurrentMonth] = useState(() => startOfMonth(new Date()));
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [selectedPerson, setSelectedPerson] = useState(''); // '' = tutti
   const [loading, setLoading] = useState(true);
   const [tasks, setTasks] = useState<DoneTask[]>([]);
   const [entries, setEntries] = useState<Entry[]>([]);
@@ -110,36 +112,42 @@ export default function RendimentoPage() {
     void fetchMonth();
   }, [fetchMonth]);
 
-  // Statistiche per giorno per la griglia del calendario.
+  // Statistiche per giorno per la griglia del calendario (filtrate sul
+  // collaboratore selezionato, se presente).
   const stats = useMemo(() => {
     const m = new Map<string, DayStat>();
     for (const t of tasks) {
       if (!t.completed_at) continue;
+      if (selectedPerson && t.assigned_to !== selectedPerson) continue;
       const k = localDay(t.completed_at);
       const s = m.get(k) ?? { tasks: 0, minutes: 0 };
       s.tasks += 1;
       m.set(k, s);
     }
     for (const e of entries) {
+      if (selectedPerson && e.user_id !== selectedPerson) continue;
       const k = localDay(e.started_at);
       const s = m.get(k) ?? { tasks: 0, minutes: 0 };
       s.minutes += e.duration_minutes || 0;
       m.set(k, s);
     }
     return m;
-  }, [tasks, entries]);
+  }, [tasks, entries, selectedPerson]);
 
-  // Totali del mese corrente (solo i giorni del mese, non gli scarti di griglia).
+  // Totali del mese corrente (solo i giorni del mese, non gli scarti di griglia),
+  // anch'essi filtrati sul collaboratore selezionato.
   const monthTotals = useMemo(() => {
     let t = 0, min = 0;
     for (const task of tasks) {
+      if (selectedPerson && task.assigned_to !== selectedPerson) continue;
       if (task.completed_at && isSameMonth(new Date(task.completed_at), currentMonth)) t += 1;
     }
     for (const e of entries) {
+      if (selectedPerson && e.user_id !== selectedPerson) continue;
       if (isSameMonth(new Date(e.started_at), currentMonth)) min += e.duration_minutes || 0;
     }
     return { tasks: t, minutes: min };
-  }, [tasks, entries, currentMonth]);
+  }, [tasks, entries, currentMonth, selectedPerson]);
 
   // Dettaglio del giorno selezionato, aggregato per persona.
   const dayDetail = useMemo(() => {
@@ -173,6 +181,24 @@ export default function RendimentoPage() {
     };
   }, [selectedDate, tasks, entries, people]);
 
+  // Opzioni del menu a tendina: tutti i collaboratori in ordine alfabetico.
+  const peopleOptions = useMemo(() => {
+    const arr = [...people.values()].sort((a, b) => a.full_name.localeCompare(b.full_name));
+    return [{ value: '', label: 'Tutti i collaboratori' }, ...arr.map((p) => ({ value: p.id, label: p.full_name }))];
+  }, [people]);
+
+  // Tutte le task chiuse dal collaboratore selezionato nel mese corrente.
+  const personDetail = useMemo(() => {
+    if (!selectedPerson) return null;
+    const list = tasks
+      .filter((t) => t.assigned_to === selectedPerson && t.completed_at && isSameMonth(new Date(t.completed_at), currentMonth))
+      .sort((a, b) => (b.completed_at ?? '').localeCompare(a.completed_at ?? ''));
+    const minutes = entries
+      .filter((e) => e.user_id === selectedPerson && isSameMonth(new Date(e.started_at), currentMonth))
+      .reduce((s, e) => s + (e.duration_minutes || 0), 0);
+    return { list, minutes };
+  }, [selectedPerson, tasks, entries, currentMonth]);
+
   if (!isAdmin) {
     return (
       <EmptyState
@@ -192,7 +218,14 @@ export default function RendimentoPage() {
         title="Rendimento"
         subtitle="Task completate e ore registrate, giorno per giorno"
         actions={
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <Select
+              options={peopleOptions}
+              value={selectedPerson}
+              onChange={(e) => setSelectedPerson(e.target.value)}
+              className="h-9 min-w-[11rem]"
+              aria-label="Filtra per collaboratore"
+            />
             <label className="relative inline-flex items-center">
               <CalendarDays size={15} className="absolute left-2.5 text-pw-text-dim pointer-events-none" />
               <input
@@ -274,14 +307,47 @@ export default function RendimentoPage() {
           </CardContent>
         </Card>
 
-        {/* Dettaglio giorno */}
+        {/* Dettaglio: task del collaboratore, oppure dettaglio del giorno */}
         <Card>
           <CardContent>
-            {!selectedDate ? (
+            {selectedPerson ? (
+              <div>
+                <h3 className="text-sm font-semibold text-pw-text">
+                  {people.get(selectedPerson)?.full_name ?? 'Collaboratore'}
+                </h3>
+                <div className="mt-1 flex gap-4 text-xs text-pw-text-dim capitalize">
+                  <span>{personDetail?.list.length ?? 0} task · {monthLabel}</span>
+                  <span className="normal-case">{fmtHours(personDetail?.minutes ?? 0)} registrate</span>
+                </div>
+
+                {personDetail && personDetail.list.length > 0 ? (
+                  <div className="mt-4 space-y-1.5">
+                    <p className="text-[11px] uppercase tracking-wider text-pw-text-dim">Task completate</p>
+                    {personDetail.list.map((t) => (
+                      <div key={t.id} className="flex items-center gap-2 text-sm">
+                        <span className="w-11 shrink-0 text-[11px] tabular-nums text-pw-text-dim">
+                          {t.completed_at ? format(new Date(t.completed_at), 'd MMM', { locale: it }) : ''}
+                        </span>
+                        <span
+                          className="h-2 w-2 shrink-0 rounded-full"
+                          style={{ backgroundColor: t.project?.color || 'var(--pw-accent)' }}
+                        />
+                        <span className="flex-1 truncate text-pw-text">{t.title}</span>
+                        {t.project?.name && (
+                          <span className="shrink-0 truncate text-xs text-pw-text-dim">{t.project.name}</span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="mt-6 text-sm text-pw-text-dim">Nessuna task completata in {monthLabel}.</p>
+                )}
+              </div>
+            ) : !selectedDate ? (
               <EmptyState
                 icon={CalendarDays}
-                title="Scegli un giorno"
-                description="Clicca una casella del calendario per vedere chi ha chiuso task e quante ore ha registrato quel giorno."
+                title="Scegli un giorno o un collaboratore"
+                description="Clicca una casella del calendario per il dettaglio del giorno, oppure scegli un collaboratore in alto per vedere tutte le sue task del mese."
               />
             ) : (
               <div>
