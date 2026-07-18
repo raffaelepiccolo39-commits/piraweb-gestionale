@@ -23,6 +23,7 @@ import {
   // FileText,       // usato da "Documenti" — voce nascosta
   // Target,         // usato da "Rendimento" — ora è un tab dentro /team
   Globe,
+  HandCoins,
   // CalendarClock,  // usato da "Turni" — voce nascosta
   Settings,
   ChevronDown,
@@ -94,6 +95,7 @@ const navSections: NavSection[] = [
       { label: 'Clienti', href: '/clients', icon: Users },
       { label: 'CRM', href: '/crm', icon: Briefcase, adminOnly: true },
       { label: 'Gestione Siti', href: '/gestione-siti', icon: Globe, adminOnly: true },
+      { label: 'Crediti', href: '/crediti', icon: HandCoins, adminOnly: true },
       { label: 'Cashflow', href: '/cashflow', icon: Wallet, adminOnly: true },
     ],
   },
