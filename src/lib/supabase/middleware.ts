@@ -85,48 +85,64 @@ export async function updateSession(request: NextRequest) {
     return redirectResponse;
   }
 
-  // Onboarding gate: utente autenticato che non ha completato il wizard primo
-  // accesso viene forzato su /onboarding. Eseguito prima di 2FA/admin guard
-  // perché il wizard stesso include lo step 2FA (impostarla è parte del flow).
-  if (user && !isAuthPage && !isApiRoute && !isPublicPage && !isOnboardingPage) {
+  // Contesto "app interna": utente loggato su pagina non login/api/pubblica.
+  const inApp = user && !isAuthPage && !isApiRoute && !isPublicPage;
+
+  // Una SOLA lettura del profilo (role + onboarded_at) e un SOLO client
+  // service-role, riusati sia dall'onboarding-gate sia dall'admin-guard: prima
+  // erano due query profiles separate a ogni navigazione admin. La 2FA sta su
+  // un'altra tabella e resta una query a parte (condizionata al cookie).
+  let serviceClient: ReturnType<typeof createClient> | null = null;
+  let profileRole: string | null = null;
+  let onboardedAt: string | null = null;
+  let profileLoaded = false;
+  if (inApp && !isOnboardingPage) {
     try {
-      const serviceClient = createClient(
+      serviceClient = createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.SUPABASE_SERVICE_ROLE_KEY!
       );
-      const { data: prof } = await serviceClient
+      const { data } = await serviceClient
         .from('profiles')
-        .select('onboarded_at')
+        .select('role, onboarded_at')
         .eq('id', user.id)
         .single();
-      if (prof && prof.onboarded_at === null) {
-        const url = request.nextUrl.clone();
-        url.pathname = '/onboarding';
-        url.search = '';
-        const redirectResponse = NextResponse.redirect(url);
-        supabaseResponse.cookies.getAll().forEach((cookie) => {
-          redirectResponse.cookies.set(cookie.name, cookie.value, cookie);
-        });
-        return redirectResponse;
+      const prof = data as { role: string | null; onboarded_at: string | null } | null;
+      if (prof) {
+        profileRole = prof.role ?? null;
+        onboardedAt = prof.onboarded_at ?? null;
+        profileLoaded = true;
       }
     } catch {
-      // Se la query fallisce, lascia passare (fail-open per non bloccare l'app)
+      // fail-open: se la lettura fallisce non blocchiamo i gate
     }
   }
 
-  // 2FA check: utente autenticato che cerca di accedere alla dashboard
-  if (user && !isAuthPage && !isApiRoute && !isPublicPage && !isOnboardingPage) {
+  // Onboarding gate: chi non ha completato il wizard va su /onboarding. Va
+  // prima di 2FA/admin perché il wizard include lo step 2FA.
+  if (profileLoaded && onboardedAt === null) {
+    const url = request.nextUrl.clone();
+    url.pathname = '/onboarding';
+    url.search = '';
+    const redirectResponse = NextResponse.redirect(url);
+    supabaseResponse.cookies.getAll().forEach((cookie) => {
+      redirectResponse.cookies.set(cookie.name, cookie.value, cookie);
+    });
+    return redirectResponse;
+  }
+
+  // 2FA check: tabella diversa, riusa il client service-role già creato.
+  if (inApp && !isOnboardingPage) {
     const tfaCookie = request.cookies.get('2fa_verified');
     const isTfaVerified = tfaCookie?.value === user.id;
 
     if (!isTfaVerified) {
-      // Controlla se l'utente ha la 2FA abilitata usando service role
       try {
-        const serviceClient = createClient(
+        const sc = serviceClient ?? createClient(
           process.env.NEXT_PUBLIC_SUPABASE_URL!,
           process.env.SUPABASE_SERVICE_ROLE_KEY!
         );
-        const { data: totp } = await serviceClient
+        const { data: totp } = await sc
           .from('user_totp')
           .select('enabled')
           .eq('user_id', user.id)
@@ -134,7 +150,7 @@ export async function updateSession(request: NextRequest) {
           .single();
 
         if (totp) {
-          // 2FA abilitata ma non verificata → redirect a login con parametro verify
+          // 2FA abilitata ma non verificata → redirect a login con verify
           const url = request.nextUrl.clone();
           const originalPath = request.nextUrl.pathname + request.nextUrl.search;
           url.pathname = '/login';
@@ -156,38 +172,22 @@ export async function updateSession(request: NextRequest) {
   }
 
   // ── Guard URL admin-only ──
-  // I non-admin che provano ad aprire una pagina admin via URL diretto
-  // vengono rimbalzati su /dashboard. Eseguito solo se la rotta è davvero
-  // admin (evita una query profiles inutile su ogni navigazione).
-  if (user && !isAuthPage && !isApiRoute && !isPublicPage) {
+  // Usa il ruolo GIÀ letto sopra (nessuna seconda query). Se la lettura del
+  // profilo è fallita (profileLoaded=false) restiamo fail-open come prima.
+  if (inApp) {
     const path = request.nextUrl.pathname;
     const isAdminRoute = ADMIN_ROUTES.some(
       (r) => path === r || path.startsWith(r + '/')
     );
-    if (isAdminRoute) {
-      try {
-        const serviceClient = createClient(
-          process.env.NEXT_PUBLIC_SUPABASE_URL!,
-          process.env.SUPABASE_SERVICE_ROLE_KEY!
-        );
-        const { data: profileRow } = await serviceClient
-          .from('profiles')
-          .select('role')
-          .eq('id', user.id)
-          .single();
-        if (profileRow?.role !== 'admin') {
-          const url = request.nextUrl.clone();
-          url.pathname = '/dashboard';
-          url.search = '';
-          const redirectResponse = NextResponse.redirect(url);
-          supabaseResponse.cookies.getAll().forEach((cookie) => {
-            redirectResponse.cookies.set(cookie.name, cookie.value, cookie);
-          });
-          return redirectResponse;
-        }
-      } catch {
-        // Se il profilo non è recuperabile non blocchiamo, log lato server
-      }
+    if (isAdminRoute && profileLoaded && profileRole !== 'admin') {
+      const url = request.nextUrl.clone();
+      url.pathname = '/dashboard';
+      url.search = '';
+      const redirectResponse = NextResponse.redirect(url);
+      supabaseResponse.cookies.getAll().forEach((cookie) => {
+        redirectResponse.cookies.set(cookie.name, cookie.value, cookie);
+      });
+      return redirectResponse;
     }
   }
 
