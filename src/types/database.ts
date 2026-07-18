@@ -660,9 +660,27 @@ export interface AttendanceRecord {
   total_hours: number;
   /** Giornata lavorata fuori ufficio (trasferta/da remoto), registrata dall'admin */
   off_site: boolean;
+  /** Posizione GPS al momento di entrata/uscita (null = non disponibile). Vedi 20260718c. */
+  clock_in_geo: GeoStampRecord | null;
+  clock_out_geo: GeoStampRecord | null;
   notes: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface GeoStampRecord {
+  lat: number;
+  lng: number;
+  acc: number | null;
+}
+
+export interface CompanySettings {
+  id: boolean;
+  office_lat: number | null;
+  office_lng: number | null;
+  office_radius_m: number;
+  updated_at: string;
+  updated_by: string | null;
 }
 
 export interface TeamAttendanceToday {

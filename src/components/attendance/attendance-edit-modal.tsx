@@ -8,9 +8,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { useToast } from '@/components/ui/toast';
-import type { AttendanceRecord, AttendanceStatus, TimeOffType } from '@/types/database';
+import type { AttendanceRecord, AttendanceStatus, TimeOffType, GeoStampRecord } from '@/types/database';
 import { Loader2, Save, Stethoscope, MapPin, Trash2 } from 'lucide-react';
 import { reportSupabaseError } from '@/lib/report-error';
+import { GeoBadge } from '@/components/attendance/geo-badge';
 
 /** Assenza (ferie/permesso/malattia) che copre il giorno mostrato */
 interface DayAbsence {
@@ -89,6 +90,9 @@ export function AttendanceEditModal({ open, onClose, userId, userName, date, onS
   const [lunchEnd, setLunchEnd] = useState('');
   const [clockOut, setClockOut] = useState('');
   const [offSite, setOffSite] = useState(false);
+  const [clockInGeo, setClockInGeo] = useState<GeoStampRecord | null>(null);
+  const [clockOutGeo, setClockOutGeo] = useState<GeoStampRecord | null>(null);
+  const [office, setOffice] = useState<{ lat: number; lng: number; radius: number } | null>(null);
   const [notes, setNotes] = useState('');
   const [absenceType, setAbsenceType] = useState<TimeOffType>('malattia');
   const [error, setError] = useState<string | null>(null);
@@ -102,7 +106,7 @@ export function AttendanceEditModal({ open, onClose, userId, userName, date, onS
     let active = true;
 
     const load = async () => {
-      const [recRes, absRes] = await Promise.all([
+      const [recRes, absRes, officeRes] = await Promise.all([
         supabase
           .from('attendance_records')
           .select('*')
@@ -119,6 +123,7 @@ export function AttendanceEditModal({ open, onClose, userId, userName, date, onS
           .gte('end_date', date)
           .in('status', ['approved', 'pending'])
           .maybeSingle(),
+        supabase.from('company_settings').select('office_lat, office_lng, office_radius_m').maybeSingle(),
       ]);
 
       if (!active) return;
@@ -129,6 +134,12 @@ export function AttendanceEditModal({ open, onClose, userId, userName, date, onS
       setLunchEnd(toTimeInput(rec?.lunch_end ?? null));
       setClockOut(toTimeInput(rec?.clock_out ?? null));
       setOffSite(rec?.off_site ?? false);
+      setClockInGeo(rec?.clock_in_geo ?? null);
+      setClockOutGeo(rec?.clock_out_geo ?? null);
+      const off = officeRes.data as { office_lat: number | null; office_lng: number | null; office_radius_m: number } | null;
+      setOffice(off && off.office_lat != null && off.office_lng != null
+        ? { lat: off.office_lat, lng: off.office_lng, radius: off.office_radius_m ?? 150 }
+        : null);
       setNotes(rec?.notes ?? '');
       setAbsence((absRes.data as DayAbsence | null) ?? null);
       setLoading(false);
@@ -284,6 +295,14 @@ export function AttendanceEditModal({ open, onClose, userId, userName, date, onS
             <Input label="Inizio pausa" type="time" value={lunchStart} onChange={(e) => setLunchStart(e.target.value)} />
             <Input label="Fine pausa" type="time" value={lunchEnd} onChange={(e) => setLunchEnd(e.target.value)} />
           </div>
+
+          {/* Verifica posizione delle timbrature (registrata al momento del punch) */}
+          {(clockInGeo || clockOutGeo) && (
+            <div className="flex flex-wrap gap-2">
+              {clockIn && <GeoBadge label="Entrata" geo={clockInGeo} office={office} radius={office?.radius ?? 150} />}
+              {clockOut && <GeoBadge label="Uscita" geo={clockOutGeo} office={office} radius={office?.radius ?? 150} />}
+            </div>
+          )}
 
           <label className="flex items-center gap-2 text-sm text-pw-text cursor-pointer">
             <input

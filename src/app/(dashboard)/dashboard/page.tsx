@@ -24,6 +24,7 @@ import { AbsentToday } from '@/components/dashboard/absent-today';
 import { TimeOffInbox } from '@/components/dashboard/time-off-inbox';
 import { PedDeadlines } from '@/components/dashboard/ped-deadlines';
 import { WebsiteRenewals } from '@/components/dashboard/website-renewals';
+import { captureGeoStamp } from '@/lib/attendance-geo';
 import { notifyTimeOffDecision } from '@/lib/time-off-notifications';
 import type { TimeOffRequest } from '@/types/database';
 import { PageHeader } from '@/components/ui/page-header';
@@ -296,7 +297,8 @@ export default function DashboardPage() {
           const { error } = await supabase.from('attendance_records').update({ status: 'working', lunch_end: nowTime }).eq('id', attendance.id);
           if (error) throw error;
         } else {
-          const { error } = await supabase.from('attendance_records').insert({ user_id: profile.id, date: todayStr, clock_in: nowTime, status: 'working' });
+          const geo = await captureGeoStamp();
+          const { error } = await supabase.from('attendance_records').insert({ user_id: profile.id, date: todayStr, clock_in: nowTime, status: 'working', clock_in_geo: geo });
           if (error) throw error;
         }
         toast.success(attendance?.status === 'lunch_break' ? 'Bentornato!' : 'Entrata registrata');
@@ -324,7 +326,8 @@ export default function DashboardPage() {
             lunchDurationMs = Date.now() - new Date(attendance.lunch_start).getTime();
           }
           const totalHours = (Date.now() - clockIn.getTime() - lunchDurationMs) / 3600000;
-          const { error } = await supabase.from('attendance_records').update({ status: 'completed', clock_out: nowTime, total_hours: Math.round(totalHours * 100) / 100 }).eq('id', attendance.id);
+          const geo = await captureGeoStamp();
+          const { error } = await supabase.from('attendance_records').update({ status: 'completed', clock_out: nowTime, total_hours: Math.round(totalHours * 100) / 100, clock_out_geo: geo }).eq('id', attendance.id);
           if (error) throw error;
           toast.success('Uscita registrata. Buona serata!');
         }

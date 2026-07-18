@@ -9,6 +9,7 @@ import { todayLocal, formatTime } from '@/lib/utils';
 import type { AttendanceRecord } from '@/types/database';
 import { LogIn, Clock, Loader2, UtensilsCrossed, Moon } from 'lucide-react';
 import { reportSupabaseError } from '@/lib/report-error';
+import { captureGeoStamp } from '@/lib/attendance-geo';
 
 /**
  * Cancello timbratura: l'app è utilizzabile solo durante il turno di lavoro
@@ -159,9 +160,10 @@ export function AttendanceGate({ children }: { children: React.ReactNode }) {
       .eq('date', today)
       .maybeSingle();
 
+    const geo = await captureGeoStamp();
     const { error } = existing
-      ? await supabase.from('attendance_records').update({ clock_in: now, status: 'working' }).eq('id', existing.id)
-      : await supabase.from('attendance_records').insert({ user_id: profile.id, date: today, clock_in: now, status: 'working' });
+      ? await supabase.from('attendance_records').update({ clock_in: now, status: 'working', clock_in_geo: geo }).eq('id', existing.id)
+      : await supabase.from('attendance_records').insert({ user_id: profile.id, date: today, clock_in: now, status: 'working', clock_in_geo: geo });
 
     setSubmitting(false);
     if (error) { reportSupabaseError(error, 'timbratura-entrata', { userId: profile.id, date: today }); toast.error('Errore nella timbratura, riprova'); return; }

@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { ClockButtons } from '@/components/attendance/clock-buttons';
 import { TeamStatus } from '@/components/attendance/team-status';
 import { ATTENDANCE_CHANGED } from '@/components/layout/attendance-gate';
+import { captureGeoStamp } from '@/lib/attendance-geo';
 import type { AttendanceRecord, TeamAttendanceToday } from '@/types/database';
 import { BarChart3, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
@@ -96,20 +97,25 @@ export default function PresenzePage() {
         if (todayRecord.clock_out) { toast.error('Hai già timbrato l\'uscita oggi'); setActionLoading(false); return; }
       }
 
+      // Posizione GPS solo per entrata/uscita (mai per la pausa). Non blocca:
+      // se negata/assente resta null ("posizione non disponibile").
+      const geo = (action === 'clock_in' || action === 'clock_out') ? await captureGeoStamp() : null;
+
       if (!todayRecord && action === 'clock_in') {
         const { error } = await supabase.from('attendance_records').insert({
           user_id: profile.id,
           date: today,
           clock_in: now,
           status: 'working',
+          clock_in_geo: geo,
         });
         if (error) throw error;
       } else if (todayRecord) {
         const fieldMap: Record<string, Record<string, unknown>> = {
-          clock_in: { clock_in: now, status: 'working' },
+          clock_in: { clock_in: now, status: 'working', clock_in_geo: geo },
           lunch_start: { lunch_start: now, status: 'lunch_break' },
           lunch_end: { lunch_end: now, status: 'working' },
-          clock_out: { clock_out: now, status: 'completed' },
+          clock_out: { clock_out: now, status: 'completed', clock_out_geo: geo },
         };
         const { error } = await supabase
           .from('attendance_records')

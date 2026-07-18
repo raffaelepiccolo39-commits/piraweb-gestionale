@@ -14,6 +14,7 @@ import { Modal } from '@/components/ui/modal';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { getRoleLabel, getRoleTone, getInitials, formatCurrency, todayLocal } from '@/lib/utils';
 import type { Profile, UserRole } from '@/types/database';
+import { OfficeLocationSettings } from '@/components/settings/office-location';
 import { Settings, Users, Shield, ShieldCheck, ShieldOff, Save, UserPlus, Eye, EyeOff, Pencil, Lock, ArrowRightLeft, AlertTriangle, Loader2, Copy, Check, UserX, UserCheck } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
 import { SkeletonStats, SkeletonList } from '@/components/ui/skeleton';
@@ -787,6 +788,9 @@ export default function SettingsPage() {
           </div>
         </div>
       </Modal>
+
+      {/* Sede & timbrature (admin only) */}
+      {profile?.role === 'admin' && <OfficeLocationSettings />}
 
       {/* Team management (admin only) */}
       {profile?.role === 'admin' && (
