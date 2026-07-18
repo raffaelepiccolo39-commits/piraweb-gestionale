@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { reportUnknown } from '@/lib/report-error';
+import { reportUnknown, recoverFromChunkError } from '@/lib/report-error';
 
 interface ErrorBoundaryProps {
   children: React.ReactNode;
@@ -24,6 +24,10 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     console.error('ErrorBoundary caught:', error, errorInfo);
+
+    // Scheda vecchia dopo un deploy: ricarica per prendere il build nuovo,
+    // senza loggare (non è un bug del componente).
+    if (recoverFromChunkError(error)) return;
 
     // Prima finiva qui e basta: l'errore restava nella console del browser
     // dell'utente e non lo vedeva nessuno. Ora arriva in error_logs.

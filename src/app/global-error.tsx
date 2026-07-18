@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { reportUnknown } from '@/lib/report-error';
+import { reportUnknown, recoverFromChunkError, isLikelyChunkError } from '@/lib/report-error';
 
 /**
  * Ultima rete di sicurezza: cattura i crash del root layout, cioè quelli che
@@ -19,11 +19,18 @@ export default function GlobalError({
   reset: () => void;
 }) {
   useEffect(() => {
+    // Scheda vecchia dopo un deploy: ricarica e prendi il build nuovo, senza
+    // loggare né mostrare il crash (non è un bug).
+    if (recoverFromChunkError(error)) return;
     reportUnknown(error, 'boundary', {
       kind: 'global_error',
       digest: error.digest ?? null,
     });
   }, [error]);
+
+  // Mentre il reload parte (chunk mancante) mostriamo un messaggio neutro,
+  // non "il gestionale si è bloccato": non si è rotto niente, si sta aggiornando.
+  const updating = isLikelyChunkError(error);
 
   return (
     <html lang="it">
@@ -64,17 +71,18 @@ export default function GlobalError({
 
         <div className="ge-wrap">
           <h1 style={{ fontSize: 20, fontWeight: 600, margin: 0 }}>
-            Il gestionale si è bloccato
+            {updating ? 'Aggiornamento in corso…' : 'Il gestionale si è bloccato'}
           </h1>
 
           <p className="ge-sub">
-            L&apos;errore è stato registrato. Ricarica la pagina: se il problema
-            si ripete, scrivilo in Suggerimenti &amp; Bug.
+            {updating
+              ? 'È uscita una nuova versione: sto ricaricando la pagina. Se non riparte da sola, clicca qui sotto.'
+              : 'L’errore è stato registrato. Ricarica la pagina: se il problema si ripete, scrivilo in Suggerimenti & Bug.'}
           </p>
 
-          {error.digest && <p className="ge-ref">rif. {error.digest}</p>}
+          {!updating && error.digest && <p className="ge-ref">rif. {error.digest}</p>}
 
-          <button className="ge-btn" onClick={reset}>
+          <button className="ge-btn" onClick={() => (updating ? window.location.reload() : reset())}>
             Ricarica
           </button>
         </div>

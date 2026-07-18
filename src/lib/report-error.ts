@@ -84,6 +84,44 @@ export function reportSupabaseError(
   });
 }
 
+/**
+ * Riconosce un "chunk load error": il browser prova a caricare un pezzo di JS
+ * che non esiste più sul server. Quasi sempre è una scheda rimasta aperta con
+ * un build vecchio dopo un deploy — non un bug del codice. Predicato puro,
+ * senza effetti collaterali (serve anche a scegliere il messaggio da mostrare).
+ */
+export function isLikelyChunkError(error: unknown): boolean {
+  const name = error instanceof Error ? error.name : '';
+  const message = error instanceof Error ? (error.message || '') : String(error ?? '');
+  return (
+    name === 'ChunkLoadError' ||
+    /loading chunk [\w-]+ failed|failed to load chunk|error loading dynamically imported module|importing a module script failed/i.test(message)
+  );
+}
+
+/**
+ * Se l'errore è un chunk mancante da deploy, ricarica la pagina una volta per
+ * prendere il build nuovo, e ritorna true (il chiamante deve saltare il log e
+ * la schermata di crash). Guardia anti-loop in sessionStorage: se ricapita
+ * subito dopo un reload, lascia che l'errore segua il flusso normale — a quel
+ * punto è un problema vero, non una scheda stale.
+ */
+export function recoverFromChunkError(error: unknown): boolean {
+  if (typeof window === 'undefined') return false;
+  if (!isLikelyChunkError(error)) return false;
+
+  try {
+    const KEY = 'pw-chunk-reload-at';
+    const last = Number(sessionStorage.getItem(KEY) || '0');
+    if (Date.now() - last < 20_000) return false; // già ricaricato da poco: non insistere
+    sessionStorage.setItem(KEY, String(Date.now()));
+    window.location.reload();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /** Normalizza qualunque cosa arrivi da un handler globale. */
 export function reportUnknown(
   error: unknown,
