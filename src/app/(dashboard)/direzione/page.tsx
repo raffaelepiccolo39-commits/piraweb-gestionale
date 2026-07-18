@@ -144,17 +144,18 @@ export default function DirectionPage() {
     const wonThisMonth = deals.filter((d) => d.stage === 'closed_won' && d.actual_close_date && d.actual_close_date >= monthStart.split('T')[0]);
     const wonValueThisMonth = wonThisMonth.reduce((s, d) => s + (d.value || 0), 0);
 
-    // Client health - parallel RPC calls instead of sequential loop
-    const healthResults = await Promise.all(
-      clients.slice(0, 20).map(async (client) => {
-        const { data: health } = await supabase.rpc('calculate_client_health', { p_client_id: client.id });
-        if (health && health.length > 0) {
-          return { client_name: client.company || client.name, client_id: client.id, health: health[0] as ClientHealth };
-        }
-        return null;
-      })
+    // Client health — una sola RPC set-based per TUTTI i clienti (prima erano
+    // fino a 20 chiamate separate).
+    const { data: healthRows } = await supabase.rpc('calculate_all_clients_health');
+    const healthByClient = new Map(
+      ((healthRows ?? []) as (ClientHealth & { client_id: string })[]).map((h) => [h.client_id, h]),
     );
-    const clientHealth = healthResults.filter((r): r is NonNullable<typeof r> => r !== null);
+    const clientHealth = clients
+      .map((client) => {
+        const health = healthByClient.get(client.id);
+        return health ? { client_name: client.company || client.name, client_id: client.id, health: health as ClientHealth } : null;
+      })
+      .filter((r): r is NonNullable<typeof r> => r !== null);
     clientHealth.sort((a, b) => a.health.health_score - b.health.health_score);
     const atRiskCount = clientHealth.filter((c) => c.health.risk_level === 'at_risk' || c.health.risk_level === 'critical').length;
 
