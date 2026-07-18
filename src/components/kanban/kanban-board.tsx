@@ -8,9 +8,11 @@ import {
   type DropResult,
 } from '@hello-pangea/dnd';
 import { createClient } from '@/lib/supabase/client';
+import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/components/ui/toast';
 import { cn, getPriorityTone, getInitials, formatDate, getContrastTextColor } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
+import { LogHoursModal } from '@/components/tasks/log-hours-modal';
 import type { Task, TaskStatus } from '@/types/database';
 import { KANBAN_COLUMNS, PRIORITY_LABELS } from '@/lib/constants';
 import { Calendar, MessageSquare, Clock, Sparkles } from 'lucide-react';
@@ -23,7 +25,11 @@ interface KanbanBoardProps {
 
 export function KanbanBoard({ tasks, onTaskClick, onTasksUpdate }: KanbanBoardProps) {
   const supabase = createClient();
+  const { profile } = useAuth();
   const toast = useToast();
+  // Prompt "quante ore?" quando una task viene trascinata su "Fatto" senza
+  // ore già registrate. Non blocca (c'è "Salta").
+  const [hoursFor, setHoursFor] = useState<{ id: string; title: string } | null>(null);
 
   const getColumnTasks = useCallback(
     (status: TaskStatus) =>
@@ -72,6 +78,9 @@ export function KanbanBoard({ tasks, onTaskClick, onTasksUpdate }: KanbanBoardPr
     const movedErr = movedIdx >= 0 ? responses[movedIdx]?.error : null;
     if (movedErr) {
       toast.error(movedErr.message || 'Aggiornamento non riuscito');
+    } else if (newStatus === 'done' && Number(task.logged_hours || 0) === 0) {
+      // Task completata senza ore registrate → chiedi quante ore (non blocca).
+      setHoursFor({ id: task.id, title: task.title });
     }
 
     onTasksUpdate();
@@ -177,6 +186,15 @@ export function KanbanBoard({ tasks, onTaskClick, onTasksUpdate }: KanbanBoardPr
           );
         })}
       </div>
+
+      <LogHoursModal
+        open={!!hoursFor}
+        taskId={hoursFor?.id ?? null}
+        taskTitle={hoursFor?.title ?? ''}
+        userId={profile?.id ?? null}
+        onClose={() => setHoursFor(null)}
+        onLogged={onTasksUpdate}
+      />
     </DragDropContext>
   );
 }
