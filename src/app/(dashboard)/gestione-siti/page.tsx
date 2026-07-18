@@ -65,6 +65,11 @@ export default function GestioneSitiPage() {
   const [fRenewal, setFRenewal] = useState('');
   const [fStatus, setFStatus] = useState<'active' | 'cancelled'>('active');
   const [fNotes, setFNotes] = useState('');
+  // Cliente: esistente dalla lista, oppure creato al volo (cliente "solo sito").
+  const [clientMode, setClientMode] = useState<'existing' | 'new'>('existing');
+  const [fNewName, setFNewName] = useState('');
+  const [fNewEmail, setFNewEmail] = useState('');
+  const [fNewPhone, setFNewPhone] = useState('');
 
   const fetchData = useCallback(async () => {
     if (!isAdmin) return;
@@ -96,6 +101,7 @@ export default function GestioneSitiPage() {
   function openCreate() {
     setEditing(null);
     setFClient(''); setFUrl(''); setFFee('150'); setFRenewal(''); setFStatus('active'); setFNotes('');
+    setClientMode('existing'); setFNewName(''); setFNewEmail(''); setFNewPhone('');
     setModalOpen(true);
   }
 
@@ -112,15 +118,39 @@ export default function GestioneSitiPage() {
   }
 
   async function save() {
+    if (!profile) return;
     const fee = Number(fFee);
-    if (!fClient) { toast.error('Scegli un cliente'); return; }
+    const creatingNew = !editing && clientMode === 'new';
+    if (!editing) {
+      if (creatingNew ? !fNewName.trim() : !fClient) {
+        toast.error(creatingNew ? 'Inserisci il nome del cliente' : 'Scegli un cliente');
+        return;
+      }
+      if (!fRenewal) { toast.error('Indica la data del primo rinnovo'); return; }
+    }
     if (!Number.isFinite(fee) || fee <= 0) { toast.error('Canone non valido'); return; }
-    if (!editing && !fRenewal) { toast.error('Indica la data del primo rinnovo'); return; }
     setSaving(true);
 
     if (!editing) {
+      // Cliente "solo sito" creato al volo: prima il cliente, poi il sito.
+      let clientId = fClient;
+      if (creatingNew) {
+        const { data: nc, error: cErr } = await supabase
+          .from('clients')
+          .insert({ name: fNewName.trim(), email: fNewEmail.trim() || null, phone: fNewPhone.trim() || null, created_by: profile.id })
+          .select('id')
+          .single();
+        if (cErr || !nc) {
+          setSaving(false);
+          reportSupabaseError(cErr, 'gestione-siti-create-client');
+          toast.error('Errore nella creazione del cliente');
+          return;
+        }
+        clientId = nc.id;
+      }
+
       const { error } = await supabase.rpc('create_website_management', {
-        p_client_id: fClient,
+        p_client_id: clientId,
         p_site_url: fUrl,
         p_annual_fee: fee,
         p_first_renewal: fRenewal,
@@ -128,7 +158,7 @@ export default function GestioneSitiPage() {
       });
       setSaving(false);
       if (error) { reportSupabaseError(error, 'gestione-siti-create'); toast.error('Errore nel salvataggio'); return; }
-      toast.success('Sito aggiunto');
+      toast.success(creatingNew ? 'Cliente e sito aggiunti' : 'Sito aggiunto');
     } else {
       const { error } = await supabase
         .from('website_managements')
@@ -249,14 +279,55 @@ export default function GestioneSitiPage() {
 
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editing ? 'Modifica sito' : 'Aggiungi sito'}>
         <div className="space-y-4">
-          <Select
-            label="Cliente"
-            placeholder="Scegli un cliente"
-            options={clientOptions}
-            value={fClient}
-            onChange={(e) => setFClient(e.target.value)}
-            disabled={!!editing}
-          />
+          {editing ? (
+            <Select
+              label="Cliente"
+              options={clientOptions}
+              value={fClient}
+              onChange={(e) => setFClient(e.target.value)}
+              disabled
+            />
+          ) : (
+            <div className="space-y-3">
+              <div className="flex gap-1 rounded-lg bg-pw-surface-2/60 p-1">
+                <button
+                  type="button"
+                  onClick={() => setClientMode('existing')}
+                  className={clientMode === 'existing'
+                    ? 'flex-1 rounded-md bg-pw-accent px-3 py-1.5 text-xs font-semibold text-[#0A263A]'
+                    : 'flex-1 rounded-md px-3 py-1.5 text-xs font-medium text-pw-text-muted hover:text-pw-text'}
+                >
+                  Cliente esistente
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setClientMode('new')}
+                  className={clientMode === 'new'
+                    ? 'flex-1 rounded-md bg-pw-accent px-3 py-1.5 text-xs font-semibold text-[#0A263A]'
+                    : 'flex-1 rounded-md px-3 py-1.5 text-xs font-medium text-pw-text-muted hover:text-pw-text'}
+                >
+                  Nuovo cliente
+                </button>
+              </div>
+
+              {clientMode === 'existing' ? (
+                <Select
+                  placeholder="Scegli un cliente"
+                  options={clientOptions}
+                  value={fClient}
+                  onChange={(e) => setFClient(e.target.value)}
+                />
+              ) : (
+                <div className="space-y-3">
+                  <Input label="Nome cliente" placeholder="es. Mario Rossi / Azienda Srl" value={fNewName} onChange={(e) => setFNewName(e.target.value)} />
+                  <div className="grid grid-cols-2 gap-3">
+                    <Input label="Email (facolt.)" type="email" value={fNewEmail} onChange={(e) => setFNewEmail(e.target.value)} />
+                    <Input label="Telefono (facolt.)" value={fNewPhone} onChange={(e) => setFNewPhone(e.target.value)} />
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
           <Input label="Indirizzo del sito" placeholder="es. www.cliente.it" value={fUrl} onChange={(e) => setFUrl(e.target.value)} />
           <div className="grid grid-cols-2 gap-3">
             <Input label="Canone annuo (€)" type="number" min="0" step="1" value={fFee} onChange={(e) => setFFee(e.target.value)} />
