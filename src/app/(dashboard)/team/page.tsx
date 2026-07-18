@@ -6,12 +6,13 @@ import { Suspense } from 'react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
 import { PageHeader } from '@/components/ui/page-header';
-import { MessageSquare, Clock, BarChart3 } from 'lucide-react';
+import { MessageSquare, Clock, BarChart3, Target } from 'lucide-react';
 
 // Import delle pagine esistenti
 import BachecaPage from '../bacheca/page';
 import PresenzePage from '../presenze/page';
 import CapacityPage from '../capacity/page';
+import RendimentoPage from '../rendimento/page';
 
 interface TeamTab {
   id: string;
@@ -24,6 +25,7 @@ const tabs: TeamTab[] = [
   { id: 'bacheca', label: 'Bacheca', icon: MessageSquare },
   { id: 'presenze', label: 'Presenze', icon: Clock },
   { id: 'capacity', label: 'Capacità', icon: BarChart3, adminOnly: true },
+  { id: 'rendimento', label: 'Rendimento', icon: Target, adminOnly: true },
 ];
 
 function TeamContent() {
@@ -69,6 +71,7 @@ function TeamContent() {
         {activeTab === 'bacheca' && <BachecaPage />}
         {activeTab === 'presenze' && <PresenzePage />}
         {activeTab === 'capacity' && isAdmin && <CapacityPage />}
+        {activeTab === 'rendimento' && isAdmin && <RendimentoPage />}
       </div>
     </div>
   );

@@ -21,7 +21,7 @@ import {
   Plane,
   // Receipt,        // usato da "Note spese" — voce nascosta
   // FileText,       // usato da "Documenti" — voce nascosta
-  Target,
+  // Target,         // usato da "Rendimento" — ora è un tab dentro /team
   Globe,
   // CalendarClock,  // usato da "Turni" — voce nascosta
   Settings,
@@ -67,7 +67,6 @@ const navSections: NavSection[] = [
     label: 'Team',
     items: [
       { label: 'Bacheca Task', href: '/team', icon: MessageSquare },
-      { label: 'Rendimento', href: '/rendimento', icon: Target, adminOnly: true },
       { label: 'Pianificazione', href: '/pianificazione', icon: CalendarClock },
       { label: 'Timesheet', href: '/timesheet', icon: Clock },
       { label: 'Note Clienti', href: '/note-clienti', icon: NotebookPen },
