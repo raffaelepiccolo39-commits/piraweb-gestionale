@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
 import { Card, CardContent } from '@/components/ui/card';
@@ -11,25 +11,59 @@ import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { EmptyState } from '@/components/ui/empty-state';
 import { useToast } from '@/components/ui/toast';
-import { getRoleLabel } from '@/lib/utils';
+import { getRoleLabel, formatDate } from '@/lib/utils';
 import { PRIORITY_OPTIONS } from '@/lib/constants';
 import { reportSupabaseError, reportError } from '@/lib/report-error';
-import { Sparkles, ShieldCheck, Wand2, Check, MessageSquarePlus } from 'lucide-react';
+import { Sparkles, ShieldCheck, Wand2, Check, MessageSquarePlus, Mic, Square, Upload, CreditCard, Globe, Bell, AlertTriangle } from 'lucide-react';
 
 /**
- * Cattura rapida (admin): incolla un messaggio (es. inoltrato da un cliente su
- * WhatsApp), l'AI propone una o più task indovinando cliente e assegnatario.
- * L'admin conferma o corregge, poi crea. Fase 1 del flusso WhatsApp→task.
+ * Cattura rapida / agente operativo (admin): incolli o detti un messaggio (es.
+ * inoltrato da un cliente su WhatsApp), l'AI propone una o più AZIONI — task,
+ * pagamento incassato, rinnovo sito, promemoria. Le azioni sui soldi le
+ * confermi sempre tu. Fase 1 del flusso WhatsApp→agente.
  */
 
-interface ProposedTask {
+interface TaskAction {
+  type: 'task';
   title: string;
   description: string;
   assigned_to: string | null;
+  assigned_to_role: string;
   priority: string;
   estimated_hours: number | null;
   deadline: string | null;
-  created: boolean;
+  client_id: string | null;
+  _project?: string;
+}
+interface PaymentAction {
+  type: 'payment';
+  client_id: string;
+  client_name: string;
+  month: string;
+  payment_id: string | null;
+  amount: number | null;
+  due_date: string | null;
+  resolved: boolean;
+}
+interface RenewalAction {
+  type: 'website_renewal';
+  client_id: string;
+  client_name: string;
+  renewal_id: string | null;
+  amount: number | null;
+  due_date: string | null;
+  resolved: boolean;
+}
+interface ReminderAction {
+  type: 'reminder';
+  title: string;
+  date: string | null;
+}
+type Action = (TaskAction | PaymentAction | RenewalAction | ReminderAction) & { done?: boolean };
+
+function euro(n: number | null): string {
+  if (n == null) return '';
+  return `${Number(n).toLocaleString('it-IT', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}€`;
 }
 
 export default function CatturaPage() {
@@ -40,14 +74,18 @@ export default function CatturaPage() {
 
   const [message, setMessage] = useState('');
   const [analyzing, setAnalyzing] = useState(false);
-  const [tasks, setTasks] = useState<ProposedTask[]>([]);
-  const [clientId, setClientId] = useState('');
-  const [projectId, setProjectId] = useState('');
-  const [creatingIdx, setCreatingIdx] = useState<number | null>(null);
+  const [transcribing, setTranscribing] = useState(false);
+  const [recording, setRecording] = useState(false);
+  const [actions, setActions] = useState<Action[]>([]);
+  const [busyIdx, setBusyIdx] = useState<number | null>(null);
 
   const [clients, setClients] = useState<{ id: string; name: string; company: string | null }[]>([]);
   const [projects, setProjects] = useState<{ id: string; name: string; client_id: string | null }[]>([]);
   const [team, setTeam] = useState<{ id: string; full_name: string; role: string }[]>([]);
+
+  const mediaRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+  const fileRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     if (!isAdmin) return;
@@ -63,166 +101,296 @@ export default function CatturaPage() {
     })();
   }, [supabase, isAdmin]);
 
-  const clientOptions = useMemo(
-    () => [{ value: '', label: 'Nessun cliente' }, ...clients.map((c) => ({ value: c.id, label: c.company || c.name }))],
-    [clients],
-  );
-  const projectOptions = useMemo(() => {
-    const list = clientId ? projects.filter((p) => p.client_id === clientId) : projects;
-    return [{ value: '', label: 'Scegli un progetto' }, ...list.map((p) => ({ value: p.id, label: p.name }))];
-  }, [projects, clientId]);
   const teamOptions = useMemo(
     () => [{ value: '', label: 'Nessuno' }, ...team.map((m) => ({ value: m.id, label: `${m.full_name} (${getRoleLabel(m.role)})` }))],
     [team],
   );
+  const clientOptions = useMemo(
+    () => [{ value: '', label: 'Nessun cliente' }, ...clients.map((c) => ({ value: c.id, label: c.company || c.name }))],
+    [clients],
+  );
+  const projectOptionsFor = (clientId: string | null | undefined) => {
+    const list = clientId ? projects.filter((p) => p.client_id === clientId) : projects;
+    return [{ value: '', label: 'Scegli un progetto' }, ...list.map((p) => ({ value: p.id, label: p.name }))];
+  };
 
-  // Se il cliente scelto ha un solo progetto, selezionalo da solo.
-  useEffect(() => {
-    if (!clientId) return;
-    const forClient = projects.filter((p) => p.client_id === clientId);
-    if (forClient.length === 1) setProjectId(forClient[0].id);
-  }, [clientId, projects]);
-
-  async function analyze() {
-    if (!message.trim()) { toast.error('Incolla prima un messaggio'); return; }
-    setAnalyzing(true);
-    setTasks([]);
+  // ── Voce ──────────────────────────────────────────────────────────────
+  async function transcribe(blob: Blob, filename: string) {
+    setTranscribing(true);
     try {
-      const res = await fetch('/api/ai/capture-task', {
+      const fd = new FormData();
+      fd.append('audio', blob, filename);
+      const res = await fetch('/api/ai/transcribe', { method: 'POST', body: fd });
+      const data = await res.json();
+      if (!res.ok) { toast.error(data.error || 'Trascrizione fallita'); return; }
+      setMessage((prev) => (prev ? `${prev}\n${data.text}` : data.text));
+      toast.success('Audio trascritto');
+    } catch (err) {
+      reportError({ message: `transcribe: ${String(err)}`, route: '/cattura' });
+      toast.error('Errore nella trascrizione');
+    } finally {
+      setTranscribing(false);
+    }
+  }
+
+  async function startRecording() {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mr = new MediaRecorder(stream);
+      chunksRef.current = [];
+      mr.ondataavailable = (e) => { if (e.data.size) chunksRef.current.push(e.data); };
+      mr.onstop = () => {
+        stream.getTracks().forEach((t) => t.stop());
+        const blob = new Blob(chunksRef.current, { type: mr.mimeType || 'audio/webm' });
+        void transcribe(blob, 'nota.webm');
+      };
+      mr.start();
+      mediaRef.current = mr;
+      setRecording(true);
+    } catch {
+      toast.error('Microfono non disponibile: consenti l\'accesso');
+    }
+  }
+  function stopRecording() {
+    mediaRef.current?.stop();
+    setRecording(false);
+  }
+
+  // ── Analisi ───────────────────────────────────────────────────────────
+  async function analyze() {
+    if (!message.trim()) { toast.error('Scrivi o detta prima un messaggio'); return; }
+    setAnalyzing(true);
+    setActions([]);
+    try {
+      const res = await fetch('/api/ai/capture-action', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message }),
       });
       const data = await res.json();
       if (!res.ok) { toast.error(data.error || 'Errore AI'); return; }
-      setClientId(data.client_id || '');
-      setTasks((data.tasks as Omit<ProposedTask, 'created'>[]).map((t) => ({ ...t, created: false })));
-      if (!data.tasks?.length) toast.error('Non ho trovato attività nel messaggio');
+      const list = (data.actions as Action[]) ?? [];
+      // Per le task, preseleziona il progetto se il cliente ne ha uno solo.
+      for (const a of list) {
+        if (a.type === 'task' && a.client_id) {
+          const forClient = projects.filter((p) => p.client_id === a.client_id);
+          if (forClient.length === 1) a._project = forClient[0].id;
+        }
+      }
+      setActions(list);
+      if (!list.length) toast.error('Non ho capito nessuna azione dal messaggio');
     } catch (err) {
-      reportError({ message: `capture-task fetch: ${String(err)}`, route: '/cattura' });
+      reportError({ message: `capture-action: ${String(err)}`, route: '/cattura' });
       toast.error('Errore di rete, riprova');
     } finally {
       setAnalyzing(false);
     }
   }
 
-  function patch(idx: number, field: keyof ProposedTask, value: string | null) {
-    setTasks((prev) => prev.map((t, i) => (i === idx ? { ...t, [field]: value } : t)));
+  function patchAction(idx: number, changes: Record<string, unknown>) {
+    setActions((prev) => prev.map((a, i) => (i === idx ? ({ ...a, ...changes } as Action) : a)));
+  }
+  function markDone(idx: number) {
+    setActions((prev) => prev.map((a, i) => (i === idx ? { ...a, done: true } : a)));
   }
 
-  async function createTask(idx: number) {
+  // ── Esecuzione per tipo ───────────────────────────────────────────────
+  async function runTask(idx: number, a: TaskAction) {
     if (!profile) return;
-    if (!projectId) { toast.error('Scegli un progetto per la task'); return; }
-    const t = tasks[idx];
-    if (!t.title.trim()) { toast.error('La task ha bisogno di un titolo'); return; }
+    if (!a._project) { toast.error('Scegli un progetto per la task'); return; }
+    if (!a.title.trim()) { toast.error('La task ha bisogno di un titolo'); return; }
+    setBusyIdx(idx);
+    const { data: created, error } = await supabase.from('tasks').insert({
+      title: a.title.trim(),
+      description: a.description?.trim() || null,
+      project_id: a._project,
+      assigned_to: a.assigned_to || null,
+      priority: a.priority,
+      status: 'todo',
+      deadline: a.deadline || null,
+      estimated_hours: a.estimated_hours ?? null,
+      position: idx,
+      created_by: profile.id,
+    }).select('id').single();
+    if (error || !created) { setBusyIdx(null); reportSupabaseError(error, 'cattura-task'); toast.error('Errore creazione task'); return; }
+    if (a.assigned_to) await supabase.rpc('set_task_assignees', { p_task_id: created.id, p_user_ids: [a.assigned_to] });
+    setBusyIdx(null); markDone(idx); toast.success('Task creata');
+  }
 
-    setCreatingIdx(idx);
-    const { data: created, error } = await supabase
-      .from('tasks')
-      .insert({
-        title: t.title.trim(),
-        description: t.description?.trim() || null,
-        project_id: projectId,
-        assigned_to: t.assigned_to || null,
-        priority: t.priority,
-        status: 'todo',
-        deadline: t.deadline || null,
-        estimated_hours: t.estimated_hours ?? null,
-        position: idx,
-        created_by: profile.id,
-      })
-      .select('id')
-      .single();
+  async function runPayment(idx: number, a: PaymentAction) {
+    if (!profile || !a.payment_id) return;
+    setBusyIdx(idx);
+    const { error } = await supabase.rpc('toggle_payment_paid', { p_payment_id: a.payment_id, p_performed_by: profile.id });
+    setBusyIdx(null);
+    if (error) { reportSupabaseError(error, 'cattura-payment', { paymentId: a.payment_id }); toast.error('Errore nel segnare il pagamento'); return; }
+    markDone(idx); toast.success('Pagamento registrato');
+  }
 
-    if (error || !created) {
-      setCreatingIdx(null);
-      reportSupabaseError(error, 'cattura-crea-task');
-      toast.error('Errore nella creazione della task');
-      return;
-    }
-    if (t.assigned_to) {
-      await supabase.rpc('set_task_assignees', { p_task_id: created.id, p_user_ids: [t.assigned_to] });
-    }
-    setCreatingIdx(null);
-    setTasks((prev) => prev.map((x, i) => (i === idx ? { ...x, created: true } : x)));
-    toast.success('Task creata');
+  async function runRenewal(idx: number, a: RenewalAction) {
+    if (!a.renewal_id) return;
+    setBusyIdx(idx);
+    const { error } = await supabase.rpc('pay_website_renewal', { p_renewal_id: a.renewal_id });
+    setBusyIdx(null);
+    if (error) { reportSupabaseError(error, 'cattura-renewal', { renewalId: a.renewal_id }); toast.error('Errore nel segnare il rinnovo'); return; }
+    markDone(idx); toast.success('Rinnovo registrato');
+  }
+
+  async function runReminder(idx: number, a: ReminderAction) {
+    if (!profile) return;
+    if (!a.title.trim()) { toast.error('Il promemoria ha bisogno di un titolo'); return; }
+    const day = a.date || new Date().toISOString().slice(0, 10);
+    setBusyIdx(idx);
+    const { error } = await supabase.from('calendar_events').insert({
+      title: a.title.trim(),
+      start_time: `${day}T09:00:00`,
+      end_time: `${day}T09:30:00`,
+      all_day: true,
+      assigned_to: [profile.id],
+      created_by: profile.id,
+    });
+    setBusyIdx(null);
+    if (error) { reportSupabaseError(error, 'cattura-reminder'); toast.error('Errore nel creare il promemoria'); return; }
+    markDone(idx); toast.success('Promemoria aggiunto al calendario');
   }
 
   if (!isAdmin) {
-    return (
-      <EmptyState
-        icon={ShieldCheck}
-        title="Area riservata"
-        description="La cattura rapida è disponibile solo agli amministratori."
-      />
-    );
+    return <EmptyState icon={ShieldCheck} title="Area riservata" description="La cattura rapida è disponibile solo agli amministratori." />;
   }
 
-  const pending = tasks.filter((t) => !t.created);
+  const pending = actions.filter((a) => !a.done).length;
 
   return (
     <div className="space-y-6 animate-slide-up">
       <PageHeader
         eyebrow="Task"
         title="Cattura rapida"
-        subtitle="Incolla un messaggio (es. inoltrato da WhatsApp): l'AI propone le task e a chi assegnarle"
+        subtitle="Scrivi o detta un messaggio (es. inoltrato da WhatsApp): l'AI propone cosa fare e a chi"
       />
 
       <Card>
         <CardContent className="space-y-3">
-          <Textarea
-            rows={5}
-            placeholder="Incolla qui il messaggio del cliente…"
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-          />
-          <div className="flex justify-end">
-            <Button variant="primary" onClick={analyze} loading={analyzing} disabled={!message.trim()}>
-              <Wand2 size={16} /> Analizza messaggio
-            </Button>
+          <Textarea rows={5} placeholder="Incolla qui il messaggio del cliente, oppure detta con il microfono…" value={message} onChange={(e) => setMessage(e.target.value)} />
+          <div className="flex flex-wrap items-center gap-2">
+            {recording ? (
+              <Button variant="danger" onClick={stopRecording}><Square size={15} /> Ferma e trascrivi</Button>
+            ) : (
+              <Button variant="outline" onClick={startRecording} loading={transcribing} disabled={analyzing}><Mic size={15} /> Detta</Button>
+            )}
+            <Button variant="ghost" onClick={() => fileRef.current?.click()} disabled={recording || transcribing}><Upload size={15} /> Carica audio</Button>
+            <input
+              ref={fileRef}
+              type="file"
+              accept="audio/*"
+              className="hidden"
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) void transcribe(f, f.name); e.target.value = ''; }}
+            />
+            <div className="ml-auto">
+              <Button variant="primary" onClick={analyze} loading={analyzing} disabled={!message.trim() || recording}>
+                <Wand2 size={16} /> Analizza
+              </Button>
+            </div>
           </div>
+          {recording && <p className="text-xs text-pw-danger">● Registrazione in corso…</p>}
         </CardContent>
       </Card>
 
-      {tasks.length > 0 && (
+      {actions.length > 0 && (
         <Card>
           <CardContent className="space-y-4">
             <div className="flex items-center gap-2 text-sm text-pw-text-muted">
               <Sparkles size={16} className="text-pw-accent" />
-              Proposta dell&apos;AI — controlla cliente, progetto e assegnatario prima di creare.
+              Proposta dell&apos;AI — controlla e conferma ogni azione. {pending === 0 && 'Tutto fatto 🎉'}
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Select label="Cliente" options={clientOptions} value={clientId} onChange={(e) => { setClientId(e.target.value); setProjectId(''); }} />
-              <Select label="Progetto" options={projectOptions} value={projectId} onChange={(e) => setProjectId(e.target.value)} />
-            </div>
+            <div className="space-y-3">
+              {actions.map((a, idx) => {
+                if (a.done) {
+                  const label = a.type === 'task' ? a.title : a.type === 'reminder' ? a.title : a.type === 'payment' ? `Pagamento ${a.client_name}` : `Rinnovo ${a.client_name}`;
+                  return (
+                    <div key={idx} className="flex items-center gap-2 rounded-lg border border-pw-border bg-pw-surface px-3 py-2 text-sm text-pw-text-dim">
+                      <Check size={15} className="text-pw-success" /> <span className="line-through">{label}</span> — fatto
+                    </div>
+                  );
+                }
 
-            {pending.length === 0 ? (
-              <p className="text-sm text-pw-text-dim">Tutte le task proposte sono state create. 🎉</p>
-            ) : (
-              <div className="space-y-3">
-                {tasks.map((t, idx) => t.created ? (
-                  <div key={idx} className="flex items-center gap-2 rounded-lg border border-pw-border bg-pw-surface px-3 py-2 text-sm text-pw-text-dim">
-                    <Check size={15} className="text-pw-success" /> <span className="line-through">{t.title}</span> — creata
-                  </div>
-                ) : (
+                if (a.type === 'task') {
+                  return (
+                    <div key={idx} className="space-y-2.5 rounded-xl border border-pw-border p-3">
+                      <div className="flex items-center gap-2 text-xs font-medium text-pw-accent"><MessageSquarePlus size={14} /> Task</div>
+                      <Input value={a.title} onChange={(e) => patchAction(idx, { title: e.target.value })} placeholder="Titolo" />
+                      <Textarea rows={2} value={a.description} onChange={(e) => patchAction(idx, { description: e.target.value })} placeholder="Descrizione" />
+                      <div className="grid gap-2.5 sm:grid-cols-2">
+                        <Select label="Cliente" options={clientOptions} value={a.client_id ?? ''} onChange={(e) => patchAction(idx, { client_id: e.target.value || null, _project: '' })} />
+                        <Select label="Progetto" options={projectOptionsFor(a.client_id)} value={a._project ?? ''} onChange={(e) => patchAction(idx, { _project: e.target.value })} />
+                      </div>
+                      <div className="grid gap-2.5 sm:grid-cols-3">
+                        <Select label="Assegna a" options={teamOptions} value={a.assigned_to ?? ''} onChange={(e) => patchAction(idx, { assigned_to: e.target.value || null })} />
+                        <Select label="Priorità" options={PRIORITY_OPTIONS} value={a.priority} onChange={(e) => patchAction(idx, { priority: e.target.value })} />
+                        <Input label="Scadenza" type="date" value={a.deadline ?? ''} onChange={(e) => patchAction(idx, { deadline: e.target.value || null })} />
+                      </div>
+                      <div className="flex justify-end">
+                        <Button size="sm" variant="primary" loading={busyIdx === idx} onClick={() => runTask(idx, a)}><Check size={15} /> Crea task</Button>
+                      </div>
+                    </div>
+                  );
+                }
+
+                if (a.type === 'payment') {
+                  return (
+                    <div key={idx} className="space-y-2 rounded-xl border border-pw-border p-3">
+                      <div className="flex items-center gap-2 text-xs font-medium text-pw-accent"><CreditCard size={14} /> Pagamento cliente</div>
+                      {a.resolved ? (
+                        <>
+                          <p className="text-sm text-pw-text">
+                            Segno come incassata la rata di <span className="font-semibold">{a.client_name}</span> in scadenza il{' '}
+                            <span className="font-semibold">{a.due_date ? formatDate(a.due_date) : ''}</span> ({euro(a.amount)}).
+                          </p>
+                          <div className="flex justify-end">
+                            <Button size="sm" variant="primary" loading={busyIdx === idx} onClick={() => runPayment(idx, a)}><Check size={15} /> Segna incassato</Button>
+                          </div>
+                        </>
+                      ) : (
+                        <p className="flex items-center gap-2 text-sm text-pw-text-dim"><AlertTriangle size={14} className="text-pw-warning" /> Nessuna rata non pagata trovata per {a.client_name} nel mese {a.month}. Controlla in Cashflow/Clienti.</p>
+                      )}
+                    </div>
+                  );
+                }
+
+                if (a.type === 'website_renewal') {
+                  return (
+                    <div key={idx} className="space-y-2 rounded-xl border border-pw-border p-3">
+                      <div className="flex items-center gap-2 text-xs font-medium text-pw-accent"><Globe size={14} /> Rinnovo sito</div>
+                      {a.resolved ? (
+                        <>
+                          <p className="text-sm text-pw-text">
+                            Segno come incassato il rinnovo sito di <span className="font-semibold">{a.client_name}</span> ({a.due_date ? formatDate(a.due_date) : ''}, {euro(a.amount)}).
+                          </p>
+                          <div className="flex justify-end">
+                            <Button size="sm" variant="primary" loading={busyIdx === idx} onClick={() => runRenewal(idx, a)}><Check size={15} /> Segna incassato</Button>
+                          </div>
+                        </>
+                      ) : (
+                        <p className="flex items-center gap-2 text-sm text-pw-text-dim"><AlertTriangle size={14} className="text-pw-warning" /> Nessun rinnovo da incassare trovato per {a.client_name}. Controlla in Gestione Siti.</p>
+                      )}
+                    </div>
+                  );
+                }
+
+                // reminder
+                return (
                   <div key={idx} className="space-y-2.5 rounded-xl border border-pw-border p-3">
-                    <Input value={t.title} onChange={(e) => patch(idx, 'title', e.target.value)} placeholder="Titolo" />
-                    <Textarea rows={2} value={t.description} onChange={(e) => patch(idx, 'description', e.target.value)} placeholder="Descrizione" />
-                    <div className="grid gap-2.5 sm:grid-cols-3">
-                      <Select label="Assegna a" options={teamOptions} value={t.assigned_to ?? ''} onChange={(e) => patch(idx, 'assigned_to', e.target.value || null)} />
-                      <Select label="Priorità" options={PRIORITY_OPTIONS} value={t.priority} onChange={(e) => patch(idx, 'priority', e.target.value)} />
-                      <Input label="Scadenza" type="date" value={t.deadline ?? ''} onChange={(e) => patch(idx, 'deadline', e.target.value || null)} />
+                    <div className="flex items-center gap-2 text-xs font-medium text-pw-accent"><Bell size={14} /> Promemoria</div>
+                    <Input value={a.title} onChange={(e) => patchAction(idx, { title: e.target.value })} placeholder="Promemoria" />
+                    <div className="max-w-[220px]">
+                      <Input label="Quando" type="date" value={a.date ?? ''} onChange={(e) => patchAction(idx, { date: e.target.value || null })} />
                     </div>
                     <div className="flex justify-end">
-                      <Button size="sm" variant="primary" loading={creatingIdx === idx} onClick={() => createTask(idx)}>
-                        <MessageSquarePlus size={15} /> Crea task
-                      </Button>
+                      <Button size="sm" variant="primary" loading={busyIdx === idx} onClick={() => runReminder(idx, a)}><Check size={15} /> Aggiungi al calendario</Button>
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
+                );
+              })}
+            </div>
           </CardContent>
         </Card>
       )}
