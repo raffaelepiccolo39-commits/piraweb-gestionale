@@ -13,10 +13,10 @@ import { PageHeader } from '@/components/ui/page-header';
 import { EmptyState } from '@/components/ui/empty-state';
 import { SkeletonList } from '@/components/ui/skeleton';
 import { Select } from '@/components/ui/select';
-import { getInitials, getUserColor, getContrastTextColor } from '@/lib/utils';
+import { getInitials, getUserColor, getContrastTextColor, cn } from '@/lib/utils';
 import { reportSupabaseError } from '@/lib/report-error';
 import { RendimentoCalendar, type DayStat } from '@/components/rendimento/rendimento-calendar';
-import { ShieldCheck, ChevronLeft, ChevronRight, CheckCircle2, Clock, CalendarDays } from 'lucide-react';
+import { ShieldCheck, ChevronLeft, ChevronRight, ChevronDown, CheckCircle2, Clock, CalendarDays } from 'lucide-react';
 
 /**
  * Rendimento — solo admin.
@@ -65,6 +65,7 @@ export default function RendimentoPage() {
   const [currentMonth, setCurrentMonth] = useState(() => startOfMonth(new Date()));
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedPerson, setSelectedPerson] = useState(''); // '' = tutti
+  const [openDayPeople, setOpenDayPeople] = useState<Set<string>>(new Set()); // fisarmonica dettaglio giorno
   const [loading, setLoading] = useState(true);
   const [tasks, setTasks] = useState<DoneTask[]>([]);
   const [entries, setEntries] = useState<Entry[]>([]);
@@ -157,25 +158,27 @@ export default function RendimentoPage() {
     const dayTasks = tasks.filter((t) => t.completed_at && localDay(t.completed_at) === key);
     const dayEntries = entries.filter((e) => localDay(e.started_at) === key);
 
-    const perPerson = new Map<string, { tasks: number; minutes: number }>();
+    // Raggruppa per collaboratore le task chiuse quel giorno (+ le ore), così
+    // ogni persona è una voce a fisarmonica che apre l'elenco delle sue task.
+    const perPerson = new Map<string, { taskList: DoneTask[]; minutes: number }>();
     for (const t of dayTasks) {
       const id = t.assigned_to ?? 'unassigned';
-      const r = perPerson.get(id) ?? { tasks: 0, minutes: 0 };
-      r.tasks += 1;
+      const r = perPerson.get(id) ?? { taskList: [], minutes: 0 };
+      r.taskList.push(t);
       perPerson.set(id, r);
     }
     for (const e of dayEntries) {
-      const r = perPerson.get(e.user_id) ?? { tasks: 0, minutes: 0 };
+      const r = perPerson.get(e.user_id) ?? { taskList: [], minutes: 0 };
       r.minutes += e.duration_minutes || 0;
       perPerson.set(e.user_id, r);
     }
 
     const rows = [...perPerson.entries()]
-      .map(([id, r]) => ({ id, person: people.get(id) ?? null, ...r }))
+      .map(([id, r]) => ({ id, person: people.get(id) ?? null, taskList: r.taskList, tasks: r.taskList.length, minutes: r.minutes }))
       .sort((a, b) => b.tasks - a.tasks || b.minutes - a.minutes);
 
     return {
-      tasks: dayTasks,
+      totalTasks: dayTasks.length,
       totalMinutes: dayEntries.reduce((s, e) => s + (e.duration_minutes || 0), 0),
       rows,
     };
@@ -198,6 +201,14 @@ export default function RendimentoPage() {
       .reduce((s, e) => s + (e.duration_minutes || 0), 0);
     return { list, minutes };
   }, [selectedPerson, tasks, entries, currentMonth]);
+
+  function toggleDayPerson(id: string) {
+    setOpenDayPeople((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
 
   if (!isAdmin) {
     return (
@@ -355,56 +366,65 @@ export default function RendimentoPage() {
                   {format(selectedDate, 'EEEE d MMMM', { locale: it })}
                 </h3>
                 <div className="mt-1 flex gap-4 text-xs text-pw-text-dim">
-                  <span>{dayDetail?.tasks.length ?? 0} task completate</span>
+                  <span>{dayDetail?.totalTasks ?? 0} task completate</span>
                   <span>{fmtHours(dayDetail?.totalMinutes ?? 0)} registrate</span>
                 </div>
 
-                {/* Per persona */}
+                {/* Fisarmonica per collaboratore: clic sul nome → le sue task del giorno */}
                 {dayDetail && dayDetail.rows.length > 0 ? (
-                  <div className="mt-4 space-y-2">
-                    <p className="text-[11px] uppercase tracking-wider text-pw-text-dim">Per persona</p>
+                  <div className="mt-4 space-y-1.5">
+                    <p className="text-[11px] uppercase tracking-wider text-pw-text-dim">Chi ha chiuso cosa</p>
                     {dayDetail.rows.map((row) => {
                       const name = row.person?.full_name ?? 'Non assegnata';
                       const bg = getUserColor(row.person);
+                      const open = openDayPeople.has(row.id);
                       return (
-                        <div key={row.id} className="flex items-center gap-3">
-                          <span
-                            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold"
-                            style={{ backgroundColor: bg, color: getContrastTextColor(bg) }}
+                        <div key={row.id} className="overflow-hidden rounded-lg border border-pw-border">
+                          <button
+                            onClick={() => toggleDayPerson(row.id)}
+                            className="flex w-full items-center gap-3 px-3 py-2 text-left hover:bg-pw-surface-2"
                           >
-                            {getInitials(name)}
-                          </span>
-                          <span className="flex-1 truncate text-sm text-pw-text">{name}</span>
-                          <span className="text-xs text-pw-text-muted tabular-nums">
-                            {row.tasks > 0 && <span className="text-pw-success">{row.tasks} task</span>}
-                            {row.tasks > 0 && row.minutes > 0 && ' · '}
-                            {row.minutes > 0 && <span>{fmtHours(row.minutes)}</span>}
-                          </span>
+                            <span
+                              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold"
+                              style={{ backgroundColor: bg, color: getContrastTextColor(bg) }}
+                            >
+                              {getInitials(name)}
+                            </span>
+                            <span className="flex-1 truncate text-sm text-pw-text">{name}</span>
+                            <span className="text-xs text-pw-text-muted tabular-nums">
+                              {row.tasks > 0 && <span className="text-pw-success">{row.tasks} task</span>}
+                              {row.tasks > 0 && row.minutes > 0 && ' · '}
+                              {row.minutes > 0 && <span>{fmtHours(row.minutes)}</span>}
+                            </span>
+                            <ChevronDown size={15} className={cn('shrink-0 text-pw-text-dim transition-transform', open && 'rotate-180')} />
+                          </button>
+
+                          {open && (
+                            <div className="space-y-1.5 border-t border-pw-border px-3 py-2">
+                              {row.taskList.length > 0 ? (
+                                row.taskList.map((t) => (
+                                  <div key={t.id} className="flex items-center gap-2 text-sm">
+                                    <span
+                                      className="h-2 w-2 shrink-0 rounded-full"
+                                      style={{ backgroundColor: t.project?.color || 'var(--pw-accent)' }}
+                                    />
+                                    <span className="flex-1 truncate text-pw-text">{t.title}</span>
+                                    {t.project?.name && (
+                                      <span className="shrink-0 truncate text-xs text-pw-text-dim">{t.project.name}</span>
+                                    )}
+                                  </div>
+                                ))
+                              ) : (
+                                <p className="text-xs text-pw-text-dim">Solo ore registrate, nessuna task chiusa.</p>
+                              )}
+                            </div>
+                          )}
                         </div>
                       );
                     })}
                   </div>
                 ) : (
                   <p className="mt-6 text-sm text-pw-text-dim">Nessuna attività registrata questo giorno.</p>
-                )}
-
-                {/* Task del giorno */}
-                {dayDetail && dayDetail.tasks.length > 0 && (
-                  <div className="mt-5 space-y-1.5">
-                    <p className="text-[11px] uppercase tracking-wider text-pw-text-dim">Task chiuse</p>
-                    {dayDetail.tasks.map((t) => (
-                      <div key={t.id} className="flex items-center gap-2 text-sm">
-                        <span
-                          className="h-2 w-2 shrink-0 rounded-full"
-                          style={{ backgroundColor: t.project?.color || 'var(--pw-accent)' }}
-                        />
-                        <span className="flex-1 truncate text-pw-text">{t.title}</span>
-                        {t.project?.name && (
-                          <span className="shrink-0 truncate text-xs text-pw-text-dim">{t.project.name}</span>
-                        )}
-                      </div>
-                    ))}
-                  </div>
                 )}
               </div>
             )}
