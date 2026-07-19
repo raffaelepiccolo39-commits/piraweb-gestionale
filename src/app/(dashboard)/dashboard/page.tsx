@@ -444,34 +444,48 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        eyebrow={dateLabel.charAt(0).toUpperCase() + dateLabel.slice(1)}
-        title={`${greeting}, ${firstName}`}
-        subtitle={subtitle}
-        actions={
-          <>
-            <Button variant="ghost" size="md">
-              <Filter size={14} />
-              Questa settimana
-            </Button>
-            {isAdmin ? (
-              <Link href="/projects">
-                <Button variant="primary" size="md">
-                  <Plus size={14} />
-                  Nuovo progetto
-                </Button>
-              </Link>
-            ) : (
-              <Link href="/tasks">
-                <Button variant="primary" size="md">
-                  <Plus size={14} />
-                  Nuova Task
-                </Button>
-              </Link>
-            )}
-          </>
-        }
-      />
+      {/* Saluto — hero card su mobile (navy + oro, brand) */}
+      <div className="lg:hidden relative overflow-hidden rounded-2xl bg-[var(--pw-navy)] p-5 text-white">
+        <div className="absolute -right-8 -top-8 h-28 w-28 rounded-full bg-[var(--pw-gold)]/10" aria-hidden="true" />
+        <div className="absolute -right-2 top-10 h-16 w-16 rounded-full bg-[var(--pw-gold)]/5" aria-hidden="true" />
+        <p className="relative text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--pw-gold)]">
+          {dateLabel.charAt(0).toUpperCase() + dateLabel.slice(1)}
+        </p>
+        <h1 className="relative mt-1 text-2xl font-bold leading-tight">{greeting}, {firstName}</h1>
+        <p className="relative mt-1.5 text-sm text-white/75">{subtitle}</p>
+      </div>
+
+      {/* Header classico — desktop */}
+      <div className="hidden lg:block">
+        <PageHeader
+          eyebrow={dateLabel.charAt(0).toUpperCase() + dateLabel.slice(1)}
+          title={`${greeting}, ${firstName}`}
+          subtitle={subtitle}
+          actions={
+            <>
+              <Button variant="ghost" size="md">
+                <Filter size={14} />
+                Questa settimana
+              </Button>
+              {isAdmin ? (
+                <Link href="/projects">
+                  <Button variant="primary" size="md">
+                    <Plus size={14} />
+                    Nuovo progetto
+                  </Button>
+                </Link>
+              ) : (
+                <Link href="/tasks">
+                  <Button variant="primary" size="md">
+                    <Plus size={14} />
+                    Nuova Task
+                  </Button>
+                </Link>
+              )}
+            </>
+          }
+        />
+      </div>
 
       {/* Scorciatoie a tile — solo mobile */}
       <QuickActions />

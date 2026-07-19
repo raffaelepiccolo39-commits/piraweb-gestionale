@@ -45,7 +45,7 @@ export const metadata: Metadata = {
   applicationName: 'PiraWeb',
   icons: {
     icon: '/logo.png',
-    apple: '/logo.png',
+    apple: '/apple-touch-icon.png',
   },
   appleWebApp: {
     capable: true,

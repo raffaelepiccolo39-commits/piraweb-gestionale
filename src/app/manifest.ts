@@ -9,27 +9,13 @@ export default function manifest(): MetadataRoute.Manifest {
     scope: '/dashboard',
     display: 'standalone',
     orientation: 'portrait-primary',
-    background_color: '#0a0a0a',
-    theme_color: '#4F46E5',
+    background_color: '#0A263A',
+    theme_color: '#0A263A',
     categories: ['business', 'productivity'],
     icons: [
-      {
-        src: '/logo.png',
-        sizes: '200x94',
-        type: 'image/png',
-      },
-      {
-        src: '/logo.png',
-        sizes: '192x192',
-        type: 'image/png',
-        purpose: 'any',
-      },
-      {
-        src: '/logo.png',
-        sizes: '512x512',
-        type: 'image/png',
-        purpose: 'any',
-      },
+      { src: '/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+      { src: '/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+      { src: '/icon-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
     ],
     shortcuts: [
       {
