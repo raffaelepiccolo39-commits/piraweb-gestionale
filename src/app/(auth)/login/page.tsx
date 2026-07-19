@@ -153,18 +153,8 @@ function LoginContent() {
   }, [totpCode, step]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 bg-[#F5F5F4] text-[#0F172A] relative overflow-hidden">
-      {/* Decorazioni brand (navy + oro) negli angoli, dietro la card */}
-      <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute -top-24 -right-20 w-72 h-72 rounded-full bg-[#E4A94C]/25" />
-        <div className="absolute -bottom-28 -left-24 w-80 h-80 rounded-full bg-[#0A263A]/[0.07]" />
-        <div className="absolute -bottom-16 -right-16 w-52 h-52 rounded-full bg-[#0A263A]/[0.05]" />
-        <div className="absolute top-16 left-10 w-24 h-24 rounded-full border-2 border-[#E4A94C]/35" />
-        <div className="absolute bottom-24 left-28 w-2.5 h-2.5 rounded-full bg-[#E4A94C]/70" />
-        <div className="absolute top-32 right-24 w-2 h-2 rounded-full bg-[#0A263A]/25" />
-      </div>
-
-      <div className="w-full max-w-[400px] relative z-10">
+    <div className="min-h-screen flex items-center justify-center px-4 bg-[#F5F5F4] text-[#0F172A]">
+      <div className="w-full max-w-[400px]">
         <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-8">
           {/* Logo */}
           <div className="flex flex-col items-center mb-6">
