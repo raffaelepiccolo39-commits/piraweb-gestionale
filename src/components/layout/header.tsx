@@ -6,7 +6,6 @@ import { useAuth } from '@/hooks/use-auth';
 import { createClient } from '@/lib/supabase/client';
 import { getInitials, cn } from '@/lib/utils';
 import { APP_VERSION } from '@/lib/version';
-import { MobileMenu } from '@/components/layout/mobile-menu';
 
 const PAGE_TITLES: Record<string, string> = {
   '/dashboard': 'Dashboard',
@@ -240,9 +239,6 @@ export function Header() {
 
   return (
     <header className="h-[56px] bg-pw-surface border-b border-pw-border flex items-center justify-between px-4 lg:px-7 sticky top-0 z-30">
-      {/* Menu mobile (autonomo) */}
-      <MobileMenu />
-
       {/* Page title on mobile + version badge */}
       <div className="flex-1 flex items-center gap-2">
         <span className="lg:hidden text-sm font-semibold text-pw-text font-[var(--font-syne)]">

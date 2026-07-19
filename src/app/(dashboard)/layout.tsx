@@ -8,6 +8,7 @@ import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { ErrorReporter } from '@/components/error-reporter';
 import { VersionWatcher } from '@/components/version-watcher';
 import { AttendanceGate } from '@/components/layout/attendance-gate';
+import { BottomNav } from '@/components/layout/bottom-nav';
 import { cn } from '@/lib/utils';
 
 export default function DashboardLayout({
@@ -35,7 +36,8 @@ export default function DashboardLayout({
         />
       </div>
 
-      {/* Il menu mobile è ora autonomo dentro l'Header (MobileMenu) */}
+      {/* Navigazione mobile: barra in basso + menu a foglio (sostituisce l'hamburger) */}
+      <BottomNav />
 
       {/* Main content */}
       <div
@@ -45,7 +47,8 @@ export default function DashboardLayout({
         )}
       >
         <Header />
-        <main id="main-content" className="p-4 lg:p-6 xl:p-8 min-w-0">
+        {/* pb extra su mobile: il contenuto non finisce sotto la barra in basso */}
+        <main id="main-content" className="p-4 pb-24 lg:p-6 lg:pb-6 xl:p-8 xl:pb-8 min-w-0">
           <ErrorBoundary>
             <AttendanceGate>{children}</AttendanceGate>
           </ErrorBoundary>

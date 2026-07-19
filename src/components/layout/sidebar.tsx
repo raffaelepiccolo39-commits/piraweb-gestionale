@@ -8,107 +8,11 @@ import { cn, getRoleLabel, getInitials, getUserColor, getContrastTextColor } fro
 import { useTheme } from '@/components/theme-provider';
 import { useAuth } from '@/hooks/use-auth';
 import { createClient } from '@/lib/supabase/client';
-import {
-  LayoutDashboard,
-  ListTodo,
-  FolderKanban,
-  Calendar,
-  // MessageCircle,  // usato da "Chat" — voce nascosta
-  Users,
-  Briefcase,
-  Wallet,
-  Clock,
-  Plane,
-  // Receipt,        // usato da "Note spese" — voce nascosta
-  // FileText,       // usato da "Documenti" — voce nascosta
-  // Target,         // usato da "Rendimento" — ora è un tab dentro /team
-  Globe,
-  HandCoins,
-  // CalendarClock,  // usato da "Turni" — voce nascosta
-  Settings,
-  ChevronDown,
-  LogOut,
-  Moon,
-  Sun,
-  MessageSquare,
-  MessageSquarePlus,
-  MessageSquareWarning,
-  CalendarClock,
-  Sparkles,
-  Crown,
-  NotebookPen,
-  ScrollText,
-} from 'lucide-react';
+import { ChevronDown, LogOut, Moon, Sun } from 'lucide-react';
+import { navSections, type NavItem, type NavSection } from '@/components/layout/nav-config';
 
-interface NavItem {
-  label: string;
-  href: string;
-  icon: React.ElementType;
-  badgeKey?: string;
-  dot?: boolean;
-  adminOnly?: boolean;
-}
-
-interface NavSection {
-  label?: string;
-  items: NavItem[];
-  adminOnly?: boolean;
-}
-
-const navSections: NavSection[] = [
-  {
-    items: [
-      { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-      { label: 'Task', href: '/tasks', icon: ListTodo, badgeKey: 'tasks', adminOnly: true },
-      { label: 'Cattura rapida', href: '/cattura', icon: MessageSquarePlus, adminOnly: true },
-      { label: 'Progetti', href: '/projects', icon: FolderKanban },
-      { label: 'Calendario', href: '/calendario', icon: Calendar },
-      // { label: 'Chat', href: '/chat', icon: MessageCircle, badgeKey: 'chat', dot: true },
-    ],
-  },
-  {
-    label: 'Team',
-    items: [
-      { label: 'Bacheca Task', href: '/team', icon: MessageSquare },
-      { label: 'Pianificazione', href: '/pianificazione', icon: CalendarClock },
-      { label: 'Timesheet', href: '/timesheet', icon: Clock },
-      { label: 'Note Clienti', href: '/note-clienti', icon: NotebookPen },
-      { label: 'Ferie & Permessi', href: '/ferie', icon: Plane },
-      { label: 'Suggerimenti & Bug', href: '/note-dev', icon: MessageSquareWarning },
-      // Nascoste perché non servono al team attuale (route/pagine restano attive,
-      // basta ripristinare queste righe per rimetterle nel menu).
-      // { label: 'Note spese', href: '/note-spese', icon: Receipt },
-      // { label: 'Documenti', href: '/documenti', icon: FileText },
-      // { label: 'Performance', href: '/performance', icon: Target },
-      // { label: 'Turni', href: '/turni', icon: CalendarClock },
-    ],
-  },
-  {
-    label: 'Lavoro',
-    items: [
-      { label: 'Contenuti', href: '/contenuti', icon: Sparkles },
-    ],
-  },
-  {
-    label: 'Business',
-    items: [
-      { label: 'Clienti', href: '/clients', icon: Users },
-      { label: 'CRM', href: '/crm', icon: Briefcase, adminOnly: true },
-      { label: 'Gestione Siti', href: '/gestione-siti', icon: Globe, adminOnly: true },
-      { label: 'Crediti', href: '/crediti', icon: HandCoins, adminOnly: true },
-      { label: 'Cashflow', href: '/cashflow', icon: Wallet, adminOnly: true },
-    ],
-  },
-  {
-    label: 'Admin',
-    adminOnly: true,
-    items: [
-      { label: 'Gestione', href: '/gestione', icon: Crown },
-      { label: 'Log errori', href: '/log', icon: ScrollText },
-      { label: 'Impostazioni', href: '/settings', icon: Settings },
-    ],
-  },
-];
+// navSections + tipi ora in nav-config.tsx (condivisi con la barra mobile).
+export type { NavItem, NavSection };
 
 interface SidebarProps {
   collapsed: boolean;
