@@ -24,6 +24,7 @@ import { AbsentToday } from '@/components/dashboard/absent-today';
 import { TimeOffInbox } from '@/components/dashboard/time-off-inbox';
 import { PedDeadlines } from '@/components/dashboard/ped-deadlines';
 import { WebsiteRenewals } from '@/components/dashboard/website-renewals';
+import { QuickActions } from '@/components/dashboard/quick-actions';
 import { captureGeoStamp } from '@/lib/attendance-geo';
 import { notifyTimeOffDecision } from '@/lib/time-off-notifications';
 import type { TimeOffRequest } from '@/types/database';
@@ -471,6 +472,9 @@ export default function DashboardPage() {
           </>
         }
       />
+
+      {/* Scorciatoie a tile — solo mobile */}
+      <QuickActions />
 
       {/* Attendance widget (il pulsante chat ora vive nell'Header globale) */}
       <AttendanceWidget

@@ -1,35 +1,49 @@
 'use client';
 
-import { memo } from 'react';
 import Link from 'next/link';
-import type { UserRole } from '@/types/database';
-import { ListTodo, FolderKanban, Sparkles } from 'lucide-react';
+import { useAuth } from '@/hooks/use-auth';
+import { Clock, MessageSquare, Plane, MessageSquarePlus, Calendar } from 'lucide-react';
 
-interface QuickActionsProps {
-  role: UserRole;
-}
+/**
+ * Scorciatoie a tile per la home mobile (nascoste da lg in su): le azioni più
+ * frequenti dal telefono, a portata di pollice. Riprende i quick-action delle
+ * reference (Kidville) col brand del gestionale.
+ */
+export function QuickActions() {
+  const { profile } = useAuth();
+  const isAdmin = profile?.role === 'admin';
 
-const actions = [
-  { label: 'Nuova attività', icon: ListTodo, href: '/tasks', roles: 'all' as const },
-  { label: 'Nuovo progetto', icon: FolderKanban, href: '/projects', roles: ['admin'] as string[] },
-  { label: 'Genera con AI', icon: Sparkles, href: '/ai', roles: ['admin', 'content_creator', 'social_media_manager'] as string[] },
-];
-
-export const QuickActions = memo(function QuickActions({ role }: QuickActionsProps) {
-  const filtered = actions.filter((a) => a.roles === 'all' || a.roles.includes(role));
+  const tiles = isAdmin
+    ? [
+        { label: 'Cattura', href: '/cattura', icon: MessageSquarePlus },
+        { label: 'Presenze', href: '/presenze', icon: Clock },
+        { label: 'Bacheca', href: '/team', icon: MessageSquare },
+        { label: 'Calendario', href: '/calendario', icon: Calendar },
+      ]
+    : [
+        { label: 'Presenze', href: '/presenze', icon: Clock },
+        { label: 'Bacheca', href: '/team', icon: MessageSquare },
+        { label: 'Ferie', href: '/ferie', icon: Plane },
+        { label: 'Calendario', href: '/calendario', icon: Calendar },
+      ];
 
   return (
-    <div className="flex gap-3 overflow-x-auto pb-1 no-scrollbar">
-      {filtered.map((action) => (
-        <Link
-          key={action.href}
-          href={action.href}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-pw-surface border border-pw-border hover:border-pw-accent/50 hover:bg-pw-surface-2 transition-all duration-150 text-sm text-pw-text-muted hover:text-pw-text whitespace-nowrap group"
-        >
-          <action.icon size={16} className="text-pw-accent group-hover:scale-110 transition-transform" />
-          {action.label}
-        </Link>
-      ))}
+    <div className="lg:hidden grid grid-cols-4 gap-2">
+      {tiles.map((t) => {
+        const Icon = t.icon;
+        return (
+          <Link
+            key={t.href}
+            href={t.href}
+            className="flex flex-col items-center gap-1.5 rounded-xl border border-pw-border bg-pw-surface p-3 active:bg-pw-surface-2 transition-colors"
+          >
+            <span className="w-10 h-10 rounded-lg bg-pw-accent/10 text-pw-accent flex items-center justify-center">
+              <Icon size={20} />
+            </span>
+            <span className="text-[11px] font-medium text-pw-text text-center leading-tight">{t.label}</span>
+          </Link>
+        );
+      })}
     </div>
   );
-});
+}
