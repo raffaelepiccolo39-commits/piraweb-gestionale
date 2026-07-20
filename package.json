@@ -8,7 +8,8 @@
     "build:sg": "next build && cp -r public .next/standalone/ && cp -r .next/static .next/standalone/.next/",
     "start": "next start",
     "start:sg": "node .next/standalone/server.js",
-    "lint": "eslint"
+    "lint": "eslint",
+    "build:app": "node scripts/build-app.mjs"
   },
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.2.96",

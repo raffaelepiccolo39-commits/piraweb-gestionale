@@ -1,7 +1,13 @@
 import type { NextConfig } from "next";
 
+// Due modi di compilare lo STESSO codice:
+//   npm run build      -> sito su Vercel, con API e middleware
+//   npm run build:app  -> esportazione statica per il pacchetto iOS/Android
+// La differenza la fa scripts/build-app.mjs, che imposta BUILD_TARGET.
+const isApp = process.env.BUILD_TARGET === 'app';
+
 const nextConfig: NextConfig = {
-  output: 'standalone',
+  output: isApp ? 'export' : 'standalone',
   poweredByHeader: false,
   compress: true,
   reactStrictMode: true,
@@ -21,11 +27,8 @@ const nextConfig: NextConfig = {
   },
   experimental: {
     optimizeCss: true,
-    serverActions: {
-      bodySizeLimit: '10mb',
-    },
   },
-  headers: async () => [
+  headers: isApp ? undefined : async () => [
     {
       source: '/(.*)',
       headers: [

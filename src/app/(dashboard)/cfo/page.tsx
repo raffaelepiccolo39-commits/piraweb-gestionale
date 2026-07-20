@@ -16,7 +16,6 @@ import { PageHeader } from '@/components/ui/page-header';
 import { SkeletonStats, SkeletonList } from '@/components/ui/skeleton';
 import { formatCurrency } from '@/lib/utils';
 import type { Profile, OperatingExpense, Payslip, Invoice, Client } from '@/types/database';
-import { parsePayslipAction, savePayslipsAction } from './actions';
 import {
   TrendingUp,
   TrendingDown,
@@ -358,9 +357,15 @@ export default function CFOPage() {
         reader.readAsDataURL(payslipFile);
       });
 
-      const data = await parsePayslipAction(base64, payslipFile.type || 'application/pdf');
+      // Era una Server Action; ora la stessa route che gia esisteva.
+      const res = await fetch('/api/cfo/parse-payslip', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ file: base64, mimeType: payslipFile.type || 'application/pdf' }),
+      });
+      const data = await res.json();
 
-      if (data.success && data.payslips) {
+      if (res.ok && data.payslips) {
         setParsedPayslips(data.payslips);
         toast.success(`${data.count} buste paga trovate nel documento`);
       } else {
@@ -379,7 +384,12 @@ export default function CFOPage() {
     setSavingPayslips(true);
 
     try {
-      const result = await savePayslipsAction(parsedPayslips);
+      const res = await fetch('/api/cfo/save-payslips', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ payslips: parsedPayslips }),
+      });
+      const result = await res.json();
 
       if (result.saved && result.saved > 0) toast.success(`${result.saved} buste paga salvate`);
       if (result.errors && result.errors > 0) toast.error(`${result.errors} buste paga non salvate (dipendente non trovato)`);
