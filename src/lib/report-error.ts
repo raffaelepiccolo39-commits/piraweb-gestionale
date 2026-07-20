@@ -78,6 +78,9 @@ export function reportSupabaseError(
   context?: Record<string, unknown>,
 ): void {
   if (!error) return;
+  // Fallimenti di rete transitori (fetch annullata, offline): non sono bug,
+  // niente rumore nel log. Gli errori DB veri hanno un `code` e passano.
+  if (!error.code && isBenignTransientError(error)) return;
   reportError({
     message: `${op}: ${error.message ?? 'errore sconosciuto'}`,
     context: { op, code: error.code, details: error.details, hint: error.hint, ...context },
@@ -122,12 +125,39 @@ export function recoverFromChunkError(error: unknown): boolean {
   }
 }
 
+/**
+ * Riconosce un errore transitorio/benigno che NON è un bug del codice e non va
+ * a finire nel log: (1) l'AbortError del lock di sessione di Supabase — "Lock
+ * broken by another request with the 'steal' option", normale quando due
+ * richieste auth si accavallano (cambio scheda, refresh); (2) i fallimenti di
+ * rete a basso livello ("Load failed" su Safari, "Failed to fetch" su Chrome,
+ * "NetworkError" su Firefox), tipici di una fetch annullata perché l'utente ha
+ * lasciato la pagina mentre caricava. Predicato puro. Gli errori DB veri
+ * arrivano con un `code` Postgres e passano comunque il filtro.
+ */
+export function isBenignTransientError(error: unknown): boolean {
+  const name = error instanceof Error ? error.name : '';
+  let message = '';
+  if (error instanceof Error) message = error.message || '';
+  else if (typeof error === 'string') message = error;
+  else if (error && typeof error === 'object' && 'message' in error) {
+    message = String((error as { message?: unknown }).message ?? '');
+  }
+  return (
+    name === 'AbortError' ||
+    /lock broken by another request|the 'steal' option/i.test(message) ||
+    /load failed|failed to fetch|networkerror|network request failed/i.test(message)
+  );
+}
+
 /** Normalizza qualunque cosa arrivi da un handler globale. */
 export function reportUnknown(
   error: unknown,
   source: 'client' | 'boundary' = 'client',
   context?: Record<string, unknown>,
 ): void {
+  // Lock 'steal' di Supabase e fallimenti di rete transitori: benigni, fuori dal log.
+  if (isBenignTransientError(error)) return;
   if (error instanceof Error) {
     reportError({
       message: error.message || error.name,

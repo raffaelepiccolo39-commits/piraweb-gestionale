@@ -4,6 +4,7 @@ import { memo, useMemo } from 'react';
 import Link from 'next/link';
 import { Card } from '@/components/ui/card';
 import { ListTodo, CheckCircle2, AlertTriangle, MoreHorizontal, ArrowUp, ArrowDown, type LucideIcon } from 'lucide-react';
+import { TINT, type Tint } from '@/lib/tints';
 
 interface DashboardStats {
   totalClients: number;
@@ -20,44 +21,21 @@ interface StatCardsProps {
   isAdmin: boolean;
 }
 
-type Accent = 'gold' | 'blue' | 'neutral';
-
 interface StatDef {
   label: string;
   value: number;
   icon: LucideIcon;
-  accent: Accent;
+  tint: Tint;
   href: string;
   delta?: string;
 }
 
-const ACCENT_STYLES: Record<Accent, { iconBg: string; iconFg: string; sparkStroke: string; sparkFill: string }> = {
-  gold: {
-    iconBg: 'bg-[var(--pw-gold-soft)]',
-    iconFg: 'text-[var(--pw-gold-soft-fg)]',
-    sparkStroke: 'var(--pw-gold)',
-    sparkFill: 'var(--pw-gold-soft)',
-  },
-  blue: {
-    iconBg: 'bg-[var(--pw-info-soft)]',
-    iconFg: 'text-[var(--pw-info)]',
-    sparkStroke: 'var(--pw-info)',
-    sparkFill: 'var(--pw-info-soft)',
-  },
-  neutral: {
-    iconBg: 'bg-pw-surface-hi',
-    iconFg: 'text-pw-text-muted',
-    sparkStroke: 'var(--pw-text-muted)',
-    sparkFill: 'transparent',
-  },
-};
-
 export const StatCards = memo(function StatCards({ stats }: StatCardsProps) {
   const cards: StatDef[] = useMemo(() => [
-    { label: 'Task totali', value: stats.totalTasks, icon: ListTodo, accent: 'neutral', href: '/tasks' },
-    { label: 'Da fare', value: stats.todoTasks, icon: ListTodo, accent: 'blue', href: '/tasks?status=todo' },
-    { label: 'Completate', value: stats.completedTasks, icon: CheckCircle2, accent: 'gold', href: '/tasks?status=done' },
-    { label: 'In ritardo', value: stats.overdueTasks, icon: AlertTriangle, accent: 'blue', href: '/tasks?deadline=overdue' },
+    { label: 'Task totali', value: stats.totalTasks, icon: ListTodo, tint: 'violet', href: '/tasks' },
+    { label: 'Da fare', value: stats.todoTasks, icon: ListTodo, tint: 'blue', href: '/tasks?status=todo' },
+    { label: 'Completate', value: stats.completedTasks, icon: CheckCircle2, tint: 'green', href: '/tasks?status=done' },
+    { label: 'In ritardo', value: stats.overdueTasks, icon: AlertTriangle, tint: 'rose', href: '/tasks?deadline=overdue' },
   ], [stats]);
 
   return (
@@ -71,15 +49,15 @@ export const StatCards = memo(function StatCards({ stats }: StatCardsProps) {
 
 interface StatCardProps extends StatDef {}
 
-export function StatCard({ label, value, icon: Icon, accent, href, delta }: StatCardProps) {
-  const styles = ACCENT_STYLES[accent];
+export function StatCard({ label, value, icon: Icon, tint, href, delta }: StatCardProps) {
+  const styles = TINT[tint];
   const isPositive = delta?.startsWith('+');
 
   return (
     <Link href={href} className="block">
       <Card padding="md" hover className="h-full">
         <div className="flex items-start justify-between mb-3.5">
-          <div className={`w-8 h-8 rounded-md ${styles.iconBg} ${styles.iconFg} flex items-center justify-center`}>
+          <div className={`w-8 h-8 rounded-md ${styles.bg} ${styles.fg} flex items-center justify-center`}>
             <Icon size={16} strokeWidth={2} aria-hidden="true" />
           </div>
           <MoreHorizontal size={14} className="text-pw-text-faint" aria-hidden="true" />

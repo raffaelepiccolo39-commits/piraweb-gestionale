@@ -190,10 +190,11 @@ export function PerfPanel() {
                     <td className="px-4 py-3 text-right text-xs text-pw-text-dim">
                       {row.max_ms >= SUSPENDED_MS ? (
                         <span
-                          className="cursor-help text-pw-text-muted"
-                          title="Probabile tab in sospensione o rete interrotta a metà richiesta: il timer del browser continua a correre. Non è lentezza del database."
+                          className="inline-flex items-center gap-1 cursor-help text-pw-text-dim"
+                          title={`Picco isolato di ${ms(row.max_ms)}: quasi sempre un tab lasciato in background o la rete caduta a metà richiesta — il timer del browser continua a correre. Non è lentezza del database (la mediana di questa voce è ${ms(row.p50_ms)}).`}
                         >
-                          {ms(row.max_ms)} ⚠
+                          <Gauge size={12} className="opacity-50" />
+                          tab in pausa
                         </span>
                       ) : (
                         ms(row.max_ms)

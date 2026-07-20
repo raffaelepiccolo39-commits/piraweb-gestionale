@@ -111,6 +111,16 @@
   --pw-danger: #E0431A;
   --pw-danger-soft: #FEF2F2;
 
+  /* Category tints — tavolozza decorativa: chip icona + etichette per area.
+     Ogni area ha la sua tinta fissa (Clienti=blu, Progetti=viola, Task=verde…).
+     Solo decorative: il significato di stato resta su success/warning/danger. */
+  --pw-tint-blue-bg: #E4EEFB;   --pw-tint-blue-fg: #2C6BB8;
+  --pw-tint-violet-bg: #ECE8FA; --pw-tint-violet-fg: #6A54B8;
+  --pw-tint-green-bg: #E1F1E8;  --pw-tint-green-fg: #2C7A54;
+  --pw-tint-teal-bg: #DDF0EE;   --pw-tint-teal-fg: #1E7D74;
+  --pw-tint-amber-bg: #FAF0D3;  --pw-tint-amber-fg: #9A7A12;
+  --pw-tint-rose-bg: #FBE7EC;   --pw-tint-rose-fg: #B84A63;
+
   /* Shadows */
   --pw-shadow-sm: 0 1px 2px rgba(10,31,47,0.05);
   --pw-shadow-md: 0 4px 12px rgba(10,31,47,0.08);
@@ -167,6 +177,14 @@
   --pw-warning-soft: rgba(212, 168, 0, 0.12);
   --pw-danger: #F87171;
   --pw-danger-soft: rgba(248, 113, 113, 0.12);
+
+  /* Category tints — versione scura: fondo tenue + testo più chiaro/leggibile */
+  --pw-tint-blue-bg: rgba(96, 165, 250, 0.14);   --pw-tint-blue-fg: #7FB0EE;
+  --pw-tint-violet-bg: rgba(139, 124, 232, 0.16); --pw-tint-violet-fg: #ADA0F2;
+  --pw-tint-green-bg: rgba(52, 211, 153, 0.14);  --pw-tint-green-fg: #5FCF9A;
+  --pw-tint-teal-bg: rgba(45, 212, 191, 0.14);   --pw-tint-teal-fg: #5BD0C2;
+  --pw-tint-amber-bg: rgba(212, 168, 0, 0.15);   --pw-tint-amber-fg: #E0C24E;
+  --pw-tint-rose-bg: rgba(244, 114, 140, 0.16);  --pw-tint-rose-fg: #EE8AA0;
 
   color-scheme: dark;
 }

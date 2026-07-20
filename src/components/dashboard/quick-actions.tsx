@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useAuth } from '@/hooks/use-auth';
 import { Clock, MessageSquare, Plane, MessageSquarePlus, Calendar } from 'lucide-react';
+import { TINT, type Tint } from '@/lib/tints';
 
 /**
  * Scorciatoie a tile per la home mobile (nascoste da lg in su): le azioni più
@@ -13,31 +14,32 @@ export function QuickActions() {
   const { profile } = useAuth();
   const isAdmin = profile?.role === 'admin';
 
-  const tiles = isAdmin
+  const tiles: { label: string; href: string; icon: typeof Clock; tint: Tint }[] = isAdmin
     ? [
-        { label: 'Cattura', href: '/cattura', icon: MessageSquarePlus },
-        { label: 'Presenze', href: '/presenze', icon: Clock },
-        { label: 'Bacheca', href: '/team', icon: MessageSquare },
-        { label: 'Calendario', href: '/calendario', icon: Calendar },
+        { label: 'Cattura', href: '/cattura', icon: MessageSquarePlus, tint: 'amber' },
+        { label: 'Presenze', href: '/presenze', icon: Clock, tint: 'blue' },
+        { label: 'Bacheca', href: '/team', icon: MessageSquare, tint: 'green' },
+        { label: 'Calendario', href: '/calendario', icon: Calendar, tint: 'violet' },
       ]
     : [
-        { label: 'Presenze', href: '/presenze', icon: Clock },
-        { label: 'Bacheca', href: '/team', icon: MessageSquare },
-        { label: 'Ferie', href: '/ferie', icon: Plane },
-        { label: 'Calendario', href: '/calendario', icon: Calendar },
+        { label: 'Presenze', href: '/presenze', icon: Clock, tint: 'blue' },
+        { label: 'Bacheca', href: '/team', icon: MessageSquare, tint: 'green' },
+        { label: 'Ferie', href: '/ferie', icon: Plane, tint: 'teal' },
+        { label: 'Calendario', href: '/calendario', icon: Calendar, tint: 'violet' },
       ];
 
   return (
     <div className="lg:hidden grid grid-cols-4 gap-2">
       {tiles.map((t) => {
         const Icon = t.icon;
+        const tint = TINT[t.tint];
         return (
           <Link
             key={t.href}
             href={t.href}
             className="flex flex-col items-center gap-1.5 rounded-xl border border-pw-border bg-pw-surface p-3 active:bg-pw-surface-2 transition-colors"
           >
-            <span className="w-10 h-10 rounded-lg bg-pw-accent/10 text-pw-accent flex items-center justify-center">
+            <span className={`w-10 h-10 rounded-lg ${tint.bg} ${tint.fg} flex items-center justify-center`}>
               <Icon size={20} />
             </span>
             <span className="text-[11px] font-medium text-pw-text text-center leading-tight">{t.label}</span>

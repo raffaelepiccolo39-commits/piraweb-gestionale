@@ -7,6 +7,7 @@ import { usePathname } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
 import { cn } from '@/lib/utils';
 import { navSections } from '@/components/layout/nav-config';
+import { TINT, tintForPath } from '@/lib/tints';
 import { X, ChevronRight, LogOut, Moon, Sun } from 'lucide-react';
 
 /**
@@ -86,6 +87,7 @@ export function MenuSheet({ open, onClose }: { open: boolean; onClose: () => voi
                     {items.map((it) => {
                       const Icon = it.icon;
                       const active = isActive(it.href);
+                      const tint = TINT[tintForPath(it.href)];
                       return (
                         <Link
                           key={it.href}
@@ -98,7 +100,7 @@ export function MenuSheet({ open, onClose }: { open: boolean; onClose: () => voi
                         >
                           <span className={cn(
                             'w-9 h-9 rounded-lg flex items-center justify-center shrink-0',
-                            active ? 'bg-pw-accent/15 text-pw-accent' : 'bg-pw-surface-2 text-pw-text-muted',
+                            active ? 'bg-pw-accent/15 text-pw-accent' : `${tint.bg} ${tint.fg}`,
                           )}>
                             <Icon size={18} />
                           </span>
