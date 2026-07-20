@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { getInvoiceStatus, getArubaConfigFromEnv, SDI_STATUS_MAP } from '@/lib/aruba/client';
+import { isAdmin } from '@/lib/require-admin';
 import { logError } from '@/lib/logger';
 
 /**
@@ -14,6 +15,15 @@ export async function POST(request: NextRequest) {
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 });
+
+  // Sotto si legge e si SCRIVE su invoices con il service role, che scavalca
+  // la RLS: senza questo controllo bastava essere autenticati — quindi anche
+  // un cliente del portale — per interrogare lo stato SDI di una fattura
+  // qualsiasi e sporcarne i campi, consumando pure le chiamate ad Aruba.
+  // La route gemella send-sdi il controllo lo faceva già.
+  if (!(await isAdmin(supabase, user.id))) {
+    return NextResponse.json({ error: 'Riservato agli amministratori' }, { status: 403 });
+  }
 
   let body: Record<string, unknown>;
   try { body = await request.json(); } catch { return NextResponse.json({ error: 'JSON non valido' }, { status: 400 }); }

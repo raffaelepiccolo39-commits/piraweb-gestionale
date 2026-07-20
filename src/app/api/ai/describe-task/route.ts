@@ -2,12 +2,20 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { checkRateLimit, AI_RATE_LIMIT } from '@/lib/rate-limit';
+import { isStaff } from '@/lib/require-admin';
 import { logError } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 });
+
+  // Strumento di lavoro interno: da quando esiste il portale "autenticato"
+  // non significa più "del team", e queste chiamate costano (chiavi AI
+  // aziendali) o scrivono su dati condivisi.
+  if (!(await isStaff(supabase, user.id))) {
+    return NextResponse.json({ error: 'Riservato al team' }, { status: 403 });
+  }
 
   const rateLimit = checkRateLimit(`ai:describe:${user.id}`, AI_RATE_LIMIT);
   if (!rateLimit.allowed) {

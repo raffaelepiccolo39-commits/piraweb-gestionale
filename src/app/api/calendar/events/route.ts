@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { isStaff } from '@/lib/require-admin';
 import { logError } from '@/lib/logger';
 
 export async function GET(request: NextRequest) {
@@ -33,6 +34,15 @@ export async function POST(request: NextRequest) {
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 });
+
+  // Il calendario è interno. La policy INSERT chiede solo
+  // created_by = auth.uid(), condizione che QUALUNQUE autenticato soddisfa
+  // sulle proprie righe: da sola non distingue un dipendente da un cliente
+  // del portale, che potrebbe creare impegni finti e assegnarli al team.
+  // La policy è stata corretta con la 20260720f; questo è il secondo strato.
+  if (!(await isStaff(supabase, user.id))) {
+    return NextResponse.json({ error: 'Riservato al team' }, { status: 403 });
+  }
 
   let body;
   try {

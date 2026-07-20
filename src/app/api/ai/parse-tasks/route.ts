@@ -6,6 +6,7 @@ export const maxDuration = 60;
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { checkRateLimit, AI_RATE_LIMIT } from '@/lib/rate-limit';
+import { isStaff } from '@/lib/require-admin';
 import { logError } from '@/lib/logger';
 
 interface ParsedTask {
@@ -61,6 +62,13 @@ export async function POST(request: NextRequest) {
 
   if (!user) {
     return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 });
+  }
+
+  // Strumento di lavoro interno: da quando esiste il portale "autenticato"
+  // non significa più "del team", e queste chiamate costano (chiavi AI
+  // aziendali) o scrivono su dati condivisi.
+  if (!(await isStaff(supabase, user.id))) {
+    return NextResponse.json({ error: 'Riservato al team' }, { status: 403 });
   }
 
   const rateLimit = checkRateLimit(`ai:parse:${user.id}`, AI_RATE_LIMIT);
