@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useState, use } from 'react';
+import { Suspense, useEffect, useState,  } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import type { ContentApproval } from '@/types/database';
 import {
@@ -17,8 +18,9 @@ interface PublicApproval extends Omit<ContentApproval, 'submitter'> {
   submitter?: { full_name: string };
 }
 
-export default function ReviewPage({ params }: { params: Promise<{ token: string }> }) {
-  const { token } = use(params);
+function ReviewPageInner() {
+  const searchParams = useSearchParams();
+  const token = searchParams.get('token') ?? '';
   const supabase = createClient();
 
   const [approval, setApproval] = useState<PublicApproval | null>(null);
@@ -258,5 +260,18 @@ function StatusBadge({ status }: { status: string }) {
     <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${c.className}`}>
       {c.label}
     </span>
+  );
+}
+
+/**
+ * L'id arriva dalla query invece che dal percorso: le rotte dinamiche non
+ * sopravvivono all'esportazione statica con cui si impacchetta l'app.
+ * Suspense e' richiesto da Next attorno a useSearchParams.
+ */
+export default function ReviewPage() {
+  return (
+    <Suspense fallback={null}>
+      <ReviewPageInner />
+    </Suspense>
   );
 }

@@ -769,7 +769,7 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
                 Cliente:{' '}
                 {task.project_id ? (
                   <a
-                    href={`/projects/${task.project_id}`}
+                    href={`/projects/scheda?id=${task.project_id}`}
                     className="text-pw-accent hover:underline inline-flex items-center gap-1"
                     title="Apri il progetto"
                   >

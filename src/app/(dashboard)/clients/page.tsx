@@ -635,7 +635,7 @@ export default function ClientsPage() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => router.push(`/clients/${client.id}`)}
+                    onClick={() => router.push(`/clients/scheda?id=${client.id}`)}
                   >
                     <Eye size={14} />
                     Dettagli

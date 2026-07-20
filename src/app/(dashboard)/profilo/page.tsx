@@ -268,7 +268,7 @@ export default function ProfiloPage() {
                   {topTasks.length === 0 ? (
                     <p className="text-xs text-pw-text-dim">Nessuna task aperta</p>
                   ) : topTasks.map(t => (
-                    <Link key={t.id} href={`/tasks/${t.id}`} className="flex items-center gap-2 text-xs text-pw-text-muted hover:text-pw-accent transition-colors">
+                    <Link key={t.id} href={`/tasks/scheda?id=${t.id}`} className="flex items-center gap-2 text-xs text-pw-text-muted hover:text-pw-accent transition-colors">
                       <span className={cn('w-1.5 h-1.5 rounded-full shrink-0', STATUS_DOT[t.status] || 'bg-pw-text-dim')} />
                       <span className="truncate">{t.title}</span>
                     </Link>
@@ -318,7 +318,7 @@ export default function ProfiloPage() {
                 ) : (
                   <div className="space-y-2">
                     {recent.map(t => (
-                      <Link key={t.id} href={`/tasks/${t.id}`} className="flex items-center justify-between gap-3 group">
+                      <Link key={t.id} href={`/tasks/scheda?id=${t.id}`} className="flex items-center justify-between gap-3 group">
                         <div className="flex items-center gap-2 min-w-0">
                           <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: t.project?.color || 'var(--pw-text-dim)' }} />
                           <span className="text-sm text-pw-text truncate group-hover:text-pw-accent transition-colors">{t.title}</span>

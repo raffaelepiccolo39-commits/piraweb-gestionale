@@ -1,8 +1,8 @@
 'use client';
 
 
-import { useEffect, useState, useCallback, use, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { Suspense, useEffect, useState, useCallback,  useRef } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
@@ -39,12 +39,9 @@ const statusLabels: Record<string, string> = {
   archived: 'Archiviato',
 };
 
-export default function ProjectDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = use(params);
+function ProjectDetailPageInner() {
+  const searchParams = useSearchParams();
+  const id = searchParams.get('id') ?? '';
   const { profile } = useAuth();
   const supabase = createClient();
   const router = useRouter();
@@ -487,5 +484,18 @@ export default function ProjectDetailPage({
         </div>
       </Modal>
     </div>
+  );
+}
+
+/**
+ * L'id arriva dalla query invece che dal percorso: le rotte dinamiche non
+ * sopravvivono all'esportazione statica con cui si impacchetta l'app.
+ * Suspense e' richiesto da Next attorno a useSearchParams.
+ */
+export default function ProjectDetailPage() {
+  return (
+    <Suspense fallback={null}>
+      <ProjectDetailPageInner />
+    </Suspense>
   );
 }

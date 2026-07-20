@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
 import { createClient } from '@/lib/supabase/client';
+import { normalizeLegacyLink } from '@/lib/legacy-links';
 import { getInitials, cn } from '@/lib/utils';
 import { APP_VERSION } from '@/lib/version';
 
@@ -233,7 +234,10 @@ export function Header() {
     markAsRead(notif.id);
     if (notif.link && notif.link.startsWith('/')) {
       setShowNotifications(false);
-      router.push(notif.link);
+      // Le notifiche già in archivio (e quelle che i trigger DB continuano a
+      // scrivere) usano il vecchio schema /projects/<id>: va tradotto, o il
+      // click porta su una pagina che non esiste più.
+      router.push(normalizeLegacyLink(notif.link));
     }
   };
 

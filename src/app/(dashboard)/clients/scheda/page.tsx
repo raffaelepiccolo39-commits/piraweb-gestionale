@@ -1,8 +1,8 @@
 'use client';
 
 
-import { useEffect, useState, useCallback, use } from 'react';
-import { useRouter } from 'next/navigation';
+import { Suspense, useEffect, useState, useCallback,  } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { reportUnknown, reportSupabaseError } from '@/lib/report-error';
 import { useAuth } from '@/hooks/use-auth';
@@ -110,12 +110,9 @@ function getContractExpiryInfo(contract: ClientContract): { status: 'ok' | 'warn
   return { status: 'ok', daysLeft, label: `${daysLeft} giorni rimanenti` };
 }
 
-export default function ClientDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = use(params);
+function ClientDetailPageInner() {
+  const searchParams = useSearchParams();
+  const id = searchParams.get('id') ?? '';
   const { profile } = useAuth();
   const supabase = createClient();
   const router = useRouter();
@@ -386,7 +383,7 @@ export default function ClientDetailPage({
           </div>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => router.push(`/clients/${id}/report`)}>
+          <Button variant="outline" onClick={() => router.push(`/clients/report?id=${id}`)}>
             Report
           </Button>
         </div>
@@ -819,5 +816,18 @@ export default function ClientDetailPage({
         />
       </Modal>
     </div>
+  );
+}
+
+/**
+ * L'id arriva dalla query invece che dal percorso: le rotte dinamiche non
+ * sopravvivono all'esportazione statica con cui si impacchetta l'app.
+ * Suspense e' richiesto da Next attorno a useSearchParams.
+ */
+export default function ClientDetailPage() {
+  return (
+    <Suspense fallback={null}>
+      <ClientDetailPageInner />
+    </Suspense>
   );
 }

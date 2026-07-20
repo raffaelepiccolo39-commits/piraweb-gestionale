@@ -232,7 +232,7 @@ export default function ProjectsPage() {
           <Card
             hover
             className="group"
-            onClick={() => router.push(`/projects/${project.id}`)}
+            onClick={() => router.push(`/projects/scheda?id=${project.id}`)}
           >
             <CardContent className="p-5">
               <div className="flex items-start justify-between mb-3">

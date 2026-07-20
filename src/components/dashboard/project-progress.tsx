@@ -58,7 +58,7 @@ export const ProjectProgress = memo(function ProjectProgress({ projects }: Proje
             return (
               <Link
                 key={project.id}
-                href={`/projects/${project.id}`}
+                href={`/projects/scheda?id=${project.id}`}
                 className="block p-3 rounded-xl bg-pw-surface-2 hover:bg-pw-surface-3 transition-colors group"
               >
                 <div className="flex items-center gap-2 mb-2">

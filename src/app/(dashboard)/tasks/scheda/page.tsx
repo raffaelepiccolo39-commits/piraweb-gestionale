@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState, useCallback, use } from 'react';
-import { useRouter } from 'next/navigation';
+import { Suspense, useEffect, useState, useCallback,  } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
@@ -44,12 +44,9 @@ import {
   FolderOpen,
 } from 'lucide-react';
 
-export default function TaskDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id: taskId } = use(params);
+function TaskDetailPageInner() {
+  const searchParams = useSearchParams();
+  const taskId = searchParams.get('id') ?? '';
   const { profile } = useAuth();
   const supabase = createClient();
   const router = useRouter();
@@ -242,7 +239,7 @@ export default function TaskDetailPage({
         items={[
           { label: 'Task', href: '/tasks' },
           ...(task.project
-            ? [{ label: task.project.name, href: `/projects/${task.project.id}` }]
+            ? [{ label: task.project.name, href: `/projects/scheda?id=${task.project.id}` }]
             : []),
           { label: task.title },
         ]}
@@ -513,7 +510,7 @@ export default function TaskDetailPage({
                 <div>
                   <p className="text-[10px] uppercase tracking-widest text-pw-text-dim mb-1">Progetto</p>
                   <Link
-                    href={`/projects/${task.project.id}`}
+                    href={`/projects/scheda?id=${task.project.id}`}
                     className="text-sm text-pw-accent hover:underline flex items-center gap-1"
                   >
                     <FolderKanban size={12} />
@@ -788,5 +785,18 @@ export default function TaskDetailPage({
         </div>
       </Modal>
     </div>
+  );
+}
+
+/**
+ * L'id arriva dalla query invece che dal percorso: le rotte dinamiche non
+ * sopravvivono all'esportazione statica con cui si impacchetta l'app.
+ * Suspense e' richiesto da Next attorno a useSearchParams.
+ */
+export default function TaskDetailPage() {
+  return (
+    <Suspense fallback={null}>
+      <TaskDetailPageInner />
+    </Suspense>
   );
 }

@@ -539,7 +539,7 @@ export default function TasksPage() {
                       )}
                       {project && (
                         <button
-                          onClick={() => router.push(`/projects/${project.id}`)}
+                          onClick={() => router.push(`/projects/scheda?id=${project.id}`)}
                           className="p-1.5 rounded-lg text-pw-text-dim hover:bg-pw-surface-2"
                           title="Vai al progetto"
                         >

@@ -576,7 +576,7 @@ export default function ProfitabilityPage() {
                     </div>
 
                     <Link
-                      href={`/projects/${project.projectId}`}
+                      href={`/projects/scheda?id=${project.projectId}`}
                       className="text-xs text-pw-accent hover:underline flex items-center gap-1"
                     >
                       Vai al progetto <ArrowRight size={10} />

@@ -658,7 +658,7 @@ export default function CashflowPage() {
                         <div
                           key={client.client_id}
                           className="px-6 py-3 flex items-center gap-3 hover:bg-pw-surface-2 cursor-pointer transition-colors duration-200 ease-out"
-                          onClick={() => router.push(`/clients/${client.client_id}`)}
+                          onClick={() => router.push(`/clients/scheda?id=${client.client_id}`)}
                         >
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium text-pw-text truncate">

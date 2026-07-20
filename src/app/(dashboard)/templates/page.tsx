@@ -149,7 +149,7 @@ export default function TemplatesPage() {
     } else {
       toast.success('Progetto creato da template!');
       setShowUse(false);
-      router.push(`/projects/${data}`);
+      router.push(`/projects/scheda?id=${data}`);
     }
   };
 

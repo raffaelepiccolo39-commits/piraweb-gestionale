@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useState, useCallback, use } from 'react';
+import { Suspense, useEffect, useState, useCallback,  } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
@@ -40,8 +41,9 @@ interface ClientReport {
   profitMargin: number; // percentage
 }
 
-export default function ClientReportPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id: clientId } = use(params);
+function ClientReportPageInner() {
+  const searchParams = useSearchParams();
+  const clientId = searchParams.get('id') ?? '';
   const { profile } = useAuth();
   const supabase = createClient();
   const [report, setReport] = useState<ClientReport | null>(null);
@@ -195,7 +197,7 @@ export default function ClientReportPage({ params }: { params: Promise<{ id: str
 
       {/* Header */}
       <div className="flex items-center gap-3">
-        <Link href={`/clients/${clientId}`} className="p-2 rounded-lg hover:bg-pw-surface-2 text-pw-text-muted">
+        <Link href={`/clients/scheda?id=${clientId}`} className="p-2 rounded-lg hover:bg-pw-surface-2 text-pw-text-muted">
           <ArrowLeft size={18} />
         </Link>
         <div>
@@ -375,7 +377,7 @@ export default function ClientReportPage({ params }: { params: Promise<{ id: str
               return (
                 <Link
                   key={task.id}
-                  href={`/tasks/${task.id}`}
+                  href={`/tasks/scheda?id=${task.id}`}
                   className="flex items-center gap-3 py-3 hover:bg-pw-surface-2/50 -mx-6 px-6 transition-colors duration-200 ease-out"
                 >
                   <div className="flex-1 min-w-0">
@@ -399,5 +401,18 @@ export default function ClientReportPage({ params }: { params: Promise<{ id: str
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+/**
+ * L'id arriva dalla query invece che dal percorso: le rotte dinamiche non
+ * sopravvivono all'esportazione statica con cui si impacchetta l'app.
+ * Suspense e' richiesto da Next attorno a useSearchParams.
+ */
+export default function ClientReportPage() {
+  return (
+    <Suspense fallback={null}>
+      <ClientReportPageInner />
+    </Suspense>
   );
 }
