@@ -43,6 +43,10 @@
     {
       "path": "/api/cron/ped-monitor",
       "schedule": "45 7 * * *"
+    },
+    {
+      "path": "/api/cron/portal-digest",
+      "schedule": "15 8 * * 1-5"
     }
   ]
 }
