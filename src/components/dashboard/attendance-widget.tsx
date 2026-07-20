@@ -1,9 +1,10 @@
 'use client';
 
-import { memo } from 'react';
+import { memo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Modal } from '@/components/ui/modal';
 import { getAttendanceStatusLabel, getAttendanceStatusTone, formatTime } from '@/lib/utils';
 import { LogIn, LogOut, Coffee } from 'lucide-react';
 import type { AttendanceRecord } from '@/types/database';
@@ -23,7 +24,17 @@ export const AttendanceWidget = memo(function AttendanceWidget({ record, loading
   // sovrascriverebbe l'orario di inizio falsando le ore.
   const canLunchStart = status === 'working' && !record?.lunch_start;
 
+  // L'uscita chiude la giornata e fa scattare il cancello (AttendanceGate), quindi
+  // passa da una conferma come in /presenze: qui il tasto sta accanto all'icona
+  // della pausa ed era il modo più facile per chiudersi fuori alle 13:30.
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
+  const confirmClockOut = async () => {
+    await onClockOut();
+    setShowExitConfirm(false);
+  };
+
   return (
+    <>
     <Card className="relative overflow-hidden">
       <CardContent className="p-4">
         <div className="flex items-center justify-between gap-4">
@@ -61,7 +72,7 @@ export const AttendanceWidget = memo(function AttendanceWidget({ record, loading
                     <Coffee size={14} />
                   </Button>
                 )}
-                <Button size="sm" variant="secondary" onClick={onClockOut} loading={loading}>
+                <Button size="sm" variant="secondary" onClick={() => setShowExitConfirm(true)} loading={loading}>
                   <LogOut size={14} />
                   Esci
                 </Button>
@@ -83,5 +94,24 @@ export const AttendanceWidget = memo(function AttendanceWidget({ record, loading
         <div className="h-0.5 bg-yellow-500" />
       )}
     </Card>
+
+    <Modal open={showExitConfirm} onClose={() => setShowExitConfirm(false)} title="Conferma Uscita" size="sm">
+      <div>
+        <p className="text-pw-text-muted text-sm mb-4">
+          Stai per registrare l&apos;uscita e chiudere la giornata lavorativa. Se volevi solo fare
+          una pausa, annulla e usa il pulsante con la tazzina.
+        </p>
+        <div className="flex gap-3">
+          <Button variant="outline" onClick={() => setShowExitConfirm(false)} className="flex-1">
+            Annulla
+          </Button>
+          <Button variant="danger" onClick={confirmClockOut} loading={loading} className="flex-1">
+            <LogOut size={16} />
+            Conferma Uscita
+          </Button>
+        </div>
+      </div>
+    </Modal>
+    </>
   );
 });

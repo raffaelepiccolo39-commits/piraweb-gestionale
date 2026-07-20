@@ -7,7 +7,7 @@ import { useToast } from '@/components/ui/toast';
 import { Button } from '@/components/ui/button';
 import { todayLocal, formatTime } from '@/lib/utils';
 import type { AttendanceRecord } from '@/types/database';
-import { LogIn, Clock, Loader2, UtensilsCrossed, Moon } from 'lucide-react';
+import { LogIn, Clock, Loader2, UtensilsCrossed, Moon, RotateCcw } from 'lucide-react';
 import { reportSupabaseError } from '@/lib/report-error';
 import { captureGeoStamp } from '@/lib/attendance-geo';
 
@@ -16,8 +16,11 @@ import { captureGeoStamp } from '@/lib/attendance-geo';
  * attivo. Si chiude prima dell'entrata, durante la pausa pranzo e dopo l'uscita.
  * L'admin è esente, come chi è in ferie/permesso approvato.
  *
- * Riaprire una giornata già chiusa è volutamente riservato all'admin
- * (Presenze → Report): evita che si timbri l'uscita e si continui a lavorare.
+ * L'utente può riaprire da sé una giornata chiusa per errore (il caso tipico è
+ * "Esci" premuto al posto di "Pausa pranzo" alle 13:30, che altrimenti lo
+ * lasciava fuori dall'app per il resto del pomeriggio in attesa dell'admin).
+ * Non c'è finestra temporale, ma ogni riapertura lascia una riga nelle note del
+ * record: come per il GPS, si registra e si segnala, non si blocca.
  */
 
 type GateState = 'loading' | 'allowed' | 'need_clock_in' | 'on_lunch' | 'day_closed';
@@ -185,6 +188,33 @@ export function AttendanceGate({ children }: { children: React.ReactNode }) {
     toast.success('Bentornato — pausa terminata');
   };
 
+  // Annulla un'uscita timbrata per sbaglio e riapre la giornata. Riporta lo
+  // stato a com'era prima: se la pausa era iniziata e non chiusa si torna in
+  // pausa, altrimenti al lavoro. total_hours lo ricalcola il trigger DB.
+  const handleReopen = async () => {
+    if (!record) return;
+    setSubmitting(true);
+
+    const resumed = record.lunch_start && !record.lunch_end ? 'lunch_break' : 'working';
+    const stamp = new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+    const line = `[${stamp}] uscita delle ${formatTime(record.clock_out)} annullata dall'utente`;
+
+    const { error } = await supabase
+      .from('attendance_records')
+      .update({
+        clock_out: null,
+        clock_out_geo: null,
+        status: resumed,
+        notes: record.notes ? `${record.notes}\n${line}` : line,
+      })
+      .eq('id', record.id);
+
+    setSubmitting(false);
+    if (error) { reportSupabaseError(error, 'timbratura-riapertura', { recordId: record.id }); toast.error('Non è stato possibile riaprire la giornata, riprova'); return; }
+    await check();
+    toast.success('Giornata riaperta — ricordati di timbrare l’uscita a fine turno');
+  };
+
   // In attesa di sapere lo stato (evita di mostrare l'app prima del cancello)
   if (!profile || state === 'loading') {
     return (
@@ -203,27 +233,27 @@ export function AttendanceGate({ children }: { children: React.ReactNode }) {
       icon: Clock,
       title: `Ciao${firstName ? ` ${firstName}` : ''}, timbra l'entrata`,
       description: 'Per accedere a task, progetti e alla tua giornata, registra prima l’orario di entrata.',
-      action: { label: 'Timbra entrata', icon: LogIn, onClick: handleClockIn },
+      action: { label: 'Timbra entrata', icon: LogIn, onClick: handleClockIn, variant: 'primary' as const },
       footer: 'Ricordati poi di timbrare l’uscita a fine giornata dalla sezione Presenze.',
     },
     on_lunch: {
       icon: UtensilsCrossed,
       title: 'Sei in pausa pranzo',
       description: `Pausa iniziata alle ${formatTime(record?.lunch_start ?? null)}. La piattaforma torna disponibile quando timbri il rientro.`,
-      action: { label: 'Fine pausa', icon: UtensilsCrossed, onClick: handleLunchEnd },
+      action: { label: 'Fine pausa', icon: UtensilsCrossed, onClick: handleLunchEnd, variant: 'primary' as const },
       footer: 'La pausa viene aperta in automatico alle 13:30 se non l’hai timbrata tu.',
     },
     day_closed: {
       icon: Moon,
       title: 'Giornata chiusa',
       description: `Hai timbrato l’uscita alle ${formatTime(record?.clock_out ?? null)}. La piattaforma è utilizzabile solo durante l’orario di lavoro.`,
-      action: null,
-      footer: 'Se devi rientrare, chiedi a un amministratore di riaprire la giornata.',
+      action: { label: 'Ho sbagliato, riapri la giornata', icon: RotateCcw, onClick: handleReopen, variant: 'outline' as const },
+      footer: 'La riapertura annulla l’uscita e viene segnalata nel report presenze.',
     },
   }[state];
 
   const Icon = screens.icon;
-  const ActionIcon = screens.action?.icon;
+  const ActionIcon = screens.action.icon;
 
   return (
     <div className="min-h-[70vh] flex items-center justify-center px-4">
@@ -234,11 +264,9 @@ export function AttendanceGate({ children }: { children: React.ReactNode }) {
         <h1 className="text-2xl font-bold text-pw-text mb-2">{screens.title}</h1>
         <p className="text-sm text-pw-text-muted mb-1">{screens.description}</p>
         <p className="text-3xl font-semibold text-pw-text tabular-nums my-5">{clock}</p>
-        {screens.action && ActionIcon && (
-          <Button variant="primary" onClick={screens.action.onClick} loading={submitting} className="w-full justify-center">
-            <ActionIcon size={16} /> {screens.action.label}
-          </Button>
-        )}
+        <Button variant={screens.action.variant} onClick={screens.action.onClick} loading={submitting} className="w-full justify-center">
+          <ActionIcon size={16} /> {screens.action.label}
+        </Button>
         <p className="text-[11px] text-pw-text-dim mt-4">{screens.footer}</p>
       </div>
     </div>
