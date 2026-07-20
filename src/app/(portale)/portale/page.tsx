@@ -4,8 +4,10 @@ import { useCallback, useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Modal } from '@/components/ui/modal';
 import { reportSupabaseError } from '@/lib/report-error';
+import { resolveMediaUrls } from '@/lib/social-media';
+import { useToast } from '@/components/ui/toast';
 import { cn } from '@/lib/utils';
-import { ImageIcon, Loader2, CalendarDays, AtSign, Globe, Share2, Tv, MessageCircle, Hash } from 'lucide-react';
+import { ImageIcon, Loader2, CalendarDays, AtSign, Globe, Share2, Tv, MessageCircle, Hash, Check, MessageSquareWarning } from 'lucide-react';
 
 /**
  * Il piano editoriale visto dal cliente: una griglia come il profilo
@@ -27,6 +29,8 @@ interface PortalPost {
   published_at: string | null;
   media_urls: string[] | null;
   hashtags: string | null;
+  client_approval: 'pending' | 'approved' | 'changes_requested';
+  client_comment: string | null;
 }
 
 // Stesse icone e colori del calendario social nel gestionale: il cliente e il
@@ -68,16 +72,54 @@ export default function PortaleContenutiPage() {
   const [posts, setPosts] = useState<PortalPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<PortalPost | null>(null);
+  const [media, setMedia] = useState<Record<string, string>>({});
+  const [comment, setComment] = useState('');
+  const [sending, setSending] = useState(false);
+  const [askChanges, setAskChanges] = useState(false);
+  const toast = useToast();
+
+  // La risposta passa da una funzione dedicata: il cliente non ha permessi di
+  // scrittura sui post, quindi non può toccare didascalie o date.
+  const review = async (approval: 'approved' | 'changes_requested') => {
+    if (!selected) return;
+    if (approval === 'changes_requested' && !comment.trim()) {
+      toast.error('Scrivici cosa vorresti cambiare');
+      return;
+    }
+    setSending(true);
+    const { data, error } = await supabase.rpc('portal_review_post', {
+      p_post_id: selected.id,
+      p_approval: approval,
+      p_comment: approval === 'changes_requested' ? comment : null,
+    });
+    setSending(false);
+
+    if (error || data === false) {
+      reportSupabaseError(error ?? new Error('post non aggiornabile'), 'portale-approvazione', { postId: selected.id });
+      toast.error('Non è stato possibile inviare la risposta, riprova');
+      return;
+    }
+    toast.success(approval === 'approved' ? 'Contenuto approvato, grazie!' : 'Richiesta inviata, ci mettiamo mano');
+    setSelected(null);
+    setComment('');
+    setAskChanges(false);
+    fetchPosts();
+  };
 
   const fetchPosts = useCallback(async () => {
     const { data, error } = await supabase
       .from('social_posts')
-      .select('id, title, caption, platforms, status, scheduled_at, published_at, media_urls, hashtags')
+      .select('id, title, caption, platforms, status, scheduled_at, published_at, media_urls, hashtags, client_approval, client_comment')
       .order('scheduled_at', { ascending: false, nullsFirst: false });
 
     if (error) reportSupabaseError(error, 'portale-contenuti', {});
-    setPosts((data as PortalPost[]) || []);
+    const rows = (data as PortalPost[]) || [];
+    setPosts(rows);
     setLoading(false);
+
+    // I percorsi da soli non si mostrano: una sola chiamata per tutti i file.
+    const paths = rows.flatMap((p) => p.media_urls || []);
+    if (paths.length > 0) setMedia(await resolveMediaUrls(supabase, paths));
   }, [supabase]);
 
   useEffect(() => { fetchPosts(); }, [fetchPosts]);
@@ -117,7 +159,8 @@ export default function PortaleContenutiPage() {
       {/* Griglia stile profilo: 3 colonne, riquadri quadrati, spazio minimo */}
       <div className="grid grid-cols-3 gap-1 sm:gap-2">
         {posts.map((post) => {
-          const cover = post.media_urls?.[0];
+          const coverPath = post.media_urls?.[0];
+          const cover = coverPath ? media[coverPath] : undefined;
           return (
             <button
               key={post.id}
@@ -152,9 +195,9 @@ export default function PortaleContenutiPage() {
       <Modal open={!!selected} onClose={() => setSelected(null)} title={selected?.title || ''} size="md">
         {selected && (
           <div className="space-y-4">
-            {selected.media_urls?.[0] && (
+            {selected.media_urls?.[0] && media[selected.media_urls[0]] && (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={selected.media_urls[0]} alt={selected.title} className="w-full rounded-xl" />
+              <img src={media[selected.media_urls[0]]} alt={selected.title} className="w-full rounded-xl" />
             )}
 
             <div className="flex items-center gap-3 text-sm text-pw-text-muted">
@@ -191,6 +234,70 @@ export default function PortaleContenutiPage() {
 
             {selected.hashtags && (
               <p className="text-sm text-pw-accent break-words">{selected.hashtags}</p>
+            )}
+
+            {/* Approvazione. Sui contenuti già pubblicati non si chiede più
+                nulla: sarebbe una domanda a cui non si può più rispondere. */}
+            {selected.status !== 'published' && (
+              <div className="pt-4 border-t border-pw-border">
+                {selected.client_approval === 'approved' ? (
+                  <p className="text-sm text-green-500 inline-flex items-center gap-1.5">
+                    <Check size={15} /> Hai approvato questo contenuto
+                  </p>
+                ) : selected.client_approval === 'changes_requested' ? (
+                  <div>
+                    <p className="text-sm text-amber-500 inline-flex items-center gap-1.5 mb-1">
+                      <MessageSquareWarning size={15} /> Hai chiesto delle modifiche
+                    </p>
+                    {selected.client_comment && (
+                      <p className="text-sm text-pw-text-muted italic">«{selected.client_comment}»</p>
+                    )}
+                  </div>
+                ) : askChanges ? (
+                  <div className="space-y-3">
+                    <textarea
+                      value={comment}
+                      onChange={(e) => setComment(e.target.value)}
+                      rows={3}
+                      autoFocus
+                      placeholder="Cosa vorresti cambiare?"
+                      className="w-full px-3 py-2 rounded-lg bg-pw-surface-2 border border-pw-border text-sm text-pw-text placeholder:text-pw-text-dim"
+                    />
+                    <div className="flex gap-2 justify-end">
+                      <button
+                        onClick={() => { setAskChanges(false); setComment(''); }}
+                        className="px-4 py-2 rounded-lg text-sm text-pw-text-muted"
+                      >
+                        Annulla
+                      </button>
+                      <button
+                        onClick={() => review('changes_requested')}
+                        disabled={sending}
+                        className="px-4 py-2 rounded-lg bg-pw-accent text-[#0A263A] text-sm font-medium disabled:opacity-60"
+                      >
+                        {sending ? 'Invio…' : 'Invia richiesta'}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => review('approved')}
+                      disabled={sending}
+                      className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-green-500/10 text-green-500 text-sm font-medium hover:bg-green-500/20 transition-colors disabled:opacity-60"
+                    >
+                      <Check size={16} /> Approva
+                    </button>
+                    <button
+                      onClick={() => setAskChanges(true)}
+                      disabled={sending}
+                      className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl border border-pw-border text-pw-text-muted text-sm font-medium hover:bg-pw-surface-2 transition-colors disabled:opacity-60"
+                    >
+                      <MessageSquareWarning size={16} /> Chiedi modifiche
+                    </button>
+                  </div>
+                )}
+              </div>
             )}
           </div>
         )}

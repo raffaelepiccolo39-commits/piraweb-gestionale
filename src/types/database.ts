@@ -833,6 +833,8 @@ export interface ContentApproval {
 export type SocialPlatform = 'instagram' | 'facebook' | 'tiktok' | 'linkedin' | 'youtube' | 'twitter' | 'pinterest' | 'other';
 export type SocialPostStatus = 'idea' | 'draft' | 'ready' | 'scheduled' | 'published' | 'rejected';
 
+export type ClientApproval = 'pending' | 'approved' | 'changes_requested';
+
 export interface SocialPost {
   id: string;
   client_id: string;
@@ -844,10 +846,15 @@ export interface SocialPost {
   status: SocialPostStatus;
   scheduled_at: string | null;
   published_at: string | null;
+  /** Percorsi nel bucket privato `social-media`, NON URL: vedi lib/social-media.ts */
   media_urls: string[];
   hashtags: string | null;
   notes: string | null;
   color: string;
+  /** Risposta del cliente dal portale (scritta solo da portal_review_post) */
+  client_approval: ClientApproval;
+  client_comment: string | null;
+  client_reviewed_at: string | null;
   created_by: string;
   assigned_to: string | null;
   created_at: string;

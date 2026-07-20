@@ -33,6 +33,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { reportUnknown, reportSupabaseError } from '@/lib/report-error';
+import { PostMediaUpload } from '@/components/social/post-media-upload';
 
 const PLATFORM_ICONS: Record<string, typeof Hash> = {
   instagram: AtSign,
@@ -132,6 +133,7 @@ export default function SocialCalendarPage() {
     client_id: '',
     hashtags: '',
     notes: '',
+    media_urls: [] as string[],
   });
 
   const fetchPosts = useCallback(async () => {
@@ -214,6 +216,7 @@ export default function SocialCalendarPage() {
       client_id: form.client_id,
       hashtags: form.hashtags || null,
       notes: form.notes || null,
+      media_urls: form.media_urls,
     };
     const { error } = editingPostId
       ? await supabase.from('social_posts').update(payload).eq('id', editingPostId)
@@ -225,7 +228,7 @@ export default function SocialCalendarPage() {
       toast.success(editingPostId ? 'Post aggiornato' : 'Post pianificato');
       setShowForm(false);
       setEditingPostId(null);
-      setForm({ title: '', caption: '', platforms: [], status: 'draft', scheduled_at: '', client_id: '', hashtags: '', notes: '' });
+      setForm({ title: '', caption: '', platforms: [], status: 'draft', scheduled_at: '', client_id: '', hashtags: '', notes: '', media_urls: [] });
       fetchPosts();
     }
   };
@@ -241,6 +244,7 @@ export default function SocialCalendarPage() {
       client_id: post.client_id || '',
       hashtags: post.hashtags || '',
       notes: post.notes || '',
+      media_urls: post.media_urls || [],
     });
     setShowForm(true);
   };
@@ -492,6 +496,23 @@ export default function SocialCalendarPage() {
                     {new Date(post.scheduled_at).toLocaleDateString('it-IT', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
                   </p>
                 )}
+                {/* Risposta del cliente dal portale. Le modifiche richieste
+                    vanno mostrate per esteso: sono lavoro da fare, non uno
+                    stato da consultare a richiesta. */}
+                {post.client_approval === 'approved' && (
+                  <p className="text-[10px] text-green-400 mt-2 inline-flex items-center gap-1">
+                    <CheckCircle size={10} /> Approvato dal cliente
+                  </p>
+                )}
+                {post.client_approval === 'changes_requested' && (
+                  <div className="mt-2 rounded-md bg-amber-500/10 px-2 py-1.5">
+                    <p className="text-[10px] font-medium text-amber-400">Il cliente chiede modifiche</p>
+                    {post.client_comment && (
+                      <p className="text-[10px] text-pw-text-muted mt-0.5 italic">«{post.client_comment}»</p>
+                    )}
+                  </div>
+                )}
+
                 {/* Quick status buttons */}
                 <div className="flex gap-1 mt-3">
                   {post.status === 'draft' && (
@@ -587,6 +608,11 @@ export default function SocialCalendarPage() {
               options={Object.entries(STATUS_LABELS).map(([v, l]) => ({ value: v, label: l }))}
             />
           </div>
+          <PostMediaUpload
+            clientId={form.client_id}
+            value={form.media_urls}
+            onChange={(paths) => setForm((f) => ({ ...f, media_urls: paths }))}
+          />
           <Textarea
             label="Note interne"
             value={form.notes}
@@ -669,6 +695,12 @@ export default function SocialCalendarPage() {
                         page_id: publishPage,
                         platform: publishPlatform,
                         message,
+                        // ATTENZIONE: da oggi media_urls contiene PERCORSI nel
+                        // bucket privato, non URL. Meta deve poter scaricare
+                        // l'immagine, quindi qui andrà passato un link firmato
+                        // (resolveMediaUrls) — da sistemare insieme alle altre
+                        // due rotture Meta: l'upsert dell'OAuth senza vincolo
+                        // univoco e la policy troppo larga su meta_pages.
                         media_url: showPublish.media_urls?.[0] || null,
                         social_post_id: showPublish.id,
                       }),
