@@ -64,6 +64,13 @@ export async function updateSession(request: NextRequest) {
   const isCallbackRoute = request.nextUrl.pathname.startsWith('/api/auth/callback');
   const isPublicPage = request.nextUrl.pathname.startsWith('/consulenza') || request.nextUrl.pathname.startsWith('/review');
   const isOnboardingPage = request.nextUrl.pathname.startsWith('/onboarding');
+  // Il portale clienti è un'altra app: chi entra lì non ha un profilo del team,
+  // quindi onboarding, 2FA e guardia admin non lo riguardano. Tenerlo fuori da
+  // "inApp" evita anche una lettura profiles inutile a ogni sua navigazione, e
+  // soprattutto lo rende indipendente dal middleware: serve per impacchettarlo
+  // come app (Capacitor), dove il middleware non esiste. La guardia vera è
+  // lato client (PortalGate) + le policy RLS su current_client_id().
+  const isPortal = request.nextUrl.pathname.startsWith('/portale');
 
   // Allow callback route
   if (isCallbackRoute) {
@@ -86,7 +93,7 @@ export async function updateSession(request: NextRequest) {
   }
 
   // Contesto "app interna": utente loggato su pagina non login/api/pubblica.
-  const inApp = user && !isAuthPage && !isApiRoute && !isPublicPage;
+  const inApp = user && !isAuthPage && !isApiRoute && !isPublicPage && !isPortal;
 
   // Una SOLA lettura del profilo (role + onboarded_at) e un SOLO client
   // service-role, riusati sia dall'onboarding-gate sia dall'admin-guard: prima
