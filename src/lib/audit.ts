@@ -18,6 +18,9 @@ export type AuditAction =
   | 'contract.created'
   | 'contract.deleted'
   | 'client.deleted'
+  | 'portal_access.created'
+  | 'portal_access.revoked'
+  | 'portal_access.restored'
   | 'export.downloaded';
 
 export interface AuditEntry {

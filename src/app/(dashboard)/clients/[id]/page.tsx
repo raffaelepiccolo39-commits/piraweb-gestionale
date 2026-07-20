@@ -20,6 +20,7 @@ import { OnboardingSection } from '@/components/clients/onboarding-section';
 import { AssetLibrary } from '@/components/clients/asset-library';
 import { InstallmentsManager } from '@/components/clients/installments-manager';
 import { ClientAssistant } from '@/components/clients/client-assistant';
+import { PortalAccess } from '@/components/clients/portal-access';
 import { formatDate, formatCurrency } from '@/lib/utils';
 import type { Client, ClientContract, ClientPayment, ClientFinancialSummary, PaymentLog, ClientKnowledgeBase } from '@/types/database';
 import {
@@ -560,6 +561,9 @@ export default function ClientDetailPage({
       <CollapsibleSection title="Asset Library" icon={FolderOpen}>
         <AssetLibrary clientId={id} />
       </CollapsibleSection>
+
+      {/* Accesso al portale (admin only): crea e revoca i login del cliente */}
+      {isAdmin && <PortalAccess clientId={id} clientName={client.company || client.name} />}
 
       {/* Contract section (admin only) */}
       {isAdmin && (
