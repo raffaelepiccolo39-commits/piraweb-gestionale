@@ -63,15 +63,33 @@ export async function GET(request: NextRequest) {
     const meRes = await fetch(`https://graph.facebook.com/v21.0/me?access_token=${accessToken}`);
     const meData = await meRes.json();
 
-    // Save connection
+    // Save connection.
+    //
+    // L'onConflict qui funziona solo grazie al vincolo UNIQUE(user_id)
+    // aggiunto con la 20260720e: prima non esisteva, Postgres rispondeva
+    // 42P10 e — non guardando l'errore — si proseguiva con `connection`
+    // vuoto. Risultato: nessuna pagina salvata e un redirect di successo.
+    // Da qui in poi l'errore si guarda.
     const serviceClient = await createServiceRoleClient();
-    const { data: connection } = await serviceClient.from('meta_connections').upsert({
+    const { data: connection, error: connError } = await serviceClient.from('meta_connections').upsert({
       user_id: userId,
       access_token: accessToken,
       token_expires_at: new Date(Date.now() + expiresIn * 1000).toISOString(),
       fb_user_id: meData.id,
       fb_user_name: meData.name,
     }, { onConflict: 'user_id' }).select().single();
+
+    if (connError || !connection) {
+      await logError({
+        error: connError ?? new Error('meta_connections upsert senza risultato'),
+        route: 'meta/callback',
+        source: 'api',
+        context: { op: 'upsert-connection', userId },
+      });
+      return NextResponse.redirect(
+        `${process.env.NEXT_PUBLIC_APP_URL}/social-calendar?meta_error=connection_failed`
+      );
+    }
 
     // Fetch pages
     const pagesRes = await fetch(

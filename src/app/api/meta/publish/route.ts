@@ -1,6 +1,8 @@
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server';
+import { isStaff } from '@/lib/require-admin';
+import { SOCIAL_MEDIA_BUCKET } from '@/lib/social-media';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { logError } from '@/lib/logger';
 
@@ -28,8 +30,18 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'page_id, platform e message sono obbligatori' }, { status: 400 });
   }
 
-  // Get page data with connection for token expiry check
-  const { data: page } = await supabase
+  // Un cliente del portale è autenticato quanto un dipendente: senza questo
+  // controllo potrebbe pubblicare sui canali social.
+  if (!(await isStaff(supabase, user.id))) {
+    return NextResponse.json({ error: 'Riservato al team' }, { status: 403 });
+  }
+
+  // Pagina e token si leggono con il service role: da quando meta_pages è
+  // admin-only (20260720e), il client dell'utente non li vedrebbe. Prima
+  // l'embed su meta_connections tornava null per i non-admin e il controllo
+  // di scadenza saltava in silenzio, lasciando pubblicare con token scaduto.
+  const serviceClient = await createServiceRoleClient();
+  const { data: page } = await serviceClient
     .from('meta_pages')
     .select('*, connection:meta_connections!meta_pages_connection_id_fkey(token_expires_at)')
     .eq('id', page_id)
@@ -49,6 +61,20 @@ export async function POST(request: NextRequest) {
   }
 
   const pageToken = page.page_access_token;
+
+  // media_url arriva come PERCORSO nel bucket privato (vedi lib/social-media).
+  // Meta deve poter scaricare l'immagine da sé, quindi le serviamo un link
+  // firmato. Un percorso nudo la farebbe fallire senza spiegazioni.
+  let mediaUrl = media_url;
+  if (mediaUrl && !mediaUrl.startsWith('http')) {
+    const { data: signed } = await serviceClient.storage
+      .from(SOCIAL_MEDIA_BUCKET)
+      .createSignedUrl(mediaUrl, 3600);
+    if (!signed?.signedUrl) {
+      return NextResponse.json({ error: 'Immagine non accessibile, riprova' }, { status: 400 });
+    }
+    mediaUrl = signed.signedUrl;
+  }
   let metaPostId = '';
   let error = '';
 
@@ -64,12 +90,12 @@ export async function POST(request: NextRequest) {
         fbBody.scheduled_publish_time = String(publishTime);
       }
 
-      if (media_url) {
+      if (mediaUrl) {
         // Photo post
         const res = await fetch(`https://graph.facebook.com/v21.0/${page.page_id}/photos`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...fbBody, url: media_url }),
+          body: JSON.stringify({ ...fbBody, url: mediaUrl }),
         });
         const data = await res.json();
         if (data.error) throw new Error(data.error.message);
@@ -92,11 +118,11 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Nessun account Instagram Business collegato a questa pagina' }, { status: 400 });
       }
 
-      if (media_url) {
+      if (mediaUrl) {
         // Step 1: Create media container
         const containerBody: Record<string, string> = {
           caption: message,
-          image_url: media_url,
+          image_url: mediaUrl,
           access_token: pageToken,
         };
 
@@ -142,9 +168,15 @@ export async function POST(request: NextRequest) {
       created_by: user.id,
     });
 
-    // Update social_post status if linked
+    // Update social_post status if linked.
+    //
+    // Service role di proposito: la policy UPDATE su social_posts vuole
+    // autore, assegnatario o admin. Chi pubblica può non essere nessuno dei
+    // tre, e in quel caso l'update filtrava a zero righe SENZA errore: il
+    // post finiva davvero su Meta ma nel gestionale restava "pronto".
+    // Che il chiamante sia del team lo abbiamo già verificato sopra.
     if (social_post_id) {
-      await supabase.from('social_posts').update({
+      await serviceClient.from('social_posts').update({
         status: scheduled_at ? 'scheduled' : 'published',
         published_at: scheduled_at ? null : new Date().toISOString(),
       }).eq('id', social_post_id);

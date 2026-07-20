@@ -15,3 +15,16 @@ export async function isAdmin(supabase: SupabaseClient, userId: string): Promise
   const { data } = await supabase.from('profiles').select('role').eq('id', userId).single();
   return data?.role === 'admin';
 }
+
+/**
+ * true se l'utente è del team, cioè ha una riga in profiles. Speculare a
+ * public.is_staff() lato database.
+ *
+ * Da quando esiste il portale, "autenticato" non significa più "dipendente":
+ * i clienti hanno un account Supabase come tutti. Ogni endpoint interno che
+ * prima si accontentava di getUser() deve chiedersi anche questo.
+ */
+export async function isStaff(supabase: SupabaseClient, userId: string): Promise<boolean> {
+  const { data } = await supabase.from('profiles').select('id').eq('id', userId).maybeSingle();
+  return !!data;
+}
