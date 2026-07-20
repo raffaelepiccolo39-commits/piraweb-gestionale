@@ -262,15 +262,37 @@ export default function DashboardPage() {
     fetchDashboardData();
   }, [fetchDashboardData]);
 
-  // Realtime: refresh dashboard with debounce to avoid overloading
+  // Realtime: la dashboard si aggiorna da sé quando cambiano task, pagamenti o
+  // chat.
+  //
+  // Le sottoscrizioni NON sono filtrate per utente: una singola modifica fatta
+  // da chiunque in azienda fa ricaricare tutte e ~15 le query su OGNI dashboard
+  // aperta. Senza le due guardie qui sotto il costo si moltiplica per il numero
+  // di schede lasciate aperte tutto il giorno (era la prima fonte di traffico
+  // dell'app: ~600 GET tasks/giorno dalla sola dashboard).
   useEffect(() => {
     if (!profile) return;
 
     let debounceTimer: NodeJS.Timeout;
+    // Un aggiornamento maturato a tab nascosto non si perde: viene eseguito al
+    // ritorno sulla scheda, cioè quando l'utente può davvero vederlo.
+    let missedWhileHidden = false;
+
+    const runFetch = () => {
+      if (document.visibilityState !== 'visible') { missedWhileHidden = true; return; }
+      missedWhileHidden = false;
+      fetchDashboardData();
+    };
+
     const debouncedFetch = () => {
       clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(() => fetchDashboardData(), 3000);
+      debounceTimer = setTimeout(runFetch, 10_000);
     };
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && missedWhileHidden) runFetch();
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
 
     const channel = supabase
       .channel('dashboard-realtime')
@@ -281,6 +303,7 @@ export default function DashboardPage() {
 
     return () => {
       clearTimeout(debounceTimer);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
       supabase.removeChannel(channel);
     };
   }, [profile, fetchDashboardData]);
