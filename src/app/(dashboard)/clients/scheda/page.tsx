@@ -25,6 +25,7 @@ import { ClientMaterials } from '@/components/clients/client-materials';
 import { ShootingRequests } from '@/components/clients/shooting-requests';
 import { ClientMetrics } from '@/components/clients/client-metrics';
 import { ClientMessages } from '@/components/clients/client-messages';
+import { ClientIdeas } from '@/components/clients/client-ideas';
 import { formatDate, formatCurrency } from '@/lib/utils';
 import type { Client, ClientContract, ClientPayment, ClientFinancialSummary, PaymentLog, ClientKnowledgeBase } from '@/types/database';
 import {
@@ -569,6 +570,9 @@ function ClientDetailPageInner() {
       {/* Quello che il cliente scrive dal portale. In alto perché è l'unica
           cosa qui dentro che può stare aspettando una risposta. */}
       <ClientMessages clientId={id} />
+
+      {/* Le idee del cliente, e le nostre proposte */}
+      <ClientIdeas clientId={id} />
 
       {/* Date di shooting proposte dal cliente */}
       <ShootingRequests clientId={id} clientName={client.company || client.name} />

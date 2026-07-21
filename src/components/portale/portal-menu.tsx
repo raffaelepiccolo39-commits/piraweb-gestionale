@@ -49,6 +49,12 @@ export const VOCI_MENU = [
     ],
   },
   {
+    gruppo: 'Le tue idee',
+    voci: [
+      { href: '/portale/diario', label: 'Diario delle idee', icona: Lightbulb },
+    ],
+  },
+  {
     gruppo: 'Il nostro rapporto',
     voci: [
       { href: '/portale/messaggi', label: 'Scrivici', icona: MessageCircle },
