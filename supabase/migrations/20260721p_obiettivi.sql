@@ -54,10 +54,14 @@ CREATE TABLE IF NOT EXISTS client_objectives (
 CREATE INDEX IF NOT EXISTS idx_client_objectives_cliente
   ON client_objectives(client_id, data_fine DESC);
 
+-- La funzione si chiama update_updated_at(): e' quella usata da tutte le
+-- altre 63 tabelle del progetto. Avevo scritto update_updated_at_column(),
+-- che e' il nome dell'esempio nella documentazione di Supabase ma non esiste
+-- qui — ed e' l'errore che faceva fallire tutta la migration.
 DROP TRIGGER IF EXISTS set_client_objectives_updated_at ON client_objectives;
 CREATE TRIGGER set_client_objectives_updated_at
   BEFORE UPDATE ON client_objectives
-  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
 ALTER TABLE client_objectives ENABLE ROW LEVEL SECURITY;
 
