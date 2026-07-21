@@ -834,6 +834,7 @@ export type SocialPlatform = 'instagram' | 'facebook' | 'tiktok' | 'linkedin' | 
 export type SocialPostStatus = 'idea' | 'draft' | 'ready' | 'scheduled' | 'published' | 'rejected';
 
 export type ClientApproval = 'pending' | 'approved' | 'changes_requested';
+export type ContentFormat = 'post' | 'reel' | 'storia' | 'carosello';
 
 export interface SocialPost {
   id: string;
@@ -851,6 +852,8 @@ export interface SocialPost {
   hashtags: string | null;
   notes: string | null;
   color: string;
+  /** Come esce il contenuto: indipendente dal file caricato */
+  formato: ContentFormat;
   /** Risposta del cliente dal portale (scritta solo da portal_review_post) */
   client_approval: ClientApproval;
   client_comment: string | null;

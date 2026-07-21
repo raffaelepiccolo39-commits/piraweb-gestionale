@@ -35,9 +35,10 @@ import {
 } from 'lucide-react';
 import { reportUnknown, reportSupabaseError } from '@/lib/report-error';
 import { PostMediaUpload } from '@/components/social/post-media-upload';
+import { SOCIAL_MEDIA_BUCKET, coverDi, isVideoPath, resolveMediaUrls } from '@/lib/social-media';
 import { ImportPed } from '@/components/social/import-ped';
 import { AssegnaMedia } from '@/components/social/assegna-media';
-import { SOCIAL_MEDIA_BUCKET } from '@/lib/social-media';
+
 
 const PLATFORM_ICONS: Record<string, typeof Hash> = {
   instagram: AtSign,
@@ -67,6 +68,19 @@ const STATUS_COLORS: Record<SocialPostStatus, string> = {
   scheduled: 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300',
   published: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300',
   rejected: 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300',
+};
+
+/**
+ * L'etichetta della risposta del cliente, sopra l'anteprima.
+ *
+ * Tre stati e tre colori, sempre gli stessi: blu in attesa, verde
+ * approvato, rosso rifiutato. Chi guarda il piano deve capire la
+ * situazione senza leggere, e il colore lo fa prima della parola.
+ */
+const APPROVAZIONE: Record<string, { testo: string; classe: string }> = {
+  pending: { testo: 'Da approvare', classe: 'bg-blue-500 text-white' },
+  approved: { testo: 'Approvato', classe: 'bg-green-500 text-white' },
+  changes_requested: { testo: 'Rifiutato', classe: 'bg-red-500 text-white' },
 };
 
 const STATUS_LABELS: Record<SocialPostStatus, string> = {
@@ -184,6 +198,8 @@ export default function SocialCalendarPage() {
   const [showPublish, setShowPublish] = useState<SocialPost | null>(null);
   const [publishPage, setPublishPage] = useState('');
   const [publishPlatform, setPublishPlatform] = useState('facebook');
+  // I media sono percorsi: per mostrarli servono link firmati.
+  const [anteprime, setAnteprime] = useState<Record<string, string>>({});
 
   const isAdmin = profile?.role === 'admin';
 
@@ -238,6 +254,10 @@ export default function SocialCalendarPage() {
       undatedFiltered = undatedFiltered.filter((p) => p.platforms.includes(filterPlatform as SocialPlatform));
     }
     setUndatedPosts(undatedFiltered);
+
+    // Link firmati per le copertine: una sola chiamata per tutto il mese.
+    const percorsi = [...filtered, ...undatedFiltered].flatMap((p) => p.media_urls || []);
+    if (percorsi.length) setAnteprime(await resolveMediaUrls(supabase, percorsi));
   }, [supabase, year, month, filterClient, filterPlatform]);
 
   const fetchClients = useCallback(async () => {
@@ -593,6 +613,38 @@ export default function SocialCalendarPage() {
           return (
             <Card key={post.id}>
               <CardContent className="p-4">
+                {/* Anteprima con l'etichetta della risposta del cliente:
+                    la foto e lo stato si leggono insieme, senza aprire. */}
+                {(() => {
+                  const copertina = coverDi(post.media_urls);
+                  const url = copertina ? anteprime[copertina] : undefined;
+                  const appr = APPROVAZIONE[post.client_approval] || APPROVAZIONE.pending;
+                  return (
+                    <div className="relative aspect-[4/5] max-h-44 w-full mb-3 rounded-xl overflow-hidden bg-pw-surface-2">
+                      {url ? (
+                        isVideoPath(copertina!) ? (
+                          <video src={url} className="w-full h-full object-cover" muted playsInline preload="metadata" />
+                        ) : (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={url} alt="" className="w-full h-full object-cover" />
+                        )
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-pw-text-dim text-[11px]">
+                          nessuna immagine
+                        </div>
+                      )}
+                      <span className={`absolute top-2 left-2 px-2 py-0.5 rounded-full text-[10px] font-semibold ${appr.classe}`}>
+                        {appr.testo}
+                      </span>
+                      {post.formato === 'reel' && (
+                        <span className="absolute top-2 right-2 text-white drop-shadow">
+                          <Send size={12} />
+                        </span>
+                      )}
+                    </div>
+                  );
+                })()}
+
                 <div className="flex items-start justify-between gap-2 mb-2">
                   <h3 className="text-sm font-medium text-pw-text line-clamp-1">{post.title}</h3>
                   <Badge className={STATUS_COLORS[post.status]}>{STATUS_LABELS[post.status]}</Badge>
