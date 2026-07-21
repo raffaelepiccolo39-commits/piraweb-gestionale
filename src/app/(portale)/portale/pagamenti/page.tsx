@@ -25,8 +25,15 @@ interface Payment {
   paid_at: string | null;
 }
 
+// Simbolo davanti e punto delle migliaia, come in fattura. useGrouping
+// esplicito: in italiano il separatore sotto le cinque cifre non si mette,
+// quindi 1000 diventerebbe "1000,00".
 const euro = (n: number) =>
-  new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(Number(n));
+  `€ ${new Intl.NumberFormat('it-IT', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+    useGrouping: true,
+  }).format(Number(n))}`;
 
 const formatDate = (iso: string) =>
   new Date(iso).toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' });

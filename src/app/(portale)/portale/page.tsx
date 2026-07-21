@@ -23,12 +23,53 @@ import {
  * periodi tranquilli la pagina resta corta.
  */
 
+/**
+ * Importi come si scrivono in fattura: simbolo davanti e punto delle migliaia.
+ *
+ * useGrouping esplicito perche' l'italiano, da CLDR, il separatore sotto le
+ * cinque cifre non lo mette: 1000 diventerebbe "1000,00" invece di "1.000,00".
+ * Corretto per la lingua, sbagliato per dei soldi mostrati a un cliente.
+ */
+export const euro = (n: number) =>
+  `€ ${new Intl.NumberFormat('it-IT', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+    useGrouping: true,
+  }).format(Number(n))}`;
+
 interface Contenuto {
   id: string;
   title: string;
   media_urls: string[] | null;
   formato: string;
   client_approval: string;
+}
+
+/**
+ * Di quale mensilità si tratta.
+ *
+ * "Una rata" non diceva nulla: chi legge vuole sapere quale mese deve
+ * saldare. Il mese è quello della scadenza, che è come viene emessa.
+ *
+ * Con più arretrati si indica la più vecchia, non il mese in corso: se uno è
+ * indietro da aprile, scrivere "mensilità di luglio" gli nasconderebbe da
+ * quanto tempo è fermo — e a noi la parte piu' importante del discorso.
+ */
+function dettaglioScaduti(quanti: number, piuVecchia: string | null): string {
+  if (!piuVecchia) return quanti === 1 ? 'Una rata' : `${quanti} rate`;
+
+  const data = new Date(`${piuVecchia.slice(0, 10)}T12:00:00`);
+  const mese = data.toLocaleDateString('it-IT', { month: 'long' });
+  // L'anno solo se non e' questo: su un arretrato di due mesi sarebbe rumore,
+  // su uno dell'anno scorso e' l'informazione principale.
+  const scadenza = data.toLocaleDateString('it-IT',
+    data.getFullYear() === new Date().getFullYear()
+      ? { day: 'numeric', month: 'long' }
+      : { day: 'numeric', month: 'long', year: 'numeric' });
+
+  return quanti === 1
+    ? `Mensilità di ${mese} — scaduta il ${scadenza}`
+    : `${quanti} mensilità — la più vecchia scaduta il ${scadenza}`;
 }
 
 export default function PortaleHome() {
@@ -39,7 +80,7 @@ export default function PortaleHome() {
   const [contenuti, setContenuti] = useState<Contenuto[]>([]);
   const [media, setMedia] = useState<Record<string, string>>({});
   const [materialiAttesa, setMaterialiAttesa] = useState(0);
-  const [scaduti, setScaduti] = useState<{ quanti: number; totale: number }>({ quanti: 0, totale: 0 });
+  const [scaduti, setScaduti] = useState<{ quanti: number; totale: number; piuVecchia: string | null }>({ quanti: 0, totale: 0, piuVecchia: null });
   const [shootingAperto, setShootingAperto] = useState(false);
   const [scadenzaPiano, setScadenzaPiano] = useState<string | null>(null);
 
@@ -75,10 +116,15 @@ export default function PortaleHome() {
     setShootingAperto((shooting.count ?? 0) > 0);
     setScadenzaPiano((serve.data as string | null) ?? null);
 
-    const nonPagate = (rate.data as { amount: number }[]) || [];
+    const nonPagate = (rate.data as { amount: number; due_date: string }[]) || [];
     setScaduti({
       quanti: nonPagate.length,
       totale: nonPagate.reduce((s, r) => s + Number(r.amount), 0),
+      // La piu' vecchia: con piu' rate arretrate e' quella che dice davvero
+      // da quando si e' indietro.
+      piuVecchia: nonPagate.length
+        ? nonPagate.map((r) => r.due_date).sort()[0]
+        : null,
     });
 
     const percorsi = righe.flatMap((p) => p.media_urls || []);
@@ -163,8 +209,8 @@ export default function PortaleHome() {
           icona={AlertTriangle}
           tono="rosso"
           etichetta={scaduti.quanti === 1 ? 'Pagamento scaduto' : 'Pagamenti scaduti'}
-          valore={`${new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(scaduti.totale)} da saldare`}
-          dettaglio={scaduti.quanti === 1 ? 'Una rata' : `${scaduti.quanti} rate`}
+          valore={`${euro(scaduti.totale)} da saldare`}
+          dettaglio={dettaglioScaduti(scaduti.quanti, scaduti.piuVecchia)}
         />
       )}
 
