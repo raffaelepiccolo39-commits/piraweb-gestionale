@@ -24,7 +24,6 @@ import { AbsentToday } from '@/components/dashboard/absent-today';
 import { TimeOffInbox } from '@/components/dashboard/time-off-inbox';
 import { PedDeadlines } from '@/components/dashboard/ped-deadlines';
 import { WebsiteRenewals } from '@/components/dashboard/website-renewals';
-import { CanoniScaduti } from '@/components/dashboard/canoni-scaduti';
 import { QuickActions } from '@/components/dashboard/quick-actions';
 import { captureGeoStamp } from '@/lib/attendance-geo';
 import { notifyTimeOffDecision } from '@/lib/time-off-notifications';
@@ -530,9 +529,6 @@ export default function DashboardPage() {
       {(isAdmin || profile.role === 'social_media_manager') && <PedDeadlines />}
 
       {/* Rinnovi gestione siti in scadenza (30 giorni) — solo admin */}
-      {/* Canoni scaduti prima dei rinnovi siti: sono soldi gia' maturati,
-          non scadenze che arrivano. */}
-      {isAdmin && <CanoniScaduti />}
       {isAdmin && <WebsiteRenewals />}
 
       {/* Widget grid: 2 col main + 1 col side (stile Factorial) */}
