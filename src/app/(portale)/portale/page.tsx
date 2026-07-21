@@ -6,6 +6,7 @@ import { Modal } from '@/components/ui/modal';
 import { reportSupabaseError } from '@/lib/report-error';
 import { resolveMediaUrls, isVideoPath } from '@/lib/social-media';
 import { useToast } from '@/components/ui/toast';
+import { usePortal } from '@/components/portale/portal-gate';
 import { cn } from '@/lib/utils';
 import { ImageIcon, Loader2, CalendarDays, AtSign, Globe, Share2, Tv, MessageCircle, Hash, Check, MessageSquareWarning, Play, Copy } from 'lucide-react';
 
@@ -77,6 +78,12 @@ export default function PortaleContenutiPage() {
   const [sending, setSending] = useState(false);
   const [askChanges, setAskChanges] = useState(false);
   const toast = useToast();
+  const { fullName } = usePortal();
+
+  const nome = fullName?.split(' ')[0] || '';
+  const ora = new Date().getHours();
+  const saluto = ora < 13 ? 'Buongiorno' : ora < 18 ? 'Buon pomeriggio' : 'Buonasera';
+  const daApprovare = posts.filter((p) => p.client_approval === 'pending' && p.status !== 'published').length;
 
   // La risposta passa da una funzione dedicata: il cliente non ha permessi di
   // scrittura sui post, quindi non può toccare didascalie o date.
@@ -149,10 +156,24 @@ export default function PortaleContenutiPage() {
 
   return (
     <>
-      <div className="mb-4">
-        <h2 className="text-lg font-semibold text-pw-text">Il tuo piano editoriale</h2>
-        <p className="text-sm text-pw-text-muted">
-          {posts.length} {posts.length === 1 ? 'contenuto' : 'contenuti'} — tocca per leggere la didascalia
+
+      {/* Hero card: stesso linguaggio della home del gestionale (navy + oro,
+          cerchi decorativi), preso dalle reference Kidville. Qui pero' dice
+          al cliente l'unica cosa che gli serve sapere entrando: se c'e
+          qualcosa che aspetta una sua risposta. */}
+      <div className="relative overflow-hidden rounded-2xl bg-[var(--pw-navy)] p-5 text-white mb-5">
+        <div className="absolute -right-8 -top-8 h-28 w-28 rounded-full bg-[var(--pw-gold)]/10" aria-hidden="true" />
+        <div className="absolute -right-2 top-10 h-16 w-16 rounded-full bg-[var(--pw-gold)]/5" aria-hidden="true" />
+        <p className="relative text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--pw-gold)]">
+          Il tuo piano editoriale
+        </p>
+        <h1 className="relative mt-1 text-2xl font-bold leading-tight">
+          {saluto}{nome ? `, ${nome}` : ''}
+        </h1>
+        <p className="relative mt-1.5 text-sm text-white/75">
+          {daApprovare > 0
+            ? <><strong className="font-semibold text-white">{daApprovare}</strong> {daApprovare === 1 ? 'contenuto aspetta' : 'contenuti aspettano'} una tua risposta</>
+            : `${posts.length} ${posts.length === 1 ? 'contenuto' : 'contenuti'} — tutto approvato, grazie`}
         </p>
       </div>
 
