@@ -8,6 +8,7 @@ import { Avviso } from '@/components/portale/avviso';
 import { reportSupabaseError } from '@/lib/report-error';
 import { resolveMediaUrls, coverDi, isVideoPath } from '@/lib/social-media';
 import { cn } from '@/lib/utils';
+import { conta, type PostPiano, type FiltroPiano } from '@/lib/piano-editoriale';
 import {
   Palette, Camera, ChevronRight, Loader2,
   AlertTriangle, Play, Check,
@@ -103,13 +104,7 @@ export default function PortaleHome() {
   const carica = useCallback(async () => {
     const oggi = new Date().toISOString().slice(0, 10);
 
-    // "Postati" e' il mese in corso: e' il piano editoriale di cui si sta
-    // parlando adesso, non tutto lo storico.
-    const ora = new Date();
-    const primoDelMese = new Date(ora.getFullYear(), ora.getMonth(), 1).toISOString();
-    const primoDelProssimo = new Date(ora.getFullYear(), ora.getMonth() + 1, 1).toISOString();
-
-    const [post, materiali, rate, shooting, serve, nAttesa, nProgramma, nPostati] = await Promise.all([
+    const [post, materiali, rate, shooting, serve, perConte] = await Promise.all([
       supabase.from('social_posts')
         .select('id, title, media_urls, formato, client_approval')
         .in('status', ['ready', 'scheduled'])
@@ -133,16 +128,11 @@ export default function PortaleHome() {
       // Il cliente non puo leggere la copertura del piano (e giusto cosi):
       // la funzione restituisce solo la data del suo.
       supabase.rpc('portal_scadenza_piano'),
-      // Le tre conte della sezione "Contenuti". Vanno chieste al database:
-      // l'elenco qui sopra si ferma a 6 righe perche' serve all'anteprima,
-      // e contare quelle darebbe un numero sbagliato appena il piano cresce.
-      supabase.from('social_posts').select('id', { count: 'exact', head: true })
-        .in('status', ['ready', 'scheduled']).eq('client_approval', 'pending'),
-      supabase.from('social_posts').select('id', { count: 'exact', head: true })
-        .in('status', ['ready', 'scheduled']).eq('client_approval', 'approved'),
-      supabase.from('social_posts').select('id', { count: 'exact', head: true })
-        .eq('status', 'published')
-        .gte('scheduled_at', primoDelMese).lt('scheduled_at', primoDelProssimo),
+      // Per le tre conte servono TUTTI i contenuti, non i sei dell'anteprima
+      // qui sopra. Si chiedono i soli tre campi che decidono la vista, e si
+      // contano con le stesse funzioni che la pagina usa per filtrare: cosi'
+      // il numero e l'elenco non possono dire cose diverse.
+      supabase.from('social_posts').select('status, client_approval, scheduled_at'),
     ]);
 
     if (post.error) reportSupabaseError(post.error, 'portale-home', {});
@@ -160,10 +150,11 @@ export default function PortaleHome() {
       ?? null
     );
     setScadenzaPiano((serve.data as string | null) ?? null);
+    const tutti = (perConte.data as PostPiano[]) || [];
     setConte({
-      daApprovare: nAttesa.count ?? 0,
-      inProgramma: nProgramma.count ?? 0,
-      postati: nPostati.count ?? 0,
+      daApprovare: conta(tutti, 'da-approvare'),
+      inProgramma: conta(tutti, 'in-programma'),
+      postati: conta(tutti, 'postati'),
     });
 
     const nonPagate = (rate.data as { amount: number; due_date: string }[]) || [];
@@ -202,9 +193,9 @@ export default function PortaleHome() {
   // I numeri del piano editoriale: quanto aspetta lui, quanto aspetta di
   // uscire, quanto e' gia' uscito questo mese. Moodboard, script e shooting
   // erano scorciatoie a un menu, non informazioni: stanno nel menu.
-  const CONTENUTI = [
-    { chiave: 'attesa', label: 'Da approvare', valore: conte.daApprovare, evidenzia: conte.daApprovare > 0 },
-    { chiave: 'programma', label: 'In programma', valore: conte.inProgramma, evidenzia: false },
+  const CONTENUTI: { chiave: FiltroPiano; label: string; valore: number; evidenzia: boolean }[] = [
+    { chiave: 'da-approvare', label: 'Da approvare', valore: conte.daApprovare, evidenzia: conte.daApprovare > 0 },
+    { chiave: 'in-programma', label: 'In programma', valore: conte.inProgramma, evidenzia: false },
     { chiave: 'postati', label: 'Postati', valore: conte.postati, evidenzia: false },
   ];
 
@@ -250,7 +241,9 @@ export default function PortaleHome() {
           {CONTENUTI.map((c) => (
             <Link
               key={c.chiave}
-              href="/portale/contenuti"
+              // Ognuno porta alla PROPRIA vista: tre numeri diversi che
+              // aprivano lo stesso elenco erano tre bugie sotto forma di link.
+              href={`/portale/contenuti?filtro=${c.chiave}`}
               className={cn(
                 'flex flex-col items-center justify-center gap-0.5 rounded-2xl border bg-pw-surface py-4 active:bg-pw-surface-2 transition-colors',
                 // Solo "da approvare" si accende, e solo se c'e' qualcosa: e'

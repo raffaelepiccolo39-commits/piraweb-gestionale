@@ -1,6 +1,8 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { Modal } from '@/components/ui/modal';
 import { reportSupabaseError } from '@/lib/report-error';
@@ -10,7 +12,8 @@ import { usePortal } from '@/components/portale/portal-gate';
 import { LogoCliente } from '@/components/portale/logo-cliente';
 import { StoricoRisposte } from '@/components/portale/storico-risposte';
 import { cn } from '@/lib/utils';
-import { ImageIcon, Loader2, CalendarDays, CheckCheck, AtSign, Globe, Share2, Tv, MessageCircle, Hash, Check, MessageSquareWarning, Play, Copy, ExternalLink } from 'lucide-react';
+import { FILTRI, filtroValido } from '@/lib/piano-editoriale';
+import { ImageIcon, Loader2, CalendarDays, CheckCheck, AtSign, Globe, Share2, Tv, MessageCircle, Hash, Check, MessageSquareWarning, Play, Copy, ExternalLink, X } from 'lucide-react';
 
 /**
  * Il piano editoriale visto dal cliente: una griglia come il profilo
@@ -84,7 +87,19 @@ function formatDate(iso: string | null): string {
   return new Date(iso).toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
+/**
+ * useSearchParams obbliga a un confine di Suspense: senza, la pagina non si
+ * puo' generare in anticipo e il build lo segnala.
+ */
 export default function PortaleContenutiPage() {
+  return (
+    <Suspense fallback={<div className="flex justify-center py-20 text-pw-text-dim"><Loader2 size={22} className="animate-spin" /></div>}>
+      <Contenuti />
+    </Suspense>
+  );
+}
+
+function Contenuti() {
   const supabase = createClient();
   const [posts, setPosts] = useState<PortalPost[]>([]);
   const [loading, setLoading] = useState(true);
@@ -96,6 +111,11 @@ export default function PortaleContenutiPage() {
   const [approvando, setApprovando] = useState<string | null>(null);
   const toast = useToast();
   const { fullName, clientName, clientLogo } = usePortal();
+
+  // Il filtro arriva dalla home. Un valore inventato a mano nell'indirizzo
+  // non deve rompere la pagina: filtroValido lo riduce a null e si vede tutto.
+  const searchParams = useSearchParams();
+  const filtro = filtroValido(searchParams.get('filtro'));
 
   const nome = fullName?.split(' ')[0] || '';
   const ora = new Date().getHours();
@@ -149,6 +169,18 @@ export default function PortaleContenutiPage() {
   useEffect(() => { fetchPosts(); }, [fetchPosts]);
 
   /**
+   * I contenuti da mostrare, secondo il filtro chiesto dalla home.
+   *
+   * Le regole vengono da lib/piano-editoriale, le stesse che producono i
+   * numeri: se stessero scritte anche qui, prima o poi direbbero cose diverse
+   * e il cliente troverebbe quattro contenuti dove il numero ne prometteva tre.
+   */
+  const visibili = useMemo(
+    () => (filtro ? posts.filter((p) => FILTRI[filtro].vale(p)) : posts),
+    [posts, filtro]
+  );
+
+  /**
    * I contenuti raggruppati per mese di programmazione.
    *
    * Un piano editoriale si ragiona a mesi: senza il raggruppamento la
@@ -158,13 +190,13 @@ export default function PortaleContenutiPage() {
    */
   const perMese = useMemo(() => {
     const gruppi = new Map<string, PortalPost[]>();
-    for (const p of posts) {
+    for (const p of visibili) {
       const chiave = p.scheduled_at ? p.scheduled_at.slice(0, 7) : 'senza-data';
       if (!gruppi.has(chiave)) gruppi.set(chiave, []);
       gruppi.get(chiave)!.push(p);
     }
     return [...gruppi.entries()];
-  }, [posts]);
+  }, [visibili]);
 
   /** Approva in blocco i contenuti in attesa di un mese. */
   const approvaMese = async (chiave: string, quanti: number) => {
@@ -246,6 +278,30 @@ export default function PortaleContenutiPage() {
             : `${posts.length} ${posts.length === 1 ? 'contenuto' : 'contenuti'} — tutto approvato, grazie`}
         </p>
       </div>
+
+      {/* Quale vista si sta guardando, e come tornare a tutto. Senza, chi
+          arriva dalla home vede meno contenuti di quelli che sa di avere e
+          pensa che ne siano spariti. */}
+      {filtro && (
+        <div className="flex items-center justify-between gap-3 mb-4 rounded-xl border border-pw-accent/30 bg-pw-accent/5 px-3.5 py-2.5">
+          <p className="text-sm text-pw-text">
+            <span className="font-semibold">{FILTRI[filtro].etichetta}</span>
+            <span className="text-pw-text-dim"> · {visibili.length} {visibili.length === 1 ? 'contenuto' : 'contenuti'}</span>
+          </p>
+          <Link
+            href="/portale/contenuti"
+            className="shrink-0 inline-flex items-center gap-1 text-xs font-medium text-pw-accent"
+          >
+            <X size={13} /> Vedi tutto
+          </Link>
+        </div>
+      )}
+
+      {filtro && visibili.length === 0 && (
+        <p className="py-12 text-center text-sm text-pw-text-muted">
+          {FILTRI[filtro].vuoto}
+        </p>
+      )}
 
       {/* Un blocco per mese: il piano editoriale si ragiona a mesi, e
           l'approvazione in blocco deve valere su un periodo preciso. */}
