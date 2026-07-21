@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
-import { Home, LayoutGrid, Palette, Menu as MenuIcon } from 'lucide-react';
+import { Home, LayoutGrid, Palette, Menu as MenuIcon, ArrowLeft } from 'lucide-react';
 import { PortalMenu } from './portal-menu';
 import { PortalNotifiche } from './portal-notifiche';
 
@@ -74,8 +74,23 @@ export function PortalShell({ children }: { children: React.ReactNode }) {
             gia' di chi e' l'area in cui e' entrato — e "Esci" sta nel menu,
             dove si cerca: in barra era un bottone da sbagliare, accanto a
             niente altro su cui premere. */}
-        <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
-          <div className="min-w-0">
+        <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between gap-2">
+          <div className="min-w-0 flex items-center gap-1">
+            {/* Fuori dalla home, la freccia per tornare.
+                Va alla home e non alla pagina precedente del browser: da qui
+                si arriva anche da un'email o da un segnalibro, e in quel caso
+                "indietro" porterebbe fuori dal portale. Alla home ci si torna
+                sempre, e da qualunque punto si sia entrati. */}
+            {pathname !== '/portale' && (
+              <Link
+                href="/portale"
+                aria-label="Torna alla home"
+                className="-ml-2 p-2 rounded-lg text-pw-text-dim hover:text-pw-text hover:bg-pw-surface-2 transition-colors"
+              >
+                <ArrowLeft size={19} />
+              </Link>
+            )}
+
             {/* Due file perche' il tema chiaro/scuro chiede due versioni, come
                 gia fa la sidebar del gestionale. */}
             {/* eslint-disable-next-line @next/next/no-img-element */}

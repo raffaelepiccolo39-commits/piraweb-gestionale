@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils';
 import { conta, type PostPiano, type FiltroPiano } from '@/lib/piano-editoriale';
 import {
   Palette, FileText, Lightbulb, Camera, ChevronRight, Loader2,
-  AlertTriangle, Play, Check,
+  AlertTriangle, Play,
 } from 'lucide-react';
 
 /**
@@ -111,7 +111,6 @@ export default function PortaleHome() {
   const [contenuti, setContenuti] = useState<Contenuto[]>([]);
   const [media, setMedia] = useState<Record<string, string>>({});
   const [materiali, setMateriali] = useState({ moodboard: 0, script: 0, ideaVideo: 0 });
-  const materialiAttesa = materiali.moodboard + materiali.script + materiali.ideaVideo;
   const [scaduti, setScaduti] = useState<{ quanti: number; totale: number; piuVecchia: string | null }>({ quanti: 0, totale: 0, piuVecchia: null });
   const [shootingAperto, setShootingAperto] = useState(false);
   const [prossimoShooting, setProssimoShooting] = useState<Shooting | null>(null);
@@ -213,7 +212,6 @@ export default function PortaleHome() {
   const nome = fullName?.split(' ')[0] || '';
   const ora = new Date().getHours();
   const saluto = ora < 13 ? 'Buongiorno' : ora < 18 ? 'Buon pomeriggio' : 'Buonasera';
-  const daApprovare = contenuti.filter((c) => c.client_approval === 'pending').length;
 
   // Giorni che mancano alla fine del piano. La soglia e la stessa dell'email
   // che gli mandiamo (15): due numeri diversi creerebbero il caso in cui
@@ -535,11 +533,6 @@ export default function PortaleHome() {
       )}
 
 
-      {daApprovare === 0 && materialiAttesa === 0 && (
-        <p className="text-xs text-pw-text-dim text-center inline-flex items-center justify-center gap-1.5 w-full">
-          <Check size={13} className="text-green-500" /> Hai risposto a tutto, grazie
-        </p>
-      )}
     </div>
   );
 }
