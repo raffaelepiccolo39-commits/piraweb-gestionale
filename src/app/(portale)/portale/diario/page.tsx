@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import { reportSupabaseError } from '@/lib/report-error';
 import { useToast } from '@/components/ui/toast';
 import { cn } from '@/lib/utils';
-import { Loader2, Lightbulb, Send, Sparkles, Archive, Clock } from 'lucide-react';
+import { Loader2, Lightbulb, Send, Sparkles, Archive, Clock, Wand2 } from 'lucide-react';
 
 /**
  * Il diario delle idee.
@@ -49,6 +49,32 @@ export default function PortaleDiarioPage() {
   const [testo, setTesto] = useState('');
   const [invio, setInvio] = useState(false);
 
+  // La proposta dell'AI: si vede accanto a quello che ha scritto lui, e non
+  // sostituisce niente finche' non e' lui a volerlo. Stesso patto della
+  // cattura rapida nel gestionale: l'assistente propone, la persona decide.
+  const [sistemando, setSistemando] = useState(false);
+  const [proposta, setProposta] = useState<{ titolo: string; testo: string; formato: string; vaga: boolean } | null>(null);
+
+  const sistema = async () => {
+    if (testo.trim().length < 3) return;
+    setSistemando(true);
+    setProposta(null);
+    try {
+      const r = await fetch('/api/portal/idea-assist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ testo: testo.trim() }),
+      });
+      const dati = await r.json();
+      if (!r.ok) { toast.error(dati.error || 'Non ci sono riuscito'); return; }
+      setProposta(dati);
+    } catch {
+      toast.error('Non ci sono riuscito, salvala pure così');
+    } finally {
+      setSistemando(false);
+    }
+  };
+
   const carica = useCallback(async () => {
     const { data, error } = await supabase
       .from('client_ideas')
@@ -81,6 +107,7 @@ export default function PortaleDiarioPage() {
         return;
       }
       setTesto('');
+      setProposta(null);
       toast.success('Idea salvata — la leggiamo noi');
       carica();
     } finally {
@@ -113,10 +140,15 @@ export default function PortaleDiarioPage() {
           placeholder="Un'idea per un video, un prodotto da spingere, una cosa vista in giro che ti è piaciuta…"
           className="w-full bg-transparent text-sm text-pw-text placeholder:text-pw-text-dim resize-none focus:outline-none"
         />
-        <div className="flex items-center justify-between gap-3 pt-2 border-t border-pw-border">
-          <span className="text-[11px] text-pw-text-dim">
-            {testo.length > 3500 ? `${4000 - testo.length} caratteri rimasti` : 'Nessuna idea è banale'}
-          </span>
+        <div className="flex items-center justify-between gap-2 pt-2 border-t border-pw-border">
+          <button
+            onClick={sistema}
+            disabled={sistemando || testo.trim().length < 3}
+            className="inline-flex items-center gap-1.5 rounded-xl border border-pw-border px-2.5 py-2 text-xs font-medium text-pw-text-muted disabled:opacity-40 transition-opacity"
+          >
+            {sistemando ? <Loader2 size={13} className="animate-spin" /> : <Wand2 size={13} />}
+            Sistemala
+          </button>
           <button
             onClick={invia}
             disabled={invio || !testo.trim()}
@@ -126,6 +158,50 @@ export default function PortaleDiarioPage() {
             Salva l’idea
           </button>
         </div>
+
+        {/* La proposta si vede SOTTO la sua, non al posto suo: deve poter
+            dire di no senza aver perso quello che aveva scritto. */}
+        {proposta && (
+          <div className="mt-3 rounded-xl border border-pw-accent/30 bg-pw-accent/5 p-3">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-pw-accent mb-1.5">
+              Ti propongo così
+            </p>
+
+            {proposta.vaga ? (
+              <p className="text-sm text-pw-text-muted">
+                Mi serve qualcosa in più per sistemarla — va benissimo salvarla
+                com’è, ne parliamo noi.
+              </p>
+            ) : (
+              <>
+                <p className="text-sm font-semibold text-pw-text">{proposta.titolo}</p>
+                <p className="text-sm text-pw-text-muted mt-1 whitespace-pre-wrap">{proposta.testo}</p>
+                {proposta.formato !== 'non chiaro' && (
+                  <p className="text-[11px] text-pw-text-dim mt-1.5">
+                    Ci vedrei un {proposta.formato}
+                  </p>
+                )}
+                <div className="flex gap-2 justify-end mt-2.5">
+                  <button
+                    onClick={() => setProposta(null)}
+                    className="px-2.5 py-1.5 rounded-lg text-xs font-medium text-pw-text-muted"
+                  >
+                    Tengo la mia
+                  </button>
+                  <button
+                    onClick={() => {
+                      setTesto(proposta.titolo ? `${proposta.titolo}\n\n${proposta.testo}` : proposta.testo);
+                      setProposta(null);
+                    }}
+                    className="px-2.5 py-1.5 rounded-lg bg-pw-accent text-[#0A263A] text-xs font-semibold"
+                  >
+                    Usa questa
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        )}
       </div>
 
       {idee.length === 0 ? (
