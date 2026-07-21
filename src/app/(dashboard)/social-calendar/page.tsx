@@ -36,6 +36,7 @@ import {
 import { reportUnknown, reportSupabaseError } from '@/lib/report-error';
 import { PostMediaUpload } from '@/components/social/post-media-upload';
 import { ImportPed } from '@/components/social/import-ped';
+import { AssegnaMedia } from '@/components/social/assegna-media';
 import { SOCIAL_MEDIA_BUCKET } from '@/lib/social-media';
 
 const PLATFORM_ICONS: Record<string, typeof Hash> = {
@@ -415,6 +416,7 @@ export default function SocialCalendarPage() {
         actions={
           <>
             {isAdmin && <ImportPed clients={clients} onFatto={fetchPosts} />}
+            <AssegnaMedia clients={clients} />
             {metaConnected ? (
               <Badge className="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300 flex items-center gap-1">
                 <CheckCircle size={10} />
