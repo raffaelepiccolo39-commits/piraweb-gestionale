@@ -7,6 +7,7 @@ import { reportSupabaseError } from '@/lib/report-error';
 import { resolveMediaUrls, isVideoPath, isExternalLink, coverDi } from '@/lib/social-media';
 import { useToast } from '@/components/ui/toast';
 import { usePortal } from '@/components/portale/portal-gate';
+import { LogoCliente } from '@/components/portale/logo-cliente';
 import { cn } from '@/lib/utils';
 import { ImageIcon, Loader2, CalendarDays, AtSign, Globe, Share2, Tv, MessageCircle, Hash, Check, MessageSquareWarning, Play, Copy, ExternalLink } from 'lucide-react';
 
@@ -62,6 +63,19 @@ const STATUS_LABEL: Record<string, string> = {
   ready: 'Pronto',
   scheduled: 'Programmato',
   published: 'Pubblicato',
+};
+
+/**
+ * Cosa scrivere sul riquadro, dal punto di vista del cliente.
+ *
+ * Prima compariva lo stato interno ("Pronto"): per noi vuol dire pronto da
+ * pubblicare, per lui non vuol dire niente. Al cliente interessa una cosa
+ * sola — se deve guardarlo o l'ha gia fatto.
+ */
+const ETICHETTA_CLIENTE: Record<string, { testo: string; classe: string } | null> = {
+  pending: { testo: 'Da approvare', classe: 'bg-blue-500 text-white' },
+  approved: { testo: 'Approvato', classe: 'bg-green-500 text-white' },
+  changes_requested: { testo: 'Modifiche chieste', classe: 'bg-amber-500 text-white' },
 };
 
 function formatDate(iso: string | null): string {
@@ -168,15 +182,8 @@ export default function PortaleContenutiPage() {
         <div className="relative flex items-start gap-3.5">
           {/* Logo del cliente su fondo bianco: molti loghi sono scuri e sul
               navy sparirebbero. Se manca, si ripiega sull'iniziale. */}
-          <div className="shrink-0 w-14 h-14 rounded-xl bg-white flex items-center justify-center overflow-hidden">
-            {clientLogo ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={clientLogo} alt={clientName} className="w-full h-full object-contain p-1.5" />
-            ) : (
-              <span className="text-xl font-bold text-[var(--pw-navy)]">
-                {clientName.charAt(0).toUpperCase()}
-              </span>
-            )}
+          <div className="shrink-0 w-16 h-16 rounded-xl bg-white flex items-center justify-center overflow-hidden p-2">
+            <LogoCliente url={clientLogo} nome={clientName} className="max-w-full max-h-full object-contain" />
           </div>
 
           <div className="min-w-0">
@@ -248,9 +255,9 @@ export default function PortaleContenutiPage() {
                 </span>
               )}
 
-              {post.status !== 'published' && (
-                <span className="absolute top-1 right-1 px-1.5 py-0.5 rounded text-[9px] font-medium bg-black/60 text-white">
-                  {STATUS_LABEL[post.status] || post.status}
+              {post.status !== 'published' && ETICHETTA_CLIENTE[post.client_approval] && (
+                <span className={`absolute top-1 right-1 px-1.5 py-0.5 rounded text-[9px] font-semibold ${ETICHETTA_CLIENTE[post.client_approval]!.classe}`}>
+                  {ETICHETTA_CLIENTE[post.client_approval]!.testo}
                 </span>
               )}
             </button>
