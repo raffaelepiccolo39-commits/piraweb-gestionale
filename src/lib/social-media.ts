@@ -31,6 +31,24 @@ export function isVideoPath(path: string): boolean {
   return /\.(mp4|mov|m4v)$/i.test(path);
 }
 
+/**
+ * È un riferimento esterno (Drive, YouTube, WeTransfer…) invece di un file?
+ *
+ * Serve per i video che non stanno nei 50 MB del piano: si allega il link
+ * invece del file. Non si può mostrare in anteprima — è una pagina, non un
+ * video — quindi diventa un pulsante "apri", e la copertina resta la foto.
+ */
+export function isExternalLink(valore: string): boolean {
+  if (!/^https?:\/\//i.test(valore)) return false;
+  // Un URL che punta davvero a un file lo trattiamo come tale.
+  return !/\.(jpg|jpeg|png|webp|gif|mp4|mov|m4v)(\?|$)/i.test(valore);
+}
+
+/** Il file da usare come copertina: i link esterni non possono esserlo. */
+export function coverDi(media: string[] | null | undefined): string | undefined {
+  return (media || []).find((m) => !isExternalLink(m));
+}
+
 /** Un'ora: il tempo di guardare la griglia, non di girare il link. */
 const SIGNED_URL_TTL = 3600;
 

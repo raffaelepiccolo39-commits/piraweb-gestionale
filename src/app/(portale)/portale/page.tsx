@@ -4,11 +4,11 @@ import { useCallback, useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Modal } from '@/components/ui/modal';
 import { reportSupabaseError } from '@/lib/report-error';
-import { resolveMediaUrls, isVideoPath } from '@/lib/social-media';
+import { resolveMediaUrls, isVideoPath, isExternalLink, coverDi } from '@/lib/social-media';
 import { useToast } from '@/components/ui/toast';
 import { usePortal } from '@/components/portale/portal-gate';
 import { cn } from '@/lib/utils';
-import { ImageIcon, Loader2, CalendarDays, AtSign, Globe, Share2, Tv, MessageCircle, Hash, Check, MessageSquareWarning, Play, Copy } from 'lucide-react';
+import { ImageIcon, Loader2, CalendarDays, AtSign, Globe, Share2, Tv, MessageCircle, Hash, Check, MessageSquareWarning, Play, Copy, ExternalLink } from 'lucide-react';
 
 /**
  * Il piano editoriale visto dal cliente: una griglia come il profilo
@@ -202,7 +202,7 @@ export default function PortaleContenutiPage() {
           non ci sono sorprese fra cio che si approva e cio che esce. */}
       <div className="grid grid-cols-3 gap-1 sm:gap-2">
         {posts.map((post) => {
-          const coverPath = post.media_urls?.[0];
+          const coverPath = coverDi(post.media_urls);
           const cover = coverPath ? media[coverPath] : undefined;
           return (
             <button
@@ -242,7 +242,7 @@ export default function PortaleContenutiPage() {
                 </div>
               )}
 
-              {(post.media_urls?.length ?? 0) > 1 && (
+              {(post.media_urls || []).filter((m) => !isExternalLink(m)).length > 1 && (
                 <span className="absolute top-1 left-1 text-white drop-shadow">
                   <Copy size={13} />
                 </span>
@@ -266,7 +266,7 @@ export default function PortaleContenutiPage() {
                 significava tenerne diciannove nascoste al cliente.
                 Scorrimento orizzontale a scatti, come sfogliare su Instagram. */}
             {(() => {
-              const files = (selected.media_urls || []).filter((p) => media[p]);
+              const files = (selected.media_urls || []).filter((p) => !isExternalLink(p) && media[p]);
               if (files.length === 0) return null;
 
               if (files.length === 1) {
@@ -342,6 +342,20 @@ export default function PortaleContenutiPage() {
             {selected.hashtags && (
               <p className="text-sm text-pw-accent break-words">{selected.hashtags}</p>
             )}
+
+            {/* Riferimenti esterni: i video troppo pesanti per stare qui
+                vivono su Drive, e si aprono invece di essere incorporati. */}
+            {(selected.media_urls || []).filter(isExternalLink).map((url) => (
+              <a
+                key={url}
+                href={url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 rounded-xl border border-pw-border p-3 text-sm text-pw-accent font-medium hover:bg-pw-surface-2 transition-colors"
+              >
+                <ExternalLink size={16} /> Guarda il video
+              </a>
+            ))}
 
             {/* Approvazione. Sui contenuti già pubblicati non si chiede più
                 nulla: sarebbe una domanda a cui non si può più rispondere. */}

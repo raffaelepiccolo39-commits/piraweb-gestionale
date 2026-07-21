@@ -7,10 +7,10 @@ import { Button } from '@/components/ui/button';
 import { Select } from '@/components/ui/select';
 import { useToast } from '@/components/ui/toast';
 import { reportSupabaseError, reportUnknown } from '@/lib/report-error';
-import { SOCIAL_MEDIA_BUCKET, buildMediaPath, resolveMediaUrls, isVideoPath, VIDEO_MIME, MAX_FILE_MB } from '@/lib/social-media';
+import { SOCIAL_MEDIA_BUCKET, buildMediaPath, resolveMediaUrls, isVideoPath, isExternalLink, coverDi, VIDEO_MIME, MAX_FILE_MB } from '@/lib/social-media';
 import { preparaImmagine, mb } from '@/lib/image-resize';
 import type { Client } from '@/types/database';
-import { Film, Loader2, Plus, Check, Images } from 'lucide-react';
+import { Film, Loader2, Plus, Check, Images, Link2 } from 'lucide-react';
 
 /**
  * Collega i file ai contenuti di un piano editoriale, tutti in una schermata.
@@ -43,6 +43,8 @@ export function AssegnaMedia({ clients }: { clients: Client[] }) {
   const [anteprime, setAnteprime] = useState<Record<string, string>>({});
   const [caricando, setCaricando] = useState(false);
   const [attivo, setAttivo] = useState<string | null>(null);
+  const [linkA, setLinkA] = useState<string | null>(null);
+  const [link, setLink] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
   const carica = useCallback(async () => {
@@ -126,6 +128,35 @@ export function AssegnaMedia({ clients }: { clients: Client[] }) {
     }
   };
 
+  /**
+   * Allega un riferimento esterno invece di un file.
+   *
+   * Serve per i video oltre i 50 MB del piano: si mette il link a Drive e
+   * il cliente lo apre da li. Va IN FONDO all'elenco, non davanti: la
+   * copertina della griglia dev'essere un file vero, un link non si puo
+   * mostrare in anteprima.
+   */
+  const allegaLink = async (post: PostMinimo) => {
+    const pulito = link.trim();
+    if (!/^https?:\/\//i.test(pulito)) {
+      toast.error('Il link deve iniziare con http:// o https://');
+      return;
+    }
+    const { error } = await supabase
+      .from('social_posts')
+      .update({ media_urls: [...(post.media_urls || []), pulito] })
+      .eq('id', post.id);
+
+    if (error) {
+      reportSupabaseError(error, 'assegna-media-link', { postId: post.id });
+      toast.error('Non e stato possibile salvare il link');
+      return;
+    }
+    toast.success('Link collegato');
+    setLinkA(null); setLink('');
+    carica();
+  };
+
   const senzaMedia = posts.filter((p) => !(p.media_urls || []).length).length;
   const reelSenzaVideo = posts.filter(
     (p) => p.formato === 'reel' && !(p.media_urls || []).some(isVideoPath)
@@ -159,9 +190,10 @@ export function AssegnaMedia({ clients }: { clients: Client[] }) {
 
         <div className="max-h-[55vh] overflow-y-auto space-y-2">
           {posts.map((p) => {
-            const primo = (p.media_urls || [])[0];
+            const primo = coverDi(p.media_urls);
             const haVideo = (p.media_urls || []).some(isVideoPath);
-            const manca = p.formato === 'reel' && !haVideo;
+            const haLink = (p.media_urls || []).some(isExternalLink);
+            const manca = p.formato === 'reel' && !haVideo && !haLink;
 
             return (
               <div key={p.id} className="flex items-center gap-3 rounded-xl border border-pw-border p-2.5">
@@ -194,6 +226,11 @@ export function AssegnaMedia({ clients }: { clients: Client[] }) {
                         <Check size={10} /> video
                       </span>
                     )}
+                    {haLink && (
+                      <span className="text-[11px] text-blue-500 inline-flex items-center gap-0.5">
+                        <Link2 size={10} /> link
+                      </span>
+                    )}
                     {manca && (
                       <span className="text-[11px] text-amber-500 inline-flex items-center gap-0.5">
                         <Film size={10} /> manca il video
@@ -207,17 +244,46 @@ export function AssegnaMedia({ clients }: { clients: Client[] }) {
                   </div>
                 </div>
 
-                <Button
-                  size="sm"
-                  variant={manca ? 'primary' : 'outline'}
-                  onClick={() => { setAttivo(p.id); inputRef.current?.click(); }}
-                  loading={caricando && attivo === p.id}
-                >
-                  {manca ? 'Carica il video' : 'Aggiungi'}
-                </Button>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button
+                    onClick={() => { setLinkA(linkA === p.id ? null : p.id); setLink(''); }}
+                    className="p-2 rounded-lg text-pw-text-dim hover:text-pw-text hover:bg-pw-surface-2"
+                    title="Incolla un link (Drive, YouTube…)"
+                  >
+                    <Link2 size={15} />
+                  </button>
+                  <Button
+                    size="sm"
+                    variant={manca ? 'primary' : 'outline'}
+                    onClick={() => { setAttivo(p.id); inputRef.current?.click(); }}
+                    loading={caricando && attivo === p.id}
+                  >
+                    {manca ? 'Carica il video' : 'Aggiungi'}
+                  </Button>
+                </div>
               </div>
             );
           })}
+
+          {posts.map((p) => (linkA === p.id ? (
+            <div key={`link-${p.id}`} className="rounded-xl border border-pw-accent/40 bg-pw-surface-2 p-3 -mt-1">
+              <p className="text-[11px] text-pw-text-dim mb-2">
+                Per i video troppo pesanti: incolla il link di Drive. Il cliente lo apre da lì,
+                la copertina resta la foto.
+              </p>
+              <div className="flex gap-2">
+                <input
+                  value={link}
+                  onChange={(e) => setLink(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') allegaLink(p); }}
+                  autoFocus
+                  placeholder="https://drive.google.com/..."
+                  className="flex-1 px-3 py-2 rounded-lg bg-pw-surface border border-pw-border text-sm text-pw-text placeholder:text-pw-text-dim"
+                />
+                <Button size="sm" variant="primary" onClick={() => allegaLink(p)}>Collega</Button>
+              </div>
+            </div>
+          ) : null))}
 
           {cliente && posts.length === 0 && (
             <p className="text-sm text-pw-text-muted text-center py-8">
