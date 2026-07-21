@@ -31,6 +31,7 @@ interface Materiale {
   external_url: string | null;
   client_approval: 'pending' | 'approved' | 'changes_requested';
   client_comment: string | null;
+  mese_riferimento: string | null;
 }
 
 const GRUPPI: { tipo: Tipo; titolo: string; icona: typeof Palette }[] = [
@@ -52,7 +53,7 @@ export function MaterialiLista({ soloTipo }: { soloTipo?: Tipo }) {
   const carica = useCallback(async () => {
     const { data, error } = await supabase
       .from('client_materials')
-      .select('id, type, title, description, file_path, file_name, external_url, client_approval, client_comment')
+      .select('id, type, title, description, file_path, file_name, external_url, client_approval, client_comment, mese_riferimento')
       .order('created_at', { ascending: false });
 
     if (error) reportSupabaseError(error, 'portale-materiali', {});
@@ -140,6 +141,11 @@ export function MaterialiLista({ soloTipo }: { soloTipo?: Tipo }) {
               <div className="space-y-2">
                 {delGruppo.map((m) => (
                   <div key={m.id} className="rounded-xl border border-pw-border bg-pw-surface p-4">
+                    {m.mese_riferimento && (
+                      <p className="text-[11px] font-semibold uppercase tracking-wider text-pw-accent mb-0.5">
+                        {new Date(m.mese_riferimento + 'T12:00:00').toLocaleDateString('it-IT', { month: 'long', year: 'numeric' })}
+                      </p>
+                    )}
                     <p className="text-sm font-medium text-pw-text">{m.title}</p>
                     {m.description && <p className="text-xs text-pw-text-muted mt-0.5">{m.description}</p>}
 

@@ -38,6 +38,7 @@ interface Materiale {
   external_url: string | null;
   client_approval: 'pending' | 'approved' | 'changes_requested';
   client_comment: string | null;
+  mese_riferimento: string | null;
   is_published: boolean;
   created_at: string;
 }
@@ -60,12 +61,15 @@ export function ClientMaterials({ clientId }: { clientId: string }) {
   const [titolo, setTitolo] = useState('');
   const [link, setLink] = useState('');
   const [file, setFile] = useState<File | null>(null);
+  // Il mese a cui si riferisce: un moodboard e "per settembre", e senza
+  // questo dato nel portale finivano tutti in un mucchio senza periodo.
+  const [mese, setMese] = useState('');
   const [invio, setInvio] = useState(false);
 
   const carica = useCallback(async () => {
     const { data, error } = await supabase
       .from('client_materials')
-      .select('id, type, title, description, file_path, file_name, external_url, client_approval, client_comment, is_published, created_at')
+      .select('id, type, title, description, file_path, file_name, external_url, client_approval, client_comment, mese_riferimento, is_published, created_at')
       .eq('client_id', clientId)
       .order('created_at', { ascending: false });
 
@@ -115,6 +119,7 @@ export function ClientMaterials({ clientId }: { clientId: string }) {
         file_path: filePath,
         file_name: fileName,
         external_url: link.trim() || null,
+        mese_riferimento: mese ? `${mese}-01` : null,
         created_by: profile.id,
       });
 
@@ -125,7 +130,7 @@ export function ClientMaterials({ clientId }: { clientId: string }) {
       }
 
       toast.success('Materiale aggiunto — ora è nascosto: pubblicalo quando è pronto');
-      setNuovo(null); setTitolo(''); setLink(''); setFile(null);
+      setNuovo(null); setTitolo(''); setLink(''); setFile(null); setMese('');
       carica();
     } finally {
       setInvio(false);
@@ -232,6 +237,15 @@ export function ClientMaterials({ clientId }: { clientId: string }) {
                     autoFocus
                     className="w-full px-3 py-2 rounded-lg bg-pw-surface border border-pw-border text-sm text-pw-text placeholder:text-pw-text-dim"
                   />
+                  <div>
+                    <label className="block text-[11px] text-pw-text-dim mb-1">Mese di riferimento (facoltativo)</label>
+                    <input
+                      type="month"
+                      value={mese}
+                      onChange={(e) => setMese(e.target.value)}
+                      className="px-3 py-2 rounded-lg bg-pw-surface border border-pw-border text-sm text-pw-text"
+                    />
+                  </div>
                   <div className="flex flex-wrap items-center gap-2">
                     <Button size="sm" variant="outline" onClick={() => inputRef.current?.click()}>
                       {file ? file.name.slice(0, 24) : 'Scegli PDF o immagine'}

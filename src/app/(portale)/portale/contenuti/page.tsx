@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Modal } from '@/components/ui/modal';
 import { reportSupabaseError } from '@/lib/report-error';
@@ -9,7 +9,7 @@ import { useToast } from '@/components/ui/toast';
 import { usePortal } from '@/components/portale/portal-gate';
 import { LogoCliente } from '@/components/portale/logo-cliente';
 import { cn } from '@/lib/utils';
-import { ImageIcon, Loader2, CalendarDays, AtSign, Globe, Share2, Tv, MessageCircle, Hash, Check, MessageSquareWarning, Play, Copy, ExternalLink } from 'lucide-react';
+import { ImageIcon, Loader2, CalendarDays, CheckCheck, AtSign, Globe, Share2, Tv, MessageCircle, Hash, Check, MessageSquareWarning, Play, Copy, ExternalLink } from 'lucide-react';
 
 /**
  * Il piano editoriale visto dal cliente: una griglia come il profilo
@@ -92,6 +92,7 @@ export default function PortaleContenutiPage() {
   const [comment, setComment] = useState('');
   const [sending, setSending] = useState(false);
   const [askChanges, setAskChanges] = useState(false);
+  const [approvando, setApprovando] = useState<string | null>(null);
   const toast = useToast();
   const { fullName, clientName, clientLogo } = usePortal();
 
@@ -145,6 +146,47 @@ export default function PortaleContenutiPage() {
   }, [supabase]);
 
   useEffect(() => { fetchPosts(); }, [fetchPosts]);
+
+  /**
+   * I contenuti raggruppati per mese di programmazione.
+   *
+   * Un piano editoriale si ragiona a mesi: senza il raggruppamento la
+   * griglia e un flusso continuo in cui il cliente non capisce dove finisce
+   * agosto e comincia settembre — e "approva tutto" diventa un si alla
+   * cieca su periodi diversi.
+   */
+  const perMese = useMemo(() => {
+    const gruppi = new Map<string, PortalPost[]>();
+    for (const p of posts) {
+      const chiave = p.scheduled_at ? p.scheduled_at.slice(0, 7) : 'senza-data';
+      if (!gruppi.has(chiave)) gruppi.set(chiave, []);
+      gruppi.get(chiave)!.push(p);
+    }
+    return [...gruppi.entries()];
+  }, [posts]);
+
+  /** Approva in blocco i contenuti in attesa di un mese. */
+  const approvaMese = async (chiave: string, quanti: number) => {
+    const nome = chiave === 'senza-data'
+      ? 'senza data'
+      : new Date(chiave + '-01T12:00:00').toLocaleDateString('it-IT', { month: 'long', year: 'numeric' });
+
+    if (!confirm(`Approvare ${quanti} ${quanti === 1 ? 'contenuto' : 'contenuti'} di ${nome}?\n\nQuelli su cui hai gia chiesto modifiche restano come sono.`)) return;
+
+    setApprovando(chiave);
+    const { data, error } = await supabase.rpc('portal_approva_mese', {
+      p_mese: chiave === 'senza-data' ? null : `${chiave}-01`,
+    });
+    setApprovando(null);
+
+    if (error) {
+      reportSupabaseError(error, 'portale-approva-mese', { mese: chiave });
+      toast.error('Non e stato possibile approvare, riprova');
+      return;
+    }
+    toast.success(`${data} ${data === 1 ? 'contenuto approvato' : 'contenuti approvati'}, grazie!`);
+    fetchPosts();
+  };
 
   if (loading) {
     return (
@@ -204,66 +246,94 @@ export default function PortaleContenutiPage() {
         </p>
       </div>
 
-      {/* Griglia stile profilo: 3 colonne in 4:5 verticale, come li mostra
-          oggi Instagram. Stesso taglio delle anteprime nel calendario, cosi
-          non ci sono sorprese fra cio che si approva e cio che esce. */}
-      <div className="grid grid-cols-3 gap-1 sm:gap-2">
-        {posts.map((post) => {
-          const coverPath = coverDi(post.media_urls);
-          const cover = coverPath ? media[coverPath] : undefined;
-          return (
-            <button
-              key={post.id}
-              onClick={() => setSelected(post)}
-              className="relative aspect-[4/5] overflow-hidden rounded-sm sm:rounded-lg bg-pw-surface-2 group"
-            >
-              {cover ? (
-                (coverPath && isVideoPath(coverPath)) || post.formato === 'reel' ? (
-                  <>
-                    {/* Un reel in fase di piano ha spesso un fotogramma come
-                        copertina, non il video: il simbolo dipende dal formato
-                        dichiarato, non dal tipo di file. */}
-                    {coverPath && isVideoPath(coverPath) ? (
-                      <video src={cover} className="w-full h-full object-cover" muted playsInline preload="metadata" />
+      {/* Un blocco per mese: il piano editoriale si ragiona a mesi, e
+          l'approvazione in blocco deve valere su un periodo preciso. */}
+      {perMese.map(([chiave, gruppo]) => {
+        const inAttesa = gruppo.filter((p) => p.client_approval === 'pending' && p.status !== 'published');
+        const nomeMese = chiave === 'senza-data'
+          ? 'Senza data'
+          : new Date(chiave + '-01T12:00:00').toLocaleDateString('it-IT', { month: 'long', year: 'numeric' });
+
+        return (
+          <div key={chiave} className="mb-7 last:mb-0">
+            <div className="flex items-center justify-between gap-3 mb-2.5">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-pw-text-dim">
+                  Mese di riferimento
+                </p>
+                <h3 className="text-base font-semibold text-pw-text capitalize">{nomeMese}</h3>
+              </div>
+
+              {inAttesa.length > 0 && (
+                <button
+                  onClick={() => approvaMese(chiave, inAttesa.length)}
+                  disabled={approvando === chiave}
+                  className="shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-green-500/10 text-green-500 text-xs font-semibold disabled:opacity-60"
+                >
+                  {approvando === chiave
+                    ? <><Loader2 size={14} className="animate-spin" /> Approvo…</>
+                    : <><CheckCheck size={14} /> Approva tutto ({inAttesa.length})</>}
+                </button>
+              )}
+            </div>
+
+            <div className="grid grid-cols-3 gap-1 sm:gap-2">
+              {gruppo.map((post) => {
+                const coverPath = coverDi(post.media_urls);
+                const cover = coverPath ? media[coverPath] : undefined;
+                return (
+                  <button
+                    key={post.id}
+                    onClick={() => setSelected(post)}
+                    className="relative aspect-[4/5] overflow-hidden rounded-sm sm:rounded-lg bg-pw-surface-2 group"
+                  >
+                    {cover ? (
+                      (coverPath && isVideoPath(coverPath)) || post.formato === 'reel' ? (
+                        <>
+                          {coverPath && isVideoPath(coverPath) ? (
+                            <video src={cover} className="w-full h-full object-cover" muted playsInline preload="metadata" />
+                          ) : (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={cover} alt={post.title} className="w-full h-full object-cover" loading="lazy" />
+                          )}
+                          <span className="absolute inset-0 flex items-center justify-center">
+                            <Play size={22} className="text-white drop-shadow-lg" fill="white" />
+                          </span>
+                        </>
+                      ) : (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={cover}
+                          alt={post.title}
+                          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                          loading="lazy"
+                        />
+                      )
                     ) : (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={cover} alt={post.title} className="w-full h-full object-cover" loading="lazy" />
+                      <div className="w-full h-full flex flex-col items-center justify-center gap-1.5 p-2 text-center">
+                        <ImageIcon size={18} className="text-pw-text-dim" />
+                        <span className="text-[10px] leading-tight text-pw-text-dim line-clamp-3">{post.title}</span>
+                      </div>
                     )}
-                    <span className="absolute inset-0 flex items-center justify-center">
-                      <Play size={22} className="text-white drop-shadow-lg" fill="white" />
-                    </span>
-                  </>
-                ) : (
-                  // eslint-disable-next-line @next/next/no-img-element -- URL esterni variabili: evita la config domini di next/image
-                  <img
-                    src={cover}
-                    alt={post.title}
-                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                    loading="lazy"
-                  />
-                )
-              ) : (
-                <div className="w-full h-full flex flex-col items-center justify-center gap-1.5 p-2 text-center">
-                  <ImageIcon size={18} className="text-pw-text-dim" />
-                  <span className="text-[10px] leading-tight text-pw-text-dim line-clamp-3">{post.title}</span>
-                </div>
-              )}
 
-              {(post.media_urls || []).filter((m) => !isExternalLink(m)).length > 1 && (
-                <span className="absolute top-1 left-1 text-white drop-shadow">
-                  <Copy size={13} />
-                </span>
-              )}
+                    {(post.media_urls || []).filter((m) => !isExternalLink(m)).length > 1 && (
+                      <span className="absolute top-1 left-1 text-white drop-shadow">
+                        <Copy size={13} />
+                      </span>
+                    )}
 
-              {post.status !== 'published' && ETICHETTA_CLIENTE[post.client_approval] && (
-                <span className={`absolute top-1 right-1 px-1.5 py-0.5 rounded text-[9px] font-semibold ${ETICHETTA_CLIENTE[post.client_approval]!.classe}`}>
-                  {ETICHETTA_CLIENTE[post.client_approval]!.testo}
-                </span>
-              )}
-            </button>
-          );
-        })}
-      </div>
+                    {post.status !== 'published' && ETICHETTA_CLIENTE[post.client_approval] && (
+                      <span className={`absolute top-1 right-1 px-1.5 py-0.5 rounded text-[9px] font-semibold ${ETICHETTA_CLIENTE[post.client_approval]!.classe}`}>
+                        {ETICHETTA_CLIENTE[post.client_approval]!.testo}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
 
       <Modal open={!!selected} onClose={() => setSelected(null)} title={selected?.title || ''} size="md">
         {selected && (
