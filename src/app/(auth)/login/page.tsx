@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, Suspense } from 'react';
+import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
@@ -193,12 +194,12 @@ function LoginContent() {
                   <label htmlFor="password" className="block text-sm font-medium text-gray-700">
                     Password
                   </label>
-                  <a
-                    href="mailto:info@piraweb.it?subject=Recupero%20password%20gestionale"
+                  <Link
+                    href="/password-dimenticata"
                     className="text-xs text-[#0A263A] hover:underline"
                   >
                     Password dimenticata?
-                  </a>
+                  </Link>
                 </div>
                 <div className="relative">
                   <input

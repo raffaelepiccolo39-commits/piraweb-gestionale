@@ -62,7 +62,9 @@ export async function updateSession(request: NextRequest) {
   const isAuthPage = request.nextUrl.pathname.startsWith('/login');
   const isApiRoute = request.nextUrl.pathname.startsWith('/api');
   const isCallbackRoute = request.nextUrl.pathname.startsWith('/api/auth/callback');
-  const isPublicPage = request.nextUrl.pathname.startsWith('/consulenza') || request.nextUrl.pathname.startsWith('/review');
+  const isPublicPage = request.nextUrl.pathname.startsWith('/consulenza')
+    || request.nextUrl.pathname.startsWith('/review')
+    || request.nextUrl.pathname.startsWith('/password-dimenticata');
   const isOnboardingPage = request.nextUrl.pathname.startsWith('/onboarding');
   // Il portale clienti è un'altra app: chi entra lì non ha un profilo del team,
   // quindi onboarding, 2FA e guardia admin non lo riguardano. Tenerlo fuori da
@@ -71,6 +73,11 @@ export async function updateSession(request: NextRequest) {
   // come app (Capacitor), dove il middleware non esiste. La guardia vera è
   // lato client (PortalGate) + le policy RLS su current_client_id().
   const isPortal = request.nextUrl.pathname.startsWith('/portale');
+  // Il recupero password apre una sessione col solo scopo di cambiare la
+  // password: onboarding, 2FA e guardia admin qui non c'entrano e
+  // impedirebbero di completarlo (un utente con 2FA verrebbe rimbalzato al
+  // login proprio mentre sta reimpostando le credenziali).
+  const isRecupero = request.nextUrl.pathname.startsWith('/reimposta-password');
 
   // Allow callback route
   if (isCallbackRoute) {
@@ -93,7 +100,7 @@ export async function updateSession(request: NextRequest) {
   }
 
   // Contesto "app interna": utente loggato su pagina non login/api/pubblica.
-  const inApp = user && !isAuthPage && !isApiRoute && !isPublicPage && !isPortal;
+  const inApp = user && !isAuthPage && !isApiRoute && !isPublicPage && !isPortal && !isRecupero;
 
   // Una SOLA lettura del profilo (role + onboarded_at) e un SOLO client
   // service-role, riusati sia dall'onboarding-gate sia dall'admin-guard: prima
