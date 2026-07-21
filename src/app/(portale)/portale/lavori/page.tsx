@@ -22,11 +22,11 @@ import { Loader2, Hammer, Check, CircleDot } from 'lucide-react';
 
 interface Lavorazione {
   id: string;
-  title: string;
-  status: 'todo' | 'in_progress' | 'review' | 'done';
-  completed_at: string | null;
-  created_at: string;
-  assegnato: { full_name: string | null } | null;
+  titolo: string;
+  stato: 'todo' | 'in_progress' | 'review' | 'done';
+  completata_il: string | null;
+  creata_il: string;
+  chi: string | null;
 }
 
 const IN_CORSO = ['todo', 'in_progress', 'review'];
@@ -43,12 +43,11 @@ export default function PortaleLavoriPage() {
   const [loading, setLoading] = useState(true);
 
   const carica = useCallback(async () => {
-    const { data, error } = await supabase
-      .from('tasks')
-      // Nessun campo "description": vedi la nota in cima al file.
-      .select('id, title, status, completed_at, created_at, assegnato:profiles!tasks_assigned_to_fkey(full_name)')
-      .order('completed_at', { ascending: false, nullsFirst: true })
-      .limit(200);
+    // Da una funzione e non dalla tabella: la RLS concede la RIGA, quindi con
+    // una policy sulle task il cliente avrebbe potuto chiedersi la descrizione
+    // via API anche senza vederla qui. La funzione restituisce solo i campi
+    // che si possono mostrare.
+    const { data, error } = await supabase.rpc('portal_lavorazioni');
 
     if (error) reportSupabaseError(error, 'portale-lavori', {});
     setLavori((data as unknown as Lavorazione[]) || []);
@@ -61,14 +60,14 @@ export default function PortaleLavoriPage() {
     return <div className="flex justify-center py-20 text-pw-text-dim"><Loader2 size={22} className="animate-spin" /></div>;
   }
 
-  const inCorso = lavori.filter((l) => IN_CORSO.includes(l.status));
-  const fatte = lavori.filter((l) => l.status === 'done');
+  const inCorso = lavori.filter((l) => IN_CORSO.includes(l.stato));
+  const fatte = lavori.filter((l) => l.stato === 'done');
 
   // Le cose fatte raggruppate per mese: "questo mese abbiamo fatto queste
   // dodici cose" e' la risposta a "cosa fate tutto il mese".
   const perMese = new Map<string, Lavorazione[]>();
   for (const l of fatte) {
-    const quando = l.completed_at || l.created_at;
+    const quando = l.completata_il || l.creata_il;
     const chiave = quando.slice(0, 7);
     if (!perMese.has(chiave)) perMese.set(chiave, []);
     perMese.get(chiave)!.push(l);
@@ -108,10 +107,10 @@ export default function PortaleLavoriPage() {
               <div key={l.id} className="flex items-start gap-2.5 px-4 py-3">
                 <CircleDot size={15} className="shrink-0 mt-0.5 text-pw-accent" />
                 <div className="min-w-0">
-                  <p className="text-sm text-pw-text first-letter:uppercase">{l.title}</p>
-                  {l.assegnato?.full_name && (
+                  <p className="text-sm text-pw-text first-letter:uppercase">{l.titolo}</p>
+                  {l.chi && (
                     <p className="text-[11px] text-pw-text-dim mt-0.5">
-                      Se ne occupa {l.assegnato.full_name.split(' ')[0]}
+                      Se ne occupa {l.chi}
                     </p>
                   )}
                 </div>
@@ -137,10 +136,10 @@ export default function PortaleLavoriPage() {
               <div key={l.id} className="flex items-start gap-2.5 px-4 py-3">
                 <Check size={15} className="shrink-0 mt-0.5 text-green-500" />
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm text-pw-text first-letter:uppercase">{l.title}</p>
+                  <p className="text-sm text-pw-text first-letter:uppercase">{l.titolo}</p>
                   <p className="text-[11px] text-pw-text-dim mt-0.5">
-                    {l.completed_at ? giorno(l.completed_at) : 'Completata'}
-                    {l.assegnato?.full_name && ` · ${l.assegnato.full_name.split(' ')[0]}`}
+                    {l.completata_il ? giorno(l.completata_il) : 'Completata'}
+                    {l.chi && ` · ${l.chi}`}
                   </p>
                 </div>
               </div>
