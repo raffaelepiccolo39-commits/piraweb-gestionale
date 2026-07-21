@@ -89,6 +89,57 @@ export function fingerprintOf(source: string, route: string | null | undefined, 
  * Usa il service role perché error_logs non ha policy di INSERT (stesso
  * pattern di logAudit in lib/audit.ts).
  */
+/**
+ * Cose che finivano in /log come errori ma non lo sono.
+ *
+ * Il 21/07 su trenta "errori" registrati, venti erano comportamenti previsti:
+ * la difesa che respinge un cliente, due schede aperte che si contendono la
+ * sessione, una password riscritta uguale. Un registro pieno di roba normale
+ * e' un registro che non si guarda piu', ed e' cosi' che passano inosservati
+ * quelli veri.
+ *
+ * Non si nasconde niente: restano tutti in /log, ma come warning. La riga
+ * dice anche PERCHE' non e' un errore, cosi' chi la incontra fra sei mesi non
+ * deve rifare questo ragionamento.
+ */
+const PREVISTI: { indizio: RegExp; perche: string }[] = [
+  {
+    indizio: /accesso cliente: non pu.* avere un profilo del team/i,
+    perche: 'la difesa contro i clienti promossi a dipendenti sta funzionando',
+  },
+  {
+    indizio: /duplicate key value violates unique constraint "profiles_pkey"/i,
+    perche: 'il profilo esisteva gia: due richieste in parallelo, nessun dato perso',
+  },
+  {
+    indizio: /Lock .*(stole|steal|broken)/i,
+    perche: 'due schede aperte che si contendono la sessione: Supabase se la sbriga',
+  },
+  {
+    indizio: /Failed to load chunk|ChunkLoadError|Loading chunk \d+ failed/i,
+    perche: 'scheda rimasta aperta da prima di un rilascio: basta ricaricare',
+  },
+  {
+    indizio: /New password should be different from the old password/i,
+    perche: "l'utente ha riscritto la stessa password: glielo dice la schermata",
+  },
+  {
+    indizio: /Email link is invalid or has expired/i,
+    perche: 'link di invito scaduto: si rimanda dalla scheda del cliente',
+  },
+  {
+    // [\s\S] e non '.': il messaggio di OpenAI va a capo, e il punto non
+    // attraversa le righe. Il flag 's' farebbe lo stesso ma il progetto
+    // compila per ES2017, che non lo ammette.
+    indizio: /Whisper \d+:[\s\S]*(quota|insufficient)/i,
+    perche: "riserva di trascrizione senza credito: il motore primario e' Gemini",
+  },
+];
+
+function previsto(message: string): string | null {
+  return PREVISTI.find((p) => p.indizio.test(message))?.perche ?? null;
+}
+
 export async function logError(entry: LogErrorEntry): Promise<void> {
   try {
     const message = messageOf(entry.error);
@@ -101,8 +152,16 @@ export async function logError(entry: LogErrorEntry): Promise<void> {
       ?? entry.request?.headers.get('user-agent')
       ?? null;
 
+    // Se e' una delle cose previste, scende a warning: resta consultabile ma
+    // non conta come problema. Chi passa un livello piu' basso di 'error' lo
+    // ha gia' deciso, e non glielo si tocca.
+    const spiegazione = previsto(message);
+    const livello = entry.level && entry.level !== 'error'
+      ? entry.level
+      : spiegazione ? 'warning' : (entry.level ?? 'error');
+
     await supabase.from('error_logs').insert({
-      level: entry.level ?? 'error',
+      level: livello,
       source,
       message: message.slice(0, 2000),
       stack: entry.stack ?? stackOf(entry.error),
@@ -110,7 +169,9 @@ export async function logError(entry: LogErrorEntry): Promise<void> {
       fingerprint: fingerprintOf(source, route, message),
       user_id: entry.userId ?? null,
       user_email: entry.userEmail ?? null,
-      context: entry.context ?? {},
+      context: spiegazione
+        ? { ...(entry.context ?? {}), previsto: spiegazione }
+        : entry.context ?? {},
       user_agent: userAgent,
       build_id: entry.buildId ?? process.env.NEXT_PUBLIC_BUILD_ID ?? null,
     });
