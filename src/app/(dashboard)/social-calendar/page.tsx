@@ -187,6 +187,11 @@ export default function SocialCalendarPage() {
 
   const isAdmin = profile?.role === 'admin';
 
+  // Chi lavora al piano editoriale puo importarlo. Il controllo e sul RUOLO,
+  // non sulle persone: un nuovo social media manager ha l'importazione dal
+  // primo giorno, senza che nessuno debba ricordarsi di abilitarlo.
+  const gestiscePiano = profile?.role === 'admin' || profile?.role === 'social_media_manager';
+
   const [form, setForm] = useState({
     title: '',
     caption: '',
@@ -415,7 +420,7 @@ export default function SocialCalendarPage() {
         subtitle="Pianifica e gestisci i contenuti social dei tuoi clienti"
         actions={
           <>
-            {isAdmin && <ImportPed clients={clients} onFatto={fetchPosts} />}
+            {gestiscePiano && <ImportPed clients={clients} onFatto={fetchPosts} />}
             <AssegnaMedia clients={clients} />
             {metaConnected ? (
               <Badge className="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300 flex items-center gap-1">
