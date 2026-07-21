@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useToast } from '@/components/ui/toast';
 import { reportUnknown } from '@/lib/report-error';
 import { SOCIAL_MEDIA_BUCKET, buildMediaPath, resolveMediaUrls } from '@/lib/social-media';
+import { preparaImmagine, mb, MAX_INGRESSO_MB } from '@/lib/image-resize';
 import { ImagePlus, X, Loader2 } from 'lucide-react';
 
 /**
@@ -17,7 +18,6 @@ import { ImagePlus, X, Loader2 } from 'lucide-react';
  * potrà vederlo (policy dello storage su current_client_id()).
  */
 
-const MAX_MB = 10;
 
 export function PostMediaUpload({
   clientId,
@@ -55,15 +55,22 @@ export function PostMediaUpload({
           toast.error(`${file.name} non è un'immagine`);
           continue;
         }
-        if (file.size > MAX_MB * 1024 * 1024) {
-          toast.error(`${file.name} supera i ${MAX_MB} MB`);
+        if (file.size > MAX_INGRESSO_MB * 1024 * 1024) {
+          toast.error(`${file.name} supera i ${MAX_INGRESSO_MB} MB`);
           continue;
         }
 
-        const path = buildMediaPath(clientId, file.name);
+        // Ridimensionata prima di partire: Instagram rifiuta oltre 8 MB, e
+        // queste foto le scarica il cliente dal telefono.
+        const esito = await preparaImmagine(file);
+        if (esito.ridotta) {
+          toast.info(`${file.name}: ${mb(esito.originale)} → ${mb(esito.finale)}`);
+        }
+
+        const path = buildMediaPath(clientId, esito.file.name);
         const { error } = await supabase.storage
           .from(SOCIAL_MEDIA_BUCKET)
-          .upload(path, file, { cacheControl: '3600', upsert: false });
+          .upload(path, esito.file, { cacheControl: '3600', upsert: false });
 
         if (error) {
           reportUnknown(error, 'client', { op: 'social-media-upload', path });
@@ -138,7 +145,9 @@ export function PostMediaUpload({
         onChange={(e) => handleFiles(e.target.files)}
       />
       <p className="text-[11px] text-pw-text-dim mt-1.5">
-        La prima immagine fa da copertina nella griglia del cliente. Massimo {MAX_MB} MB per file.
+        La prima immagine fa da copertina nella griglia del cliente. Le foto grandi vengono
+        rimpicciolite in automatico: Instagram non accetta oltre 8 MB, e il cliente le apre
+        dal telefono. Massimo {MAX_INGRESSO_MB} MB per file.
       </p>
     </div>
   );
