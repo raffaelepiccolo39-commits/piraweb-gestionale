@@ -70,8 +70,11 @@ export default function PortaleContrattoPage() {
         </div>
         <h2 className="text-lg font-semibold text-pw-text mb-2">Nessun contratto registrato</h2>
         <p className="text-sm text-pw-text-muted max-w-xs mx-auto">
-          Qui troverai le condizioni del nostro accordo. Se ti aspettavi di vederlo, scrivici pure.
+          Qui troverai le condizioni del nostro accordo.
         </p>
+        <a href="/portale/messaggi" className="inline-block mt-4 text-sm font-medium text-pw-accent hover:underline">
+          Te lo aspettavi? Scrivici
+        </a>
       </div>
     );
   }
@@ -126,7 +129,7 @@ export default function PortaleContrattoPage() {
 
       {!contracts.some((c) => c.attachment_url) && (
         <p className="text-[11px] text-pw-text-dim mt-5 text-center">
-          Ti serve una copia firmata del contratto? Scrivici e te la mandiamo.
+          Ti serve una copia firmata? <a href="/portale/messaggi" className="text-pw-accent hover:underline">Scrivici</a> e te la mandiamo.
         </p>
       )}
     </>

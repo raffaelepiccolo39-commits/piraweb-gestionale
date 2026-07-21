@@ -297,3 +297,72 @@ export async function sendShootingPromemoriaEmail({ to, fullName, clientName, co
     html,
   });
 }
+
+interface MessaggioClienteParams {
+  to: string[];
+  clientName: string;
+  chi: string;
+  estratto: string;
+  quantiAllegati: number;
+  link: string;
+}
+
+/**
+ * Avvisa il team che un cliente ha scritto dal portale.
+ *
+ * A differenza delle altre di questo file, parla verso l'interno: il tono è
+ * quello di una segnalazione di lavoro, non di una comunicazione al cliente.
+ * Esiste perché il gestionale non ha notifiche push: senza questa email un
+ * messaggio resterebbe fermo finché qualcuno non apre per caso la scheda —
+ * e un canale a cui non si risponde è peggio di un canale che non c'è.
+ */
+export async function sendMessaggioClienteEmail({
+  to, clientName, chi, estratto, quantiAllegati, link,
+}: MessaggioClienteParams) {
+  if (to.length === 0) return;
+
+  const allegati = quantiAllegati === 0
+    ? ''
+    : `<p style="margin:12px 0 0;font-size:13px;color:#6B7280;">
+         Con ${quantiAllegati === 1 ? 'un allegato' : `${quantiAllegati} allegati`}.
+       </p>`;
+
+  const html = `<!DOCTYPE html>
+<html lang="it">
+<body style="margin:0;padding:24px;background-color:#F3F4F6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;">
+    <tr><td style="padding:28px 32px 8px;">
+      <p style="margin:0;font-size:13px;color:#9CA3AF;text-transform:uppercase;letter-spacing:0.5px;">
+        Messaggio dal portale
+      </p>
+      <h1 style="margin:6px 0 0;font-size:19px;color:#111827;">
+        ${escapeHtml(clientName)}
+      </h1>
+      <p style="margin:2px 0 0;font-size:14px;color:#6B7280;">${escapeHtml(chi)}</p>
+    </td></tr>
+
+    <tr><td style="padding:16px 32px;">
+      <div style="border-left:3px solid #E5E7EB;padding-left:14px;">
+        <p style="margin:0;font-size:15px;line-height:1.55;color:#374151;white-space:pre-wrap;">${escapeHtml(estratto)}</p>
+      </div>
+      ${allegati}
+    </td></tr>
+
+    <tr><td style="padding:8px 32px 32px;">
+      <a href="${link}"
+         style="display:inline-block;background-color:#0A263A;color:#ffffff;text-decoration:none;
+                padding:12px 26px;border-radius:10px;font-size:14px;font-weight:600;">
+        Rispondi
+      </a>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+
+  await transporter.sendMail({
+    from: process.env.SMTP_FROM,
+    to: to.join(', '),
+    subject: `${clientName} ha scritto dal portale`,
+    html,
+  });
+}

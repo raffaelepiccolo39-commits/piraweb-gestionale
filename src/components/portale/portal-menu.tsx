@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import {
   Home, LayoutGrid, Palette, FileText, Lightbulb, Receipt, FileSignature, Camera, BarChart3,
-  ChevronRight, X, LogOut,
+  MessageCircle, ChevronRight, X, LogOut,
 } from 'lucide-react';
 
 /**
@@ -51,6 +51,7 @@ export const VOCI_MENU = [
   {
     gruppo: 'Il nostro rapporto',
     voci: [
+      { href: '/portale/messaggi', label: 'Scrivici', icona: MessageCircle },
       { href: '/portale/pagamenti', label: 'Pagamenti', icona: Receipt },
       { href: '/portale/contratto', label: 'Contratto', icona: FileSignature },
     ],

@@ -117,9 +117,14 @@ export function PortalGate({ children }: { children: React.ReactNode }) {
             <ShieldOff size={26} className="text-pw-accent" />
           </div>
           <h1 className="text-xl font-bold text-pw-text mb-2">Accesso non attivo</h1>
+          {/* Unico "scrivici" che resta un'email: chi non ha accesso non può
+              usare la conversazione interna, che sta dietro il portale. */}
           <p className="text-sm text-pw-text-muted mb-6">
-            Questo account non ha un&apos;area riservata attiva. Se pensi si tratti di un errore,
-            scrivici e la riattiviamo.
+            Questo account non ha un&apos;area riservata attiva. Se pensi si tratti di un errore,{' '}
+            <a href="mailto:info@piraweb.it?subject=Accesso%20al%20portale" className="text-pw-accent hover:underline">
+              scrivici
+            </a>{' '}
+            e la riattiviamo.
           </p>
           <button
             onClick={async () => { await supabase.auth.signOut(); router.replace('/login'); }}
