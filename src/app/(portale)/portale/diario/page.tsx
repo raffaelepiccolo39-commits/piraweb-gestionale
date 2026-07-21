@@ -1,11 +1,12 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { reportSupabaseError } from '@/lib/report-error';
 import { useToast } from '@/components/ui/toast';
 import { cn } from '@/lib/utils';
-import { Loader2, Lightbulb, Send, Sparkles, Archive, Clock, Wand2 } from 'lucide-react';
+import { toWav16k } from '@/lib/audio-wav';
+import { Loader2, Lightbulb, Send, Sparkles, Archive, Clock, Wand2, Mic, Square } from 'lucide-react';
 
 /**
  * Il diario delle idee.
@@ -53,6 +54,67 @@ export default function PortaleDiarioPage() {
   // sostituisce niente finche' non e' lui a volerlo. Stesso patto della
   // cattura rapida nel gestionale: l'assistente propone, la persona decide.
   const [sistemando, setSistemando] = useState(false);
+
+  // ── Voce ──
+  // Un'idea si racconta molto meglio di come si scrive col pollice, ed e'
+  // gia' il modo in cui i clienti mandano le cose su WhatsApp. Il testo
+  // trascritto si AGGIUNGE a quello che c'e', non lo sostituisce: chi ha
+  // scritto due righe e poi detta il resto non deve perderle.
+  const [registrando, setRegistrando] = useState(false);
+  const [trascrivendo, setTrascrivendo] = useState(false);
+  const recorder = useRef<MediaRecorder | null>(null);
+  const pezzi = useRef<Blob[]>([]);
+
+  const trascrivi = async (blob: Blob) => {
+    setTrascrivendo(true);
+    try {
+      // Il motore non accetta il webm del browser: si converte in WAV 16 kHz.
+      // Se la conversione fallisce si manda l'originale e si spera.
+      let daInviare: Blob = blob;
+      let nome = 'idea.webm';
+      try {
+        daInviare = await toWav16k(blob);
+        nome = 'idea.wav';
+      } catch { /* si invia l'originale */ }
+
+      const fd = new FormData();
+      fd.append('audio', daInviare, nome);
+      const r = await fetch('/api/portal/trascrivi', { method: 'POST', body: fd });
+      const dati = await r.json();
+      if (!r.ok) { toast.error(dati.error || 'Non sono riuscito a trascrivere'); return; }
+      setTesto((prima) => (prima ? `${prima}\n${dati.text}` : dati.text));
+      toast.success('Audio trascritto');
+    } catch {
+      toast.error('Non sono riuscito a trascrivere');
+    } finally {
+      setTrascrivendo(false);
+    }
+  };
+
+  const avviaRegistrazione = async () => {
+    try {
+      const flusso = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mr = new MediaRecorder(flusso);
+      pezzi.current = [];
+      mr.ondataavailable = (e) => { if (e.data.size) pezzi.current.push(e.data); };
+      mr.onstop = () => {
+        // Il microfono va spento davvero: altrimenti su iPhone resta il
+        // pallino rosso e il cliente pensa che lo stiamo ascoltando.
+        flusso.getTracks().forEach((t) => t.stop());
+        void trascrivi(new Blob(pezzi.current, { type: mr.mimeType || 'audio/webm' }));
+      };
+      mr.start();
+      recorder.current = mr;
+      setRegistrando(true);
+    } catch {
+      toast.error('Microfono non disponibile: devi dare il permesso');
+    }
+  };
+
+  const fermaRegistrazione = () => {
+    recorder.current?.stop();
+    setRegistrando(false);
+  };
   const [proposta, setProposta] = useState<{ titolo: string; testo: string; formato: string; vaga: boolean } | null>(null);
 
   const sistema = async () => {
@@ -140,7 +202,24 @@ export default function PortaleDiarioPage() {
           placeholder="Un'idea per un video, un prodotto da spingere, una cosa vista in giro che ti è piaciuta…"
           className="w-full bg-transparent text-sm text-pw-text placeholder:text-pw-text-dim resize-none focus:outline-none"
         />
-        <div className="flex items-center justify-between gap-2 pt-2 border-t border-pw-border">
+        <div className="flex items-center gap-2 pt-2 border-t border-pw-border">
+          <button
+            onClick={registrando ? fermaRegistrazione : avviaRegistrazione}
+            disabled={trascrivendo || invio}
+            className={cn(
+              'inline-flex items-center gap-1.5 rounded-xl border px-2.5 py-2 text-xs font-medium transition-colors disabled:opacity-40',
+              registrando
+                ? 'border-red-500/40 bg-red-500/10 text-red-500'
+                : 'border-pw-border text-pw-text-muted'
+            )}
+          >
+            {trascrivendo
+              ? <><Loader2 size={13} className="animate-spin" /> Trascrivo…</>
+              : registrando
+                ? <><Square size={13} fill="currentColor" /> Ferma</>
+                : <><Mic size={13} /> Detta</>}
+          </button>
+
           <button
             onClick={sistema}
             disabled={sistemando || testo.trim().length < 3}
@@ -152,7 +231,7 @@ export default function PortaleDiarioPage() {
           <button
             onClick={invia}
             disabled={invio || !testo.trim()}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-pw-accent px-3.5 py-2 text-xs font-semibold text-[#0A263A] disabled:opacity-40 transition-opacity"
+            className="ml-auto inline-flex items-center gap-1.5 rounded-xl bg-pw-accent px-3.5 py-2 text-xs font-semibold text-[#0A263A] disabled:opacity-40 transition-opacity"
           >
             {invio ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
             Salva l’idea
