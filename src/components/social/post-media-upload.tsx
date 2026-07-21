@@ -7,6 +7,7 @@ import { reportUnknown } from '@/lib/report-error';
 import { SOCIAL_MEDIA_BUCKET, buildMediaPath, resolveMediaUrls, isVideoPath, VIDEO_MIME, MAX_FILE_MB } from '@/lib/social-media';
 import { preparaImmagine, mb } from '@/lib/image-resize';
 import { ImagePlus, X, Loader2, Play } from 'lucide-react';
+import { Modal } from '@/components/ui/modal';
 
 /**
  * Caricamento immagini di un post social.
@@ -33,6 +34,7 @@ export function PostMediaUpload({
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [previews, setPreviews] = useState<Record<string, string>>({});
+  const [videoTroppoGrande, setVideoTroppoGrande] = useState<{ nome: string; peso: string } | null>(null);
 
   // I percorsi da soli non si possono mostrare: servono link firmati.
   useEffect(() => {
@@ -61,11 +63,15 @@ export function PostMediaUpload({
         // del piano Supabase (50 MB) e' invalicabile: meglio dirlo qui che
         // far fallire il caricamento a meta strada.
         if (file.size > MAX_FILE_MB * 1024 * 1024) {
-          toast.error(
-            isVideo
-              ? `${file.name} pesa ${mb(file.size)}: il massimo è ${MAX_FILE_MB} MB. Accorcia il reel o esportalo più leggero.`
-              : `${file.name} supera i ${MAX_FILE_MB} MB`
-          );
+          if (isVideo) {
+            // Un messaggio che dice solo "troppo grande" lascia l'utente
+            // fermo. Un export tipico da telecamera o da ProRes pesa
+            // centinaia di MB; Instagram lo ricomprime comunque a una
+            // frazione, quindi la ricetta di export è la risposta vera.
+            setVideoTroppoGrande({ nome: file.name, peso: mb(file.size) });
+          } else {
+            toast.error(`${file.name} supera i ${MAX_FILE_MB} MB`);
+          }
           continue;
         }
 
@@ -93,7 +99,7 @@ export function PostMediaUpload({
 
       if (added.length > 0) {
         onChange([...value, ...added]);
-        toast.success(added.length === 1 ? 'Immagine caricata' : `${added.length} immagini caricate`);
+        toast.success(added.length === 1 ? 'File caricato' : `${added.length} file caricati`);
       }
     } finally {
       setUploading(false);
@@ -112,7 +118,7 @@ export function PostMediaUpload({
 
   return (
     <div>
-      <label className="block text-sm font-medium text-pw-text mb-1.5">Immagini</label>
+      <label className="block text-sm font-medium text-pw-text mb-1.5">Foto e reel</label>
 
       <div className="flex flex-wrap gap-2">
         {value.map((path) => (
@@ -164,6 +170,42 @@ export function PostMediaUpload({
         className="hidden"
         onChange={(e) => handleFiles(e.target.files)}
       />
+      <Modal
+        open={!!videoTroppoGrande}
+        onClose={() => setVideoTroppoGrande(null)}
+        title="Il video è troppo pesante"
+        size="md"
+      >
+        {videoTroppoGrande && (
+          <div className="space-y-4 text-sm">
+            <p className="text-pw-text-muted">
+              <strong className="text-pw-text">{videoTroppoGrande.nome}</strong> pesa{' '}
+              {videoTroppoGrande.peso}, il massimo è {MAX_FILE_MB} MB.
+            </p>
+            <p className="text-pw-text-muted">
+              Non è una perdita di qualità: Instagram ricomprime comunque ogni video a circa
+              questa dimensione. Un reel esportato bene pesa 15-30 MB e sul telefono è
+              indistinguibile dall&apos;originale.
+            </p>
+
+            <div className="rounded-xl border border-pw-border bg-pw-surface-2 p-4">
+              <p className="font-medium text-pw-text mb-2">Come esportarlo</p>
+              <ul className="space-y-1.5 text-pw-text-muted text-[13px]">
+                <li>· Formato <strong className="text-pw-text">MP4</strong>, codifica H.264 — non ProRes, non il MOV che esce dalla telecamera</li>
+                <li>· Risoluzione <strong className="text-pw-text">1080×1920</strong>, verticale 9:16</li>
+                <li>· Bitrate <strong className="text-pw-text">8-10 Mbps</strong></li>
+                <li>· Premiere: preset «H.264», poi abbassa il bitrate a 10</li>
+                <li>· CapCut o telefono: esporta a 1080p, non 4K</li>
+              </ul>
+            </div>
+
+            <p className="text-[12px] text-pw-text-dim">
+              Se servono davvero i file originali pesanti si può passare al piano Supabase a pagamento.
+            </p>
+          </div>
+        )}
+      </Modal>
+
       <p className="text-[11px] text-pw-text-dim mt-1.5">
         Foto e reel (MP4 o MOV). Il primo file fa da copertina nella griglia del cliente.
         Le foto grandi vengono rimpicciolite da sole; i video no, quindi devono stare
