@@ -116,6 +116,10 @@ function Contenuti() {
   // non deve rompere la pagina: filtroValido lo riduce a null e si vede tutto.
   const searchParams = useSearchParams();
   const filtro = filtroValido(searchParams.get('filtro'));
+  // L'id di un contenuto da aprire subito: ci arriva dalla home, dalla scheda
+  // del prossimo in uscita.
+  const daAprire = searchParams.get('post');
+  const [giaAperto, setGiaAperto] = useState(false);
 
   const nome = fullName?.split(' ')[0] || '';
   const ora = new Date().getHours();
@@ -167,6 +171,21 @@ function Contenuti() {
   }, [supabase]);
 
   useEffect(() => { fetchPosts(); }, [fetchPosts]);
+
+  /**
+   * Apre da solo il contenuto indicato nell'indirizzo.
+   *
+   * Una volta sola: senza il segnaposto, chiudendo la finestra il riquadro si
+   * riaprirebbe da capo — l'indirizzo non cambia — e non si riuscirebbe piu'
+   * a uscirne. Se l'id non corrisponde a niente (contenuto rimosso, link
+   * vecchio) non succede nulla e si vede la griglia.
+   */
+  useEffect(() => {
+    if (!daAprire || giaAperto || posts.length === 0) return;
+    const trovato = posts.find((p) => p.id === daAprire);
+    if (trovato) setSelected(trovato);
+    setGiaAperto(true);
+  }, [daAprire, giaAperto, posts]);
 
   /**
    * I contenuti da mostrare, secondo il filtro chiesto dalla home.

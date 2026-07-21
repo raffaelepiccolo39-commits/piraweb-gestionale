@@ -288,28 +288,28 @@ export default function PortaleHome() {
             </Link>
           ))}
         </div>
-      </div>
 
-      {/* ── Anteprima del piano ── */}
-      <div>
-        <div className="flex items-baseline justify-between mb-2">
-          {/* Senza l'occhiello "Piano editoriale": c'e' gia' in cima alla
-              pagina, e ripeterlo a mezzo schermo di distanza fa sembrare due
-              sezioni diverse la stessa cosa. */}
-          <h2 className="text-base font-semibold text-pw-text">Il prossimo contenuto</h2>
+        {/* ── Il prossimo in uscita, nello stesso riquadro ──
+            Non e' un'altra sezione: sono due modi di guardare lo stesso piano
+            del mese — quanti contenuti ci sono, e qual e' il prossimo. Separati
+            sembravano due argomenti. */}
+        <div className="flex items-baseline justify-between mt-4 pt-3 border-t border-pw-border">
+          <h3 className="text-sm font-semibold text-pw-text">Il prossimo contenuto</h3>
           <Link href="/portale/contenuti" className="text-xs font-medium text-pw-accent inline-flex items-center gap-0.5">
             Vedi tutto <ChevronRight size={14} />
           </Link>
         </div>
 
         {!prossimo ? (
-          <p className="text-sm text-pw-text-muted py-6 text-center rounded-2xl border border-pw-border">
+          <p className="text-sm text-pw-text-muted py-5 text-center">
             Ancora nessun contenuto programmato.
           </p>
         ) : (
           <Link
-            href="/portale/contenuti"
-            className="flex gap-3 rounded-2xl border border-pw-border bg-pw-surface p-3 active:bg-pw-surface-2 transition-colors"
+            // Al CONTENUTO, non all'elenco: la scheda parla di questo qui, e
+            // farla atterrare sulla griglia obbligava a ritrovarlo a mano.
+            href={`/portale/contenuti?post=${prossimo.id}`}
+            className="flex gap-3 mt-2.5 -mx-1 px-1 py-1 rounded-xl active:bg-pw-surface-2 transition-colors"
           >
             {/* A sinistra: la foto piccola e sotto il copy. La foto a tutta
                 larghezza si mangiava mezza schermata per un contenuto solo. */}
