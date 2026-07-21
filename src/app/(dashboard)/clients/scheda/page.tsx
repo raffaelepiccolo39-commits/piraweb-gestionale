@@ -23,6 +23,7 @@ import { ClientAssistant } from '@/components/clients/client-assistant';
 import { PortalAccess } from '@/components/clients/portal-access';
 import { ClientMaterials } from '@/components/clients/client-materials';
 import { ShootingRequests } from '@/components/clients/shooting-requests';
+import { ClientMetrics } from '@/components/clients/client-metrics';
 import { formatDate, formatCurrency } from '@/lib/utils';
 import type { Client, ClientContract, ClientPayment, ClientFinancialSummary, PaymentLog, ClientKnowledgeBase } from '@/types/database';
 import {
@@ -566,6 +567,9 @@ function ClientDetailPageInner() {
 
       {/* Date di shooting proposte dal cliente */}
       <ShootingRequests clientId={id} clientName={client.company || client.name} />
+
+      {/* Numeri del profilo, un mese per riga */}
+      <ClientMetrics clientId={id} />
 
       {/* Moodboard, script e idee video da far approvare */}
       <ClientMaterials clientId={id} />
