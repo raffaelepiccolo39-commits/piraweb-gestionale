@@ -4,10 +4,10 @@ import { useCallback, useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
-import { usePortal } from './portal-gate';
 import { cn } from '@/lib/utils';
-import { Home, LayoutGrid, Palette, Menu as MenuIcon, LogOut } from 'lucide-react';
+import { Home, LayoutGrid, Palette, Menu as MenuIcon } from 'lucide-react';
 import { PortalMenu } from './portal-menu';
+import { PortalNotifiche } from './portal-notifiche';
 
 /**
  * Guscio del portale: intestazione col nome del cliente e barra in basso.
@@ -26,7 +26,6 @@ const TABS = [
 ];
 
 export function PortalShell({ children }: { children: React.ReactNode }) {
-  const { clientName } = usePortal();
   const pathname = usePathname();
   const router = useRouter();
   const supabase = createClient();
@@ -71,26 +70,21 @@ export function PortalShell({ children }: { children: React.ReactNode }) {
                       lg:min-h-0 lg:h-[calc(100dvh-3rem)] lg:max-w-[26rem]
                       lg:rounded-[2rem] lg:border lg:border-pw-border lg:shadow-2xl lg:overflow-hidden">
       <header className="sticky top-0 z-40 border-b border-pw-border bg-pw-surface/95 backdrop-blur">
+        {/* Solo il logo dell'agenzia. Il nome del cliente non serve — lo sa
+            gia' di chi e' l'area in cui e' entrato — e "Esci" sta nel menu,
+            dove si cerca: in barra era un bottone da sbagliare, accanto a
+            niente altro su cui premere. */}
         <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
-          {/* Il logo dell'agenzia: e' il nostro spazio, offerto al cliente.
-              Due file perche' il tema chiaro/scuro chiede due versioni, come
-              gia fa la sidebar del gestionale. */}
-          <div className="min-w-0 flex items-center gap-3">
+          <div className="min-w-0">
+            {/* Due file perche' il tema chiaro/scuro chiede due versioni, come
+                gia fa la sidebar del gestionale. */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/logo-dark.png" alt="Pira Web" className="h-7 w-auto dark:hidden" />
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/logo.png" alt="Pira Web" className="h-7 w-auto hidden dark:block" />
-            <span className="text-sm text-pw-text-dim truncate border-l border-pw-border pl-3">
-              {clientName}
-            </span>
           </div>
-          <button
-            onClick={async () => { await supabase.auth.signOut(); router.replace('/login'); }}
-            className="shrink-0 p-2 rounded-lg text-pw-text-dim hover:text-pw-text hover:bg-pw-surface-2 transition-colors"
-            aria-label="Esci"
-          >
-            <LogOut size={18} />
-          </button>
+
+          <PortalNotifiche inAttesa={inAttesa} />
         </div>
       </header>
 
