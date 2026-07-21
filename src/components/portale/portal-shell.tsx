@@ -50,11 +50,17 @@ export function PortalShell({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-pw-bg flex flex-col">
       <header className="sticky top-0 z-40 border-b border-pw-border bg-pw-surface/95 backdrop-blur">
         <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
-          <div className="min-w-0">
-            <p className="text-[11px] uppercase tracking-wider text-pw-text-dim">
-              Area riservata
-            </p>
-            <h1 className="text-base font-semibold text-pw-text truncate">{clientName}</h1>
+          {/* Il logo dell'agenzia: e' il nostro spazio, offerto al cliente.
+              Due file perche' il tema chiaro/scuro chiede due versioni, come
+              gia fa la sidebar del gestionale. */}
+          <div className="min-w-0 flex items-center gap-3">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo-dark.png" alt="Pira Web" className="h-7 w-auto dark:hidden" />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo.png" alt="Pira Web" className="h-7 w-auto hidden dark:block" />
+            <span className="text-sm text-pw-text-dim truncate border-l border-pw-border pl-3">
+              {clientName}
+            </span>
           </div>
           <button
             onClick={async () => { await supabase.auth.signOut(); router.replace('/login'); }}

@@ -78,7 +78,7 @@ export default function PortaleContenutiPage() {
   const [sending, setSending] = useState(false);
   const [askChanges, setAskChanges] = useState(false);
   const toast = useToast();
-  const { fullName } = usePortal();
+  const { fullName, clientName, clientLogo } = usePortal();
 
   const nome = fullName?.split(' ')[0] || '';
   const ora = new Date().getHours();
@@ -164,13 +164,32 @@ export default function PortaleContenutiPage() {
       <div className="relative overflow-hidden rounded-2xl bg-[var(--pw-navy)] p-5 text-white mb-5">
         <div className="absolute -right-8 -top-8 h-28 w-28 rounded-full bg-[var(--pw-gold)]/10" aria-hidden="true" />
         <div className="absolute -right-2 top-10 h-16 w-16 rounded-full bg-[var(--pw-gold)]/5" aria-hidden="true" />
-        <p className="relative text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--pw-gold)]">
-          Il tuo piano editoriale
-        </p>
-        <h1 className="relative mt-1 text-2xl font-bold leading-tight">
-          {saluto}{nome ? `, ${nome}` : ''}
-        </h1>
-        <p className="relative mt-1.5 text-sm text-white/75">
+        <div className="relative flex items-start gap-3.5">
+          {/* Logo del cliente su fondo bianco: molti loghi sono scuri e sul
+              navy sparirebbero. Se manca, si ripiega sull'iniziale. */}
+          <div className="shrink-0 w-14 h-14 rounded-xl bg-white flex items-center justify-center overflow-hidden">
+            {clientLogo ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={clientLogo} alt={clientName} className="w-full h-full object-contain p-1.5" />
+            ) : (
+              <span className="text-xl font-bold text-[var(--pw-navy)]">
+                {clientName.charAt(0).toUpperCase()}
+              </span>
+            )}
+          </div>
+
+          <div className="min-w-0">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--pw-gold)]">
+              {saluto}{nome ? `, ${nome}` : ''}
+            </p>
+            {/* Formula neutra: il portale lo apre chi vuole il cliente, e
+                sbagliare il genere di chi legge fa un pessimo effetto. */}
+            <h1 className="mt-1 text-xl font-bold leading-tight">
+              Ti diamo il benvenuto nella tua dashboard
+            </h1>
+          </div>
+        </div>
+        <p className="relative mt-3 text-sm text-white/75">
           {daApprovare > 0
             ? <><strong className="font-semibold text-white">{daApprovare}</strong> {daApprovare === 1 ? 'contenuto aspetta' : 'contenuti aspettano'} una tua risposta</>
             : `${posts.length} ${posts.length === 1 ? 'contenuto' : 'contenuti'} — tutto approvato, grazie`}

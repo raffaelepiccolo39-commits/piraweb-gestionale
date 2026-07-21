@@ -20,6 +20,7 @@ interface PortalIdentity {
   userId: string;
   clientId: string;
   clientName: string;
+  clientLogo: string | null;
   fullName: string | null;
   email: string;
   passwordScelta: boolean;
@@ -59,7 +60,7 @@ export function PortalGate({ children }: { children: React.ReactNode }) {
       // restituisce e restiamo comunque fuori.
       const { data } = await supabase
         .from('client_portal_users')
-        .select('id, client_id, email, full_name, is_active, password_set_at, client:clients(name, company)')
+        .select('id, client_id, email, full_name, is_active, password_set_at, client:clients(name, company, logo_url)')
         .eq('id', user.id)
         .maybeSingle();
 
@@ -68,7 +69,7 @@ export function PortalGate({ children }: { children: React.ReactNode }) {
       const row = data as {
         id: string; client_id: string; email: string; full_name: string | null;
         is_active: boolean; password_set_at: string | null;
-        client: { name: string; company: string | null } | null;
+        client: { name: string; company: string | null; logo_url: string | null } | null;
       } | null;
 
       if (!row || !row.is_active) { setState({ kind: 'no_access' }); return; }
@@ -79,6 +80,7 @@ export function PortalGate({ children }: { children: React.ReactNode }) {
           userId: row.id,
           clientId: row.client_id,
           clientName: row.client?.company || row.client?.name || '',
+          clientLogo: row.client?.logo_url || null,
           fullName: row.full_name,
           email: row.email,
           passwordScelta: !!row.password_set_at,
