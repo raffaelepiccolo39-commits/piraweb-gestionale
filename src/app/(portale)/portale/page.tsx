@@ -32,6 +32,7 @@ interface PortalPost {
   hashtags: string | null;
   client_approval: 'pending' | 'approved' | 'changes_requested';
   client_comment: string | null;
+  formato: 'post' | 'reel' | 'storia' | 'carosello';
 }
 
 // Stesse icone e colori del calendario social nel gestionale: il cliente e il
@@ -116,7 +117,7 @@ export default function PortaleContenutiPage() {
   const fetchPosts = useCallback(async () => {
     const { data, error } = await supabase
       .from('social_posts')
-      .select('id, title, caption, platforms, status, scheduled_at, published_at, media_urls, hashtags, client_approval, client_comment')
+      .select('id, title, caption, platforms, status, scheduled_at, published_at, media_urls, hashtags, client_approval, client_comment, formato')
       .order('scheduled_at', { ascending: false, nullsFirst: false });
 
     if (error) reportSupabaseError(error, 'portale-contenuti', {});
@@ -210,10 +211,17 @@ export default function PortaleContenutiPage() {
               className="relative aspect-[4/5] overflow-hidden rounded-sm sm:rounded-lg bg-pw-surface-2 group"
             >
               {cover ? (
-                coverPath && isVideoPath(coverPath) ? (
+                (coverPath && isVideoPath(coverPath)) || post.formato === 'reel' ? (
                   <>
-                    <video src={cover} className="w-full h-full object-cover" muted playsInline preload="metadata" />
-                    {/* Il simbolo del play: come su Instagram, distingue un reel da una foto */}
+                    {/* Un reel in fase di piano ha spesso un fotogramma come
+                        copertina, non il video: il simbolo dipende dal formato
+                        dichiarato, non dal tipo di file. */}
+                    {coverPath && isVideoPath(coverPath) ? (
+                      <video src={cover} className="w-full h-full object-cover" muted playsInline preload="metadata" />
+                    ) : (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={cover} alt={post.title} className="w-full h-full object-cover" loading="lazy" />
+                    )}
                     <span className="absolute inset-0 flex items-center justify-center">
                       <Play size={22} className="text-white drop-shadow-lg" fill="white" />
                     </span>
