@@ -205,11 +205,9 @@ export default function PortaleHome() {
           <h1 className="mt-1.5 text-xl font-bold leading-snug">
             Benvenuto nell’area dedicata a {clientName}
           </h1>
-          <p className="mt-2 text-sm text-white/75">
-            {daApprovare + materialiAttesa > 0
-              ? 'Ecco cosa aspetta un tuo parere'
-              : 'Non c’è nulla in sospeso, tutto a posto'}
-          </p>
+          {/* Niente sottotitolo: diceva quante cose aspettano una risposta,
+              ma da quando c'e' la campanella quel mestiere lo fa lei — e lo fa
+              meglio, perche' si puo' aprire. */}
         </div>
       </div>
 
