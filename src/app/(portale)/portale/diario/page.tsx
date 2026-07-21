@@ -52,7 +52,10 @@ export default function PortaleDiarioPage() {
   const carica = useCallback(async () => {
     const { data, error } = await supabase
       .from('client_ideas')
-      .select('id, autore, testo, stato, risposta_team, created_at, portal_user:client_portal_users(full_name), profilo:profiles(full_name)')
+      // La chiave esterna va nominata: client_ideas punta a profiles due
+      // volte (chi ha scritto e chi ha valutato) e senza indicarla PostgREST
+      // rifiuta la query invece di sceglierne una.
+      .select('id, autore, testo, stato, risposta_team, created_at, portal_user:client_portal_users(full_name), profilo:profiles!client_ideas_profile_id_fkey(full_name)')
       .order('created_at', { ascending: false });
 
     if (error) reportSupabaseError(error, 'portale-diario', {});
