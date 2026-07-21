@@ -3,15 +3,15 @@
 import { useCallback, useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { reportSupabaseError } from '@/lib/report-error';
-import { Loader2, FileText } from 'lucide-react';
+import { Loader2, FileText, Download } from 'lucide-react';
 
 /**
  * Il contratto del cliente, in sola lettura.
  *
- * Il PDF NON è scaricabile da qui: sta nel bucket privato "contracts", le
- * cui policy sono admin-only. Aprire il bucket sarebbe stato più veloce e
- * molto peggio; quando servirà, il download passerà da una route che genera
- * un link firmato dopo aver verificato current_client_id().
+ * Il PDF sta nel bucket privato "contracts", con policy admin-only: il
+ * download passa da /api/portal/contratto/[id], che firma il link per un
+ * minuto dopo che l'RLS ha confermato che il contratto è di chi lo chiede.
+ * Aprire il bucket sarebbe stato più veloce e molto peggio.
  */
 
 interface Contract {
@@ -21,6 +21,8 @@ interface Contract {
   start_date: string;
   status: string;
   payment_timing: string | null;
+  attachment_url: string | null;
+  attachment_name: string | null;
 }
 
 const euro = (n: number) =>
@@ -46,7 +48,7 @@ export default function PortaleContrattoPage() {
   const fetchContract = useCallback(async () => {
     const { data, error } = await supabase
       .from('client_contracts')
-      .select('id, monthly_fee, duration_months, start_date, status, payment_timing')
+      .select('id, monthly_fee, duration_months, start_date, status, payment_timing, attachment_url, attachment_name')
       .order('start_date', { ascending: false });
 
     if (error) reportSupabaseError(error, 'portale-contratto', {});
@@ -107,13 +109,26 @@ export default function PortaleContrattoPage() {
                 <span className="text-sm font-medium text-pw-text text-right">{value}</span>
               </div>
             ))}
+
+            {/* Il file sta in un bucket privato: il link passa da una route che
+                lo firma per un minuto dopo aver verificato che sia suo. */}
+            {c.attachment_url && (
+              <a
+                href={`/api/portal/contratto/${c.id}`}
+                className="flex items-center justify-center gap-2 px-4 py-3.5 text-sm font-medium text-pw-accent hover:bg-pw-surface-2 transition-colors rounded-b-2xl"
+              >
+                <Download size={16} /> Scarica il contratto
+              </a>
+            )}
           </div>
         ))}
       </div>
 
-      <p className="text-[11px] text-pw-text-dim mt-5 text-center">
-        Ti serve una copia firmata del contratto? Scrivici e te la mandiamo.
-      </p>
+      {!contracts.some((c) => c.attachment_url) && (
+        <p className="text-[11px] text-pw-text-dim mt-5 text-center">
+          Ti serve una copia firmata del contratto? Scrivici e te la mandiamo.
+        </p>
+      )}
     </>
   );
 }

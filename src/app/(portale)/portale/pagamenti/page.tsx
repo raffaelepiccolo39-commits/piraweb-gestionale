@@ -4,7 +4,13 @@ import { useCallback, useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { reportSupabaseError } from '@/lib/report-error';
 import { cn } from '@/lib/utils';
-import { Loader2, Receipt, Check, Clock } from 'lucide-react';
+import { useToast } from '@/components/ui/toast';
+import { Loader2, Receipt, Check, Clock, Landmark, Copy } from 'lucide-react';
+
+// Impostati in Vercel. Se mancano, il riquadro del bonifico non compare:
+// meglio nessuna coordinata che una sbagliata.
+const IBAN = process.env.NEXT_PUBLIC_IBAN || '';
+const INTESTATARIO = process.env.NEXT_PUBLIC_INTESTATARIO || 'Pira Web';
 
 /**
  * Le rate del cliente. Sola lettura: la RLS
@@ -42,6 +48,7 @@ const mensilita = (iso: string) =>
 
 export default function PortalePagamentiPage() {
   const supabase = createClient();
+  const toast = useToast();
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -126,6 +133,32 @@ export default function PortalePagamentiPage() {
           </div>
         ))}
       </div>
+
+      {/* Le coordinate per il bonifico. Finora chi voleva pagare guardando
+          questa pagina doveva cercarsi l'IBAN in una vecchia fattura: si
+          mostrano dove serve, cioè accanto a quello che c'è da saldare.
+          Vengono da una variabile d'ambiente e non dal database perché
+          company_settings è admin-only — contiene la posizione della sede,
+          che ai clienti non deve arrivare. */}
+      {IBAN && payments.some((p) => !p.is_paid) && (
+        <div className="mt-5 rounded-2xl border border-pw-border bg-pw-surface p-4">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-pw-text-dim mb-2 inline-flex items-center gap-1.5">
+            <Landmark size={12} /> Come saldare
+          </p>
+          <p className="text-sm text-pw-text-muted">Bonifico intestato a</p>
+          <p className="text-sm font-medium text-pw-text">{INTESTATARIO}</p>
+          <button
+            onClick={() => {
+              navigator.clipboard.writeText(IBAN.replace(/\s/g, ''));
+              toast.success('IBAN copiato');
+            }}
+            className="mt-2 w-full flex items-center justify-between gap-3 rounded-xl bg-pw-surface-2 px-3 py-2.5 text-left hover:bg-pw-surface-2/70 transition-colors"
+          >
+            <span className="font-mono text-sm text-pw-text tracking-tight break-all">{IBAN}</span>
+            <Copy size={15} className="shrink-0 text-pw-text-dim" />
+          </button>
+        </div>
+      )}
 
       <p className="text-[11px] text-pw-text-dim mt-5 text-center">
         Se hai già pagato una rata che qui risulta da saldare, può essere solo che non l&apos;abbiamo ancora registrata.
