@@ -38,6 +38,20 @@ export const euro = (n: number) =>
     useGrouping: true,
   }).format(Number(n))}`;
 
+/**
+ * Quando esce il contenuto, per esteso.
+ *
+ * Con il giorno della settimana: "giovedì 14 agosto alle 18:00" dice qualcosa
+ * in più di "14/08 18:00" a chi sta guardando il piano.
+ */
+function quandoEsce(iso: string | null): string {
+  if (!iso) return 'Data ancora da fissare';
+  const d = new Date(iso);
+  const giorno = d.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' });
+  const ora = d.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+  return `${giorno} alle ${ora}`;
+}
+
 /** Come si legge una fascia oraria, per il cliente. */
 const FASCE: Record<string, string> = {
   mattina: 'Mattina',
@@ -55,9 +69,11 @@ interface Shooting {
 interface Contenuto {
   id: string;
   title: string;
+  caption: string | null;
   media_urls: string[] | null;
   formato: string;
   client_approval: string;
+  scheduled_at: string | null;
 }
 
 /**
@@ -101,15 +117,24 @@ export default function PortaleHome() {
   const [scadenzaPiano, setScadenzaPiano] = useState<string | null>(null);
   const [conte, setConte] = useState({ daApprovare: 0, inProgramma: 0, postati: 0 });
 
+  // Il prossimo contenuto in uscita: la query ne chiede uno solo.
+  const prossimo = contenuti[0] ?? null;
+  const percorsoProssimo = prossimo ? coverDi(prossimo.media_urls) : null;
+  const anteprimaProssimo = percorsoProssimo ? media[percorsoProssimo] : undefined;
+
   const carica = useCallback(async () => {
     const oggi = new Date().toISOString().slice(0, 10);
 
     const [post, materiali, rate, shooting, serve, perConte] = await Promise.all([
+      // Il PROSSIMO contenuto, uno solo: da adesso in avanti, il piu' vicino.
+      // Serve anche la didascalia, che prima non veniva chiesta perche' la
+      // griglia mostrava solo le anteprime.
       supabase.from('social_posts')
-        .select('id, title, media_urls, formato, client_approval')
+        .select('id, title, caption, media_urls, formato, client_approval, scheduled_at')
         .in('status', ['ready', 'scheduled'])
-        .order('scheduled_at', { ascending: true, nullsFirst: false })
-        .limit(6),
+        .gte('scheduled_at', new Date().toISOString())
+        .order('scheduled_at', { ascending: true })
+        .limit(1),
       supabase.from('client_materials')
         .select('id', { count: 'exact', head: true })
         .eq('client_approval', 'pending'),
@@ -392,55 +417,76 @@ export default function PortaleHome() {
           {/* Senza l'occhiello "Piano editoriale": c'e' gia' in cima alla
               pagina, e ripeterlo a mezzo schermo di distanza fa sembrare due
               sezioni diverse la stessa cosa. */}
-          <h2 className="text-base font-semibold text-pw-text">I prossimi contenuti</h2>
+          <h2 className="text-base font-semibold text-pw-text">Il prossimo contenuto</h2>
           <Link href="/portale/contenuti" className="text-xs font-medium text-pw-accent inline-flex items-center gap-0.5">
             Vedi tutto <ChevronRight size={14} />
           </Link>
         </div>
 
-        {contenuti.length === 0 ? (
+        {!prossimo ? (
           <p className="text-sm text-pw-text-muted py-6 text-center rounded-2xl border border-pw-border">
             Ancora nessun contenuto programmato.
           </p>
         ) : (
-          <div className="grid grid-cols-3 gap-1.5">
-            {contenuti.map((c) => {
-              const percorso = coverDi(c.media_urls);
-              const url = percorso ? media[percorso] : undefined;
-              return (
-                <Link
-                  key={c.id}
-                  href="/portale/contenuti"
-                  className="relative aspect-[4/5] rounded-lg overflow-hidden bg-pw-surface-2"
-                >
-                  {url ? (
-                    percorso && isVideoPath(percorso) ? (
-                      <video src={url} className="w-full h-full object-cover" muted playsInline preload="metadata" />
-                    ) : (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={url} alt="" className="w-full h-full object-cover" loading="lazy" />
-                    )
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center p-1.5 text-center">
-                      <span className="text-[9px] text-pw-text-dim line-clamp-3">{c.title}</span>
-                    </div>
-                  )}
+          <Link
+            href="/portale/contenuti"
+            className="block rounded-2xl border border-pw-border bg-pw-surface overflow-hidden active:bg-pw-surface-2 transition-colors"
+          >
+            <div className="relative aspect-[4/5] bg-pw-surface-2">
+              {anteprimaProssimo ? (
+                percorsoProssimo && isVideoPath(percorsoProssimo) ? (
+                  <video src={anteprimaProssimo} className="w-full h-full object-cover" muted playsInline preload="metadata" />
+                ) : (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={anteprimaProssimo} alt="" className="w-full h-full object-cover" />
+                )
+              ) : (
+                <div className="w-full h-full flex items-center justify-center p-6 text-center">
+                  <span className="text-sm text-pw-text-dim">{prossimo.title}</span>
+                </div>
+              )}
 
-                  {c.formato === 'reel' && (
-                    <span className="absolute inset-0 flex items-center justify-center">
-                      <Play size={16} className="text-white drop-shadow" fill="white" />
-                    </span>
-                  )}
-                  <span className={cn(
-                    'absolute top-1 right-1 w-2 h-2 rounded-full',
-                    c.client_approval === 'approved' ? 'bg-green-500'
-                      : c.client_approval === 'changes_requested' ? 'bg-amber-500'
-                      : 'bg-blue-500'
-                  )} />
-                </Link>
-              );
-            })}
-          </div>
+              {prossimo.formato === 'reel' && (
+                <span className="absolute inset-0 flex items-center justify-center">
+                  <Play size={34} className="text-white drop-shadow-lg" fill="white" />
+                </span>
+              )}
+
+              {/* Lo stato sopra la foto: si legge senza dover scorrere. */}
+              <span className={cn(
+                'absolute top-2 right-2 px-2 py-0.5 rounded text-[10px] font-semibold text-white',
+                prossimo.client_approval === 'approved' ? 'bg-green-500'
+                  : prossimo.client_approval === 'changes_requested' ? 'bg-amber-500'
+                  : 'bg-blue-500'
+              )}>
+                {prossimo.client_approval === 'approved' ? 'Approvato'
+                  : prossimo.client_approval === 'changes_requested' ? 'Modifiche chieste'
+                  : 'Da approvare'}
+              </span>
+            </div>
+
+            <div className="p-4">
+              {/* Data e ora per prime: e' la domanda a cui questa scheda
+                  risponde, cioe' quando esce la prossima cosa. */}
+              <p className="text-sm font-semibold text-pw-text first-letter:uppercase">
+                {quandoEsce(prossimo.scheduled_at)}
+              </p>
+
+              {prossimo.caption ? (
+                // Il copy intero renderebbe la home lunghissima: qui se ne
+                // legge l'inizio, il resto sta nel dettaglio del contenuto.
+                <p className="mt-2 text-sm text-pw-text-muted whitespace-pre-wrap line-clamp-4">
+                  {prossimo.caption}
+                </p>
+              ) : (
+                <p className="mt-2 text-sm text-pw-text-muted">{prossimo.title}</p>
+              )}
+
+              <span className="mt-3 inline-flex items-center gap-0.5 text-xs font-medium text-pw-accent">
+                Apri il piano editoriale <ChevronRight size={13} />
+              </span>
+            </div>
+          </Link>
         )}
       </div>
 
