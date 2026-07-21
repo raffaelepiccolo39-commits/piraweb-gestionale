@@ -75,7 +75,8 @@ export async function sendPortalInviteEmail({ to, fullName, clientName, inviteLi
                 approvarli e tenere sott'occhio lo stato del rapporto con noi.
               </p>
               <p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:#4B5563;">
-                Al primo accesso ti verrà chiesto di scegliere una password.
+                Al primo accesso sceglierai la tua password. Questo link funziona una volta sola,
+                quindi usalo appena puoi.
               </p>
             </td>
           </tr>

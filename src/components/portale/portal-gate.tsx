@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Loader2, ShieldOff } from 'lucide-react';
 
@@ -22,6 +22,7 @@ interface PortalIdentity {
   clientName: string;
   fullName: string | null;
   email: string;
+  passwordScelta: boolean;
 }
 
 const PortalContext = createContext<PortalIdentity | null>(null);
@@ -40,6 +41,7 @@ type State =
 export function PortalGate({ children }: { children: React.ReactNode }) {
   const supabase = createClient();
   const router = useRouter();
+  const pathname = usePathname();
   const [state, setState] = useState<State>({ kind: 'loading' });
 
   useEffect(() => {
@@ -57,7 +59,7 @@ export function PortalGate({ children }: { children: React.ReactNode }) {
       // restituisce e restiamo comunque fuori.
       const { data } = await supabase
         .from('client_portal_users')
-        .select('id, client_id, email, full_name, is_active, client:clients(name, company)')
+        .select('id, client_id, email, full_name, is_active, password_set_at, client:clients(name, company)')
         .eq('id', user.id)
         .maybeSingle();
 
@@ -65,7 +67,8 @@ export function PortalGate({ children }: { children: React.ReactNode }) {
 
       const row = data as {
         id: string; client_id: string; email: string; full_name: string | null;
-        is_active: boolean; client: { name: string; company: string | null } | null;
+        is_active: boolean; password_set_at: string | null;
+        client: { name: string; company: string | null } | null;
       } | null;
 
       if (!row || !row.is_active) { setState({ kind: 'no_access' }); return; }
@@ -78,8 +81,15 @@ export function PortalGate({ children }: { children: React.ReactNode }) {
           clientName: row.client?.company || row.client?.name || '',
           fullName: row.full_name,
           email: row.email,
+          passwordScelta: !!row.password_set_at,
         },
       });
+
+      // Chi non ha ancora scelto la password entra solo col link dell'invito,
+      // che scade: va portato subito a sceglierla, prima di guardarsi in giro.
+      if (!row.password_set_at && !window.location.pathname.startsWith('/portale/benvenuto')) {
+        router.replace('/portale/benvenuto');
+      }
 
       // Segna il passaggio, così nel gestionale si vede chi è entrato e quando.
       // Via API: il cliente non ha il permesso di scrivere sulla propria riga.
@@ -87,7 +97,7 @@ export function PortalGate({ children }: { children: React.ReactNode }) {
     })();
 
     return () => { cancelled = true; };
-  }, [supabase, router]);
+  }, [supabase, router, pathname]);
 
   if (state.kind === 'loading') {
     return (

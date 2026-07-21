@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/components/ui/toast';
 import { reportSupabaseError } from '@/lib/report-error';
-import { KeyRound, Plus, Mail, Ban, RotateCcw, Loader2 } from 'lucide-react';
+import { KeyRound, Plus, Mail, Ban, RotateCcw, Loader2, Send } from 'lucide-react';
 
 /**
  * Accessi al portale per un cliente.
@@ -23,6 +23,7 @@ interface PortalUser {
   full_name: string | null;
   is_active: boolean;
   last_login_at: string | null;
+  password_set_at: string | null;
   created_at: string;
 }
 
@@ -40,7 +41,7 @@ export function PortalAccess({ clientId, clientName }: { clientId: string; clien
   const fetchUsers = useCallback(async () => {
     const { data, error } = await supabase
       .from('client_portal_users')
-      .select('id, email, full_name, is_active, last_login_at, created_at')
+      .select('id, email, full_name, is_active, last_login_at, password_set_at, created_at')
       .eq('client_id', clientId)
       .order('created_at', { ascending: true });
 
@@ -94,6 +95,17 @@ export function PortalAccess({ clientId, clientName }: { clientId: string; clien
     }
     toast.success(u.is_active ? 'Accesso revocato' : 'Accesso riattivato');
     await fetchUsers();
+  };
+
+  const handleResend = async (u: PortalUser) => {
+    const res = await fetch('/api/portal/access', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: u.id, resend: true }),
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) { toast.error(body.error || 'Invio non riuscito'); return; }
+    toast.success(`Nuovo invito inviato a ${u.email}`);
   };
 
   return (
@@ -161,11 +173,21 @@ export function PortalAccess({ clientId, clientName }: { clientId: string; clien
                       ? `Ultimo accesso: ${new Date(u.last_login_at).toLocaleDateString('it-IT')}`
                       : 'Non è ancora mai entrato'}
                   </p>
+                  {!u.password_set_at && u.is_active && (
+                    <p className="text-[11px] text-amber-500 mt-0.5">
+                      Password non ancora scelta: entra solo col link dell&apos;invito, che scade.
+                    </p>
+                  )}
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   <Badge tone={u.is_active ? 'success' : 'neutral'} dot>
                     {u.is_active ? 'Attivo' : 'Revocato'}
                   </Badge>
+                  {!u.password_set_at && u.is_active && (
+                    <Button size="sm" variant="outline" onClick={() => handleResend(u)} title="Rimanda il link di primo accesso">
+                      <Send size={14} /> Reinvia
+                    </Button>
+                  )}
                   <Button size="sm" variant="outline" onClick={() => handleToggle(u)}>
                     {u.is_active ? <><Ban size={14} /> Revoca</> : <><RotateCcw size={14} /> Riattiva</>}
                   </Button>

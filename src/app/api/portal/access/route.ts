@@ -124,7 +124,7 @@ export async function POST(request: NextRequest) {
       email,
     });
     if (!genError && linkData?.properties?.hashed_token) {
-      inviteLink = `${appUrl}/api/auth/confirm?token_hash=${linkData.properties.hashed_token}&type=magiclink&next=/portale`;
+      inviteLink = `${appUrl}/api/auth/confirm?token_hash=${linkData.properties.hashed_token}&type=magiclink&next=/portale/benvenuto`;
     }
   } catch {
     // fallback su /login
@@ -164,12 +164,52 @@ export async function PATCH(request: NextRequest) {
   if (auth.error) return auth.error;
   const actor = auth.user!;
 
-  const { id, is_active } = await request.json();
+  const { id, is_active, resend } = await request.json();
+  const serviceClient = await createServiceRoleClient();
+
+  // Rimanda l'invito. Serve perché il link di primo accesso scade: finché il
+  // cliente non ha scelto una password quello è l'unico modo di entrare, e
+  // senza questo pulsante l'unica via d'uscita era cancellare e ricreare
+  // l'accesso.
+  if (resend === true) {
+    const { data: pu } = await serviceClient
+      .from('client_portal_users')
+      .select('email, full_name, client:clients(name, company)')
+      .eq('id', id)
+      .maybeSingle();
+
+    if (!pu) return NextResponse.json({ error: 'Accesso non trovato' }, { status: 404 });
+
+    const row = pu as unknown as { email: string; full_name: string | null; client: { name: string; company: string | null } | null };
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+
+    const { data: linkData, error: genError } = await serviceClient.auth.admin.generateLink({
+      type: 'magiclink',
+      email: row.email,
+    });
+    if (genError || !linkData?.properties?.hashed_token) {
+      await logError({ error: genError ?? new Error('link non generato'), route: 'portal/access', source: 'api', context: { op: 'resend', id } });
+      return NextResponse.json({ error: 'Non è stato possibile generare il link' }, { status: 400 });
+    }
+
+    try {
+      await sendPortalInviteEmail({
+        to: row.email,
+        fullName: row.full_name || '',
+        clientName: row.client?.company || row.client?.name || '',
+        inviteLink: `${appUrl}/api/auth/confirm?token_hash=${linkData.properties.hashed_token}&type=magiclink&next=/portale/benvenuto`,
+      });
+    } catch (err) {
+      await logError({ error: err, route: 'portal/access', source: 'api', context: { op: 'resend-email', id } });
+      return NextResponse.json({ error: 'Link generato ma email non inviata' }, { status: 400 });
+    }
+
+    return NextResponse.json({ ok: true, resent: true });
+  }
+
   if (!id || typeof is_active !== 'boolean') {
     return NextResponse.json({ error: 'Parametri non validi' }, { status: 400 });
   }
-
-  const serviceClient = await createServiceRoleClient();
   const { error } = await serviceClient
     .from('client_portal_users')
     .update({ is_active })
