@@ -64,17 +64,38 @@ async function handleCron(request: NextRequest) {
       .eq('client_approval', 'pending')
       .eq('is_published', true);
 
-    // Al primo invio si conta tutto l'arretrato; dopo, solo le novità.
-    if (user.last_digest_at) {
-      qPost = qPost.gt('updated_at', user.last_digest_at);
-      qMat = qMat.gt('updated_at', user.last_digest_at);
-    }
+    // Novita dall'ultimo avviso: decidono SE scrivere, non cosa scrivere.
+    const novita = await Promise.all([
+      user.last_digest_at
+        ? supabase.from('social_posts').select('id', { count: 'exact', head: true })
+            .eq('client_id', user.client_id).eq('client_approval', 'pending')
+            .in('status', ['ready', 'scheduled']).gt('updated_at', user.last_digest_at)
+        : Promise.resolve({ count: null }),
+      user.last_digest_at
+        ? supabase.from('client_materials').select('id', { count: 'exact', head: true })
+            .eq('client_id', user.client_id).eq('client_approval', 'pending')
+            .eq('is_published', true).gt('updated_at', user.last_digest_at)
+        : Promise.resolve({ count: null }),
+    ]);
 
     const [post, materiali] = await Promise.all([qPost, qMat]);
     const nPost = post.count ?? 0;
     const nMat = materiali.count ?? 0;
 
-    if (nPost + nMat === 0) { skipped += 1; continue; }
+    // Due domande diverse, che prima erano confuse in una sola:
+    //
+    // "C'e qualcosa di nuovo?" decide se mandare l'email — senza, il cliente
+    // riceverebbe ogni mattina lo stesso sollecito.
+    //
+    // "Quanto aspetta in tutto?" decide cosa ci scriviamo dentro. Prima si
+    // usava il primo numero anche per il testo: un cliente con 12 contenuti
+    // fermi, se ne modificavi uno, riceveva "hai 1 contenuto da approvare".
+    // E l'arretrato che nessuno toccava spariva dalle email per sempre.
+    const qualcosaDiNuovo = user.last_digest_at
+      ? (novita[0].count ?? 0) + (novita[1].count ?? 0) > 0
+      : nPost + nMat > 0;
+
+    if (!qualcosaDiNuovo || nPost + nMat === 0) { skipped += 1; continue; }
 
     try {
       await sendPortalDigestEmail({
