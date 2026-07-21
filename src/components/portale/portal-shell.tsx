@@ -6,7 +6,8 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { usePortal } from './portal-gate';
 import { cn } from '@/lib/utils';
-import { LayoutGrid, ClipboardList, Receipt, FileText, LogOut } from 'lucide-react';
+import { LayoutGrid, Palette, Receipt, Menu as MenuIcon, LogOut } from 'lucide-react';
+import { PortalMenu } from './portal-menu';
 
 /**
  * Guscio del portale: intestazione col nome del cliente e barra in basso.
@@ -16,11 +17,12 @@ import { LayoutGrid, ClipboardList, Receipt, FileText, LogOut } from 'lucide-rea
  * ed è quello che useremo se lo impacchettiamo per gli store.
  */
 
+// La barra tiene solo cio che si apre spesso; tutto il resto sta nel menu,
+// dove ogni voce ha il suo nome invece di essere accorpata.
 const TABS = [
   { href: '/portale', label: 'Contenuti', icon: LayoutGrid },
-  { href: '/portale/materiali', label: 'Da approvare', icon: ClipboardList },
+  { href: '/portale/piano-scatti', label: 'Piano scatti', icon: Palette },
   { href: '/portale/pagamenti', label: 'Pagamenti', icon: Receipt },
-  { href: '/portale/contratto', label: 'Contratto', icon: FileText },
 ];
 
 export function PortalShell({ children }: { children: React.ReactNode }) {
@@ -32,18 +34,26 @@ export function PortalShell({ children }: { children: React.ReactNode }) {
   // Quanti contenuti aspettano una risposta: il pallino sulla barra e' il
   // motivo per cui si riapre un'app. Senza, il cliente non ha modo di sapere
   // che c'e qualcosa di nuovo se non entrando a controllare.
-  const [daApprovare, setDaApprovare] = useState(0);
-  const [materialiAttesa, setMaterialiAttesa] = useState(0);
+  const [menuAperto, setMenuAperto] = useState(false);
+  const [inAttesa, setInAttesa] = useState<Record<string, number>>({});
 
   const contaAttesa = useCallback(async () => {
     const [post, materiali] = await Promise.all([
       supabase.from('social_posts').select('id', { count: 'exact', head: true })
         .eq('client_approval', 'pending').in('status', ['ready', 'scheduled']),
-      supabase.from('client_materials').select('id', { count: 'exact', head: true })
+      supabase.from('client_materials').select('type')
         .eq('client_approval', 'pending'),
     ]);
-    setDaApprovare(post.count ?? 0);
-    setMaterialiAttesa(materiali.count ?? 0);
+
+    const perTipo = (t: string) =>
+      ((materiali.data as { type: string }[]) || []).filter((m) => m.type === t).length;
+
+    setInAttesa({
+      '/portale': post.count ?? 0,
+      '/portale/piano-scatti': perTipo('moodboard'),
+      '/portale/script': perTipo('script'),
+      '/portale/idee-video': perTipo('idea_video'),
+    });
   }, [supabase]);
 
   // Si riconta cambiando scheda: dopo un'approvazione il numero deve scendere
@@ -85,9 +95,7 @@ export function PortalShell({ children }: { children: React.ReactNode }) {
           {TABS.map((tab) => {
             const active = pathname === tab.href;
             const Icon = tab.icon;
-            const badge = tab.href === '/portale' ? daApprovare
-              : tab.href === '/portale/materiali' ? materialiAttesa
-              : 0;
+            const badge = inAttesa[tab.href] || 0;
             return (
               <Link
                 key={tab.href}
@@ -109,8 +117,30 @@ export function PortalShell({ children }: { children: React.ReactNode }) {
               </Link>
             );
           })}
+
+          <button
+            onClick={() => setMenuAperto(true)}
+            className="relative flex flex-col items-center gap-1 py-2.5 text-[11px] font-medium text-pw-text-dim"
+          >
+            <span className="relative">
+              <MenuIcon size={20} />
+              {/* Il pallino sul Menu somma cio che sta nelle voci non in barra:
+                  altrimenti script e idee video resterebbero invisibili. */}
+              {((inAttesa['/portale/script'] || 0) + (inAttesa['/portale/idee-video'] || 0)) > 0 && (
+                <span className="absolute -top-1 -right-1.5 w-2 h-2 rounded-full bg-pw-accent" />
+              )}
+            </span>
+            Menu
+          </button>
         </div>
       </nav>
+
+      <PortalMenu
+        aperto={menuAperto}
+        onChiudi={() => setMenuAperto(false)}
+        onEsci={async () => { await supabase.auth.signOut(); router.replace('/login'); }}
+        inAttesa={inAttesa}
+      />
     </div>
   );
 }
