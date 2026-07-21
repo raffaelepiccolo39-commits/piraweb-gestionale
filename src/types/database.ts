@@ -392,6 +392,8 @@ export interface Task {
   deadline: string | null;
   estimated_hours: number | null;
   logged_hours: number;
+  /** Esclude la task dalla pagina 'A cosa stiamo lavorando' del portale. */
+  nascosta_al_cliente?: boolean;
   ai_generated: boolean;
   delivery_url: string | null;
   archived_at: string | null;

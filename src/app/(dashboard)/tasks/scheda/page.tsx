@@ -312,6 +312,43 @@ function TaskDetailPageInner() {
             </CardContent>
           </Card>
 
+          {/* Visibilita' al cliente */}
+          <Card>
+            <CardContent className="p-6">
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={!!task.nascosta_al_cliente}
+                  onChange={async (e) => {
+                    const { error } = await supabase
+                      .from('tasks')
+                      .update({ nascosta_al_cliente: e.target.checked })
+                      .eq('id', taskId);
+                    if (error) { toast.error('Errore'); return; }
+                    toast.success(e.target.checked
+                      ? 'Nascosta al cliente'
+                      : 'Di nuovo visibile al cliente');
+                    fetchTask();
+                  }}
+                  className="mt-0.5 w-4 h-4 rounded border-pw-border accent-pw-accent"
+                />
+                <span className="min-w-0">
+                  <span className="block text-sm font-medium text-pw-text">
+                    Nascondi al cliente
+                  </span>
+                  {/* Il cliente vede solo il TITOLO nella sua pagina "A cosa
+                      stiamo lavorando": mai la descrizione, mai le ore. Serve
+                      comunque poter togliere il caso singolo, perche' anche i
+                      titoli li scriviamo fra noi. */}
+                  <span className="block text-xs text-pw-text-dim mt-0.5">
+                    Di norma il cliente vede il titolo di questa lavorazione nel
+                    portale. Spunta se questo titolo è meglio non farglielo leggere.
+                  </span>
+                </span>
+              </label>
+            </CardContent>
+          </Card>
+
           {/* Comments */}
           <Card>
             <CardHeader>
