@@ -260,7 +260,13 @@ export default function PortaleHome() {
         <div className="absolute -right-2 top-10 h-16 w-16 rounded-full bg-[var(--pw-gold)]/5" aria-hidden="true" />
 
         <div className="relative">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--pw-gold)]">
+          {/* Il giorno di oggi sopra al saluto: e' l'unico riferimento
+              temporale della schermata, e sotto ci sono date di uscita e
+              scadenze che si leggono meglio sapendo da dove si conta. */}
+          <p className="text-xs text-white/60 first-letter:uppercase">
+            {new Date().toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' })}
+          </p>
+          <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--pw-gold)]">
             {saluto}{nome ? `, ${nome}` : ''}
           </p>
           <h1 className="mt-1.5 text-xl font-bold leading-snug">
