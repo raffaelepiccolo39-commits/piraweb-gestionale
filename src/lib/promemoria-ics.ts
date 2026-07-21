@@ -1,8 +1,14 @@
 /**
- * Un promemoria da mettere nel proprio calendario.
+ * Le scadenze del contratto, da mettere nel proprio calendario.
  *
- * Il cliente tocca "Ricordamelo" e la scadenza finisce nel calendario del suo
- * telefono, che lo avvisa da solo tre giorni prima e la mattina stessa.
+ * Un tocco solo e TUTTE le rate ancora da pagare finiscono nel calendario del
+ * cliente, ognuna col suo avviso tre giorni prima e la mattina stessa. Un
+ * pulsante per ogni rata voleva dire ricordarsi di tornare a premerlo ogni
+ * mese: esattamente la cosa che il promemoria doveva evitare.
+ *
+ * Un evento per scadenza e non una ripetizione mensile: le rate non cadono
+ * sempre lo stesso giorno, e una regola di ricorrenza costringerebbe a fingere
+ * una regolarita' che i contratti veri non hanno.
  *
  * Perché così e non un'email automatica dal gestionale: il promemoria non
  * dipende da noi. Continua a funzionare se cambia indirizzo, se la nostra
@@ -14,7 +20,10 @@
  * e Outlook senza chiedere nulla.
  */
 
-interface Promemoria {
+export interface Promemoria {
+  /** Id della rata: diventa l'identificativo dell'evento, cosi' premendo due
+   *  volte il calendario aggiorna invece di creare doppioni. */
+  id: string;
   /** Giorno della scadenza, 'YYYY-MM-DD'. */
   scadenza: string;
   titolo: string;
@@ -83,28 +92,19 @@ function piega(riga: string): string {
   return pezzi.join(`${CRLF} `);
 }
 
-export function creaIcs({ scadenza, titolo, descrizione }: Promemoria): string {
-  const inizio = soloData(scadenza);
-  const fine = giornoDopo(scadenza);
+export function creaIcs(promemorie: Promemoria[]): string {
   const adesso = new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
-  // Deve restare lo stesso per la stessa scadenza: se il cliente tocca due
-  // volte, il calendario aggiorna l'evento invece di crearne un doppione.
-  const uid = `pagamento-${inizio}@piraweb.it`;
 
-  return [
-    'BEGIN:VCALENDAR',
-    'VERSION:2.0',
-    'PRODID:-//Pira Web//Portale Clienti//IT',
-    'CALSCALE:GREGORIAN',
-    'METHOD:PUBLISH',
+  const eventi = promemorie.flatMap(({ id, scadenza, titolo, descrizione }) => [
     'BEGIN:VEVENT',
-    `UID:${uid}`,
+    `UID:pagamento-${id}@piraweb.it`,
     `DTSTAMP:${adesso}`,
-    `DTSTART;VALUE=DATE:${inizio}`,
-    `DTEND;VALUE=DATE:${fine}`,
+    `DTSTART;VALUE=DATE:${soloData(scadenza)}`,
+    `DTEND;VALUE=DATE:${giornoDopo(scadenza)}`,
     `SUMMARY:${proteggi(titolo)}`,
     `DESCRIPTION:${proteggi(descrizione)}`,
     'STATUS:CONFIRMED',
+    // Trasparente: sono promemoria, non impegni che occupano la giornata.
     'TRANSP:TRANSPARENT',
     // Tre giorni prima: il tempo di fare un bonifico senza correre.
     'BEGIN:VALARM',
@@ -119,13 +119,22 @@ export function creaIcs({ scadenza, titolo, descrizione }: Promemoria): string {
     `DESCRIPTION:${proteggi(titolo)}`,
     'END:VALARM',
     'END:VEVENT',
+  ]);
+
+  return [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//Pira Web//Portale Clienti//IT',
+    'CALSCALE:GREGORIAN',
+    'METHOD:PUBLISH',
+    ...eventi,
     'END:VCALENDAR',
   ].map(piega).join(CRLF) + CRLF;
 }
 
-/** Fa scaricare il promemoria. Sui telefoni apre direttamente il calendario. */
-export function scaricaPromemoria(promemoria: Promemoria, nomeFile: string): void {
-  const blob = new Blob([creaIcs(promemoria)], { type: 'text/calendar;charset=utf-8' });
+/** Fa scaricare i promemoria. Sui telefoni apre direttamente il calendario. */
+export function scaricaPromemoria(promemorie: Promemoria[], nomeFile: string): void {
+  const blob = new Blob([creaIcs(promemorie)], { type: 'text/calendar;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;

@@ -53,15 +53,27 @@ export default function PortalePagamentiPage() {
   const supabase = createClient();
   const toast = useToast();
 
-  /** Mette la scadenza nel calendario di chi tocca il pulsante. */
-  const promemoria = (p: Payment) => {
-    const mese = mensilita(p.due_date);
-    scaricaPromemoria({
-      scadenza: p.due_date,
-      titolo: `Pagamento Pira Web — ${euro(p.amount)}`,
-      descrizione: `Mensilità di ${mese}. Se l'hai già pagata, ignora pure questo promemoria.`,
-    }, `pagamento-${p.due_date.slice(0, 10)}.ics`);
-    toast.success('Promemoria aggiunto al calendario');
+  /**
+   * Mette in calendario TUTTE le scadenze che devono ancora arrivare.
+   *
+   * Un pulsante per rata voleva dire tornare a premerlo ogni mese — cioe'
+   * ricordarsi di mettere il promemoria, che e' il problema di partenza.
+   */
+  const promemoria = (future: Payment[]) => {
+    scaricaPromemoria(
+      future.map((p) => ({
+        id: p.id,
+        scadenza: p.due_date,
+        titolo: `Pagamento Pira Web — ${euro(p.amount)}`,
+        descrizione: `Mensilità di ${mensilita(p.due_date)}. Se l'hai già pagata, ignora pure questo promemoria.`,
+      })),
+      'scadenze-pira-web.ics'
+    );
+    toast.success(
+      future.length === 1
+        ? 'Scadenza aggiunta al calendario'
+        : `${future.length} scadenze aggiunte al calendario`
+    );
   };
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -100,14 +112,36 @@ export default function PortalePagamentiPage() {
   const paid = payments.filter((p) => p.is_paid);
   const totalPaid = paid.reduce((s, p) => s + Number(p.amount), 0);
 
+  // Solo quelle che devono ancora arrivare: mettere in calendario una
+  // scadenza gia' passata non ricorda niente a nessuno.
+  const oggi = new Date(); oggi.setHours(0, 0, 0, 0);
+  const future = payments
+    .filter((p) => !p.is_paid && new Date(`${p.due_date.slice(0, 10)}T12:00:00`) >= oggi)
+    .sort((a, b) => a.due_date.localeCompare(b.due_date));
+
   return (
     <>
-      <div className="mb-5">
+      <div className="mb-4">
         <h2 className="text-lg font-semibold text-pw-text">Pagamenti</h2>
         <p className="text-sm text-pw-text-muted">
           {paid.length} {paid.length === 1 ? 'rata saldata' : 'rate saldate'} · {euro(totalPaid)}
         </p>
       </div>
+
+      {/* Un tocco solo per tutto il contratto: ogni scadenza futura diventa un
+          appuntamento con il suo avviso tre giorni prima. */}
+      {future.length > 0 && (
+        <button
+          onClick={() => promemoria(future)}
+          className="w-full mb-5 inline-flex items-center justify-center gap-2 rounded-xl border border-pw-border bg-pw-surface py-2.5 text-sm font-medium text-pw-text-muted hover:bg-pw-surface-2 transition-colors"
+        >
+          <CalendarPlus size={16} />
+          Ricordami le scadenze
+          <span className="text-xs text-pw-text-dim">
+            ({future.length === 1 ? '1 rata' : `${future.length} rate`})
+          </span>
+        </button>
+      )}
 
       <div className="space-y-2">
         {payments.map((p) => (
@@ -120,7 +154,9 @@ export default function PortalePagamentiPage() {
               <p className="text-lg font-bold text-pw-text tabular-nums leading-tight">
                 {euro(p.amount)}
               </p>
-              <p className="text-sm text-pw-text-muted capitalize mt-0.5">
+              {/* Niente capitalize: mettendo la maiuscola a ogni parola usciva
+                  "Mensilità Di Ottobre 2026". */}
+              <p className="text-sm text-pw-text-muted mt-0.5">
                 Mensilità di {mensilita(p.due_date)}
               </p>
               <p className="text-xs text-pw-text-dim mt-0.5">
@@ -146,17 +182,6 @@ export default function PortalePagamentiPage() {
                   : <><Clock size={12} /> Da saldare</>}
             </span>
             </div>
-
-            {/* Solo su cio' che deve ancora scadere: mettere in calendario una
-                scadenza gia' passata non ricorda niente a nessuno. */}
-            {!p.is_paid && new Date(p.due_date) >= new Date() && (
-              <button
-                onClick={() => promemoria(p)}
-                className="mt-3 w-full inline-flex items-center justify-center gap-1.5 rounded-xl border border-pw-border py-2 text-xs font-medium text-pw-text-muted hover:bg-pw-surface-2 transition-colors"
-              >
-                <CalendarPlus size={14} /> Ricordamelo
-              </button>
-            )}
           </div>
         ))}
       </div>
