@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { usePortal } from './portal-gate';
 import { cn } from '@/lib/utils';
-import { LayoutGrid, Palette, Receipt, Menu as MenuIcon, LogOut } from 'lucide-react';
+import { Home, LayoutGrid, Palette, Menu as MenuIcon, LogOut } from 'lucide-react';
 import { PortalMenu } from './portal-menu';
 
 /**
@@ -20,9 +20,9 @@ import { PortalMenu } from './portal-menu';
 // La barra tiene solo cio che si apre spesso; tutto il resto sta nel menu,
 // dove ogni voce ha il suo nome invece di essere accorpata.
 const TABS = [
-  { href: '/portale', label: 'Contenuti', icon: LayoutGrid },
+  { href: '/portale', label: 'Home', icon: Home },
+  { href: '/portale/contenuti', label: 'Contenuti', icon: LayoutGrid },
   { href: '/portale/piano-scatti', label: 'Piano scatti', icon: Palette },
-  { href: '/portale/pagamenti', label: 'Pagamenti', icon: Receipt },
 ];
 
 export function PortalShell({ children }: { children: React.ReactNode }) {
@@ -49,7 +49,7 @@ export function PortalShell({ children }: { children: React.ReactNode }) {
       ((materiali.data as { type: string }[]) || []).filter((m) => m.type === t).length;
 
     setInAttesa({
-      '/portale': post.count ?? 0,
+      '/portale/contenuti': post.count ?? 0,
       '/portale/piano-scatti': perTipo('moodboard'),
       '/portale/script': perTipo('script'),
       '/portale/idee-video': perTipo('idea_video'),

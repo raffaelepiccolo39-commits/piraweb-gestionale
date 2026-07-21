@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import {
-  LayoutGrid, Palette, FileText, Lightbulb, Receipt, FileSignature, Camera,
+  Home, LayoutGrid, Palette, FileText, Lightbulb, Receipt, FileSignature, Camera,
   ChevronRight, X, LogOut,
 } from 'lucide-react';
 
@@ -24,7 +24,8 @@ export const VOCI_MENU = [
   {
     gruppo: 'I tuoi contenuti',
     voci: [
-      { href: '/portale', label: 'Piano editoriale', icona: LayoutGrid },
+      { href: '/portale', label: 'Home', icona: Home },
+      { href: '/portale/contenuti', label: 'Piano editoriale', icona: LayoutGrid },
     ],
   },
   {
