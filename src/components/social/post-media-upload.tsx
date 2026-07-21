@@ -4,9 +4,9 @@ import { useEffect, useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useToast } from '@/components/ui/toast';
 import { reportUnknown } from '@/lib/report-error';
-import { SOCIAL_MEDIA_BUCKET, buildMediaPath, resolveMediaUrls } from '@/lib/social-media';
-import { preparaImmagine, mb, MAX_INGRESSO_MB } from '@/lib/image-resize';
-import { ImagePlus, X, Loader2 } from 'lucide-react';
+import { SOCIAL_MEDIA_BUCKET, buildMediaPath, resolveMediaUrls, isVideoPath, VIDEO_MIME, MAX_FILE_MB } from '@/lib/social-media';
+import { preparaImmagine, mb } from '@/lib/image-resize';
+import { ImagePlus, X, Loader2, Play } from 'lucide-react';
 
 /**
  * Caricamento immagini di un post social.
@@ -51,18 +51,29 @@ export function PostMediaUpload({
 
     try {
       for (const file of Array.from(files)) {
-        if (!file.type.startsWith('image/')) {
-          toast.error(`${file.name} non è un'immagine`);
-          continue;
-        }
-        if (file.size > MAX_INGRESSO_MB * 1024 * 1024) {
-          toast.error(`${file.name} supera i ${MAX_INGRESSO_MB} MB`);
+        const isVideo = VIDEO_MIME.includes(file.type) || /\.(mp4|mov|m4v)$/i.test(file.name);
+        if (!file.type.startsWith('image/') && !isVideo) {
+          toast.error(`${file.name}: servono immagini o video MP4/MOV`);
           continue;
         }
 
-        // Ridimensionata prima di partire: Instagram rifiuta oltre 8 MB, e
+        // I video non si possono rimpicciolire nel browser, quindi il tetto
+        // del piano Supabase (50 MB) e' invalicabile: meglio dirlo qui che
+        // far fallire il caricamento a meta strada.
+        if (file.size > MAX_FILE_MB * 1024 * 1024) {
+          toast.error(
+            isVideo
+              ? `${file.name} pesa ${mb(file.size)}: il massimo è ${MAX_FILE_MB} MB. Accorcia il reel o esportalo più leggero.`
+              : `${file.name} supera i ${MAX_FILE_MB} MB`
+          );
+          continue;
+        }
+
+        // Solo le immagini vengono ridotte: Instagram rifiuta oltre 8 MB, e
         // queste foto le scarica il cliente dal telefono.
-        const esito = await preparaImmagine(file);
+        const esito = isVideo
+          ? { file, originale: file.size, finale: file.size, ridotta: false }
+          : await preparaImmagine(file);
         if (esito.ridotta) {
           toast.info(`${file.name}: ${mb(esito.originale)} → ${mb(esito.finale)}`);
         }
@@ -107,8 +118,17 @@ export function PostMediaUpload({
         {value.map((path) => (
           <div key={path} className="relative w-20 h-20 rounded-lg overflow-hidden border border-pw-border bg-pw-surface-2">
             {previews[path] ? (
-              // eslint-disable-next-line @next/next/no-img-element -- link firmato a scadenza, fuori dalla config di next/image
-              <img src={previews[path]} alt="" className="w-full h-full object-cover" />
+              isVideoPath(path) ? (
+                <div className="relative w-full h-full">
+                  <video src={previews[path]} className="w-full h-full object-cover" muted playsInline preload="metadata" />
+                  <span className="absolute inset-0 flex items-center justify-center bg-black/25">
+                    <Play size={16} className="text-white" fill="white" />
+                  </span>
+                </div>
+              ) : (
+                // eslint-disable-next-line @next/next/no-img-element -- link firmato a scadenza, fuori dalla config di next/image
+                <img src={previews[path]} alt="" className="w-full h-full object-cover" />
+              )
             ) : (
               <div className="w-full h-full flex items-center justify-center text-pw-text-dim">
                 <Loader2 size={14} className="animate-spin" />
@@ -139,15 +159,15 @@ export function PostMediaUpload({
       <input
         ref={inputRef}
         type="file"
-        accept="image/*"
+        accept="image/*,video/mp4,video/quicktime"
         multiple
         className="hidden"
         onChange={(e) => handleFiles(e.target.files)}
       />
       <p className="text-[11px] text-pw-text-dim mt-1.5">
-        La prima immagine fa da copertina nella griglia del cliente. Le foto grandi vengono
-        rimpicciolite in automatico: Instagram non accetta oltre 8 MB, e il cliente le apre
-        dal telefono. Massimo {MAX_INGRESSO_MB} MB per file.
+        Foto e reel (MP4 o MOV). Il primo file fa da copertina nella griglia del cliente.
+        Le foto grandi vengono rimpicciolite da sole; i video no, quindi devono stare
+        sotto i {MAX_FILE_MB} MB.
       </p>
     </div>
   );

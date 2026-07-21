@@ -4,10 +4,10 @@ import { useCallback, useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Modal } from '@/components/ui/modal';
 import { reportSupabaseError } from '@/lib/report-error';
-import { resolveMediaUrls } from '@/lib/social-media';
+import { resolveMediaUrls, isVideoPath } from '@/lib/social-media';
 import { useToast } from '@/components/ui/toast';
 import { cn } from '@/lib/utils';
-import { ImageIcon, Loader2, CalendarDays, AtSign, Globe, Share2, Tv, MessageCircle, Hash, Check, MessageSquareWarning } from 'lucide-react';
+import { ImageIcon, Loader2, CalendarDays, AtSign, Globe, Share2, Tv, MessageCircle, Hash, Check, MessageSquareWarning, Play } from 'lucide-react';
 
 /**
  * Il piano editoriale visto dal cliente: una griglia come il profilo
@@ -168,13 +168,23 @@ export default function PortaleContenutiPage() {
               className="relative aspect-square overflow-hidden rounded-sm sm:rounded-lg bg-pw-surface-2 group"
             >
               {cover ? (
-                // eslint-disable-next-line @next/next/no-img-element -- URL esterni variabili: evita la config domini di next/image
-                <img
-                  src={cover}
-                  alt={post.title}
-                  className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                  loading="lazy"
-                />
+                coverPath && isVideoPath(coverPath) ? (
+                  <>
+                    <video src={cover} className="w-full h-full object-cover" muted playsInline preload="metadata" />
+                    {/* Il simbolo del play: come su Instagram, distingue un reel da una foto */}
+                    <span className="absolute inset-0 flex items-center justify-center">
+                      <Play size={22} className="text-white drop-shadow-lg" fill="white" />
+                    </span>
+                  </>
+                ) : (
+                  // eslint-disable-next-line @next/next/no-img-element -- URL esterni variabili: evita la config domini di next/image
+                  <img
+                    src={cover}
+                    alt={post.title}
+                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    loading="lazy"
+                  />
+                )
               ) : (
                 <div className="w-full h-full flex flex-col items-center justify-center gap-1.5 p-2 text-center">
                   <ImageIcon size={18} className="text-pw-text-dim" />
@@ -196,8 +206,18 @@ export default function PortaleContenutiPage() {
         {selected && (
           <div className="space-y-4">
             {selected.media_urls?.[0] && media[selected.media_urls[0]] && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={media[selected.media_urls[0]]} alt={selected.title} className="w-full rounded-xl" />
+              isVideoPath(selected.media_urls[0]) ? (
+                <video
+                  src={media[selected.media_urls[0]]}
+                  className="w-full rounded-xl bg-black"
+                  controls
+                  playsInline
+                  preload="metadata"
+                />
+              ) : (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={media[selected.media_urls[0]]} alt={selected.title} className="w-full rounded-xl" />
+              )
             )}
 
             <div className="flex items-center gap-3 text-sm text-pw-text-muted">

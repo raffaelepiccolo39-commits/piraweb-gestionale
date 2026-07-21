@@ -16,6 +16,21 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 
 export const SOCIAL_MEDIA_BUCKET = 'social-media';
 
+/** Formati video accettati: quelli che Instagram digerisce per i reel. */
+export const VIDEO_MIME = ['video/mp4', 'video/quicktime'];
+
+/**
+ * Limite per file imposto dal piano Supabase (gratuito = 50 MB).
+ * È il tetto vero: superarlo fa fallire il caricamento lato server, non qui.
+ * Per reel più lunghi serve passare al piano a pagamento.
+ */
+export const MAX_FILE_MB = 50;
+
+/** Un percorso è di un video? Serve a decidere come mostrarlo. */
+export function isVideoPath(path: string): boolean {
+  return /\.(mp4|mov|m4v)$/i.test(path);
+}
+
 /** Un'ora: il tempo di guardare la griglia, non di girare il link. */
 const SIGNED_URL_TTL = 3600;
 
