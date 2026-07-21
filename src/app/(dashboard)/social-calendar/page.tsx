@@ -98,6 +98,35 @@ export default function SocialCalendarPage() {
   const supabase = createClient();
   const toast = useToast();
 
+  // Esito del collegamento a Meta. Il callback rimanda qui con ?meta_connected
+  // o ?meta_error=<causa>, ma finora nessuno li leggeva: il collegamento
+  // falliva e la pagina non diceva niente. Si legge da window invece che con
+  // useSearchParams per non dover avvolgere la pagina in un Suspense.
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search);
+    const ok = q.get('meta_connected');
+    const err = q.get('meta_error');
+    if (!ok && !err) return;
+
+    if (ok) {
+      toast.success('Account Meta collegato');
+    } else {
+      const CAUSE: Record<string, string> = {
+        auth_denied: 'Autorizzazione negata da Facebook, oppure il dominio non è fra quelli consentiti nell\'app Meta.',
+        invalid_state: 'Richiesta non valida: riprova a collegare dall\'inizio.',
+        session_mismatch: 'La sessione è cambiata durante il collegamento: rientra e riprova.',
+        config: 'META_APP_ID o META_APP_SECRET non configurati su Vercel.',
+        connection_failed: 'Facebook ha risposto, ma il salvataggio è fallito. Controlla /log.',
+        token_exchange: 'Scambio del token fallito: di solito l\'URI di reindirizzamento su Meta non coincide.',
+      };
+      toast.error(CAUSE[err!] || `Collegamento non riuscito (${err}).`);
+    }
+
+    // Ripulisce l'indirizzo, così un refresh non ripropone il messaggio.
+    window.history.replaceState({}, '', window.location.pathname);
+  }, [toast]);
+
+
   const today = new Date();
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth());

@@ -2,18 +2,20 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { logError } from '@/lib/logger';
+import { getAppOrigin } from '@/lib/app-origin';
 
 /**
  * Meta OAuth callback.
  * GET /api/meta/callback?code=...&state=userId
  */
 export async function GET(request: NextRequest) {
+  const origin = await getAppOrigin();
   const code = request.nextUrl.searchParams.get('code');
   const stateParam = request.nextUrl.searchParams.get('state');
   const error = request.nextUrl.searchParams.get('error');
 
   if (error || !code || !stateParam) {
-    return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/social-calendar?meta_error=auth_denied`);
+    return NextResponse.redirect(`${origin}/social-calendar?meta_error=auth_denied`);
   }
 
   const appId = process.env.META_APP_ID;
@@ -22,25 +24,27 @@ export async function GET(request: NextRequest) {
   // Verify HMAC-signed state to prevent CSRF
   const [userId, stateHmac] = stateParam.split('.');
   if (!userId || !stateHmac || !appSecret) {
-    return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/social-calendar?meta_error=invalid_state`);
+    return NextResponse.redirect(`${origin}/social-calendar?meta_error=invalid_state`);
   }
 
   const { createHmac } = await import('crypto');
   const expectedHmac = createHmac('sha256', appSecret).update(userId).digest('hex').slice(0, 16);
   if (stateHmac !== expectedHmac) {
-    return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/social-calendar?meta_error=invalid_state`);
+    return NextResponse.redirect(`${origin}/social-calendar?meta_error=invalid_state`);
   }
 
   // Also verify the current user session matches the state userId
   const authSupabase = await createServerSupabaseClient();
   const { data: { user: sessionUser } } = await authSupabase.auth.getUser();
   if (!sessionUser || sessionUser.id !== userId) {
-    return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/social-calendar?meta_error=session_mismatch`);
+    return NextResponse.redirect(`${origin}/social-calendar?meta_error=session_mismatch`);
   }
-  const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL}/api/meta/callback`;
+  // DEVE combaciare esattamente con quello usato all'andata (/api/meta/auth):
+  // Meta confronta i due valori e rifiuta lo scambio se differiscono.
+  const redirectUri = `${origin}/api/meta/callback`;
 
   if (!appId || !appSecret) {
-    return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/social-calendar?meta_error=config`);
+    return NextResponse.redirect(`${origin}/social-calendar?meta_error=config`);
   }
 
   try {
@@ -87,7 +91,7 @@ export async function GET(request: NextRequest) {
         context: { op: 'upsert-connection', userId },
       });
       return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL}/social-calendar?meta_error=connection_failed`
+        `${origin}/social-calendar?meta_error=connection_failed`
       );
     }
 
@@ -123,9 +127,9 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/social-calendar?meta_connected=true`);
+    return NextResponse.redirect(`${origin}/social-calendar?meta_connected=true`);
   } catch (e) {
     await logError({ error: e, route: '/api/meta/callback', source: 'api', context: { op: 'meta-callback' } });
-    return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/social-calendar?meta_error=token_exchange`);
+    return NextResponse.redirect(`${origin}/social-calendar?meta_error=token_exchange`);
   }
 }

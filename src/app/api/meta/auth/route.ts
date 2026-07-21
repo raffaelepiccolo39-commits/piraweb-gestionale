@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { getAppOrigin } from '@/lib/app-origin';
 
 /**
  * Start Meta OAuth flow.
@@ -14,7 +15,11 @@ export async function GET() {
   const appId = process.env.META_APP_ID;
   if (!appId) return NextResponse.json({ error: 'META_APP_ID non configurato' }, { status: 500 });
 
-  const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL}/api/meta/callback`;
+  // Ricavato dalla richiesta, non da una variabile d'ambiente: e' l'indirizzo
+  // che Meta deve avere in "URI di reindirizzamento OAuth validi", e cosi'
+  // corrisponde sempre al dominio da cui l'utente sta entrando davvero.
+  const origin = await getAppOrigin();
+  const redirectUri = `${origin}/api/meta/callback`;
   const scopes = [
     'pages_show_list',
     'pages_read_engagement',
