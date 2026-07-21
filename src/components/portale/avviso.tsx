@@ -12,11 +12,14 @@ import { cn } from '@/lib/utils';
  * riconoscerlo una volta e poi lo legge a colpo d'occhio, che sia una rata
  * o un piano editoriale in esaurimento.
  *
- * Rosso per ciò che è già scaduto, ambra per ciò che sta per scadere: il
- * colore dice l'urgenza prima delle parole.
+ * Rosso per ciò che è già scaduto, ambra per ciò che sta per scadere, oro
+ * per ciò che aspetta soltanto una risposta: il colore dice l'urgenza prima
+ * delle parole. Serviva un terzo tono perché tre richieste di approvazione
+ * tutte in rosso o in ambra farebbero sembrare un'emergenza una cosa che è
+ * solo da guardare — e a quel punto anche la rata scaduta smette di spiccare.
  */
 
-export type TonoAvviso = 'rosso' | 'ambra';
+export type TonoAvviso = 'rosso' | 'ambra' | 'oro';
 
 const TONI: Record<TonoAvviso, { bordo: string; sfondo: string; icona: string; forte: string }> = {
   rosso: {
@@ -30,6 +33,12 @@ const TONI: Record<TonoAvviso, { bordo: string; sfondo: string; icona: string; f
     sfondo: 'bg-amber-500/10',
     icona: 'bg-amber-500/15 text-amber-500',
     forte: 'text-amber-500',
+  },
+  oro: {
+    bordo: 'border-pw-accent/30',
+    sfondo: 'bg-pw-accent/5',
+    icona: 'bg-pw-accent/15 text-pw-accent',
+    forte: 'text-pw-accent',
   },
 };
 

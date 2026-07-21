@@ -10,7 +10,7 @@ import { resolveMediaUrls, coverDi, isVideoPath } from '@/lib/social-media';
 import { cn } from '@/lib/utils';
 import { conta, type PostPiano, type FiltroPiano } from '@/lib/piano-editoriale';
 import {
-  Palette, Camera, ChevronRight, Loader2,
+  Palette, FileText, Lightbulb, Camera, ChevronRight, Loader2,
   AlertTriangle, Play, Check,
 } from 'lucide-react';
 
@@ -110,7 +110,8 @@ export default function PortaleHome() {
   const [loading, setLoading] = useState(true);
   const [contenuti, setContenuti] = useState<Contenuto[]>([]);
   const [media, setMedia] = useState<Record<string, string>>({});
-  const [materialiAttesa, setMaterialiAttesa] = useState(0);
+  const [materiali, setMateriali] = useState({ moodboard: 0, script: 0, ideaVideo: 0 });
+  const materialiAttesa = materiali.moodboard + materiali.script + materiali.ideaVideo;
   const [scaduti, setScaduti] = useState<{ quanti: number; totale: number; piuVecchia: string | null }>({ quanti: 0, totale: 0, piuVecchia: null });
   const [shootingAperto, setShootingAperto] = useState(false);
   const [prossimoShooting, setProssimoShooting] = useState<Shooting | null>(null);
@@ -135,8 +136,10 @@ export default function PortaleHome() {
         .gte('scheduled_at', new Date().toISOString())
         .order('scheduled_at', { ascending: true })
         .limit(1),
+      // Il TIPO serve: tre avvisi distinti in home, uno per moodboard, uno
+      // per gli script e uno per le idee video.
       supabase.from('client_materials')
-        .select('id', { count: 'exact', head: true })
+        .select('type')
         .eq('client_approval', 'pending'),
       supabase.from('client_payments')
         .select('amount, due_date, is_paid')
@@ -164,7 +167,13 @@ export default function PortaleHome() {
 
     const righe = (post.data as Contenuto[]) || [];
     setContenuti(righe);
-    setMaterialiAttesa(materiali.count ?? 0);
+    const inAttesa = (materiali.data as { type: string }[]) || [];
+    const perTipo = (t: string) => inAttesa.filter((m) => m.type === t).length;
+    setMateriali({
+      moodboard: perTipo('moodboard'),
+      script: perTipo('script'),
+      ideaVideo: perTipo('idea_video'),
+    });
     const richieste = (shooting.data as Shooting[]) || [];
     setShootingAperto(richieste.some((r) => r.stato === 'proposta'));
     // Il prossimo e' il primo confermato; se non ce n'e', la proposta piu'
@@ -218,6 +227,21 @@ export default function PortaleHome() {
   // I numeri del piano editoriale: quanto aspetta lui, quanto aspetta di
   // uscire, quanto e' gia' uscito questo mese. Moodboard, script e shooting
   // erano scorciatoie a un menu, non informazioni: stanno nel menu.
+  const MATERIALI = [
+    {
+      href: '/portale/piano-scatti', icona: Palette, etichetta: 'Moodboard',
+      quanti: materiali.moodboard, unoSolo: 'Un moodboard da approvare', tanti: 'moodboard da approvare',
+    },
+    {
+      href: '/portale/script', icona: FileText, etichetta: 'Script video',
+      quanti: materiali.script, unoSolo: 'Uno script da approvare', tanti: 'script da approvare',
+    },
+    {
+      href: '/portale/idee-video', icona: Lightbulb, etichetta: 'Idee video',
+      quanti: materiali.ideaVideo, unoSolo: "Un'idea video da approvare", tanti: 'idee video da approvare',
+    },
+  ];
+
   const CONTENUTI: { chiave: FiltroPiano; label: string; valore: number; evidenzia: boolean }[] = [
     { chiave: 'da-approvare', label: 'Da approvare', valore: conte.daApprovare, evidenzia: conte.daApprovare > 0 },
     { chiave: 'in-programma', label: 'In programma', valore: conte.inProgramma, evidenzia: false },
@@ -465,28 +489,21 @@ export default function PortaleHome() {
         </Link>
       </div>
 
-      {materialiAttesa > 0 && (
-        <div>
-          <div className="flex items-baseline justify-between mb-2">
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-pw-text-dim">Da approvare</p>
-          </div>
-          <Link
-            href="/portale/piano-scatti"
-            className="flex items-center gap-3 rounded-2xl border border-pw-border bg-pw-surface p-4"
-          >
-            <div className="w-10 h-10 rounded-xl bg-pw-accent/10 flex items-center justify-center shrink-0">
-              <Palette size={18} className="text-pw-accent" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium text-pw-text">
-                {materialiAttesa === 1 ? 'Un documento' : `${materialiAttesa} documenti`} da guardare
-              </p>
-              <p className="text-xs text-pw-text-muted">Piani scatti, script e idee video</p>
-            </div>
-            <ChevronRight size={18} className="text-pw-text-dim shrink-0" />
-          </Link>
-        </div>
-      )}
+      {/* ── Materiali da approvare: un avviso per tipo ──
+          Tre voci separate e non "3 documenti da guardare": per il cliente un
+          moodboard e uno script sono cose diverse, e sapere QUALE lo aspetta
+          decide se aprirlo adesso o stasera. Restano finche' non risponde. */}
+      {MATERIALI.map((m) => m.quanti > 0 && (
+        <Avviso
+          key={m.href}
+          href={m.href}
+          icona={m.icona}
+          tono="oro"
+          etichetta={m.etichetta}
+          valore={m.quanti === 1 ? m.unoSolo : `${m.quanti} ${m.tanti}`}
+          dettaglio="Aspetta la tua approvazione"
+        />
+      ))}
 
       {shootingAperto && (
         <Link
