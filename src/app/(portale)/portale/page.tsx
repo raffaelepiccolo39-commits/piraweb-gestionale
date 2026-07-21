@@ -251,15 +251,16 @@ export default function PortaleContenutiPage() {
             })()}
 
             <div className="flex items-center gap-3 text-sm text-pw-text-muted">
-              {/* La data va detta per quello che è. Prima compariva nuda:
-                  per un contenuto pubblicato mostrava il giorno di
-                  pubblicazione mentre il cliente leggeva la programmazione,
-                  e i due numeri non coincidevano senza spiegazione. */}
+              {/* Si mostra SEMPRE la data programmata, mai quella di
+                  pubblicazione effettiva: l'agenzia lavora in anticipo e il
+                  cliente ragiona sul calendario concordato. Un post segnato
+                  come pubblicato oggi ma previsto per il 24 mostrava il 21,
+                  e per il cliente era semplicemente sbagliato.
+                  published_at resta un ripiego per i post senza programmazione. */}
               <span className="inline-flex items-center gap-1.5">
                 <CalendarDays size={15} />
-                {selected.published_at
-                  ? `Pubblicato il ${formatDate(selected.published_at)}`
-                  : `In programma per il ${formatDate(selected.scheduled_at)}`}
+                {selected.status === 'published' ? 'Pubblicato il ' : 'In programma per il '}
+                {formatDate(selected.scheduled_at || selected.published_at)}
               </span>
               <span className={cn(
                 'px-2 py-0.5 rounded-full text-xs font-medium',
