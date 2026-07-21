@@ -61,7 +61,15 @@ export function PortalShell({ children }: { children: React.ReactNode }) {
   useEffect(() => { contaAttesa(); }, [contaAttesa, pathname]);
 
   return (
-    <div className="min-h-screen bg-pw-bg flex flex-col">
+    /* Su telefono e' a schermo pieno, com'era. Da lg in su diventa una cornice
+       stretta e centrata: e' un'app data ai clienti, e su un monitor grande
+       una colonna larga 768px la faceva sembrare un sito. La cornice tiene la
+       stessa larghezza di un telefono, cosi' quello che il cliente vede sul
+       computer e' esattamente quello che vede sul suo. */
+    <div className="min-h-dvh bg-pw-bg lg:bg-neutral-200/70 dark:lg:bg-black lg:flex lg:items-center lg:justify-center lg:py-6">
+      <div className="relative flex flex-col min-h-dvh w-full bg-pw-bg
+                      lg:min-h-0 lg:h-[calc(100dvh-3rem)] lg:max-w-[26rem]
+                      lg:rounded-[2rem] lg:border lg:border-pw-border lg:shadow-2xl lg:overflow-hidden">
       <header className="sticky top-0 z-40 border-b border-pw-border bg-pw-surface/95 backdrop-blur">
         <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
           {/* Il logo dell'agenzia: e' il nostro spazio, offerto al cliente.
@@ -86,11 +94,15 @@ export function PortalShell({ children }: { children: React.ReactNode }) {
         </div>
       </header>
 
-      <main className="flex-1 w-full max-w-3xl mx-auto px-4 py-5 pb-24">
+      {/* Dentro la cornice il contenuto scorre da solo, non fa scorrere la
+          finestra: e' quello che rende la barra in basso sempre ferma. */}
+      <main className="flex-1 w-full max-w-3xl mx-auto px-4 py-5 pb-24 lg:overflow-y-auto lg:max-w-none">
         {children}
       </main>
 
-      <nav className="fixed bottom-0 inset-x-0 z-40 border-t border-pw-border bg-pw-surface/95 backdrop-blur pb-[env(safe-area-inset-bottom)]">
+      {/* Sul telefono resta agganciata alla finestra; nella cornice si aggancia
+          alla cornice, altrimenti finirebbe in fondo allo schermo del computer. */}
+      <nav className="fixed bottom-0 inset-x-0 z-40 lg:absolute border-t border-pw-border bg-pw-surface/95 backdrop-blur pb-[env(safe-area-inset-bottom)]">
         <div className="max-w-3xl mx-auto grid grid-cols-4">
           {TABS.map((tab) => {
             const active = pathname === tab.href;
@@ -141,6 +153,7 @@ export function PortalShell({ children }: { children: React.ReactNode }) {
         onEsci={async () => { await supabase.auth.signOut(); router.replace('/login'); }}
         inAttesa={inAttesa}
       />
+      </div>
     </div>
   );
 }

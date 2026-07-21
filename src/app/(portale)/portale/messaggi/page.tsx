@@ -159,8 +159,9 @@ export default function PortaleMessaggiPage() {
     // pagina che scorre tutta: e' l'unico modo perche' il campo di scrittura
     // resti sempre in fondo e i messaggi non gli passino sotto. Con lo sticky
     // l'ultimo messaggio finiva nello spazio fra il campo e la barra.
-    // L'altezza sottrae quello che lo shell occupa sopra e sotto.
-    <div className="flex flex-col h-[calc(100dvh-13rem)]">
+    // L'altezza sottrae quello che lo shell occupa sopra e sotto: intestazione,
+    // padding di main e barra. Su lg si toglie anche il margine della cornice.
+    <div className="flex flex-col h-[calc(100dvh-11rem)] lg:h-[calc(100dvh-14rem)]">
       <div className="mb-4 shrink-0">
         <h2 className="text-lg font-semibold text-pw-text">Scrivici</h2>
         <p className="text-sm text-pw-text-muted">
