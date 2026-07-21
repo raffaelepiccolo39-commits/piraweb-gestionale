@@ -21,7 +21,7 @@ import { PortalMenu } from './portal-menu';
 // dove ogni voce ha il suo nome invece di essere accorpata.
 const TABS = [
   { href: '/portale', label: 'Home', icon: Home },
-  { href: '/portale/contenuti', label: 'Contenuti', icon: LayoutGrid },
+  { href: '/portale/contenuti', label: 'Piano editoriale', icon: LayoutGrid },
   { href: '/portale/piano-scatti', label: 'Moodboard', icon: Palette },
 ];
 

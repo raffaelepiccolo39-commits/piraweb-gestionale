@@ -107,7 +107,7 @@ export default function PortaleHome() {
   // proposta in attesa. Il resto dell'anno sarebbe una voce che non porta
   // da nessuna parte, e le scorciatoie perdono senso se una e sempre finta.
   const SCORCIATOIE = [
-    { href: '/portale/contenuti', label: 'Contenuti', icona: LayoutGrid },
+    { href: '/portale/contenuti', label: 'Contenuti da approvare', icona: LayoutGrid },
     { href: '/portale/piano-scatti', label: 'Moodboard', icona: Palette },
     { href: '/portale/script', label: 'Script', icona: FileText },
     ...(serveShooting ? [{ href: '/portale/shooting', label: 'Shooting', icona: Camera }] : []),
