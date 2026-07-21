@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/components/ui/toast';
 import { reportSupabaseError } from '@/lib/report-error';
-import { KeyRound, Plus, Mail, Ban, RotateCcw, Loader2, Send } from 'lucide-react';
+import { KeyRound, Plus, Mail, Ban, RotateCcw, Loader2, Send, BellRing } from 'lucide-react';
 
 /**
  * Accessi al portale per un cliente.
@@ -108,6 +108,21 @@ export function PortalAccess({ clientId, clientName }: { clientId: string; clien
     toast.success(`Nuovo invito inviato a ${u.email}`);
   };
 
+  /** Manda subito il riepilogo di ciò che aspetta una risposta. */
+  const avvisa = async () => {
+    const res = await fetch('/api/portal/notify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ client_id: clientId }),
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) { toast.error(body.error || 'Invio non riuscito'); return; }
+    if (body.inviate > 0) toast.success(`Avviso mandato: ${body.post} contenuti, ${body.materiali} documenti`);
+    else toast.error(body.motivo === 'niente in attesa di risposta'
+      ? 'Non c\'è nulla in attesa: nessun avviso mandato'
+      : 'Il cliente non ha un accesso attivo');
+  };
+
   return (
     <Card>
       <CardContent className="p-6">
@@ -116,11 +131,18 @@ export function PortalAccess({ clientId, clientName }: { clientId: string; clien
             <KeyRound size={18} className="text-pw-accent" />
             <h3 className="text-base font-semibold text-pw-text">Accesso al portale</h3>
           </div>
-          {!adding && (
-            <Button size="sm" variant="outline" onClick={() => setAdding(true)}>
-              <Plus size={14} /> Nuovo accesso
-            </Button>
-          )}
+          <div className="flex items-center gap-2">
+            {users.some((u) => u.is_active) && (
+              <Button size="sm" variant="outline" onClick={avvisa} title="Manda subito il riepilogo di ciò che aspetta una risposta">
+                <BellRing size={14} /> Avvisa
+              </Button>
+            )}
+            {!adding && (
+              <Button size="sm" variant="outline" onClick={() => setAdding(true)}>
+                <Plus size={14} /> Nuovo accesso
+              </Button>
+            )}
+          </div>
         </div>
         <p className="text-xs text-pw-text-dim mb-4">
           Chi ha un accesso vede il piano editoriale, il contratto e i pagamenti di {clientName}. Nient&apos;altro del gestionale.

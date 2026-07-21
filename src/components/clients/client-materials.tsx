@@ -138,7 +138,25 @@ export function ClientMaterials({ clientId }: { clientId: string }) {
       .update({ is_published: !m.is_published })
       .eq('id', m.id);
     if (error) { toast.error('Errore'); return; }
-    toast.success(m.is_published ? 'Nascosto al cliente' : 'Ora il cliente lo vede');
+
+    if (m.is_published) {
+      toast.success('Nascosto al cliente');
+    } else {
+      // Pubblicare un materiale e un gesto singolo: l'avviso parte subito.
+      // Per i contenuti importati in blocco resta il riepilogo giornaliero,
+      // altrimenti un PED da dodici post manderebbe dodici email.
+      const res = await fetch('/api/portal/notify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ client_id: clientId }),
+      });
+      const body = await res.json().catch(() => ({}));
+      toast.success(
+        body.inviate > 0
+          ? 'Pubblicato — il cliente è stato avvisato via email'
+          : 'Pubblicato — nessun avviso: il cliente non ha ancora un accesso'
+      );
+    }
     carica();
   };
 
