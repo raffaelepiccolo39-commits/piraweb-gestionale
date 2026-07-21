@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
-import { Home, LayoutGrid, Palette, Menu as MenuIcon, ArrowLeft } from 'lucide-react';
+import { Home, LayoutGrid, Lightbulb, Menu as MenuIcon, ArrowLeft } from 'lucide-react';
 import { PortalMenu } from './portal-menu';
 import { PortalNotifiche } from './portal-notifiche';
 
@@ -22,7 +22,10 @@ import { PortalNotifiche } from './portal-notifiche';
 const TABS = [
   { href: '/portale', label: 'Home', icon: Home },
   { href: '/portale/contenuti', label: 'Piano editoriale', icon: LayoutGrid },
-  { href: '/portale/piano-scatti', label: 'Moodboard', icon: Palette },
+  // Il diario e non i moodboard: e' l'unica voce in cui il cliente SCRIVE,
+  // e una cosa che si fa quando viene in mente va raggiunta in un tocco.
+  // I moodboard restano nel menu e si fanno vedere con il loro avviso in home.
+  { href: '/portale/diario', label: 'Idee', icon: Lightbulb },
 ];
 
 export function PortalShell({ children }: { children: React.ReactNode }) {
@@ -145,9 +148,13 @@ export function PortalShell({ children }: { children: React.ReactNode }) {
           >
             <span className="relative">
               <MenuIcon size={20} />
-              {/* Il pallino sul Menu somma cio che sta nelle voci non in barra:
-                  altrimenti script e idee video resterebbero invisibili. */}
-              {((inAttesa['/portale/script'] || 0) + (inAttesa['/portale/idee-video'] || 0)) > 0 && (
+              {/* Il pallino sul Menu somma cio che sta nelle voci non in barra.
+                  I moodboard sono in questa somma da quando la barra porta al
+                  diario: senza, uscendo dalla barra sarebbero spariti dalla
+                  vista. */}
+              {((inAttesa['/portale/piano-scatti'] || 0)
+                + (inAttesa['/portale/script'] || 0)
+                + (inAttesa['/portale/idee-video'] || 0)) > 0 && (
                 <span className="absolute -top-1 -right-1.5 w-2 h-2 rounded-full bg-pw-accent" />
               )}
             </span>
