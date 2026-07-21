@@ -61,6 +61,10 @@ export default function PortaleDiarioPage() {
     if (error) reportSupabaseError(error, 'portale-diario', {});
     setIdee((data as unknown as Idea[]) || []);
     setLoading(false);
+
+    // Aprire il diario vale come averle viste: la campanella si spegne senza
+    // chiedere al cliente di premere un pulsante in piu'.
+    await supabase.rpc('portal_segna_idee_lette');
   }, [supabase]);
 
   useEffect(() => { carica(); }, [carica]);

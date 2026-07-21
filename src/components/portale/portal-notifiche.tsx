@@ -36,17 +36,26 @@ export function PortalNotifiche({ inAttesa }: { inAttesa: Record<string, number>
   const [aperto, setAperto] = useState(false);
   const [rispostaNonLetta, setRispostaNonLetta] = useState(0);
   const [rateScadute, setRateScadute] = useState(0);
+  const [ideeNuove, setIdeeNuove] = useState(0);
 
   const conta = useCallback(async () => {
     const oggi = new Date().toISOString().slice(0, 10);
-    const [messaggi, rate] = await Promise.all([
+    const [messaggi, rate, idee] = await Promise.all([
       supabase.from('client_messages').select('id', { count: 'exact', head: true })
         .eq('autore', 'team').is('letto_dal_cliente_at', null),
       supabase.from('client_payments').select('id', { count: 'exact', head: true })
         .eq('is_paid', false).lt('due_date', oggi),
+      // Le idee con qualcosa di nuovo per lui: una nostra risposta, o una
+      // proposta scritta da noi. Le sue ancora da valutare non sono "nuove".
+      supabase.from('client_ideas').select('id, autore, valutata_at')
+        .is('letta_dal_cliente_at', null),
     ]);
     setRispostaNonLetta(messaggi.count ?? 0);
     setRateScadute(rate.count ?? 0);
+    setIdeeNuove(
+      ((idee.data as { autore: string; valutata_at: string | null }[]) || [])
+        .filter((i) => i.valutata_at !== null || i.autore === 'team').length
+    );
   }, [supabase]);
 
   // Si ricontano cambiando pagina: aperta la conversazione, la voce deve
@@ -67,6 +76,10 @@ export function PortalNotifiche({ inAttesa }: { inAttesa: Record<string, number>
   if (rispostaNonLetta > 0) voci.push({
     chiave: 'messaggi', href: '/portale/messaggi', icona: MessageCircle,
     testo: rispostaNonLetta === 1 ? 'Ti abbiamo risposto' : `${rispostaNonLetta} nuovi messaggi`,
+  });
+  if (ideeNuove > 0) voci.push({
+    chiave: 'diario', href: '/portale/diario', icona: Lightbulb,
+    testo: ideeNuove === 1 ? 'Novità nel diario delle idee' : `${ideeNuove} novità nel diario delle idee`,
   });
   if (n('/portale/contenuti') > 0) voci.push({
     chiave: 'contenuti', href: '/portale/contenuti', icona: LayoutGrid,
