@@ -339,12 +339,13 @@ export default function PortaleHome() {
             // Al CONTENUTO, non all'elenco: la scheda parla di questo qui, e
             // farla atterrare sulla griglia obbligava a ritrovarlo a mano.
             href={`/portale/contenuti?post=${prossimo.id}`}
-            className="flex gap-3 mt-2.5 -mx-1 px-1 py-1 rounded-xl active:bg-pw-surface-2 transition-colors"
+            className="grid grid-cols-2 gap-3 mt-2.5 -mx-1 px-1 py-1 rounded-xl active:bg-pw-surface-2 transition-colors"
           >
-            {/* A sinistra: la foto piccola e sotto il copy. La foto a tutta
-                larghezza si mangiava mezza schermata per un contenuto solo. */}
-            <div className="min-w-0 flex-1">
-              <div className="relative w-28 aspect-[4/5] rounded-xl overflow-hidden bg-pw-surface-2">
+            {/* Due colonne uguali. La foto non riempie la sua meta': resta
+                4:5 e larga quanto la colonna, cosi' le due parti pesano lo
+                stesso senza deformare l'immagine. */}
+            <div className="min-w-0">
+              <div className="relative w-full aspect-[4/5] rounded-xl overflow-hidden bg-pw-surface-2">
                 {anteprimaProssimo ? (
                   percorsoProssimo && isVideoPath(percorsoProssimo) ? (
                     <video src={anteprimaProssimo} className="w-full h-full object-cover" muted playsInline preload="metadata" />
@@ -376,9 +377,8 @@ export default function PortaleHome() {
               )}
             </div>
 
-            {/* A destra, stretta: quando esce. Larghezza fissa, cosi' una data
-                lunga non ruba spazio al copy. */}
-            <div className="w-[5.5rem] shrink-0 border-l border-pw-border pl-3 flex flex-col">
+            {/* A destra: quando esce. */}
+            <div className="min-w-0 border-l border-pw-border pl-3 flex flex-col">
               <span className={cn(
                 'self-start px-1.5 py-0.5 rounded text-[9px] font-semibold text-white',
                 prossimo.client_approval === 'approved' ? 'bg-green-500'
@@ -392,13 +392,22 @@ export default function PortaleHome() {
 
               {prossimo.scheduled_at ? (
                 <>
-                  <span className="mt-2 text-[11px] text-pw-text-dim first-letter:uppercase leading-tight">
+                  <span className="mt-2.5 text-[10px] font-semibold uppercase tracking-wider text-pw-text-dim">
+                    Esce
+                  </span>
+                  <span className="text-[11px] text-pw-text-dim first-letter:uppercase leading-tight">
                     {new Date(prossimo.scheduled_at).toLocaleDateString('it-IT', { weekday: 'long' })}
                   </span>
                   <span className="text-sm font-semibold text-pw-text leading-tight">
                     {new Date(prossimo.scheduled_at).toLocaleDateString('it-IT', { day: 'numeric', month: 'long' })}
                   </span>
-                  <span className="mt-1 text-sm font-bold text-pw-accent tabular-nums">
+
+                  {/* L'ora etichettata: un numero come "10:00" sotto una data
+                      si puo' leggere come qualsiasi cosa. */}
+                  <span className="mt-2 text-[10px] font-semibold uppercase tracking-wider text-pw-text-dim">
+                    Ora
+                  </span>
+                  <span className="text-sm font-bold text-pw-accent tabular-nums leading-tight">
                     {new Date(prossimo.scheduled_at).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}
                   </span>
                 </>
