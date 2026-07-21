@@ -35,6 +35,7 @@ import {
 } from 'lucide-react';
 import { reportUnknown, reportSupabaseError } from '@/lib/report-error';
 import { PostMediaUpload } from '@/components/social/post-media-upload';
+import { ImportPed } from '@/components/social/import-ped';
 import { SOCIAL_MEDIA_BUCKET } from '@/lib/social-media';
 
 const PLATFORM_ICONS: Record<string, typeof Hash> = {
@@ -413,6 +414,7 @@ export default function SocialCalendarPage() {
         subtitle="Pianifica e gestisci i contenuti social dei tuoi clienti"
         actions={
           <>
+            {isAdmin && <ImportPed clients={clients} onFatto={fetchPosts} />}
             {metaConnected ? (
               <Badge className="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300 flex items-center gap-1">
                 <CheckCircle size={10} />
