@@ -43,7 +43,7 @@ interface Materiale {
 }
 
 const TIPI: { valore: Tipo; etichetta: string; icona: typeof Palette; descrizione: string }[] = [
-  { valore: 'moodboard', etichetta: 'Moodboard e piano scatti', icona: Palette, descrizione: 'Il piano dello shooting da far approvare prima di girare' },
+  { valore: 'moodboard', etichetta: 'Moodboard', icona: Palette, descrizione: 'Il piano dello shooting da far approvare prima di girare' },
   { valore: 'script', etichetta: 'Script video', icona: FileText, descrizione: 'Il copione da approvare prima delle riprese' },
   { valore: 'idea_video', etichetta: 'Idee video', icona: Lightbulb, descrizione: 'Riferimenti e proposte, anche come link' },
 ];

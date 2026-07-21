@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { usePortal } from '@/components/portale/portal-gate';
 import { LogoCliente } from '@/components/portale/logo-cliente';
+import { Avviso } from '@/components/portale/avviso';
 import { reportSupabaseError } from '@/lib/report-error';
 import { resolveMediaUrls, coverDi, isVideoPath } from '@/lib/social-media';
 import { cn } from '@/lib/utils';
@@ -41,11 +42,12 @@ export default function PortaleHome() {
   const [materialiAttesa, setMaterialiAttesa] = useState(0);
   const [scaduti, setScaduti] = useState<{ quanti: number; totale: number }>({ quanti: 0, totale: 0 });
   const [shootingAperto, setShootingAperto] = useState(false);
+  const [scadenzaPiano, setScadenzaPiano] = useState<string | null>(null);
 
   const carica = useCallback(async () => {
     const oggi = new Date().toISOString().slice(0, 10);
 
-    const [post, materiali, rate, shooting] = await Promise.all([
+    const [post, materiali, rate, shooting, serve] = await Promise.all([
       supabase.from('social_posts')
         .select('id, title, media_urls, formato, client_approval')
         .in('status', ['ready', 'scheduled'])
@@ -61,6 +63,9 @@ export default function PortaleHome() {
       supabase.from('shooting_requests')
         .select('id', { count: 'exact', head: true })
         .eq('stato', 'proposta'),
+      // Il cliente non puo leggere la copertura del piano (e giusto cosi):
+      // la funzione restituisce solo la data del suo.
+      supabase.rpc('portal_scadenza_piano'),
     ]);
 
     if (post.error) reportSupabaseError(post.error, 'portale-home', {});
@@ -69,6 +74,7 @@ export default function PortaleHome() {
     setContenuti(righe);
     setMaterialiAttesa(materiali.count ?? 0);
     setShootingAperto((shooting.count ?? 0) > 0);
+    setScadenzaPiano((serve.data as string | null) ?? null);
 
     const nonPagate = (rate.data as { amount: number }[]) || [];
     setScaduti({
@@ -90,11 +96,23 @@ export default function PortaleHome() {
   const dataOggi = new Date().toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' });
   const daApprovare = contenuti.filter((c) => c.client_approval === 'pending').length;
 
+  // Giorni che mancano alla fine del piano. La soglia e la stessa dell'email
+  // che gli mandiamo (15): due numeri diversi creerebbero il caso in cui
+  // riceve l'avviso ma nel portale non trova nulla, o viceversa.
+  const giorniAllaFine = scadenzaPiano
+    ? Math.ceil((new Date(scadenzaPiano + 'T12:00:00').getTime() - Date.now()) / 86400000)
+    : null;
+  const pianoInScadenza = giorniAllaFine !== null && giorniAllaFine <= 15;
+  const serveShooting = pianoInScadenza || shootingAperto;
+
+  // Lo shooting compare solo quando serve davvero: piano in scadenza o
+  // proposta in attesa. Il resto dell'anno sarebbe una voce che non porta
+  // da nessuna parte, e le scorciatoie perdono senso se una e sempre finta.
   const SCORCIATOIE = [
     { href: '/portale/contenuti', label: 'Contenuti', icona: LayoutGrid },
-    { href: '/portale/piano-scatti', label: 'Piano scatti', icona: Palette },
+    { href: '/portale/piano-scatti', label: 'Moodboard', icona: Palette },
     { href: '/portale/script', label: 'Script', icona: FileText },
-    { href: '/portale/shooting', label: 'Shooting', icona: Camera },
+    ...(serveShooting ? [{ href: '/portale/shooting', label: 'Shooting', icona: Camera }] : []),
   ];
 
   if (loading) {
@@ -129,7 +147,7 @@ export default function PortaleHome() {
       </div>
 
       {/* ── Scorciatoie ── */}
-      <div className="grid grid-cols-4 gap-2">
+      <div className={cn('grid gap-2', SCORCIATOIE.length === 4 ? 'grid-cols-4' : 'grid-cols-3')}>
         {SCORCIATOIE.map((s) => {
           const Icona = s.icona;
           return (
@@ -147,21 +165,31 @@ export default function PortaleHome() {
 
       {/* ── Cose urgenti: compaiono solo se lo sono davvero ── */}
       {scaduti.quanti > 0 && (
-        <Link
+        <Avviso
           href="/portale/pagamenti"
-          className="flex items-center gap-3 rounded-2xl border border-red-500/30 bg-red-500/10 p-4"
-        >
-          <AlertTriangle size={20} className="text-red-500 shrink-0" />
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold text-red-500">
-              {new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(scaduti.totale)} da saldare
-            </p>
-            <p className="text-xs text-pw-text-muted">
-              {scaduti.quanti === 1 ? 'Una rata scaduta' : `${scaduti.quanti} rate scadute`}
-            </p>
-          </div>
-          <ChevronRight size={18} className="text-pw-text-dim shrink-0" />
-        </Link>
+          icona={AlertTriangle}
+          tono="rosso"
+          etichetta={scaduti.quanti === 1 ? 'Pagamento scaduto' : 'Pagamenti scaduti'}
+          valore={`${new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(scaduti.totale)} da saldare`}
+          dettaglio={scaduti.quanti === 1 ? 'Una rata' : `${scaduti.quanti} rate`}
+        />
+      )}
+
+      {/* Il piano sta per finire: senza nuovo materiale il profilo resta
+          scoperto, ed e' la scadenza che costa di piu ignorare. */}
+      {pianoInScadenza && !shootingAperto && (
+        <Avviso
+          href="/portale/shooting"
+          icona={Camera}
+          tono={giorniAllaFine !== null && giorniAllaFine <= 5 ? 'rosso' : 'ambra'}
+          etichetta="Piano editoriale in scadenza"
+          valore={
+            giorniAllaFine !== null && giorniAllaFine <= 0
+              ? 'I contenuti sono finiti'
+              : `Ancora ${giorniAllaFine} ${giorniAllaFine === 1 ? 'giorno' : 'giorni'} di contenuti`
+          }
+          dettaglio={`Fino al ${new Date(scadenzaPiano! + 'T12:00:00').toLocaleDateString('it-IT', { day: 'numeric', month: 'long' })} — fissiamo lo shooting`}
+        />
       )}
 
       {materialiAttesa > 0 && (

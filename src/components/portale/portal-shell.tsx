@@ -22,7 +22,7 @@ import { PortalMenu } from './portal-menu';
 const TABS = [
   { href: '/portale', label: 'Home', icon: Home },
   { href: '/portale/contenuti', label: 'Contenuti', icon: LayoutGrid },
-  { href: '/portale/piano-scatti', label: 'Piano scatti', icon: Palette },
+  { href: '/portale/piano-scatti', label: 'Moodboard', icon: Palette },
 ];
 
 export function PortalShell({ children }: { children: React.ReactNode }) {

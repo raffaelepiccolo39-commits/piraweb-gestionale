@@ -31,7 +31,7 @@ export const VOCI_MENU = [
   {
     gruppo: 'Da approvare',
     voci: [
-      { href: '/portale/piano-scatti', label: 'Piano scatti e moodboard', icona: Palette },
+      { href: '/portale/piano-scatti', label: 'Moodboard', icona: Palette },
       { href: '/portale/script', label: 'Script video', icona: FileText },
       { href: '/portale/idee-video', label: 'Idee video', icona: Lightbulb },
     ],

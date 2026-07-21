@@ -34,7 +34,7 @@ interface Materiale {
 }
 
 const GRUPPI: { tipo: Tipo; titolo: string; icona: typeof Palette }[] = [
-  { tipo: 'moodboard', titolo: 'Piano scatti', icona: Palette },
+  { tipo: 'moodboard', titolo: 'Moodboard', icona: Palette },
   { tipo: 'script', titolo: 'Script video', icona: FileText },
   { tipo: 'idea_video', titolo: 'Idee video', icona: Lightbulb },
 ];
