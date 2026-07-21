@@ -35,6 +35,9 @@ export function PostMediaUpload({
   const [uploading, setUploading] = useState(false);
   const [previews, setPreviews] = useState<Record<string, string>>({});
   const [videoTroppoGrande, setVideoTroppoGrande] = useState<{ nome: string; peso: string } | null>(null);
+  // File caricati in questa sessione: sono gli unici che si possono cancellare
+  // davvero dal bucket, perche nessun post salvato li cita ancora.
+  const caricatiOra = useRef<Set<string>>(new Set());
 
   // I percorsi da soli non si possono mostrare: servono link firmati.
   useEffect(() => {
@@ -95,6 +98,7 @@ export function PostMediaUpload({
           continue;
         }
         added.push(path);
+        caricatiOra.current.add(path);
       }
 
       if (added.length > 0) {
@@ -108,10 +112,21 @@ export function PostMediaUpload({
   };
 
   const handleRemove = async (path: string) => {
-    // Si toglie dal post e dal bucket: un file orfano non lo vedrebbe più
-    // nessuno ma continuerebbe a occupare spazio.
     onChange(value.filter((p) => p !== path));
-    if (!path.startsWith('http')) {
+
+    // Dal bucket si cancella SOLO se il file è stato caricato adesso, in
+    // questa sessione di modifica, e quindi nessun post salvato lo cita.
+    //
+    // Prima si cancellava sempre, subito: chi toglieva un'immagine e poi
+    // annullava la modifica si ritrovava il post che puntava a un file
+    // ormai distrutto, e nella griglia del cliente compariva un riquadro
+    // vuoto. È successo davvero.
+    //
+    // Per i file già salvati si toglie solo il riferimento. Resta un file
+    // inutilizzato nel bucket — costa un po' di spazio, ma è recuperabile,
+    // mentre un file cancellato per errore no.
+    if (caricatiOra.current.has(path)) {
+      caricatiOra.current.delete(path);
       await supabase.storage.from(SOCIAL_MEDIA_BUCKET).remove([path]);
     }
   };

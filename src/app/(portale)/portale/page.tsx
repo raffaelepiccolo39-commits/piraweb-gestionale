@@ -7,7 +7,7 @@ import { reportSupabaseError } from '@/lib/report-error';
 import { resolveMediaUrls, isVideoPath } from '@/lib/social-media';
 import { useToast } from '@/components/ui/toast';
 import { cn } from '@/lib/utils';
-import { ImageIcon, Loader2, CalendarDays, AtSign, Globe, Share2, Tv, MessageCircle, Hash, Check, MessageSquareWarning, Play } from 'lucide-react';
+import { ImageIcon, Loader2, CalendarDays, AtSign, Globe, Share2, Tv, MessageCircle, Hash, Check, MessageSquareWarning, Play, Copy } from 'lucide-react';
 
 /**
  * Il piano editoriale visto dal cliente: una griglia come il profilo
@@ -192,6 +192,12 @@ export default function PortaleContenutiPage() {
                 </div>
               )}
 
+              {(post.media_urls?.length ?? 0) > 1 && (
+                <span className="absolute top-1 left-1 text-white drop-shadow">
+                  <Copy size={13} />
+                </span>
+              )}
+
               {post.status !== 'published' && (
                 <span className="absolute top-1 right-1 px-1.5 py-0.5 rounded text-[9px] font-medium bg-black/60 text-white">
                   {STATUS_LABEL[post.status] || post.status}
@@ -205,20 +211,44 @@ export default function PortaleContenutiPage() {
       <Modal open={!!selected} onClose={() => setSelected(null)} title={selected?.title || ''} size="md">
         {selected && (
           <div className="space-y-4">
-            {selected.media_urls?.[0] && media[selected.media_urls[0]] && (
-              isVideoPath(selected.media_urls[0]) ? (
-                <video
-                  src={media[selected.media_urls[0]]}
-                  className="w-full rounded-xl bg-black"
-                  controls
-                  playsInline
-                  preload="metadata"
-                />
-              ) : (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={media[selected.media_urls[0]]} alt={selected.title} className="w-full rounded-xl" />
-              )
-            )}
+            {/* Tutti i file, non solo il primo: un post puo essere un carosello
+                (ne abbiamo visto uno con venti foto) e mostrarne una sola
+                significava tenerne diciannove nascoste al cliente.
+                Scorrimento orizzontale a scatti, come sfogliare su Instagram. */}
+            {(() => {
+              const files = (selected.media_urls || []).filter((p) => media[p]);
+              if (files.length === 0) return null;
+
+              if (files.length === 1) {
+                const solo = files[0];
+                return isVideoPath(solo) ? (
+                  <video src={media[solo]} className="w-full rounded-xl bg-black" controls playsInline preload="metadata" />
+                ) : (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={media[solo]} alt={selected.title} className="w-full rounded-xl" />
+                );
+              }
+
+              return (
+                <div>
+                  <div className="flex gap-2 overflow-x-auto snap-x snap-mandatory -mx-1 px-1 pb-1">
+                    {files.map((p) => (
+                      <div key={p} className="snap-center shrink-0 w-[85%]">
+                        {isVideoPath(p) ? (
+                          <video src={media[p]} className="w-full rounded-xl bg-black" controls playsInline preload="metadata" />
+                        ) : (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={media[p]} alt="" className="w-full rounded-xl" />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-xs text-pw-text-dim mt-1.5 text-center">
+                    {files.length} contenuti — scorri per vederli tutti
+                  </p>
+                </div>
+              );
+            })()}
 
             <div className="flex items-center gap-3 text-sm text-pw-text-muted">
               <span className="inline-flex items-center gap-1.5">
