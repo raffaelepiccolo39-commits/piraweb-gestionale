@@ -8,8 +8,6 @@ import { Modal } from '@/components/ui/modal';
 import { reportSupabaseError } from '@/lib/report-error';
 import { resolveMediaUrls, isVideoPath, isExternalLink, coverDi } from '@/lib/social-media';
 import { useToast } from '@/components/ui/toast';
-import { usePortal } from '@/components/portale/portal-gate';
-import { LogoCliente } from '@/components/portale/logo-cliente';
 import { StoricoRisposte } from '@/components/portale/storico-risposte';
 import { cn } from '@/lib/utils';
 import { FILTRI, filtroValido } from '@/lib/piano-editoriale';
@@ -110,7 +108,6 @@ function Contenuti() {
   const [askChanges, setAskChanges] = useState(false);
   const [approvando, setApprovando] = useState<string | null>(null);
   const toast = useToast();
-  const { fullName, clientName, clientLogo } = usePortal();
 
   // Il filtro arriva dalla home. Un valore inventato a mano nell'indirizzo
   // non deve rompere la pagina: filtroValido lo riduce a null e si vede tutto.
@@ -121,9 +118,6 @@ function Contenuti() {
   const daAprire = searchParams.get('post');
   const [giaAperto, setGiaAperto] = useState(false);
 
-  const nome = fullName?.split(' ')[0] || '';
-  const ora = new Date().getHours();
-  const saluto = ora < 13 ? 'Buongiorno' : ora < 18 ? 'Buon pomeriggio' : 'Buonasera';
   const daApprovare = posts.filter((p) => p.client_approval === 'pending' && p.status !== 'published').length;
 
   // La risposta passa da una funzione dedicata: il cliente non ha permessi di
@@ -266,35 +260,19 @@ function Contenuti() {
   return (
     <>
 
-      {/* Hero card: stesso linguaggio della home del gestionale (navy + oro,
-          cerchi decorativi), preso dalle reference Kidville. Qui pero' dice
-          al cliente l'unica cosa che gli serve sapere entrando: se c'e
-          qualcosa che aspetta una sua risposta. */}
-      <div className="relative overflow-hidden rounded-2xl bg-[var(--pw-navy)] p-5 text-white mb-5">
-        <div className="absolute -right-8 -top-8 h-28 w-28 rounded-full bg-[var(--pw-gold)]/10" aria-hidden="true" />
-        <div className="absolute -right-2 top-10 h-16 w-16 rounded-full bg-[var(--pw-gold)]/5" aria-hidden="true" />
-        <div className="relative flex items-start gap-3.5">
-          {/* Logo del cliente su fondo bianco: molti loghi sono scuri e sul
-              navy sparirebbero. Se manca, si ripiega sull'iniziale. */}
-          <div className="shrink-0 w-16 h-16 rounded-xl bg-white flex items-center justify-center overflow-hidden p-2">
-            <LogoCliente url={clientLogo} nome={clientName} className="max-w-full max-h-full object-contain" />
-          </div>
-
-          <div className="min-w-0">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--pw-gold)]">
-              {saluto}{nome ? `, ${nome}` : ''}
-            </p>
-            {/* Formula neutra: il portale lo apre chi vuole il cliente, e
-                sbagliare il genere di chi legge fa un pessimo effetto. */}
-            <h1 className="mt-1 text-xl font-bold leading-tight">
-              Ti diamo il benvenuto nella tua dashboard
-            </h1>
-          </div>
-        </div>
-        <p className="relative mt-3 text-sm text-white/75">
+      {/* Titolo e conto, al posto della hero: il saluto col logo lo si e'
+          gia' visto entrando, e ripeterlo su ogni pagina occupava mezza
+          schermata sopra i contenuti — che sono il motivo per cui si e' qui. */}
+      <div className="mb-4">
+        <h2 className="text-lg font-semibold text-pw-text">Piano editoriale</h2>
+        <p className="text-sm text-pw-text-muted">
           {daApprovare > 0
-            ? <><strong className="font-semibold text-white">{daApprovare}</strong> {daApprovare === 1 ? 'contenuto aspetta' : 'contenuti aspettano'} una tua risposta</>
-            : `${posts.length} ${posts.length === 1 ? 'contenuto' : 'contenuti'} — tutto approvato, grazie`}
+            ? <>
+                <strong className="font-semibold text-pw-accent">{daApprovare}</strong>
+                {daApprovare === 1 ? ' contenuto da approvare' : ' contenuti da approvare'}
+                {' · '}{posts.length} in tutto
+              </>
+            : `${posts.length} ${posts.length === 1 ? 'contenuto' : 'contenuti'} — hai risposto a tutto`}
         </p>
       </div>
 
