@@ -351,6 +351,43 @@ export default function SocialCalendarPage() {
     fetchPosts();
   };
 
+  /**
+   * Rimanda in approvazione un contenuto che il cliente aveva rifiutato.
+   *
+   * Senza questo il giro restava monco: il cliente chiedeva modifiche, il
+   * team correggeva, e il contenuto restava rosso per sempre perche nessuno
+   * poteva riproporlo. La motivazione precedente non si perde — resta nello
+   * storico, che serve rileggere quando un contenuto viene rifiutato due
+   * volte di fila.
+   */
+  const rimandaInApprovazione = async (post: SocialPost) => {
+    if (!profile) return;
+    const { error } = await supabase
+      .from('social_posts')
+      .update({ client_approval: 'pending', client_comment: null, client_reviewed_at: null })
+      .eq('id', post.id);
+
+    if (error) {
+      reportSupabaseError(error, 'social-post-riproponi', { postId: post.id });
+      toast.error('Non e stato possibile rimandarlo in approvazione');
+      return;
+    }
+
+    // Il cliente va avvisato: ha chiesto una modifica e deve sapere che e
+    // stata fatta, altrimenti aspetta senza motivo.
+    const res = await fetch('/api/portal/notify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ client_id: post.client_id }),
+    });
+    const body = await res.json().catch(() => ({}));
+
+    toast.success(body.inviate > 0
+      ? 'Rimandato in approvazione — il cliente e stato avvisato'
+      : 'Rimandato in approvazione');
+    fetchPosts();
+  };
+
   const openEditPost = (post: SocialPost) => {
     setEditingPostId(post.id);
     setForm({
@@ -670,11 +707,17 @@ export default function SocialCalendarPage() {
                   </p>
                 )}
                 {post.client_approval === 'changes_requested' && (
-                  <div className="mt-2 rounded-md bg-amber-500/10 px-2 py-1.5">
-                    <p className="text-[10px] font-medium text-amber-400">Il cliente chiede modifiche</p>
+                  <div className="mt-2 rounded-md bg-red-500/10 px-2 py-1.5">
+                    <p className="text-[10px] font-medium text-red-400">Il cliente chiede modifiche</p>
                     {post.client_comment && (
                       <p className="text-[10px] text-pw-text-muted mt-0.5 italic">«{post.client_comment}»</p>
                     )}
+                    <button
+                      onClick={(e) => { e.stopPropagation(); rimandaInApprovazione(post); }}
+                      className="mt-1.5 text-[10px] font-medium text-pw-accent hover:underline"
+                    >
+                      Ho corretto, rimanda in approvazione
+                    </button>
                   </div>
                 )}
 

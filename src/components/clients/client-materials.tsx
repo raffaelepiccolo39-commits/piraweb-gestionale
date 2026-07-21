@@ -160,6 +160,27 @@ export function ClientMaterials({ clientId }: { clientId: string }) {
     carica();
   };
 
+  /** Dopo la correzione, il materiale torna in attesa di risposta. */
+  const rimandaInApprovazione = async (m: Materiale) => {
+    const { error } = await supabase
+      .from('client_materials')
+      .update({ client_approval: 'pending', client_comment: null, client_reviewed_at: null })
+      .eq('id', m.id);
+    if (error) { toast.error('Non è stato possibile rimandarlo in approvazione'); return; }
+
+    // Il cliente aveva chiesto una modifica: deve sapere che è stata fatta.
+    const res = await fetch('/api/portal/notify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ client_id: clientId }),
+    });
+    const body = await res.json().catch(() => ({}));
+    toast.success(body.inviate > 0
+      ? 'Rimandato in approvazione — il cliente è stato avvisato'
+      : 'Rimandato in approvazione');
+    carica();
+  };
+
   const elimina = async (m: Materiale) => {
     if (!confirm(`Eliminare "${m.title}"?`)) return;
     if (m.file_path) await supabase.storage.from(SOCIAL_MEDIA_BUCKET).remove([m.file_path]);
@@ -256,6 +277,14 @@ export function ClientMaterials({ clientId }: { clientId: string }) {
                         </div>
                         {m.client_comment && (
                           <p className="text-[11px] text-pw-text-muted italic mt-0.5">«{m.client_comment}»</p>
+                        )}
+                        {m.is_published && m.client_approval === 'changes_requested' && (
+                          <button
+                            onClick={() => rimandaInApprovazione(m)}
+                            className="text-[11px] font-medium text-pw-accent hover:underline mt-0.5"
+                          >
+                            Ho corretto, rimanda in approvazione
+                          </button>
                         )}
                       </div>
 
