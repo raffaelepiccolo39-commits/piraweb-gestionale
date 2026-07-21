@@ -177,6 +177,17 @@ export function PostMediaUpload({
         </button>
       </div>
 
+      {/* Instagram accetta al massimo 10 elementi in un carosello. Non blocco
+          il caricamento — magari servono per scegliere, o sono per un'altra
+          piattaforma — ma va detto adesso, non quando la pubblicazione viene
+          rifiutata. */}
+      {value.length > 10 && (
+        <p className="text-[11px] text-amber-500 mt-2">
+          {value.length} contenuti: Instagram ne accetta al massimo 10 per carosello.
+          Gli altri vanno in un post separato.
+        </p>
+      )}
+
       <input
         ref={inputRef}
         type="file"
