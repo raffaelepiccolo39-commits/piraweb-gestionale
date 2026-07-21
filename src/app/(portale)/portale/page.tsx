@@ -232,8 +232,17 @@ export default function PortaleHome() {
         </div>
       </div>
 
-      {/* ── Contenuti: i numeri del piano editoriale ── */}
+      {/* ── Piano editoriale del mese: i tre numeri ── */}
       <div>
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-pw-text-dim">
+          Piano editoriale
+        </p>
+        {/* first-letter e non capitalize: "Luglio 2026", non "Luglio 2026"
+            con ogni parola maiuscola. */}
+        <h2 className="text-base font-semibold text-pw-text first-letter:uppercase mb-3">
+          {new Date().toLocaleDateString('it-IT', { month: 'long', year: 'numeric' })}
+        </h2>
+
         <p className="text-[11px] font-semibold uppercase tracking-wider text-pw-text-dim mb-2">
           Contenuti
         </p>
@@ -387,10 +396,10 @@ export default function PortaleHome() {
       {/* ── Anteprima del piano ── */}
       <div>
         <div className="flex items-baseline justify-between mb-2">
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-pw-text-dim">Piano editoriale</p>
-            <h2 className="text-base font-semibold text-pw-text">I prossimi contenuti</h2>
-          </div>
+          {/* Senza l'occhiello "Piano editoriale": c'e' gia' in cima alla
+              pagina, e ripeterlo a mezzo schermo di distanza fa sembrare due
+              sezioni diverse la stessa cosa. */}
+          <h2 className="text-base font-semibold text-pw-text">I prossimi contenuti</h2>
           <Link href="/portale/contenuti" className="text-xs font-medium text-pw-accent inline-flex items-center gap-0.5">
             Vedi tutto <ChevronRight size={14} />
           </Link>
