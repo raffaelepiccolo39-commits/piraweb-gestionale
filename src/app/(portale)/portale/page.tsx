@@ -37,6 +37,20 @@ export const euro = (n: number) =>
     useGrouping: true,
   }).format(Number(n))}`;
 
+/** Come si legge una fascia oraria, per il cliente. */
+const FASCE: Record<string, string> = {
+  mattina: 'Mattina',
+  pomeriggio: 'Pomeriggio',
+  giornata: 'Tutto il giorno',
+};
+
+interface Shooting {
+  id: string;
+  data_richiesta: string;
+  fascia: 'mattina' | 'pomeriggio' | 'giornata';
+  stato: 'proposta' | 'confermata' | 'rifiutata';
+}
+
 interface Contenuto {
   id: string;
   title: string;
@@ -82,6 +96,7 @@ export default function PortaleHome() {
   const [materialiAttesa, setMaterialiAttesa] = useState(0);
   const [scaduti, setScaduti] = useState<{ quanti: number; totale: number; piuVecchia: string | null }>({ quanti: 0, totale: 0, piuVecchia: null });
   const [shootingAperto, setShootingAperto] = useState(false);
+  const [prossimoShooting, setProssimoShooting] = useState<Shooting | null>(null);
   const [scadenzaPiano, setScadenzaPiano] = useState<string | null>(null);
 
   const carica = useCallback(async () => {
@@ -100,9 +115,14 @@ export default function PortaleHome() {
         .select('amount, due_date, is_paid')
         .eq('is_paid', false)
         .lt('due_date', oggi),
+      // Servono le righe, non il conteggio: la home mostra la data di quello
+      // fissato. Solo da oggi in avanti — uno shooting fatto a maggio non e'
+      // il "prossimo".
       supabase.from('shooting_requests')
-        .select('id', { count: 'exact', head: true })
-        .eq('stato', 'proposta'),
+        .select('id, data_richiesta, fascia, stato')
+        .in('stato', ['proposta', 'confermata'])
+        .gte('data_richiesta', oggi)
+        .order('data_richiesta', { ascending: true }),
       // Il cliente non puo leggere la copertura del piano (e giusto cosi):
       // la funzione restituisce solo la data del suo.
       supabase.rpc('portal_scadenza_piano'),
@@ -113,7 +133,15 @@ export default function PortaleHome() {
     const righe = (post.data as Contenuto[]) || [];
     setContenuti(righe);
     setMaterialiAttesa(materiali.count ?? 0);
-    setShootingAperto((shooting.count ?? 0) > 0);
+    const richieste = (shooting.data as Shooting[]) || [];
+    setShootingAperto(richieste.some((r) => r.stato === 'proposta'));
+    // Il prossimo e' il primo confermato; se non ce n'e', la proposta piu'
+    // vicina, cosi' il cliente vede che la sua richiesta e' in mano a qualcuno.
+    setProssimoShooting(
+      richieste.find((r) => r.stato === 'confermata')
+      ?? richieste.find((r) => r.stato === 'proposta')
+      ?? null
+    );
     setScadenzaPiano((serve.data as string | null) ?? null);
 
     const nonPagate = (rate.data as { amount: number; due_date: string }[]) || [];
@@ -230,6 +258,60 @@ export default function PortaleHome() {
           dettaglio={`Fino al ${new Date(scadenzaPiano! + 'T12:00:00').toLocaleDateString('it-IT', { day: 'numeric', month: 'long' })} — fissiamo lo shooting`}
         />
       )}
+
+      {/* ── Prossimo shooting ──
+          Compare sempre, anche quando non c'e' niente in programma: "nessuno
+          shooting fissato" e' un'informazione, e sapere che non c'e' nulla
+          all'orizzonte e' meta' del motivo per cui uno guarda questa riga. */}
+      <div>
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-pw-text-dim mb-2">
+          Prossimo shooting
+        </p>
+        <Link
+          href="/portale/shooting"
+          className="flex items-center gap-3 rounded-2xl border border-pw-border bg-pw-surface p-4 active:bg-pw-surface-2 transition-colors"
+        >
+          <span className={cn(
+            'shrink-0 flex h-10 w-10 items-center justify-center rounded-xl',
+            prossimoShooting ? 'bg-pw-accent/10 text-pw-accent' : 'bg-pw-surface-2 text-pw-text-dim'
+          )}>
+            <Camera size={18} />
+          </span>
+
+          <span className="min-w-0 flex-1">
+            {prossimoShooting ? (
+              <>
+                {/* first-letter e non capitalize: in italiano il mese resta
+                    minuscolo, "Domenica 2 Agosto" non si scrive. */}
+                <span className="block text-sm font-semibold text-pw-text first-letter:uppercase">
+                  {new Date(`${prossimoShooting.data_richiesta}T12:00:00`).toLocaleDateString('it-IT', {
+                    weekday: 'long', day: 'numeric', month: 'long',
+                  })}
+                </span>
+                <span className="block text-xs text-pw-text-dim mt-0.5">
+                  {FASCE[prossimoShooting.fascia]}
+                  {prossimoShooting.stato === 'confermata'
+                    ? ' — confermato'
+                    : ' — in attesa di conferma'}
+                </span>
+              </>
+            ) : (
+              <>
+                <span className="block text-sm font-medium text-pw-text-muted">
+                  Nessuno shooting fissato
+                </span>
+                <span className="block text-xs text-pw-text-dim mt-0.5">
+                  {serveShooting
+                    ? 'Il piano sta per finire: proponi una data'
+                    : 'Al momento non ce n’è bisogno'}
+                </span>
+              </>
+            )}
+          </span>
+
+          <ChevronRight size={16} className="shrink-0 text-pw-text-dim" />
+        </Link>
+      </div>
 
       {materialiAttesa > 0 && (
         <div>

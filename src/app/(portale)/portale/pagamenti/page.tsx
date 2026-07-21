@@ -4,7 +4,9 @@ import { useCallback, useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { reportSupabaseError } from '@/lib/report-error';
 import { cn } from '@/lib/utils';
-import { Loader2, Receipt, Check, Clock } from 'lucide-react';
+import { useToast } from '@/components/ui/toast';
+import { scaricaPromemoria } from '@/lib/promemoria-ics';
+import { Loader2, Receipt, Check, Clock, CalendarPlus } from 'lucide-react';
 
 /**
  * Le rate del cliente. Sola lettura: la RLS
@@ -49,6 +51,18 @@ const mensilita = (iso: string) =>
 
 export default function PortalePagamentiPage() {
   const supabase = createClient();
+  const toast = useToast();
+
+  /** Mette la scadenza nel calendario di chi tocca il pulsante. */
+  const promemoria = (p: Payment) => {
+    const mese = mensilita(p.due_date);
+    scaricaPromemoria({
+      scadenza: p.due_date,
+      titolo: `Pagamento Pira Web — ${euro(p.amount)}`,
+      descrizione: `Mensilità di ${mese}. Se l'hai già pagata, ignora pure questo promemoria.`,
+    }, `pagamento-${p.due_date.slice(0, 10)}.ics`);
+    toast.success('Promemoria aggiunto al calendario');
+  };
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -97,7 +111,8 @@ export default function PortalePagamentiPage() {
 
       <div className="space-y-2">
         {payments.map((p) => (
-          <div key={p.id} className="flex items-center justify-between gap-3 rounded-xl border border-pw-border bg-pw-surface p-4">
+          <div key={p.id} className="rounded-xl border border-pw-border bg-pw-surface p-4">
+            <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
               {/* L'importo per primo: e' la cosa che si cerca guardando
                   l'elenco. Sotto il mese, perche' "3ª rata" non dice a chi
@@ -130,6 +145,18 @@ export default function PortalePagamentiPage() {
                   ? <><Clock size={12} /> Scaduta</>
                   : <><Clock size={12} /> Da saldare</>}
             </span>
+            </div>
+
+            {/* Solo su cio' che deve ancora scadere: mettere in calendario una
+                scadenza gia' passata non ricorda niente a nessuno. */}
+            {!p.is_paid && new Date(p.due_date) >= new Date() && (
+              <button
+                onClick={() => promemoria(p)}
+                className="mt-3 w-full inline-flex items-center justify-center gap-1.5 rounded-xl border border-pw-border py-2 text-xs font-medium text-pw-text-muted hover:bg-pw-surface-2 transition-colors"
+              >
+                <CalendarPlus size={14} /> Ricordamelo
+              </button>
+            )}
           </div>
         ))}
       </div>
