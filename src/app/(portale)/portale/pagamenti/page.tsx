@@ -69,11 +69,10 @@ export default function PortalePagamentiPage() {
       })),
       'scadenze-pira-web.ics'
     );
-    toast.success(
-      future.length === 1
-        ? 'Scadenza aggiunta al calendario'
-        : `${future.length} scadenze aggiunte al calendario`
-    );
+    // Non diciamo "aggiunte al calendario": il file e' stato scaricato, e
+    // finche' il cliente non lo apre i promemoria non esistono. Dirgli che
+    // e' fatto significa lasciarlo senza avviso alla scadenza.
+    toast.success('File scaricato: aprilo e tocca Aggiungi per metterle in calendario');
   };
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -169,7 +168,7 @@ export default function PortalePagamentiPage() {
               className={cn(
                 'shrink-0 inline-flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-medium',
                 p.is_paid
-                  ? 'bg-green-500/10 text-green-500'
+                  ? 'bg-green-500/10 text-green-600 dark:text-green-500'
                   : new Date(p.due_date) < new Date()
                     ? 'bg-red-500/10 text-red-500'
                     : 'bg-pw-surface-2 text-pw-text-dim'

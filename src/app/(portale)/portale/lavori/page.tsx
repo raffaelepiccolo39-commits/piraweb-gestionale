@@ -134,7 +134,7 @@ export default function PortaleLavoriPage() {
           <div className="rounded-2xl border border-pw-border bg-pw-surface divide-y divide-pw-border">
             {gruppo.map((l) => (
               <div key={l.id} className="flex items-start gap-2.5 px-4 py-3">
-                <Check size={15} className="shrink-0 mt-0.5 text-green-500" />
+                <Check size={15} className="shrink-0 mt-0.5 text-green-600 dark:text-green-500" />
                 <div className="min-w-0 flex-1">
                   <p className="text-sm text-pw-text first-letter:uppercase">{l.titolo}</p>
                   <p className="text-[11px] text-pw-text-dim mt-0.5">

@@ -31,8 +31,8 @@ const TONI: Record<TonoAvviso, { bordo: string; sfondo: string; icona: string; f
   ambra: {
     bordo: 'border-amber-500/30',
     sfondo: 'bg-amber-500/10',
-    icona: 'bg-amber-500/15 text-amber-500',
-    forte: 'text-amber-500',
+    icona: 'bg-amber-500/15 text-amber-600 dark:text-amber-500',
+    forte: 'text-amber-600 dark:text-amber-500',
   },
   oro: {
     bordo: 'border-pw-accent/30',

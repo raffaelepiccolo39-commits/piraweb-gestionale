@@ -322,7 +322,7 @@ function Contenuti() {
                 <button
                   onClick={() => approvaMese(chiave, inAttesa.length)}
                   disabled={approvando === chiave}
-                  className="shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-green-500/10 text-green-500 text-xs font-semibold disabled:opacity-60"
+                  className="shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-green-500/10 text-green-600 dark:text-green-500 text-xs font-semibold disabled:opacity-60"
                 >
                   {approvando === chiave
                     ? <><Loader2 size={14} className="animate-spin" /> Approvo…</>
@@ -377,7 +377,7 @@ function Contenuti() {
                     )}
 
                     {post.status !== 'published' && ETICHETTA_CLIENTE[post.client_approval] && (
-                      <span className={`absolute top-1 right-1 px-1.5 py-0.5 rounded text-[9px] font-semibold ${ETICHETTA_CLIENTE[post.client_approval]!.classe}`}>
+                      <span className={`absolute top-1 right-1 px-1.5 py-0.5 rounded text-[11px] font-semibold ${ETICHETTA_CLIENTE[post.client_approval]!.classe}`}>
                         {ETICHETTA_CLIENTE[post.client_approval]!.testo}
                       </span>
                     )}
@@ -446,7 +446,7 @@ function Contenuti() {
               <span className={cn(
                 'px-2 py-0.5 rounded-full text-xs font-medium',
                 selected.status === 'published'
-                  ? 'bg-green-500/10 text-green-500'
+                  ? 'bg-green-500/10 text-green-600 dark:text-green-500'
                   : 'bg-pw-accent/10 text-pw-accent'
               )}>
                 {STATUS_LABEL[selected.status] || selected.status}
@@ -493,12 +493,12 @@ function Contenuti() {
             {selected.status !== 'published' && (
               <div className="pt-4 border-t border-pw-border">
                 {selected.client_approval === 'approved' ? (
-                  <p className="text-sm text-green-500 inline-flex items-center gap-1.5">
+                  <p className="text-sm text-green-600 dark:text-green-500 inline-flex items-center gap-1.5">
                     <Check size={15} /> Hai approvato questo contenuto
                   </p>
                 ) : selected.client_approval === 'changes_requested' ? (
                   <div>
-                    <p className="text-sm text-amber-500 inline-flex items-center gap-1.5 mb-1">
+                    <p className="text-sm text-amber-600 dark:text-amber-500 inline-flex items-center gap-1.5 mb-1">
                       <MessageSquareWarning size={15} /> Hai chiesto delle modifiche
                     </p>
                     {selected.client_comment && (
@@ -536,7 +536,7 @@ function Contenuti() {
                     <button
                       onClick={() => review('approved')}
                       disabled={sending}
-                      className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-green-500/10 text-green-500 text-sm font-medium hover:bg-green-500/20 transition-colors disabled:opacity-60"
+                      className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-green-500/10 text-green-600 dark:text-green-500 text-sm font-medium hover:bg-green-500/20 transition-colors disabled:opacity-60"
                     >
                       <Check size={16} /> Approva
                     </button>

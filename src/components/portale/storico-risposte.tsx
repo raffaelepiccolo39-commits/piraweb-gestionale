@@ -62,8 +62,8 @@ export function StoricoRisposte({
           <div key={i} className="flex gap-2">
             <span className="shrink-0 mt-0.5">
               {v.esito === 'approved'
-                ? <Check size={13} className="text-green-500" />
-                : <MessageSquareWarning size={13} className="text-amber-500" />}
+                ? <Check size={13} className="text-green-600 dark:text-green-500" />
+                : <MessageSquareWarning size={13} className="text-amber-600 dark:text-amber-500" />}
             </span>
             <div className="min-w-0">
               <p className="text-[11px] text-pw-text-dim">

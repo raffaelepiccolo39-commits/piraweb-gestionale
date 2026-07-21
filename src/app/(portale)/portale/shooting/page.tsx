@@ -133,7 +133,7 @@ export default function PortaleShootingPage() {
                 </div>
                 <span className={cn(
                   'shrink-0 inline-flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-medium',
-                  r.stato === 'confermata' ? 'bg-green-500/10 text-green-500'
+                  r.stato === 'confermata' ? 'bg-green-500/10 text-green-600 dark:text-green-500'
                     : r.stato === 'rifiutata' ? 'bg-red-500/10 text-red-500'
                     : 'bg-pw-accent/10 text-pw-accent'
                 )}>

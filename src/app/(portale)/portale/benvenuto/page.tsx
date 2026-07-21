@@ -43,6 +43,11 @@ export default function BenvenutoPage() {
       toast.success('Password impostata: da ora entri quando vuoi');
       // replace, non push: tornando indietro non si rivede questa schermata
       router.replace('/portale');
+    } catch {
+      // Senza questo, se la rete cade la schermata resta muta: il cliente
+      // pensa di riprovare piu' tardi, ma il link d'invito e' monouso e si e'
+      // gia' speso. Resterebbe chiuso fuori senza che nessuno lo sappia.
+      toast.error('Connessione assente: riprova senza chiudere questa pagina');
     } finally {
       setInvio(false);
     }

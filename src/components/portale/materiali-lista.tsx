@@ -64,12 +64,31 @@ export function MaterialiLista({ soloTipo }: { soloTipo?: Tipo }) {
 
   useEffect(() => { carica(); }, [carica]);
 
+  /**
+   * Apre il documento da approvare.
+   *
+   * La finestra va aperta SUBITO, prima di firmare il link: Safari su iPhone
+   * concede window.open solo mentre il tocco e' ancora in corso, e dopo un
+   * await lo blocca in silenzio. Il cliente toccava "Apri il documento" e non
+   * succedeva niente — proprio sul documento che gli stiamo chiedendo di
+   * approvare.
+   */
   const apri = async (m: Materiale) => {
     if (m.external_url) { window.open(m.external_url, '_blank'); return; }
     if (!m.file_path) return;
+
+    const finestra = window.open('', '_blank');
     const { data } = await supabase.storage.from(SOCIAL_MEDIA_BUCKET).createSignedUrl(m.file_path, 600);
-    if (data?.signedUrl) window.open(data.signedUrl, '_blank');
-    else toast.error('Documento non disponibile, scrivici');
+
+    if (!data?.signedUrl) {
+      finestra?.close();
+      toast.error('Documento non disponibile, scrivici');
+      return;
+    }
+    // Se il blocco popup ha impedito anche l'apertura vuota, si va nella
+    // stessa scheda: meglio uscire dalla pagina che non aprire niente.
+    if (finestra) finestra.location.href = data.signedUrl;
+    else window.location.href = data.signedUrl;
   };
 
   const rispondi = async (m: Materiale, esito: 'approved' | 'changes_requested') => {
@@ -158,12 +177,12 @@ export function MaterialiLista({ soloTipo }: { soloTipo?: Tipo }) {
 
                     <div className="mt-3 pt-3 border-t border-pw-border">
                       {m.client_approval === 'approved' ? (
-                        <p className="text-sm text-green-500 inline-flex items-center gap-1.5">
+                        <p className="text-sm text-green-600 dark:text-green-500 inline-flex items-center gap-1.5">
                           <Check size={15} /> Hai approvato
                         </p>
                       ) : m.client_approval === 'changes_requested' ? (
                         <div>
-                          <p className="text-sm text-amber-500 inline-flex items-center gap-1.5 mb-1">
+                          <p className="text-sm text-amber-600 dark:text-amber-500 inline-flex items-center gap-1.5 mb-1">
                             <MessageSquareWarning size={15} /> Hai chiesto delle modifiche
                           </p>
                           {m.client_comment && (
@@ -198,7 +217,7 @@ export function MaterialiLista({ soloTipo }: { soloTipo?: Tipo }) {
                           <button
                             onClick={() => rispondi(m, 'approved')}
                             disabled={invio}
-                            className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-green-500/10 text-green-500 text-sm font-medium disabled:opacity-60"
+                            className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-green-500/10 text-green-600 dark:text-green-500 text-sm font-medium disabled:opacity-60"
                           >
                             <Check size={15} /> Approva
                           </button>

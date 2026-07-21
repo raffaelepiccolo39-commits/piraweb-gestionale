@@ -181,7 +181,7 @@ export default function PortaleReportPage() {
                 <>
                   <span className={cn(
                     'inline-flex items-center gap-0.5 text-[11px] font-medium',
-                    d.delta > 0 ? 'text-green-500' : d.delta < 0 ? 'text-red-500' : 'text-pw-text-dim'
+                    d.delta > 0 ? 'text-green-600 dark:text-green-500' : d.delta < 0 ? 'text-red-500' : 'text-pw-text-dim'
                   )}>
                     {d.delta > 0 ? <TrendingUp size={11} /> : d.delta < 0 ? <TrendingDown size={11} /> : <Minus size={11} />}
                     {d.delta > 0 ? '+' : ''}{d.delta.toFixed(0)}%

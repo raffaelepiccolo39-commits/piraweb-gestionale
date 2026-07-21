@@ -378,7 +378,7 @@ export default function PortaleHome() {
             {/* A destra: quando esce. */}
             <div className="min-w-0 border-l border-pw-border pl-3 flex flex-col">
               <span className={cn(
-                'self-start px-1.5 py-0.5 rounded text-[9px] font-semibold text-white',
+                'self-start px-1.5 py-0.5 rounded text-[11px] font-semibold text-white',
                 prossimo.client_approval === 'approved' ? 'bg-green-500'
                   : prossimo.client_approval === 'changes_requested' ? 'bg-amber-500'
                   : 'bg-blue-500'
