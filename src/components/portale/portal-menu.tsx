@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import {
   Home, LayoutGrid, Palette, FileText, Lightbulb, Receipt, FileSignature, Camera, BarChart3,
-  MessageCircle, Hammer, ChevronRight, X, LogOut,
+  MessageCircle, Hammer, Target, ChevronRight, X, LogOut,
 } from 'lucide-react';
 
 /**
@@ -39,6 +39,7 @@ export const VOCI_MENU = [
   {
     gruppo: 'Andamento',
     voci: [
+      { href: '/portale/obiettivi', label: 'Obiettivi', icona: Target },
       { href: '/portale/lavori', label: 'A cosa stiamo lavorando', icona: Hammer },
       { href: '/portale/report', label: 'Come sta andando', icona: BarChart3 },
     ],
