@@ -69,6 +69,21 @@ export default function PortaleShootingPage() {
   const [nota, setNota] = useState('');
   const [invio, setInvio] = useState(false);
 
+  // Cambiando giorno, la fascia scelta prima potrebbe non essere piu' libera.
+  // Si sposta da sola sulla prima disponibile, invece di lasciare selezionata
+  // una mezza giornata che il team dovrebbe poi rifiutare.
+  useEffect(() => {
+    if (!scelto) return;
+    const libera = (f: Fascia) => f === 'giornata'
+      ? !occupati.has(`${scelto}|mattina`) && !occupati.has(`${scelto}|pomeriggio`)
+      : !occupati.has(`${scelto}|${f}`);
+    if (!libera(fascia)) {
+      const prima = (['mattina', 'pomeriggio', 'giornata'] as Fascia[]).find(libera);
+      if (prima) setFascia(prima);
+    }
+  }, [scelto, occupati, fascia]);
+
+
   // I prossimi 45 giorni, esclusi sabato e domenica: uno shooting si fa
   // in settimana, e proporre un sabato porterebbe solo a un rifiuto.
   const giorni = useMemo(() => {
@@ -92,12 +107,17 @@ export default function PortaleShootingPage() {
         .from('shooting_requests')
         .select('id, data_richiesta, fascia, nota_cliente, stato, risposta_team')
         .order('created_at', { ascending: false }),
-      supabase.rpc('portal_giorni_occupati', { p_da: da, p_a: a }),
+      supabase.rpc('portal_fasce_occupate', { p_da: da, p_a: a }),
     ]);
 
     if (req.error) reportSupabaseError(req.error, 'portale-shooting-lista', {});
     setRichieste((req.data as Richiesta[]) || []);
-    setOccupati(new Set(((occ.data as { giorno: string }[]) || []).map((r) => r.giorno)));
+    // Chiave "giorno|fascia": un giorno con la sola mattina impegnata resta
+    // proponibile per il pomeriggio.
+    setOccupati(new Set(
+      ((occ.data as { giorno: string; fascia: string }[]) || [])
+        .map((r) => `${r.giorno}|${r.fascia}`)
+    ));
     setLoading(false);
   }, [supabase, giorni]);
 
@@ -180,7 +200,11 @@ export default function PortaleShootingPage() {
           <div className="grid grid-cols-4 sm:grid-cols-7 gap-1.5 mb-4">
             {giorni.map((d) => {
               const key = ymd(d);
-              const occupato = occupati.has(key);
+              const mattinaPresa = occupati.has(`${key}|mattina`);
+              const pomeriggioPreso = occupati.has(`${key}|pomeriggio`);
+              // Fuori solo se non resta niente: con mezza giornata libera il
+              // cliente deve poterla chiedere.
+              const occupato = mattinaPresa && pomeriggioPreso;
               const attivo = scelto === key;
               return (
                 <button
@@ -208,7 +232,8 @@ export default function PortaleShootingPage() {
             })}
           </div>
           <p className="text-[11px] text-pw-text-dim mb-5">
-            I giorni in grigio sono già impegnati.
+            I giorni in grigio sono già impegnati. Su alcuni giorni può essere
+            libera solo mezza giornata: lo vedi scegliendo la data.
           </p>
 
           {scelto && (
@@ -218,20 +243,29 @@ export default function PortaleShootingPage() {
               </p>
 
               <div className="flex gap-2">
-                {FASCE.map((f) => (
+                {FASCE.map((f) => {
+                  // 'giornata' richiede entrambe libere; le altre solo la propria.
+                  const presa = f.valore === 'giornata'
+                    ? occupati.has(`${scelto}|mattina`) || occupati.has(`${scelto}|pomeriggio`)
+                    : occupati.has(`${scelto}|${f.valore}`);
+                  return (
                   <button
                     key={f.valore}
+                    disabled={presa}
                     onClick={() => setFascia(f.valore)}
                     className={cn(
                       'flex-1 px-3 py-2 rounded-lg text-xs font-medium border transition-colors',
-                      fascia === f.valore
-                        ? 'border-pw-accent bg-pw-accent/10 text-pw-accent'
-                        : 'border-pw-border text-pw-text-muted'
+                      presa
+                        ? 'border-pw-border text-pw-text-dim opacity-40 cursor-not-allowed line-through'
+                        : fascia === f.valore
+                          ? 'border-pw-accent bg-pw-accent/10 text-pw-accent'
+                          : 'border-pw-border text-pw-text-muted'
                     )}
                   >
                     {f.etichetta}
                   </button>
-                ))}
+                  );
+                })}
               </div>
 
               <textarea
