@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 import { Home, LayoutGrid, Lightbulb, Menu as MenuIcon, ArrowLeft } from 'lucide-react';
+import { useTheme } from '@/components/theme-provider';
 import { PortalMenu } from './portal-menu';
 import { PortalNotifiche } from './portal-notifiche';
 
@@ -31,6 +32,7 @@ const TABS = [
 export function PortalShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
+  const { theme } = useTheme();
   const supabase = createClient();
 
   // Quanti contenuti aspettano una risposta: il pallino sulla barra e' il
@@ -94,12 +96,20 @@ export function PortalShell({ children }: { children: React.ReactNode }) {
               </Link>
             )}
 
-            {/* Due file perche' il tema chiaro/scuro chiede due versioni, come
-                gia fa la sidebar del gestionale. */}
+            {/* Il file lo sceglie il TEMA DELL'APP, non le preferenze del
+                sistema operativo — esattamente come fa la sidebar.
+                Con le varianti dark: di Tailwind seguiva il sistema: chi aveva
+                il telefono in scuro e l'app in chiaro si vedeva il logo bianco
+                su fondo bianco, cioe' solo "Creative Agency" in oro sospeso
+                nel vuoto.
+                h-9 e non h-7: il logo ha due righe e a 28px la seconda non si
+                legge. La barra e' quasi vuota, lo spazio c'e'. */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo-dark.png" alt="Pira Web" className="h-7 w-auto dark:hidden" />
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo.png" alt="Pira Web" className="h-7 w-auto hidden dark:block" />
+            <img
+              src={theme === 'dark' ? '/logo.png' : '/logo-dark.png'}
+              alt="Pira Web"
+              className="h-9 w-auto"
+            />
           </div>
 
           <PortalNotifiche inAttesa={inAttesa} />
