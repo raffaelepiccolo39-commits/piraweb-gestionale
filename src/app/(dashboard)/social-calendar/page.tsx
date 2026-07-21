@@ -84,6 +84,36 @@ const PLATFORM_OPTIONS = [
   { value: 'pinterest', label: 'Pinterest' },
 ];
 
+
+/**
+ * Conversioni fra il campo "datetime-local" e il database.
+ *
+ * L'input HTML restituisce "2026-07-22T10:00" SENZA fuso: è ora locale.
+ * La colonna scheduled_at è TIMESTAMPTZ e Postgres, ricevendo una stringa
+ * senza fuso, la interpreta come UTC — quindi digitare le 10:00 salvava le
+ * 10:00 UTC, cioè mezzogiorno in Italia.
+ *
+ * Nella direzione opposta l'errore era speculare: si tagliavano i primi 16
+ * caratteri dell'ISO (che è UTC) e si mettevano nel campo, mostrando le
+ * 08:00 per un post programmato alle 10:00.
+ *
+ * Le due conversioni vanno sempre insieme: sistemarne una sola sposterebbe
+ * gli orari di due ore a ogni salvataggio.
+ */
+function dbToCampo(iso: string): string {
+  const d = new Date(iso);
+  const due = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${due(d.getMonth() + 1)}-${due(d.getDate())}T${due(d.getHours())}:${due(d.getMinutes())}`;
+}
+
+function campoToDb(valore: string): string | null {
+  if (!valore) return null;
+  // new Date("YYYY-MM-DDTHH:mm") viene letta da JS come ora LOCALE: è quello
+  // che vogliamo, perché è ciò che l'utente ha digitato guardando l'orologio.
+  const d = new Date(valore);
+  return isNaN(d.getTime()) ? null : d.toISOString();
+}
+
 function getDaysInMonth(year: number, month: number) {
   return new Date(year, month + 1, 0).getDate();
 }
@@ -241,7 +271,7 @@ export default function SocialCalendarPage() {
       caption: form.caption || null,
       platforms: form.platforms,
       status: form.status,
-      scheduled_at: form.scheduled_at || null,
+      scheduled_at: campoToDb(form.scheduled_at),
       client_id: form.client_id,
       hashtags: form.hashtags || null,
       notes: form.notes || null,
@@ -269,7 +299,7 @@ export default function SocialCalendarPage() {
       caption: post.caption || '',
       platforms: post.platforms || [],
       status: post.status,
-      scheduled_at: post.scheduled_at ? post.scheduled_at.slice(0, 16) : '',
+      scheduled_at: post.scheduled_at ? dbToCampo(post.scheduled_at) : '',
       client_id: post.client_id || '',
       hashtags: post.hashtags || '',
       notes: post.notes || '',
