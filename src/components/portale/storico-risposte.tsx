@@ -24,9 +24,13 @@ interface Voce {
 export function StoricoRisposte({
   tabella,
   recordId,
+  statoAttuale,
 }: {
   tabella: 'social_posts' | 'client_materials';
   recordId: string;
+  /** Cosa risulta ADESSO su questo contenuto: serve a sapere se la risposta
+   *  piu' recente e' gia' scritta sopra o se va mostrata qui. */
+  statoAttuale: 'pending' | 'approved' | 'changes_requested';
 }) {
   const supabase = createClient();
   const [voci, setVoci] = useState<Voce[]>([]);
@@ -46,10 +50,24 @@ export function StoricoRisposte({
     return () => { annullato = true; };
   }, [supabase, tabella, recordId]);
 
-  // Una risposta sola è la situazione attuale, già mostrata sopra: non serve
-  // ripeterla sotto forma di storico.
+  /**
+   * Cosa mostrare qui sotto.
+   *
+   * La risposta più recente si salta SOLO se è quella che il contenuto porta
+   * ancora addosso: in quel caso è già scritta sopra e ripeterla è rumore.
+   *
+   * Prima si saltava sempre, e questo cancellava il caso più importante:
+   * quando il team corregge e rimanda in approvazione, il contenuto torna
+   * "in attesa" e sopra non c'è più niente — così la richiesta di modifiche
+   * appena fatta dal cliente spariva del tutto, e lui non poteva verificare
+   * che l'avessimo recepita.
+   */
   const passate = voci.filter((v) => v.esito !== 'pending');
-  if (passate.length < 2) return null;
+  const daMostrare = passate.length && passate[0].esito === statoAttuale
+    ? passate.slice(1)
+    : passate;
+
+  if (daMostrare.length === 0) return null;
 
   return (
     <div className="pt-3 border-t border-pw-border">
@@ -58,7 +76,7 @@ export function StoricoRisposte({
       </p>
 
       <div className="space-y-2">
-        {passate.slice(1).map((v, i) => (
+        {daMostrare.map((v, i) => (
           <div key={i} className="flex gap-2">
             <span className="shrink-0 mt-0.5">
               {v.esito === 'approved'

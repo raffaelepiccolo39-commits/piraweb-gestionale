@@ -63,11 +63,18 @@ export default function PortaleReportPage() {
 
   // Il periodo scelto e quello precedente della stessa durata: il confronto
   // ha senso solo fra due intervalli lunghi uguali.
-  const { attuale, precedente } = useMemo(() => {
+  //
+  // "confrontabile" non c'era, e la regola scritta qui sopra non veniva
+  // applicata: con sette mesi caricati e il periodo su sei, il precedente era
+  // UN mese solo e la variazione usciva a +500%. Numeri gonfiati proprio dove
+  // dimostriamo il nostro valore — il posto peggiore per sbagliare.
+  const { attuale, precedente, confrontabile } = useMemo(() => {
     const n = periodo;
+    const prima = righe.slice(-n * 2, -n);
     return {
       attuale: righe.slice(-n),
-      precedente: righe.slice(-n * 2, -n),
+      precedente: prima,
+      confrontabile: righe.length >= n * 2 && prima.length === n,
     };
   }, [righe, periodo]);
 
@@ -82,6 +89,9 @@ export default function PortaleReportPage() {
   };
 
   const variazione = (ora: number | null, prima: number | null) => {
+    // Senza abbastanza storia non si confronta: meglio nessuna percentuale
+    // che una percentuale falsa.
+    if (!confrontabile) return null;
     if (ora === null || prima === null || prima === 0) return null;
     return ((ora - prima) / prima) * 100;
   };
@@ -176,7 +186,9 @@ export default function PortaleReportPage() {
 
             <div className="flex items-center gap-1 mt-1">
               {d.delta === null ? (
-                <span className="text-[11px] text-pw-text-dim">{d.nota}</span>
+                <span className="text-[11px] text-pw-text-dim">
+                  {confrontabile ? d.nota : 'non ancora confrontabile'}
+                </span>
               ) : (
                 <>
                   <span className={cn(

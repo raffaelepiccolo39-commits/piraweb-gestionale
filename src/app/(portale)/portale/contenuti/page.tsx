@@ -554,7 +554,7 @@ function Contenuti() {
 
             {/* I giri precedenti su questo stesso contenuto: senza, al secondo
                 rimando nessuno ricorda cosa era stato chiesto la prima volta. */}
-            <StoricoRisposte tabella="social_posts" recordId={selected.id} />
+            <StoricoRisposte tabella="social_posts" recordId={selected.id} statoAttuale={selected.client_approval} />
           </div>
         )}
       </Modal>

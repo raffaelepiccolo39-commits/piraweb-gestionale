@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useToast } from '@/components/ui/toast';
 import { reportSupabaseError } from '@/lib/report-error';
@@ -44,6 +44,27 @@ export default function PortaleShootingPage() {
   const [occupati, setOccupati] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [scelto, setScelto] = useState<string | null>(null);
+
+  /**
+   * Il pannello per scegliere la fascia e inviare.
+   *
+   * Su telefono nasce SOTTO il calendario, quindi fuori dallo schermo: il
+   * cliente toccava il giorno, lo vedeva colorarsi, non vedeva comparire
+   * nient'altro e chiudeva la pagina. La proposta non partiva mai, senza
+   * nemmeno un errore — e da noi non arrivava niente.
+   */
+  const pannello = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!scelto) return;
+    // Un attimo dopo il disegno, altrimenti si scorre verso un elemento che
+    // ancora non c'e'.
+    const t = setTimeout(
+      () => pannello.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }),
+      80,
+    );
+    return () => clearTimeout(t);
+  }, [scelto]);
   const [fascia, setFascia] = useState<Fascia>('mattina');
   const [nota, setNota] = useState('');
   const [invio, setInvio] = useState(false);
@@ -191,7 +212,7 @@ export default function PortaleShootingPage() {
           </p>
 
           {scelto && (
-            <div className="rounded-xl border border-pw-border bg-pw-surface p-4 space-y-3">
+            <div ref={pannello} className="rounded-xl border border-pw-border bg-pw-surface p-4 space-y-3">
               <p className="text-sm font-medium text-pw-text">
                 {new Date(scelto + 'T12:00:00').toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' })}
               </p>
