@@ -189,50 +189,83 @@ GRANT EXECUTE ON FUNCTION public.portal_segna_letto() TO authenticated;
 -- Il bucket degli allegati in arrivo
 -- ============================================================
 
-INSERT INTO storage.buckets (id, name, public, file_size_limit)
-VALUES ('inbox', 'inbox', false, 26214400)  -- 25 MB a file
-ON CONFLICT (id) DO UPDATE SET file_size_limit = EXCLUDED.file_size_limit;
+-- ATTENZIONE, e' il punto in cui questa migration e' gia' fallita una volta.
+--
+-- storage.objects appartiene a supabase_storage_admin, non a postgres: su
+-- questo progetto CREATE POLICY su quella tabella puo' rispondere "must be
+-- owner of table objects". Il SQL Editor esegue tutto lo script in UNA
+-- transazione, quindi quell'errore faceva rollback anche della tabella e
+-- delle funzioni qui sopra — e non restava niente.
+--
+-- Da qui in giu' ogni errore viene catturato e trasformato in un avviso: se
+-- lo storage non si lascia configurare da SQL, il resto resta comunque
+-- installato e le policy si mettono a mano da Storage > Policies.
 
--- Il cliente carica SOLO dentro la propria cartella. Senza il vincolo sul
--- primo segmento del percorso, un cliente potrebbe scrivere sopra i file di
--- un altro: il bucket è condiviso, la cartella no.
-DROP POLICY IF EXISTS "Il cliente carica nella propria cartella" ON storage.objects;
-CREATE POLICY "Il cliente carica nella propria cartella" ON storage.objects
-  FOR INSERT TO authenticated
-  WITH CHECK (
-    bucket_id = 'inbox'
-    AND (storage.foldername(name))[1] = public.current_client_id()::text
-  );
+DO $$
+BEGIN
+  INSERT INTO storage.buckets (id, name, public, file_size_limit)
+  VALUES ('inbox', 'inbox', false, 26214400)  -- 25 MB a file
+  ON CONFLICT (id) DO UPDATE SET file_size_limit = EXCLUDED.file_size_limit;
+EXCEPTION WHEN OTHERS THEN
+  RAISE NOTICE 'Bucket inbox non creato da SQL (%). Crealo da Storage: privato, 25 MB.', SQLERRM;
+END $$;
 
-DROP POLICY IF EXISTS "Il cliente rilegge la propria cartella" ON storage.objects;
-CREATE POLICY "Il cliente rilegge la propria cartella" ON storage.objects
-  FOR SELECT TO authenticated
-  USING (
-    bucket_id = 'inbox'
-    AND (storage.foldername(name))[1] = public.current_client_id()::text
-  );
+DO $$
+BEGIN
+  -- Il cliente carica SOLO dentro la propria cartella. Senza il vincolo sul
+  -- primo segmento del percorso, un cliente potrebbe scrivere sopra i file di
+  -- un altro: il bucket e' condiviso, la cartella no.
+  EXECUTE $p$DROP POLICY IF EXISTS "Il cliente carica nella propria cartella" ON storage.objects$p$;
+  EXECUTE $p$CREATE POLICY "Il cliente carica nella propria cartella" ON storage.objects
+    FOR INSERT TO authenticated
+    WITH CHECK (
+      bucket_id = 'inbox'
+      AND (storage.foldername(name))[1] = public.current_client_id()::text
+    )$p$;
 
--- Nessun UPDATE e nessun DELETE al cliente: un allegato già mandato non si
--- ritira. Se serve toglierlo, lo fa il team.
-DROP POLICY IF EXISTS "Il team legge gli allegati in arrivo" ON storage.objects;
-CREATE POLICY "Il team legge gli allegati in arrivo" ON storage.objects
-  FOR SELECT TO authenticated
-  USING (bucket_id = 'inbox' AND public.is_staff());
+  EXECUTE $p$DROP POLICY IF EXISTS "Il cliente rilegge la propria cartella" ON storage.objects$p$;
+  EXECUTE $p$CREATE POLICY "Il cliente rilegge la propria cartella" ON storage.objects
+    FOR SELECT TO authenticated
+    USING (
+      bucket_id = 'inbox'
+      AND (storage.foldername(name))[1] = public.current_client_id()::text
+    )$p$;
 
-DROP POLICY IF EXISTS "Il team gestisce gli allegati in arrivo" ON storage.objects;
-CREATE POLICY "Il team gestisce gli allegati in arrivo" ON storage.objects
-  FOR ALL TO authenticated
-  USING (bucket_id = 'inbox' AND public.is_staff())
-  WITH CHECK (bucket_id = 'inbox' AND public.is_staff());
+  -- Nessun UPDATE e nessun DELETE al cliente: un allegato gia' mandato non si
+  -- ritira. Se serve toglierlo, lo fa il team.
+  EXECUTE $p$DROP POLICY IF EXISTS "Il team legge gli allegati in arrivo" ON storage.objects$p$;
+  EXECUTE $p$CREATE POLICY "Il team legge gli allegati in arrivo" ON storage.objects
+    FOR SELECT TO authenticated
+    USING (bucket_id = 'inbox' AND public.is_staff())$p$;
+
+  EXECUTE $p$DROP POLICY IF EXISTS "Il team gestisce gli allegati in arrivo" ON storage.objects$p$;
+  EXECUTE $p$CREATE POLICY "Il team gestisce gli allegati in arrivo" ON storage.objects
+    FOR ALL TO authenticated
+    USING (bucket_id = 'inbox' AND public.is_staff())
+    WITH CHECK (bucket_id = 'inbox' AND public.is_staff())$p$;
+
+  RAISE NOTICE 'Policy storage per il bucket inbox: installate.';
+EXCEPTION WHEN OTHERS THEN
+  RAISE NOTICE 'Policy storage NON installate (%). Vanno messe a mano da Storage > Policies sul bucket inbox.', SQLERRM;
+END $$;
 
 
 -- ============================================================
 -- Verifica
 -- ============================================================
-SELECT policyname, cmd FROM pg_policies
-WHERE schemaname = 'public' AND tablename = 'client_messages'
-ORDER BY policyname;
-
-SELECT id, public, file_size_limit FROM storage.buckets WHERE id = 'inbox';
+-- Una riga sola che dice se e' andata. Le quattro voci devono essere tutte "ok".
+SELECT
+  CASE WHEN to_regclass('public.client_messages') IS NOT NULL
+       THEN 'ok' ELSE 'MANCA' END                                   AS tabella,
+  CASE WHEN to_regprocedure('public.portal_scrivi(text,text[],bigint)') IS NOT NULL
+       THEN 'ok' ELSE 'MANCA' END                                   AS funzione_scrivi,
+  CASE WHEN EXISTS (SELECT 1 FROM storage.buckets WHERE id = 'inbox')
+       THEN 'ok' ELSE 'MANCA — crealo da Storage, privato' END      AS bucket,
+  CASE WHEN (SELECT count(*) FROM pg_policies
+             WHERE schemaname = 'storage'
+               AND tablename = 'objects'
+               AND (coalesce(qual, '') LIKE '%inbox%'
+                 OR coalesce(with_check, '') LIKE '%inbox%')) >= 4
+       THEN 'ok' ELSE 'MANCA — mettile da Storage > Policies' END   AS policy_storage;
 
 NOTIFY pgrst, 'reload schema';
