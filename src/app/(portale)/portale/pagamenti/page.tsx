@@ -31,6 +31,15 @@ const euro = (n: number) =>
 const formatDate = (iso: string) =>
   new Date(iso).toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' });
 
+/**
+ * La mensilità a cui la rata si riferisce.
+ *
+ * "3ª rata" non dice nulla a chi paga: quello che vuole sapere è di quale
+ * mese si tratta. Il mese è quello della scadenza, che è come viene emessa.
+ */
+const mensilita = (iso: string) =>
+  new Date(iso).toLocaleDateString('it-IT', { month: 'long', year: 'numeric' });
+
 export default function PortalePagamentiPage() {
   const supabase = createClient();
   const [payments, setPayments] = useState<Payment[]>([]);
@@ -83,26 +92,37 @@ export default function PortalePagamentiPage() {
         {payments.map((p) => (
           <div key={p.id} className="flex items-center justify-between gap-3 rounded-xl border border-pw-border bg-pw-surface p-4">
             <div className="min-w-0">
-              <p className="text-sm font-medium text-pw-text">
-                {p.month_index ? `${p.month_index}ª rata` : 'Rata'}
+              {/* L'importo per primo: e' la cosa che si cerca guardando
+                  l'elenco. Sotto il mese, perche' "3ª rata" non dice a chi
+                  paga di quale mensilita si tratti. */}
+              <p className="text-lg font-bold text-pw-text tabular-nums leading-tight">
+                {euro(p.amount)}
               </p>
-              <p className="text-xs text-pw-text-dim">
+              <p className="text-sm text-pw-text-muted capitalize mt-0.5">
+                Mensilità di {mensilita(p.due_date)}
+              </p>
+              <p className="text-xs text-pw-text-dim mt-0.5">
                 {p.is_paid && p.paid_at
                   ? `Ricevuta il ${formatDate(p.paid_at)}`
                   : `In scadenza il ${formatDate(p.due_date)}`}
               </p>
             </div>
-            <div className="flex items-center gap-3 shrink-0">
-              <span className="text-sm font-semibold text-pw-text tabular-nums">{euro(p.amount)}</span>
-              <span
-                className={cn(
-                  'inline-flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-medium',
-                  p.is_paid ? 'bg-green-500/10 text-green-500' : 'bg-pw-surface-2 text-pw-text-dim'
-                )}
-              >
-                {p.is_paid ? <><Check size={12} /> Saldata</> : <><Clock size={12} /> Da saldare</>}
-              </span>
-            </div>
+            <span
+              className={cn(
+                'shrink-0 inline-flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-medium',
+                p.is_paid
+                  ? 'bg-green-500/10 text-green-500'
+                  : new Date(p.due_date) < new Date()
+                    ? 'bg-red-500/10 text-red-500'
+                    : 'bg-pw-surface-2 text-pw-text-dim'
+              )}
+            >
+              {p.is_paid
+                ? <><Check size={12} /> Saldata</>
+                : new Date(p.due_date) < new Date()
+                  ? <><Clock size={12} /> Scaduta</>
+                  : <><Clock size={12} /> Da saldare</>}
+            </span>
           </div>
         ))}
       </div>
