@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { usePortal } from './portal-gate';
 import { cn } from '@/lib/utils';
-import { LayoutGrid, Receipt, FileText, LogOut } from 'lucide-react';
+import { LayoutGrid, ClipboardList, Receipt, FileText, LogOut } from 'lucide-react';
 
 /**
  * Guscio del portale: intestazione col nome del cliente e barra in basso.
@@ -18,6 +18,7 @@ import { LayoutGrid, Receipt, FileText, LogOut } from 'lucide-react';
 
 const TABS = [
   { href: '/portale', label: 'Contenuti', icon: LayoutGrid },
+  { href: '/portale/materiali', label: 'Da approvare', icon: ClipboardList },
   { href: '/portale/pagamenti', label: 'Pagamenti', icon: Receipt },
   { href: '/portale/contratto', label: 'Contratto', icon: FileText },
 ];
@@ -32,14 +33,17 @@ export function PortalShell({ children }: { children: React.ReactNode }) {
   // motivo per cui si riapre un'app. Senza, il cliente non ha modo di sapere
   // che c'e qualcosa di nuovo se non entrando a controllare.
   const [daApprovare, setDaApprovare] = useState(0);
+  const [materialiAttesa, setMaterialiAttesa] = useState(0);
 
   const contaAttesa = useCallback(async () => {
-    const { count } = await supabase
-      .from('social_posts')
-      .select('id', { count: 'exact', head: true })
-      .eq('client_approval', 'pending')
-      .in('status', ['ready', 'scheduled']);
-    setDaApprovare(count ?? 0);
+    const [post, materiali] = await Promise.all([
+      supabase.from('social_posts').select('id', { count: 'exact', head: true })
+        .eq('client_approval', 'pending').in('status', ['ready', 'scheduled']),
+      supabase.from('client_materials').select('id', { count: 'exact', head: true })
+        .eq('client_approval', 'pending'),
+    ]);
+    setDaApprovare(post.count ?? 0);
+    setMaterialiAttesa(materiali.count ?? 0);
   }, [supabase]);
 
   // Si riconta cambiando scheda: dopo un'approvazione il numero deve scendere
@@ -77,11 +81,13 @@ export function PortalShell({ children }: { children: React.ReactNode }) {
       </main>
 
       <nav className="fixed bottom-0 inset-x-0 z-40 border-t border-pw-border bg-pw-surface/95 backdrop-blur pb-[env(safe-area-inset-bottom)]">
-        <div className="max-w-3xl mx-auto grid grid-cols-3">
+        <div className="max-w-3xl mx-auto grid grid-cols-4">
           {TABS.map((tab) => {
             const active = pathname === tab.href;
             const Icon = tab.icon;
-            const badge = tab.href === '/portale' ? daApprovare : 0;
+            const badge = tab.href === '/portale' ? daApprovare
+              : tab.href === '/portale/materiali' ? materialiAttesa
+              : 0;
             return (
               <Link
                 key={tab.href}
