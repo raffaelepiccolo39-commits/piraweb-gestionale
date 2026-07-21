@@ -155,7 +155,10 @@ export default function PortaleMessaggiPage() {
   }
 
   return (
-    <div className="flex flex-col min-h-[60vh]">
+    // L'altezza tiene conto di quanto lo shell occupa sopra e sotto (intestazione,
+    // padding di main, barra in basso): senza, con pochi messaggi il campo di
+    // scrittura resta a mezz'aria e sotto rimane un vuoto.
+    <div className="flex flex-col min-h-[calc(100dvh-13rem)]">
       <div className="mb-4">
         <h2 className="text-lg font-semibold text-pw-text">Scrivici</h2>
         <p className="text-sm text-pw-text-muted">
@@ -234,7 +237,10 @@ export default function PortaleMessaggiPage() {
       </div>
 
       {/* Composizione */}
-      <div className="sticky bottom-0 bg-pw-bg pt-2 pb-[env(safe-area-inset-bottom)]">
+      {/* Si ferma SOPRA la barra di navigazione, non al fondo della finestra:
+          con bottom-0 una conversazione lunga finiva col campo di scrittura
+          nascosto dietro la barra. */}
+      <div className="sticky bottom-[5.5rem] bg-pw-bg pt-2">
         {file.length > 0 && (
           <div className="flex flex-wrap gap-1.5 mb-2">
             {file.map((f, i) => (
