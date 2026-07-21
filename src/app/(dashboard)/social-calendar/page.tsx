@@ -31,9 +31,11 @@ import {
   Send,
   CheckCircle,
   Loader2,
+  Trash2,
 } from 'lucide-react';
 import { reportUnknown, reportSupabaseError } from '@/lib/report-error';
 import { PostMediaUpload } from '@/components/social/post-media-upload';
+import { SOCIAL_MEDIA_BUCKET } from '@/lib/social-media';
 
 const PLATFORM_ICONS: Record<string, typeof Hash> = {
   instagram: AtSign,
@@ -290,6 +292,36 @@ export default function SocialCalendarPage() {
       setForm({ title: '', caption: '', platforms: [], status: 'draft', scheduled_at: '', client_id: '', hashtags: '', notes: '', media_urls: [] });
       fetchPosts();
     }
+  };
+
+  /**
+   * Elimina un post. Mancava del tutto: si poteva creare e modificare, mai
+   * togliere — nemmeno i contenuti di prova.
+   *
+   * Si portano via anche i file dal bucket: restare senza il post che li
+   * cita significherebbe occupare spazio per immagini che nessuno potra
+   * piu vedere. I percorsi hanno un prefisso casuale per file, quindi non
+   * c'e rischio di cancellare media di un altro post.
+   */
+  const handleDelete = async (post: SocialPost) => {
+    if (!confirm(`Eliminare "${post.title}"?\n\nIl contenuto e le sue immagini vengono rimossi definitivamente.`)) return;
+
+    const media = (post.media_urls || []).filter((m) => !m.startsWith('http'));
+    if (media.length > 0) {
+      await supabase.storage.from(SOCIAL_MEDIA_BUCKET).remove(media);
+    }
+
+    const { error } = await supabase.from('social_posts').delete().eq('id', post.id);
+    if (error) {
+      reportSupabaseError(error, 'social-post-elimina', { postId: post.id });
+      toast.error('Errore nell\'eliminazione');
+      return;
+    }
+
+    toast.success('Contenuto eliminato');
+    setShowForm(false);
+    setEditingPostId(null);
+    fetchPosts();
   };
 
   const openEditPost = (post: SocialPost) => {
@@ -692,7 +724,19 @@ export default function SocialCalendarPage() {
             placeholder="Note per il team..."
             rows={2}
           />
-          <div className="flex justify-end gap-2 pt-2">
+          <div className="flex items-center gap-2 pt-2">
+            {editingPostId && (
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  const post = [...posts, ...undatedPosts].find((p) => p.id === editingPostId);
+                  if (post) handleDelete(post);
+                }}
+                className="text-red-500 hover:bg-red-500/10 mr-auto"
+              >
+                <Trash2 size={15} /> Elimina
+              </Button>
+            )}
             <Button variant="ghost" onClick={() => setShowForm(false)}>Annulla</Button>
             <Button onClick={handleCreate}>{editingPostId ? 'Salva Modifiche' : 'Crea Post'}</Button>
           </div>
