@@ -213,3 +213,87 @@ export async function sendPortalDigestEmail({ to, fullName, clientName, pendingP
     html,
   });
 }
+
+interface ShootingPromemoriaParams {
+  to: string;
+  fullName: string | null;
+  clientName: string;
+  /** Fino a quando è coperto il piano editoriale */
+  copertoFino: string;
+  portalLink: string;
+}
+
+/**
+ * "Il piano editoriale sta per finire, fissiamo lo shooting."
+ *
+ * Parte 15 giorni prima della scadenza. Prima esisteva solo l'avviso
+ * interno al team: il cliente non sapeva nulla e toccava a qualcuno
+ * ricordarsi di scrivergli — cioè, in pratica, ci si arrivava tardi.
+ *
+ * Porta dritto alla pagina dove sceglie il giorno, invece di aprire uno
+ * scambio di email per trovare una data.
+ */
+export async function sendShootingPromemoriaEmail({ to, fullName, clientName, copertoFino, portalLink }: ShootingPromemoriaParams) {
+  const firstName = escapeHtml((fullName || '').split(' ')[0] || '');
+  const safeClient = escapeHtml(clientName);
+  const appBase = process.env.NEXT_PUBLIC_APP_URL || 'https://gestionale.piraweb.it';
+  const logoUrl = `${appBase}/logo-dark.png`;
+  const quando = new Date(copertoFino + 'T12:00:00').toLocaleDateString('it-IT', { day: 'numeric', month: 'long' });
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background-color:#F5F5F4;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#F5F5F4;padding:40px 20px;">
+    <tr><td align="center">
+      <table width="600" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 12px rgba(10,38,58,0.08);border:1px solid #E5E7EB;">
+
+        <tr><td style="height:4px;background-color:#D4A800;font-size:0;line-height:0;">&nbsp;</td></tr>
+
+        <tr><td style="padding:32px 40px 0;" align="center">
+          <img src="${logoUrl}" alt="Pira Web" width="140" style="display:block;border:0;">
+        </td></tr>
+
+        <tr><td style="padding:28px 40px 8px;">
+          <h1 style="margin:0 0 12px;font-size:22px;line-height:1.3;color:#0A263A;">
+            ${firstName ? `${firstName}, ` : ''}fissiamo il prossimo shooting?
+          </h1>
+          <p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#4B5563;">
+            I contenuti programmati per <strong style="color:#0A263A;">${safeClient}</strong>
+            arrivano fino al <strong style="color:#0A263A;">${quando}</strong>. Per non lasciare
+            buchi nel profilo conviene girare il materiale nuovo con un po' di anticipo.
+          </p>
+          <p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:#4B5563;">
+            Nel tuo spazio trovi i giorni in cui siamo liberi: scegli quello che ti va meglio
+            e ti confermiamo noi.
+          </p>
+        </td></tr>
+
+        <tr><td style="padding:0 40px 32px;" align="center">
+          <a href="${portalLink}"
+             style="display:inline-block;background-color:#0A263A;color:#ffffff;text-decoration:none;
+                    padding:14px 32px;border-radius:10px;font-size:15px;font-weight:600;">
+            Scegli il giorno
+          </a>
+        </td></tr>
+
+        <tr><td style="padding:20px 40px;background-color:#FAFAF9;border-top:1px solid #E5E7EB;">
+          <p style="margin:0;font-size:12px;line-height:1.5;color:#9CA3AF;">
+            Preferisci sentirci a voce? Rispondi pure a questa email.
+          </p>
+        </td></tr>
+
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+
+  await transporter.sendMail({
+    from: process.env.SMTP_FROM,
+    to,
+    subject: `Fissiamo il prossimo shooting — ${clientName}`,
+    html,
+  });
+}

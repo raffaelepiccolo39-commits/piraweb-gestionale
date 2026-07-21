@@ -22,6 +22,7 @@ import { InstallmentsManager } from '@/components/clients/installments-manager';
 import { ClientAssistant } from '@/components/clients/client-assistant';
 import { PortalAccess } from '@/components/clients/portal-access';
 import { ClientMaterials } from '@/components/clients/client-materials';
+import { ShootingRequests } from '@/components/clients/shooting-requests';
 import { formatDate, formatCurrency } from '@/lib/utils';
 import type { Client, ClientContract, ClientPayment, ClientFinancialSummary, PaymentLog, ClientKnowledgeBase } from '@/types/database';
 import {
@@ -562,6 +563,9 @@ function ClientDetailPageInner() {
 
       {/* Accesso al portale (admin only): crea e revoca i login del cliente */}
       {isAdmin && <PortalAccess clientId={id} clientName={client.company || client.name} />}
+
+      {/* Date di shooting proposte dal cliente */}
+      <ShootingRequests clientId={id} clientName={client.company || client.name} />
 
       {/* Moodboard, script e idee video da far approvare */}
       <ClientMaterials clientId={id} />

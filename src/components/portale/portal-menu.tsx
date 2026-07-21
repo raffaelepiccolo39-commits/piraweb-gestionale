@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import {
-  LayoutGrid, Palette, FileText, Lightbulb, Receipt, FileSignature,
+  LayoutGrid, Palette, FileText, Lightbulb, Receipt, FileSignature, Camera,
   ChevronRight, X, LogOut,
 } from 'lucide-react';
 
@@ -33,6 +33,12 @@ export const VOCI_MENU = [
       { href: '/portale/piano-scatti', label: 'Piano scatti e moodboard', icona: Palette },
       { href: '/portale/script', label: 'Script video', icona: FileText },
       { href: '/portale/idee-video', label: 'Idee video', icona: Lightbulb },
+    ],
+  },
+  {
+    gruppo: 'Shooting',
+    voci: [
+      { href: '/portale/shooting', label: 'Prenota uno shooting', icona: Camera },
     ],
   },
   {

@@ -3,8 +3,13 @@ export const maxDuration = 60;
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceRoleClient } from '@/lib/supabase/server';
+import { sendShootingPromemoriaEmail } from '@/lib/email-portal';
+import { logError } from '@/lib/logger';
 
-const ALERT_DAYS = 14; // preavviso prima della scadenza del PED
+const ALERT_DAYS = 14; // preavviso interno al team prima della scadenza del PED
+// Il cliente si avvisa un giorno prima del team: deve avere il tempo di
+// guardare il calendario e scegliere, non di ricevere un sollecito.
+const CLIENT_ALERT_DAYS = 15;
 
 function ymd(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -94,7 +99,65 @@ async function handleCron(request: NextRequest) {
     alerted += 1;
   }
 
-  return NextResponse.json({ ok: true, checked: rows?.length ?? 0, alerted });
+  // ── Avviso al CLIENTE: "prenota lo shooting" ──
+  //
+  // Prima esisteva solo la notifica interna: il cliente non sapeva nulla e
+  // toccava a qualcuno ricordarsi di scrivergli. Tracciato a parte
+  // (client_alert_sent_for), altrimenti l'avviso al team impedirebbe questo.
+  const sogliaCliente = new Date(today);
+  sogliaCliente.setDate(sogliaCliente.getDate() + CLIENT_ALERT_DAYS);
+
+  let clientiAvvisati = 0;
+
+  const { data: daAvvisare } = await supabase
+    .from('client_ped_coverage')
+    .select('client_id, covered_until, client_alert_sent_for, client:clients!inner(id, name, company, is_active, paused_at)')
+    .not('covered_until', 'is', null)
+    .lte('covered_until', ymd(sogliaCliente));
+
+  for (const riga of daAvvisare || []) {
+    const r = riga as unknown as {
+      client_id: string; covered_until: string; client_alert_sent_for: string | null;
+      client: { name: string; company: string | null; is_active: boolean; paused_at: string | null } | null;
+    };
+
+    if (!r.client || !r.client.is_active || r.client.paused_at) continue;
+    if (r.client_alert_sent_for === r.covered_until) continue;
+
+    // Ha senso solo se qualcuno può leggerlo: senza accesso al portale
+    // l'email manderebbe a una pagina in cui non può entrare.
+    const { data: utenti } = await supabase
+      .from('client_portal_users')
+      .select('email, full_name')
+      .eq('client_id', r.client_id)
+      .eq('is_active', true);
+
+    if (!utenti || utenti.length === 0) continue;
+
+    try {
+      for (const u of utenti as { email: string; full_name: string | null }[]) {
+        await sendShootingPromemoriaEmail({
+          to: u.email,
+          fullName: u.full_name,
+          clientName: r.client.company || r.client.name,
+          copertoFino: r.covered_until,
+          portalLink: `${process.env.NEXT_PUBLIC_APP_URL || 'https://gestionale.piraweb.it'}/portale/shooting`,
+        });
+      }
+
+      // Si segna DOPO l'invio riuscito: se l'email non parte, domani riprova.
+      await supabase
+        .from('client_ped_coverage')
+        .update({ client_alert_sent_for: r.covered_until })
+        .eq('client_id', r.client_id);
+
+      clientiAvvisati += 1;
+    } catch (err) {
+      await logError({ error: err, route: 'cron/ped-monitor', source: 'api', context: { op: 'avviso-shooting-cliente', clientId: r.client_id } });
+    }
+  }
+
+  return NextResponse.json({ ok: true, checked: rows?.length ?? 0, alerted, clientiAvvisati });
 }
 
 export async function GET(request: NextRequest) { return handleCron(request); }
