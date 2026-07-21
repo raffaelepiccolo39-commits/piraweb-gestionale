@@ -196,7 +196,9 @@ export default function PortaleContenutiPage() {
         </p>
       </div>
 
-      {/* Griglia stile profilo: 3 colonne, riquadri quadrati, spazio minimo */}
+      {/* Griglia stile profilo: 3 colonne in 4:5 verticale, come li mostra
+          oggi Instagram. Stesso taglio delle anteprime nel calendario, cosi
+          non ci sono sorprese fra cio che si approva e cio che esce. */}
       <div className="grid grid-cols-3 gap-1 sm:gap-2">
         {posts.map((post) => {
           const coverPath = post.media_urls?.[0];
@@ -205,7 +207,7 @@ export default function PortaleContenutiPage() {
             <button
               key={post.id}
               onClick={() => setSelected(post)}
-              className="relative aspect-square overflow-hidden rounded-sm sm:rounded-lg bg-pw-surface-2 group"
+              className="relative aspect-[4/5] overflow-hidden rounded-sm sm:rounded-lg bg-pw-surface-2 group"
             >
               {cover ? (
                 coverPath && isVideoPath(coverPath) ? (

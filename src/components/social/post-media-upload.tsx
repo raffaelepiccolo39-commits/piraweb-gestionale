@@ -137,7 +137,7 @@ export function PostMediaUpload({
 
       <div className="flex flex-wrap gap-2">
         {value.map((path) => (
-          <div key={path} className="relative w-20 h-20 rounded-lg overflow-hidden border border-pw-border bg-pw-surface-2">
+          <div key={path} className="relative w-[68px] h-[85px] rounded-lg overflow-hidden border border-pw-border bg-pw-surface-2">
             {previews[path] ? (
               isVideoPath(path) ? (
                 <div className="relative w-full h-full">
@@ -170,7 +170,7 @@ export function PostMediaUpload({
           type="button"
           onClick={() => inputRef.current?.click()}
           disabled={uploading}
-          className="w-20 h-20 rounded-lg border-2 border-dashed border-pw-border flex flex-col items-center justify-center gap-1 text-pw-text-dim hover:border-pw-accent hover:text-pw-accent transition-colors disabled:opacity-50"
+          className="w-[68px] h-[85px] rounded-lg border-2 border-dashed border-pw-border flex flex-col items-center justify-center gap-1 text-pw-text-dim hover:border-pw-accent hover:text-pw-accent transition-colors disabled:opacity-50"
         >
           {uploading ? <Loader2 size={18} className="animate-spin" /> : <ImagePlus size={18} />}
           <span className="text-[10px]">{uploading ? 'Carico…' : 'Aggiungi'}</span>
@@ -233,7 +233,8 @@ export function PostMediaUpload({
       </Modal>
 
       <p className="text-[11px] text-pw-text-dim mt-1.5">
-        Foto e reel (MP4 o MOV). Il primo file fa da copertina nella griglia del cliente.
+        Foto e reel (MP4 o MOV). Le anteprime sono in 4:5 verticale, lo stesso taglio con cui le
+        vede il cliente e con cui escono su Instagram. Il primo file fa da copertina.
         Le foto grandi vengono rimpicciolite da sole; i video no, quindi devono stare
         sotto i {MAX_FILE_MB} MB.
       </p>
