@@ -9,7 +9,7 @@ import { reportSupabaseError } from '@/lib/report-error';
 import { resolveMediaUrls, coverDi, isVideoPath } from '@/lib/social-media';
 import { cn } from '@/lib/utils';
 import {
-  LayoutGrid, Palette, FileText, Camera, ChevronRight, Loader2,
+  Palette, Camera, ChevronRight, Loader2,
   AlertTriangle, Play, Check,
 } from 'lucide-react';
 
@@ -98,11 +98,18 @@ export default function PortaleHome() {
   const [shootingAperto, setShootingAperto] = useState(false);
   const [prossimoShooting, setProssimoShooting] = useState<Shooting | null>(null);
   const [scadenzaPiano, setScadenzaPiano] = useState<string | null>(null);
+  const [conte, setConte] = useState({ daApprovare: 0, inProgramma: 0, postati: 0 });
 
   const carica = useCallback(async () => {
     const oggi = new Date().toISOString().slice(0, 10);
 
-    const [post, materiali, rate, shooting, serve] = await Promise.all([
+    // "Postati" e' il mese in corso: e' il piano editoriale di cui si sta
+    // parlando adesso, non tutto lo storico.
+    const ora = new Date();
+    const primoDelMese = new Date(ora.getFullYear(), ora.getMonth(), 1).toISOString();
+    const primoDelProssimo = new Date(ora.getFullYear(), ora.getMonth() + 1, 1).toISOString();
+
+    const [post, materiali, rate, shooting, serve, nAttesa, nProgramma, nPostati] = await Promise.all([
       supabase.from('social_posts')
         .select('id, title, media_urls, formato, client_approval')
         .in('status', ['ready', 'scheduled'])
@@ -126,6 +133,16 @@ export default function PortaleHome() {
       // Il cliente non puo leggere la copertura del piano (e giusto cosi):
       // la funzione restituisce solo la data del suo.
       supabase.rpc('portal_scadenza_piano'),
+      // Le tre conte della sezione "Contenuti". Vanno chieste al database:
+      // l'elenco qui sopra si ferma a 6 righe perche' serve all'anteprima,
+      // e contare quelle darebbe un numero sbagliato appena il piano cresce.
+      supabase.from('social_posts').select('id', { count: 'exact', head: true })
+        .in('status', ['ready', 'scheduled']).eq('client_approval', 'pending'),
+      supabase.from('social_posts').select('id', { count: 'exact', head: true })
+        .in('status', ['ready', 'scheduled']).eq('client_approval', 'approved'),
+      supabase.from('social_posts').select('id', { count: 'exact', head: true })
+        .eq('status', 'published')
+        .gte('scheduled_at', primoDelMese).lt('scheduled_at', primoDelProssimo),
     ]);
 
     if (post.error) reportSupabaseError(post.error, 'portale-home', {});
@@ -143,6 +160,11 @@ export default function PortaleHome() {
       ?? null
     );
     setScadenzaPiano((serve.data as string | null) ?? null);
+    setConte({
+      daApprovare: nAttesa.count ?? 0,
+      inProgramma: nProgramma.count ?? 0,
+      postati: nPostati.count ?? 0,
+    });
 
     const nonPagate = (rate.data as { amount: number; due_date: string }[]) || [];
     setScaduti({
@@ -177,14 +199,13 @@ export default function PortaleHome() {
   const pianoInScadenza = giorniAllaFine !== null && giorniAllaFine <= 15;
   const serveShooting = pianoInScadenza || shootingAperto;
 
-  // Lo shooting compare solo quando serve davvero: piano in scadenza o
-  // proposta in attesa. Il resto dell'anno sarebbe una voce che non porta
-  // da nessuna parte, e le scorciatoie perdono senso se una e sempre finta.
-  const SCORCIATOIE = [
-    { href: '/portale/contenuti', label: 'Contenuti da approvare', icona: LayoutGrid },
-    { href: '/portale/piano-scatti', label: 'Moodboard', icona: Palette },
-    { href: '/portale/script', label: 'Script', icona: FileText },
-    ...(serveShooting ? [{ href: '/portale/shooting', label: 'Shooting', icona: Camera }] : []),
+  // I numeri del piano editoriale: quanto aspetta lui, quanto aspetta di
+  // uscire, quanto e' gia' uscito questo mese. Moodboard, script e shooting
+  // erano scorciatoie a un menu, non informazioni: stanno nel menu.
+  const CONTENUTI = [
+    { chiave: 'attesa', label: 'Da approvare', valore: conte.daApprovare, evidenzia: conte.daApprovare > 0 },
+    { chiave: 'programma', label: 'In programma', valore: conte.inProgramma, evidenzia: false },
+    { chiave: 'postati', label: 'Postati', valore: conte.postati, evidenzia: false },
   ];
 
   if (loading) {
@@ -211,21 +232,36 @@ export default function PortaleHome() {
         </div>
       </div>
 
-      {/* ── Scorciatoie ── */}
-      <div className={cn('grid gap-2', SCORCIATOIE.length === 4 ? 'grid-cols-4' : 'grid-cols-3')}>
-        {SCORCIATOIE.map((s) => {
-          const Icona = s.icona;
-          return (
+      {/* ── Contenuti: i numeri del piano editoriale ── */}
+      <div>
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-pw-text-dim mb-2">
+          Contenuti
+        </p>
+        <div className="grid grid-cols-3 gap-2">
+          {CONTENUTI.map((c) => (
             <Link
-              key={s.href}
-              href={s.href}
-              className="flex flex-col items-center gap-1.5 rounded-xl border border-pw-border bg-pw-surface p-3 active:bg-pw-surface-2 transition-colors"
+              key={c.chiave}
+              href="/portale/contenuti"
+              className={cn(
+                'flex flex-col items-center justify-center gap-0.5 rounded-2xl border bg-pw-surface py-4 active:bg-pw-surface-2 transition-colors',
+                // Solo "da approvare" si accende, e solo se c'e' qualcosa: e'
+                // l'unica delle tre che chiede di fare qualcosa. Colorarle
+                // tutte vorrebbe dire non evidenziare niente.
+                c.evidenzia ? 'border-pw-accent/40 bg-pw-accent/5' : 'border-pw-border'
+              )}
             >
-              <Icona size={20} className="text-pw-accent" />
-              <span className="text-[10px] font-medium text-pw-text-muted text-center leading-tight">{s.label}</span>
+              <span className={cn(
+                'text-2xl font-bold tabular-nums leading-none',
+                c.evidenzia ? 'text-pw-accent' : 'text-pw-text'
+              )}>
+                {c.valore}
+              </span>
+              <span className="text-[11px] font-medium text-pw-text-muted text-center leading-tight mt-1">
+                {c.label}
+              </span>
             </Link>
-          );
-        })}
+          ))}
+        </div>
       </div>
 
       {/* ── Cose urgenti: compaiono solo se lo sono davvero ── */}
