@@ -251,9 +251,15 @@ export default function PortaleContenutiPage() {
             })()}
 
             <div className="flex items-center gap-3 text-sm text-pw-text-muted">
+              {/* La data va detta per quello che è. Prima compariva nuda:
+                  per un contenuto pubblicato mostrava il giorno di
+                  pubblicazione mentre il cliente leggeva la programmazione,
+                  e i due numeri non coincidevano senza spiegazione. */}
               <span className="inline-flex items-center gap-1.5">
                 <CalendarDays size={15} />
-                {formatDate(selected.published_at || selected.scheduled_at)}
+                {selected.published_at
+                  ? `Pubblicato il ${formatDate(selected.published_at)}`
+                  : `In programma per il ${formatDate(selected.scheduled_at)}`}
               </span>
               <span className={cn(
                 'px-2 py-0.5 rounded-full text-xs font-medium',

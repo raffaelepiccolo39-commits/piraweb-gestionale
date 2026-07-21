@@ -310,7 +310,20 @@ export default function SocialCalendarPage() {
 
   const handleStatusChange = async (postId: string, newStatus: SocialPostStatus) => {
     const updates: Record<string, unknown> = { status: newStatus };
-    if (newStatus === 'published') updates.published_at = new Date().toISOString();
+
+    if (newStatus === 'published') {
+      // published_at e' il momento in cui il contenuto e' uscito davvero, non
+      // quello programmato. Segnare "pubblicato" un post che deve ancora
+      // uscire crea due date in contraddizione, e nel portale il cliente
+      // vedeva quella di pubblicazione senza capire perche' non coincideva.
+      const post = [...posts, ...undatedPosts].find((p) => p.id === postId);
+      const futuro = post?.scheduled_at && new Date(post.scheduled_at).getTime() > Date.now();
+      if (futuro) {
+        const quando = new Date(post!.scheduled_at!).toLocaleDateString('it-IT', { day: 'numeric', month: 'long' });
+        if (!confirm(`Questo contenuto e' programmato per il ${quando}, che deve ancora arrivare.\n\nSegnandolo come pubblicato risultera' uscito oggi. Procedo?`)) return;
+      }
+      updates.published_at = new Date().toISOString();
+    }
     const { error } = await supabase.from('social_posts').update(updates).eq('id', postId);
     if (error) {
       reportUnknown(error, 'client', { stage: 'update_status' });
