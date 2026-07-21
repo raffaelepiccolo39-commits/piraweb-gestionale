@@ -76,8 +76,35 @@ function LoginContent() {
       // se errore nel check 2FA, procedi normalmente
     }
 
-    router.push('/dashboard');
+    router.push(await destinazioneDopoAccesso());
     router.refresh();
+  };
+
+
+  /**
+   * Dove mandare chi ha appena fatto l'accesso.
+   *
+   * I clienti del portale non hanno un profilo del team: su /dashboard
+   * resterebbero fermi su uno spinner, perche' l'AttendanceGate aspetta un
+   * profilo che non arrivera' mai. Una domanda al database, solo al login,
+   * evita quel vicolo cieco.
+   */
+  const destinazioneDopoAccesso = async (): Promise<string> => {
+    try {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return '/dashboard';
+      const { data } = await supabase
+        .from('client_portal_users')
+        .select('id, password_set_at')
+        .eq('id', user.id)
+        .maybeSingle();
+      if (!data) return '/dashboard';
+      // Se non ha ancora scelto la password, la sceglie ora.
+      return data.password_set_at ? '/portale' : '/portale/benvenuto';
+    } catch {
+      return '/dashboard';
+    }
   };
 
   const handleTotpChange = (index: number, value: string) => {
@@ -132,7 +159,7 @@ function LoginContent() {
       const redirectParam = searchParams.get('redirect');
       const redirectTo = redirectParam && redirectParam.startsWith('/') && !redirectParam.startsWith('//')
         ? redirectParam
-        : '/dashboard';
+        : await destinazioneDopoAccesso();
       router.push(redirectTo);
       router.refresh();
     } catch {
