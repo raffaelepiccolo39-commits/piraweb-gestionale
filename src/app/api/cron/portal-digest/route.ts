@@ -47,27 +47,42 @@ async function handleCron(request: NextRequest) {
       last_digest_at: string | null; client: { name: string; company: string | null } | null;
     };
 
-    // Solo i contenuti presentabili e ancora senza risposta.
-    let query = supabase
+    // Contenuti del piano editoriale: solo quelli presentabili e senza risposta.
+    let qPost = supabase
       .from('social_posts')
       .select('id', { count: 'exact', head: true })
       .eq('client_id', user.client_id)
       .eq('client_approval', 'pending')
       .in('status', ['ready', 'scheduled']);
 
+    // Materiali: piani scatti, script, idee video. Solo quelli pubblicati —
+    // finche' il team non li mostra, per il cliente non esistono.
+    let qMat = supabase
+      .from('client_materials')
+      .select('id', { count: 'exact', head: true })
+      .eq('client_id', user.client_id)
+      .eq('client_approval', 'pending')
+      .eq('is_published', true);
+
     // Al primo invio si conta tutto l'arretrato; dopo, solo le novità.
-    if (user.last_digest_at) query = query.gt('updated_at', user.last_digest_at);
+    if (user.last_digest_at) {
+      qPost = qPost.gt('updated_at', user.last_digest_at);
+      qMat = qMat.gt('updated_at', user.last_digest_at);
+    }
 
-    const { count } = await query;
+    const [post, materiali] = await Promise.all([qPost, qMat]);
+    const nPost = post.count ?? 0;
+    const nMat = materiali.count ?? 0;
 
-    if (!count || count === 0) { skipped += 1; continue; }
+    if (nPost + nMat === 0) { skipped += 1; continue; }
 
     try {
       await sendPortalDigestEmail({
         to: user.email,
         fullName: user.full_name,
         clientName: user.client?.company || user.client?.name || '',
-        pending: count,
+        pendingPost: nPost,
+        pendingMateriali: nMat,
         portalLink: `${appUrl}/portale`,
       });
 

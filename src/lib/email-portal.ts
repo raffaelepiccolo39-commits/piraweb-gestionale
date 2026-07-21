@@ -123,8 +123,10 @@ interface PortalDigestParams {
   to: string;
   fullName: string | null;
   clientName: string;
-  /** Quanti contenuti aspettano una risposta */
-  pending: number;
+  /** Post del piano editoriale in attesa di risposta */
+  pendingPost: number;
+  /** Piani scatti, script e idee video in attesa di risposta */
+  pendingMateriali: number;
   portalLink: string;
 }
 
@@ -136,15 +138,26 @@ interface PortalDigestParams {
  * qui, l'approvazione tornerebbe a essere uno scambio di email — cioè il
  * problema che il portale doveva risolvere.
  */
-export async function sendPortalDigestEmail({ to, fullName, clientName, pending, portalLink }: PortalDigestParams) {
+export async function sendPortalDigestEmail({ to, fullName, clientName, pendingPost, pendingMateriali, portalLink }: PortalDigestParams) {
+  const totale = pendingPost + pendingMateriali;
   const firstName = escapeHtml((fullName || '').split(' ')[0] || '');
   const safeClient = escapeHtml(clientName);
   const appBase = process.env.NEXT_PUBLIC_APP_URL || 'https://gestionale.piraweb.it';
   const logoUrl = `${appBase}/logo-dark.png`;
 
-  const quanti = pending === 1
-    ? 'C’è <strong>un nuovo contenuto</strong> che aspetta un tuo parere'
-    : `Ci sono <strong>${pending} nuovi contenuti</strong> che aspettano un tuo parere`;
+  // Si nominano le cose per quello che sono: "3 contenuti" quando il cliente
+  // trova due post e un piano scatti sarebbe una mezza verita, e lui apre il
+  // portale cercando la cosa sbagliata.
+  const pezzi: string[] = [];
+  if (pendingPost > 0) {
+    pezzi.push(pendingPost === 1 ? '<strong>un contenuto</strong> del piano editoriale' : `<strong>${pendingPost} contenuti</strong> del piano editoriale`);
+  }
+  if (pendingMateriali > 0) {
+    pezzi.push(pendingMateriali === 1 ? '<strong>un documento</strong> (piano scatti, script o idee video)' : `<strong>${pendingMateriali} documenti</strong> fra piani scatti, script e idee video`);
+  }
+  const quanti = totale === 1
+    ? `C’è ${pezzi[0]} che aspetta un tuo parere`
+    : `Ci sono ${pezzi.join(' e ')} che aspettano un tuo parere`;
 
   const html = `
 <!DOCTYPE html>
@@ -194,9 +207,9 @@ export async function sendPortalDigestEmail({ to, fullName, clientName, pending,
   await transporter.sendMail({
     from: process.env.SMTP_FROM,
     to,
-    subject: pending === 1
-      ? `Un contenuto ti aspetta — ${clientName}`
-      : `${pending} contenuti ti aspettano — ${clientName}`,
+    subject: totale === 1
+      ? `Qualcosa ti aspetta — ${clientName}`
+      : `${totale} cose ti aspettano — ${clientName}`,
     html,
   });
 }
