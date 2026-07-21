@@ -4,7 +4,6 @@ import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { usePortal } from '@/components/portale/portal-gate';
-import { LogoCliente } from '@/components/portale/logo-cliente';
 import { Avviso } from '@/components/portale/avviso';
 import { reportSupabaseError } from '@/lib/report-error';
 import { resolveMediaUrls, coverDi, isVideoPath } from '@/lib/social-media';
@@ -34,7 +33,7 @@ interface Contenuto {
 
 export default function PortaleHome() {
   const supabase = createClient();
-  const { fullName, clientName, clientLogo } = usePortal();
+  const { fullName, clientName } = usePortal();
 
   const [loading, setLoading] = useState(true);
   const [contenuti, setContenuti] = useState<Contenuto[]>([]);
@@ -93,7 +92,6 @@ export default function PortaleHome() {
   const nome = fullName?.split(' ')[0] || '';
   const ora = new Date().getHours();
   const saluto = ora < 13 ? 'Buongiorno' : ora < 18 ? 'Buon pomeriggio' : 'Buonasera';
-  const dataOggi = new Date().toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' });
   const daApprovare = contenuti.filter((c) => c.client_approval === 'pending').length;
 
   // Giorni che mancano alla fine del piano. La soglia e la stessa dell'email
@@ -126,23 +124,18 @@ export default function PortaleHome() {
         <div className="absolute -right-8 -top-8 h-28 w-28 rounded-full bg-[var(--pw-gold)]/10" aria-hidden="true" />
         <div className="absolute -right-2 top-10 h-16 w-16 rounded-full bg-[var(--pw-gold)]/5" aria-hidden="true" />
 
-        <div className="relative flex items-start gap-3.5">
-          <div className="shrink-0 w-16 h-16 rounded-xl bg-white flex items-center justify-center overflow-hidden p-2">
-            <LogoCliente url={clientLogo} nome={clientName} className="max-w-full max-h-full object-contain" />
-          </div>
-          <div className="min-w-0">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--pw-gold)]">
-              {dataOggi}
-            </p>
-            <h1 className="mt-1 text-xl font-bold leading-tight">
-              {saluto}{nome ? `, ${nome}` : ''}
-            </h1>
-            <p className="mt-1 text-sm text-white/75">
-              {daApprovare + materialiAttesa > 0
-                ? 'Ecco cosa aspetta un tuo parere'
-                : 'Non c’è nulla in sospeso, tutto a posto'}
-            </p>
-          </div>
+        <div className="relative">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--pw-gold)]">
+            {saluto}{nome ? `, ${nome}` : ''}
+          </p>
+          <h1 className="mt-1.5 text-xl font-bold leading-snug">
+            Benvenuto nell’area dedicata a {clientName}
+          </h1>
+          <p className="mt-2 text-sm text-white/75">
+            {daApprovare + materialiAttesa > 0
+              ? 'Ecco cosa aspetta un tuo parere'
+              : 'Non c’è nulla in sospeso, tutto a posto'}
+          </p>
         </div>
       </div>
 
