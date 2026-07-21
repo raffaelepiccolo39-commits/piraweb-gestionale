@@ -155,18 +155,20 @@ export default function PortaleMessaggiPage() {
   }
 
   return (
-    // L'altezza tiene conto di quanto lo shell occupa sopra e sotto (intestazione,
-    // padding di main, barra in basso): senza, con pochi messaggi il campo di
-    // scrittura resta a mezz'aria e sotto rimane un vuoto.
-    <div className="flex flex-col min-h-[calc(100dvh-13rem)]">
-      <div className="mb-4">
+    // Colonna ad altezza fissa con la lista che scorre al suo interno, non una
+    // pagina che scorre tutta: e' l'unico modo perche' il campo di scrittura
+    // resti sempre in fondo e i messaggi non gli passino sotto. Con lo sticky
+    // l'ultimo messaggio finiva nello spazio fra il campo e la barra.
+    // L'altezza sottrae quello che lo shell occupa sopra e sotto.
+    <div className="flex flex-col h-[calc(100dvh-13rem)]">
+      <div className="mb-4 shrink-0">
         <h2 className="text-lg font-semibold text-pw-text">Scrivici</h2>
         <p className="text-sm text-pw-text-muted">
           Domande, foto, materiale: qui resta tutto in un posto solo. Ti rispondiamo in giornata.
         </p>
       </div>
 
-      <div className="flex-1 space-y-3 mb-4">
+      <div className="flex-1 min-h-0 overflow-y-auto space-y-3 mb-3 pr-0.5">
         {messaggi.length === 0 && (
           <div className="text-center py-12 px-6">
             <div className="w-14 h-14 mx-auto rounded-2xl bg-pw-accent/10 flex items-center justify-center mb-3">
@@ -237,10 +239,9 @@ export default function PortaleMessaggiPage() {
       </div>
 
       {/* Composizione */}
-      {/* Si ferma SOPRA la barra di navigazione, non al fondo della finestra:
-          con bottom-0 una conversazione lunga finiva col campo di scrittura
-          nascosto dietro la barra. */}
-      <div className="sticky bottom-[5.5rem] bg-pw-bg pt-2">
+      {/* In fondo alla colonna, sempre visibile: non e' sticky, e' l'ultima
+          riga di un contenitore che non scorre. */}
+      <div className="shrink-0">
         {file.length > 0 && (
           <div className="flex flex-wrap gap-1.5 mb-2">
             {file.map((f, i) => (
