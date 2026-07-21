@@ -200,6 +200,7 @@ export default function SocialCalendarPage() {
   const [publishPlatform, setPublishPlatform] = useState('facebook');
   // I media sono percorsi: per mostrarli servono link firmati.
   const [anteprime, setAnteprime] = useState<Record<string, string>>({});
+  const [storicoRifiuti, setStoricoRifiuti] = useState<Record<string, { giri: number; ultimo: string | null }>>({});
 
   const isAdmin = profile?.role === 'admin';
 
@@ -258,6 +259,29 @@ export default function SocialCalendarPage() {
     // Link firmati per le copertine: una sola chiamata per tutto il mese.
     const percorsi = [...filtered, ...undatedFiltered].flatMap((p) => p.media_urls || []);
     if (percorsi.length) setAnteprime(await resolveMediaUrls(supabase, percorsi));
+
+    // Le obiezioni dei giri precedenti. Rimandando in approvazione si azzera
+    // client_comment, quindi chi riprende in mano il contenuto al secondo giro
+    // non vedeva più cosa era stato chiesto la prima volta — e lo richiedeva
+    // al cliente. Una query sola per tutte le card, non una per card.
+    const ids = [...filtered, ...undatedFiltered].map((p) => p.id);
+    if (ids.length) {
+      const { data: storico } = await supabase
+        .from('approval_history')
+        .select('record_id, esito, commento, created_at')
+        .eq('tabella', 'social_posts')
+        .in('record_id', ids)
+        .eq('esito', 'changes_requested')
+        .order('created_at', { ascending: false });
+
+      const perPost: Record<string, { giri: number; ultimo: string | null }> = {};
+      for (const r of (storico as { record_id: string; commento: string | null }[]) || []) {
+        const v = perPost[r.record_id];
+        if (v) v.giri += 1;
+        else perPost[r.record_id] = { giri: 1, ultimo: r.commento };
+      }
+      setStoricoRifiuti(perPost);
+    }
   }, [supabase, year, month, filterClient, filterPlatform]);
 
   const fetchClients = useCallback(async () => {
@@ -718,6 +742,24 @@ export default function SocialCalendarPage() {
                     >
                       Ho corretto, rimanda in approvazione
                     </button>
+                  </div>
+                )}
+
+                {/* Già corretto e rimandato: qui client_comment è stato azzerato,
+                    quindi l'obiezione di partenza si legge solo dallo storico.
+                    Senza, al secondo giro la si richiede al cliente. */}
+                {post.client_approval === 'pending' && storicoRifiuti[post.id] && (
+                  <div className="mt-2 rounded-md bg-amber-500/10 px-2 py-1.5">
+                    <p className="text-[10px] font-medium text-amber-400">
+                      {storicoRifiuti[post.id].giri === 1
+                        ? 'Già corretto una volta'
+                        : `Già corretto ${storicoRifiuti[post.id].giri} volte`}
+                    </p>
+                    {storicoRifiuti[post.id].ultimo && (
+                      <p className="text-[10px] text-pw-text-muted mt-0.5 italic">
+                        «{storicoRifiuti[post.id].ultimo}»
+                      </p>
+                    )}
                   </div>
                 )}
 

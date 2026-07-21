@@ -8,6 +8,7 @@ import { resolveMediaUrls, isVideoPath, isExternalLink, coverDi } from '@/lib/so
 import { useToast } from '@/components/ui/toast';
 import { usePortal } from '@/components/portale/portal-gate';
 import { LogoCliente } from '@/components/portale/logo-cliente';
+import { StoricoRisposte } from '@/components/portale/storico-risposte';
 import { cn } from '@/lib/utils';
 import { ImageIcon, Loader2, CalendarDays, CheckCheck, AtSign, Globe, Share2, Tv, MessageCircle, Hash, Check, MessageSquareWarning, Play, Copy, ExternalLink } from 'lucide-react';
 
@@ -497,6 +498,10 @@ export default function PortaleContenutiPage() {
                 )}
               </div>
             )}
+
+            {/* I giri precedenti su questo stesso contenuto: senza, al secondo
+                rimando nessuno ricorda cosa era stato chiesto la prima volta. */}
+            <StoricoRisposte tabella="social_posts" recordId={selected.id} />
           </div>
         )}
       </Modal>
