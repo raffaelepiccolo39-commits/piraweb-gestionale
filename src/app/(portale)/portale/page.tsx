@@ -248,37 +248,36 @@ export default function PortaleHome() {
         </div>
       </div>
 
-      {/* ── Piano editoriale del mese: i tre numeri ── */}
-      <div>
+      {/* ── Piano editoriale del mese: i tre numeri ──
+          Dentro un riquadro, come le altre schede della pagina: era l'unico
+          blocco appoggiato sullo sfondo e sembrava fuori posto. I tre numeri
+          perdono il bordo singolo e si dividono con una riga sottile —
+          riquadri dentro il riquadro sarebbero due contenitori per una cosa
+          sola. */}
+      <div className="rounded-2xl border border-pw-border bg-pw-surface p-4">
         <p className="text-[11px] font-semibold uppercase tracking-wider text-pw-text-dim">
           Piano editoriale
         </p>
         {/* first-letter e non capitalize: "Luglio 2026", non "Luglio 2026"
             con ogni parola maiuscola. */}
-        <h2 className="text-base font-semibold text-pw-text first-letter:uppercase mb-3">
+        <h2 className="text-base font-semibold text-pw-text first-letter:uppercase">
           {new Date().toLocaleDateString('it-IT', { month: 'long', year: 'numeric' })}
         </h2>
 
-        <p className="text-[11px] font-semibold uppercase tracking-wider text-pw-text-dim mb-2">
-          Contenuti
-        </p>
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-3 mt-3 pt-3 border-t border-pw-border divide-x divide-pw-border">
           {CONTENUTI.map((c) => (
             <Link
               key={c.chiave}
               // Ognuno porta alla PROPRIA vista: tre numeri diversi che
               // aprivano lo stesso elenco erano tre bugie sotto forma di link.
               href={`/portale/contenuti?filtro=${c.chiave}`}
-              className={cn(
-                'flex flex-col items-center justify-center gap-0.5 rounded-2xl border bg-pw-surface py-4 active:bg-pw-surface-2 transition-colors',
-                // Solo "da approvare" si accende, e solo se c'e' qualcosa: e'
-                // l'unica delle tre che chiede di fare qualcosa. Colorarle
-                // tutte vorrebbe dire non evidenziare niente.
-                c.evidenzia ? 'border-pw-accent/40 bg-pw-accent/5' : 'border-pw-border'
-              )}
+              className="flex flex-col items-center justify-center gap-0.5 py-1.5 rounded-lg active:bg-pw-surface-2 transition-colors"
             >
               <span className={cn(
                 'text-2xl font-bold tabular-nums leading-none',
+                // Solo "da approvare" si accende, e solo se c'e' qualcosa: e'
+                // l'unica delle tre che chiede di fare qualcosa. Colorarle
+                // tutte vorrebbe dire non evidenziare niente.
                 c.evidenzia ? 'text-pw-accent' : 'text-pw-text'
               )}>
                 {c.valore}
@@ -430,61 +429,74 @@ export default function PortaleHome() {
         ) : (
           <Link
             href="/portale/contenuti"
-            className="block rounded-2xl border border-pw-border bg-pw-surface overflow-hidden active:bg-pw-surface-2 transition-colors"
+            className="flex gap-3 rounded-2xl border border-pw-border bg-pw-surface p-3 active:bg-pw-surface-2 transition-colors"
           >
-            <div className="relative aspect-[4/5] bg-pw-surface-2">
-              {anteprimaProssimo ? (
-                percorsoProssimo && isVideoPath(percorsoProssimo) ? (
-                  <video src={anteprimaProssimo} className="w-full h-full object-cover" muted playsInline preload="metadata" />
+            {/* A sinistra: la foto piccola e sotto il copy. La foto a tutta
+                larghezza si mangiava mezza schermata per un contenuto solo. */}
+            <div className="min-w-0 flex-1">
+              <div className="relative w-28 aspect-[4/5] rounded-xl overflow-hidden bg-pw-surface-2">
+                {anteprimaProssimo ? (
+                  percorsoProssimo && isVideoPath(percorsoProssimo) ? (
+                    <video src={anteprimaProssimo} className="w-full h-full object-cover" muted playsInline preload="metadata" />
+                  ) : (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={anteprimaProssimo} alt="" className="w-full h-full object-cover" />
+                  )
                 ) : (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={anteprimaProssimo} alt="" className="w-full h-full object-cover" />
-                )
+                  <div className="w-full h-full flex items-center justify-center p-2 text-center">
+                    <span className="text-[10px] text-pw-text-dim line-clamp-4">{prossimo.title}</span>
+                  </div>
+                )}
+
+                {prossimo.formato === 'reel' && (
+                  <span className="absolute inset-0 flex items-center justify-center">
+                    <Play size={20} className="text-white drop-shadow-lg" fill="white" />
+                  </span>
+                )}
+              </div>
+
+              {prossimo.caption ? (
+                // Il copy intero renderebbe la home lunghissima: qui se ne
+                // legge l'inizio, il resto sta nel dettaglio del contenuto.
+                <p className="mt-2.5 text-sm text-pw-text-muted whitespace-pre-wrap line-clamp-4">
+                  {prossimo.caption}
+                </p>
               ) : (
-                <div className="w-full h-full flex items-center justify-center p-6 text-center">
-                  <span className="text-sm text-pw-text-dim">{prossimo.title}</span>
-                </div>
+                <p className="mt-2.5 text-sm text-pw-text-muted line-clamp-4">{prossimo.title}</p>
               )}
+            </div>
 
-              {prossimo.formato === 'reel' && (
-                <span className="absolute inset-0 flex items-center justify-center">
-                  <Play size={34} className="text-white drop-shadow-lg" fill="white" />
-                </span>
-              )}
-
-              {/* Lo stato sopra la foto: si legge senza dover scorrere. */}
+            {/* A destra, stretta: quando esce. Larghezza fissa, cosi' una data
+                lunga non ruba spazio al copy. */}
+            <div className="w-[5.5rem] shrink-0 border-l border-pw-border pl-3 flex flex-col">
               <span className={cn(
-                'absolute top-2 right-2 px-2 py-0.5 rounded text-[10px] font-semibold text-white',
+                'self-start px-1.5 py-0.5 rounded text-[9px] font-semibold text-white',
                 prossimo.client_approval === 'approved' ? 'bg-green-500'
                   : prossimo.client_approval === 'changes_requested' ? 'bg-amber-500'
                   : 'bg-blue-500'
               )}>
                 {prossimo.client_approval === 'approved' ? 'Approvato'
-                  : prossimo.client_approval === 'changes_requested' ? 'Modifiche chieste'
+                  : prossimo.client_approval === 'changes_requested' ? 'Modifiche'
                   : 'Da approvare'}
               </span>
-            </div>
 
-            <div className="p-4">
-              {/* Data e ora per prime: e' la domanda a cui questa scheda
-                  risponde, cioe' quando esce la prossima cosa. */}
-              <p className="text-sm font-semibold text-pw-text first-letter:uppercase">
-                {quandoEsce(prossimo.scheduled_at)}
-              </p>
-
-              {prossimo.caption ? (
-                // Il copy intero renderebbe la home lunghissima: qui se ne
-                // legge l'inizio, il resto sta nel dettaglio del contenuto.
-                <p className="mt-2 text-sm text-pw-text-muted whitespace-pre-wrap line-clamp-4">
-                  {prossimo.caption}
-                </p>
+              {prossimo.scheduled_at ? (
+                <>
+                  <span className="mt-2 text-[11px] text-pw-text-dim first-letter:uppercase leading-tight">
+                    {new Date(prossimo.scheduled_at).toLocaleDateString('it-IT', { weekday: 'long' })}
+                  </span>
+                  <span className="text-sm font-semibold text-pw-text leading-tight">
+                    {new Date(prossimo.scheduled_at).toLocaleDateString('it-IT', { day: 'numeric', month: 'long' })}
+                  </span>
+                  <span className="mt-1 text-sm font-bold text-pw-accent tabular-nums">
+                    {new Date(prossimo.scheduled_at).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                </>
               ) : (
-                <p className="mt-2 text-sm text-pw-text-muted">{prossimo.title}</p>
+                <span className="mt-2 text-[11px] text-pw-text-dim leading-tight">Data da fissare</span>
               )}
 
-              <span className="mt-3 inline-flex items-center gap-0.5 text-xs font-medium text-pw-accent">
-                Apri il piano editoriale <ChevronRight size={13} />
-              </span>
+              <ChevronRight size={15} className="mt-auto self-end text-pw-text-dim" />
             </div>
           </Link>
         )}
