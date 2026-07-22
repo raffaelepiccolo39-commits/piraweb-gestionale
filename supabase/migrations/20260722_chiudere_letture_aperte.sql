@@ -29,6 +29,7 @@
 -- la lettura non toglie niente a nessuno che la usi legittimamente.
 
 DROP POLICY IF EXISTS "Deals viewable by authenticated" ON deals;
+DROP POLICY IF EXISTS "Deals viewable by admin" ON deals;
 CREATE POLICY "Deals viewable by admin" ON deals
   FOR SELECT TO authenticated
   USING (
@@ -38,6 +39,7 @@ CREATE POLICY "Deals viewable by admin" ON deals
   );
 
 DROP POLICY IF EXISTS "Activities viewable by authenticated" ON deal_activities;
+DROP POLICY IF EXISTS "Activities viewable by admin" ON deal_activities;
 CREATE POLICY "Activities viewable by admin" ON deal_activities
   FOR SELECT TO authenticated
   USING (
@@ -50,6 +52,7 @@ CREATE POLICY "Activities viewable by admin" ON deal_activities
   );
 
 DROP POLICY IF EXISTS "Deal files viewable by authenticated" ON deal_files;
+DROP POLICY IF EXISTS "Deal files viewable by admin" ON deal_files;
 CREATE POLICY "Deal files viewable by admin" ON deal_files
   FOR SELECT TO authenticated
   USING (
@@ -65,6 +68,7 @@ CREATE POLICY "Deal files viewable by admin" ON deal_files
 -- non al solo "sono io l'autore" (che chiunque puo' dichiarare): senza,
 -- un dipendente puo' appendere finte attività a una trattativa altrui.
 DROP POLICY IF EXISTS "Authenticated can create activities" ON deal_activities;
+DROP POLICY IF EXISTS "Chi ha la trattativa crea attività" ON deal_activities;
 CREATE POLICY "Chi ha la trattativa crea attività" ON deal_activities
   FOR INSERT TO authenticated
   WITH CHECK (
@@ -86,6 +90,7 @@ CREATE POLICY "Chi ha la trattativa crea attività" ON deal_activities
 -- admin-only: nessun altro le legge legittimamente.
 
 DROP POLICY IF EXISTS "Installments select all" ON client_installments;
+DROP POLICY IF EXISTS "Installments select admin" ON client_installments;
 CREATE POLICY "Installments select admin" ON client_installments
   FOR SELECT TO authenticated
   USING (public.is_admin());
