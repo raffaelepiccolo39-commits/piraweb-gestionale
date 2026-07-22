@@ -429,7 +429,82 @@ export default function ProfiloPage() {
           </CardContent>
         </Card>
       )}
+
+      <ChiediCancellazione />
     </div>
+  );
+}
+
+/**
+ * Cancellazione account: la richiesta richiesta da Apple (regola 5.1.1).
+ * Non cancella all'istante — spiega che presenze e buste paga la legge
+ * obbliga a conservarle — ma avvia la richiesta all'amministrazione.
+ */
+function ChiediCancellazione() {
+  const toast = useToast();
+  const [aperto, setAperto] = useState(false);
+  const [invio, setInvio] = useState(false);
+  const [fatto, setFatto] = useState(false);
+
+  const invia = async () => {
+    setInvio(true);
+    try {
+      const r = await fetch('/api/account/delete-request', { method: 'POST' });
+      if (!r.ok) { toast.error('Non sono riuscito a inviare la richiesta, riprova'); return; }
+      setFatto(true);
+      setAperto(false);
+    } catch {
+      toast.error('Non sono riuscito a inviare la richiesta, riprova');
+    } finally {
+      setInvio(false);
+    }
+  };
+
+  if (fatto) {
+    return (
+      <Card>
+        <CardContent className="p-6">
+          <p className="text-sm text-pw-text">
+            Abbiamo ricevuto la tua richiesta di cancellazione. Ti ricontattiamo entro i termini di
+            legge per completarla.
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <CardContent className="p-6">
+        <h3 className="text-sm font-semibold text-pw-text mb-1">Cancella il mio account</h3>
+        <p className="text-xs text-pw-text-muted leading-relaxed">
+          Rimuoviamo il tuo accesso e i dati personali che non siamo obbligati a conservare. Alcuni
+          documenti — presenze e buste paga — la legge ci impone di tenerli anche dopo: quelli
+          restano finché la normativa lo richiede. Vedi la{' '}
+          <a href="/privacy" className="text-pw-accent hover:underline">informativa privacy</a>.
+        </p>
+
+        {aperto ? (
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Button variant="ghost" onClick={() => setAperto(false)}>Annulla</Button>
+            <Button
+              onClick={invia}
+              loading={invio}
+              className="!bg-red-500/10 !text-red-500 hover:!bg-red-500/20"
+            >
+              Confermo, invia la richiesta
+            </Button>
+          </div>
+        ) : (
+          <button
+            onClick={() => setAperto(true)}
+            className="mt-3 text-sm font-medium text-red-500 hover:underline"
+          >
+            Richiedi la cancellazione
+          </button>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 

@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import {
   Home, LayoutGrid, Palette, FileText, Lightbulb, Receipt, FileSignature, Camera, BarChart3,
-  MessageCircle, Hammer, Target, ChevronRight, X, LogOut,
+  MessageCircle, Hammer, Target, UserCog, ChevronRight, X, LogOut,
 } from 'lucide-react';
 
 /**
@@ -62,6 +62,7 @@ export const VOCI_MENU = [
       { href: '/portale/messaggi', label: 'Scrivici', icona: MessageCircle },
       { href: '/portale/pagamenti', label: 'Pagamenti', icona: Receipt },
       { href: '/portale/contratto', label: 'Contratto', icona: FileSignature },
+      { href: '/portale/account', label: 'Il tuo account', icona: UserCog },
     ],
   },
 ];
