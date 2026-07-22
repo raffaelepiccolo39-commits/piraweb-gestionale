@@ -64,7 +64,10 @@ export async function updateSession(request: NextRequest) {
   const isCallbackRoute = request.nextUrl.pathname.startsWith('/api/auth/callback');
   const isPublicPage = request.nextUrl.pathname.startsWith('/consulenza')
     || request.nextUrl.pathname.startsWith('/review')
-    || request.nextUrl.pathname.startsWith('/password-dimenticata');
+    || request.nextUrl.pathname.startsWith('/password-dimenticata')
+    // La privacy DEVE essere pubblica: Apple e Google la controllano senza
+    // login, ed e' linkata dalla schermata di cancellazione account.
+    || request.nextUrl.pathname.startsWith('/privacy');
   const isOnboardingPage = request.nextUrl.pathname.startsWith('/onboarding');
   // Il portale clienti è un'altra app: chi entra lì non ha un profilo del team,
   // quindi onboarding, 2FA e guardia admin non lo riguardano. Tenerlo fuori da

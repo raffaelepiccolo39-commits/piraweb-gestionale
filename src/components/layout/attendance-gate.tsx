@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { usePathname } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/components/ui/toast';
 import { Button } from '@/components/ui/button';
@@ -39,8 +40,13 @@ export function AttendanceGate({ children }: { children: React.ReactNode }) {
   const { profile } = useAuth();
   const supabase = createClient();
   const toast = useToast();
+  const pathname = usePathname();
 
   const isAdmin = profile?.role === 'admin';
+  // Il profilo si raggiunge sempre, anche senza aver timbrato: e' dove si
+  // gestisce il proprio account e si chiede la cancellazione (Apple lo esige
+  // raggiungibile). Bloccarlo dietro il timbro sarebbe assurdo.
+  const isProfilo = pathname === '/profilo' || pathname.startsWith('/profilo/');
   const [state, setState] = useState<GateState>('loading');
   const [record, setRecord] = useState<AttendanceRecord | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -224,7 +230,7 @@ export function AttendanceGate({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (state === 'allowed') return <>{children}</>;
+  if (state === 'allowed' || isProfilo) return <>{children}</>;
 
   const firstName = profile.full_name?.split(' ')[0] || '';
 
