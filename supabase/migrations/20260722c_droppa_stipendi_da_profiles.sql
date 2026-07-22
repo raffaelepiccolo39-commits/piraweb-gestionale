@@ -34,6 +34,24 @@ ON CONFLICT (profile_id) DO UPDATE SET
 DROP TRIGGER IF EXISTS sync_compensation ON profiles;
 DROP FUNCTION IF EXISTS public.sync_compensation_da_profiles();
 
+-- La policy "Users can update own profile" impedisce al dipendente di cambiarsi
+-- ruolo, stipendio, iban e contratto modificando il proprio profilo. Menziona
+-- quelle colonne, quindi va riscritta PRIMA di eliminarle — altrimenti il DROP
+-- fallisce (e' l'errore 2BP01 che si incontra qui).
+--
+-- La riscrittura tiene la protezione che conta e che resta: non ti alzi il
+-- RUOLO da solo. Stipendio, iban e contratto ora stanno in
+-- employee_compensation, che ha gia' la sua regola "scrive solo l'admin": non
+-- serve piu' proteggerli qui.
+DROP POLICY IF EXISTS "Users can update own profile" ON public.profiles;
+CREATE POLICY "Users can update own profile" ON public.profiles
+  AS PERMISSIVE FOR UPDATE TO authenticated
+  USING ((select auth.uid()) = id)
+  WITH CHECK (
+    (select auth.uid()) = id
+    AND role = (SELECT p.role FROM profiles p WHERE p.id = (select auth.uid()))
+  );
+
 -- Via le colonne dalla tabella letta da tutto il team.
 ALTER TABLE profiles DROP COLUMN IF EXISTS salary;
 ALTER TABLE profiles DROP COLUMN IF EXISTS iban;
