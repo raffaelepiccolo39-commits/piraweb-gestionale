@@ -16,39 +16,38 @@ const ThemeContext = createContext<ThemeContextType>({
   setTheme: () => {},
 });
 
+/**
+ * Il tema e' fisso sul chiaro.
+ *
+ * La modalita' notte e' stata tolta: due temi vogliono dire ogni schermata
+ * disegnata due volte e controllata due volte, e ogni colore scritto a mano
+ * invece che con un token diventa un difetto che si vede solo in uno dei due
+ * (e' successo davvero: il logo bianco su fondo bianco nel portale).
+ *
+ * Il contesto resta in piedi, cosi' chi legge useTheme() continua a
+ * funzionare senza modifiche, e riaccenderla un domani vuol dire rimettere
+ * queste venti righe — non ricucire mezza applicazione.
+ */
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>('light');
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    const stored = localStorage.getItem('pw-theme') as Theme | null;
-    if (stored === 'light' || stored === 'dark') {
-      setThemeState(stored);
-    }
+    const root = document.documentElement;
+    root.classList.remove('dark');
+    root.style.colorScheme = 'light';
+    // Si toglie anche la preferenza salvata: chi aveva scelto lo scuro
+    // altrimenti se la ritroverebbe al primo riaccendersi della funzione.
+    try {
+      localStorage.removeItem('pw-theme');
+      localStorage.removeItem('darkMode');
+    } catch { /* modalita' privata */ }
     setMounted(true);
   }, []);
 
-  useEffect(() => {
-    if (!mounted) return;
-    const root = document.documentElement;
-    if (theme === 'dark') {
-      root.classList.add('dark');
-      root.style.colorScheme = 'dark';
-    } else {
-      root.classList.remove('dark');
-      root.style.colorScheme = 'light';
-    }
-    localStorage.setItem('pw-theme', theme);
-  }, [theme, mounted]);
-
-  const toggleTheme = () => setThemeState((t) => (t === 'dark' ? 'light' : 'dark'));
-  const setTheme = (t: Theme) => setThemeState(t);
-
-  // Prevent flash of wrong theme
   if (!mounted) return null;
 
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme, setTheme }}>
+    <ThemeContext.Provider value={{ theme: 'light', toggleTheme: () => {}, setTheme: () => {} }}>
       {children}
     </ThemeContext.Provider>
   );

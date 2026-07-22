@@ -8,7 +8,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { cn } from '@/lib/utils';
 import { navSections } from '@/components/layout/nav-config';
 import { TINT, tintForPath } from '@/lib/tints';
-import { X, ChevronRight, LogOut, Moon, Sun } from 'lucide-react';
+import { X, ChevronRight, LogOut } from 'lucide-react';
 
 /**
  * Menu a foglio (mobile): tutte le sezioni raggruppate, con icona + etichetta,
@@ -19,11 +19,9 @@ export function MenuSheet({ open, onClose }: { open: boolean; onClose: () => voi
   const { profile, signOut } = useAuth();
   const isAdmin = profile?.role === 'admin';
   const pathname = usePathname();
-  const [dark, setDark] = useState(false);
 
   useEffect(() => {
     if (!open) return;
-    setDark(document.documentElement.classList.contains('dark'));
     document.body.style.overflow = 'hidden';
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     document.addEventListener('keydown', onKey);
@@ -36,13 +34,6 @@ export function MenuSheet({ open, onClose }: { open: boolean; onClose: () => voi
   if (!open) return null;
 
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + '/');
-
-  function toggleTheme() {
-    const next = !dark;
-    setDark(next);
-    document.documentElement.classList.toggle('dark', next);
-    try { localStorage.setItem('darkMode', String(next)); } catch { /* ignore */ }
-  }
 
   const content = (
     <div className="lg:hidden fixed inset-0 z-[100]">
@@ -116,13 +107,8 @@ export function MenuSheet({ open, onClose }: { open: boolean; onClose: () => voi
               );
             })}
 
+          {/* Niente interruttore del tema: la modalita' notte e' stata tolta. */}
           <div className="mt-2 pt-3 border-t border-pw-border flex gap-2">
-            <button
-              onClick={toggleTheme}
-              className="flex-1 flex items-center justify-center gap-2 rounded-xl border border-pw-border py-2.5 text-sm font-medium text-pw-text active:bg-pw-surface-2"
-            >
-              {dark ? <Sun size={16} /> : <Moon size={16} />} {dark ? 'Tema chiaro' : 'Tema scuro'}
-            </button>
             <button
               onClick={() => { onClose(); signOut(); }}
               className="flex-1 flex items-center justify-center gap-2 rounded-xl border border-pw-border py-2.5 text-sm font-medium text-pw-danger active:bg-pw-danger/5"

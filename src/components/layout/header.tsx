@@ -24,8 +24,6 @@ import type { Notification } from '@/types/database';
 import {
   Bell,
   LogOut,
-  Moon,
-  Sun,
   Menu,
   X,
   Check,
@@ -64,7 +62,6 @@ export function Header() {
   const [unreadChatCount, setUnreadChatCount] = useState(0);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchFocused, setSearchFocused] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -95,20 +92,11 @@ export function Header() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [searchFocused]);
 
-  useEffect(() => {
-    const saved = localStorage.getItem('darkMode');
-    if (saved === 'true' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-      setDarkMode(true);
-      document.documentElement.classList.add('dark');
-    }
-  }, []);
-
-  const toggleDarkMode = () => {
-    const next = !darkMode;
-    setDarkMode(next);
-    localStorage.setItem('darkMode', String(next));
-    document.documentElement.classList.toggle('dark', next);
-  };
+  // Qui c'era un terzo meccanismo per il tema, che RIACCENDEVA lo scuro
+  // seguendo le preferenze del sistema operativo — sovrascrivendo quello che
+  // aveva deciso il ThemeProvider. Due sistemi che si contendevano la stessa
+  // classe: e' cosi' che si finisce con meta' schermata di un tema e meta'
+  // dell'altro. Tolto insieme alla modalita' notte.
 
   // Fetch notifications
   useEffect(() => {

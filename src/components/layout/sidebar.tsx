@@ -8,7 +8,7 @@ import { cn, getRoleLabel, getInitials, getUserColor, getContrastTextColor } fro
 import { useTheme } from '@/components/theme-provider';
 import { useAuth } from '@/hooks/use-auth';
 import { createClient } from '@/lib/supabase/client';
-import { ChevronDown, LogOut, Moon, Sun } from 'lucide-react';
+import { ChevronDown, LogOut } from 'lucide-react';
 import { navSections, type NavItem, type NavSection } from '@/components/layout/nav-config';
 
 // navSections + tipi ora in nav-config.tsx (condivisi con la barra mobile).
@@ -26,7 +26,7 @@ export function Sidebar({ collapsed, onToggle, onNavigate }: SidebarProps) {
   const { profile } = useAuth();
   const [badges, setBadges] = useState<Record<string, number>>({});
   const [loggingOut, setLoggingOut] = useState(false);
-  const { theme, toggleTheme } = useTheme();
+  const { theme } = useTheme();
 
   const isAdmin = profile?.role === 'admin';
 
@@ -248,14 +248,6 @@ export function Sidebar({ collapsed, onToggle, onNavigate }: SidebarProps) {
           {!collapsed && (
             <>
               <div className="flex items-center gap-0.5 shrink-0">
-                <button
-                  onClick={toggleTheme}
-                  className="w-7 h-7 rounded-sm flex items-center justify-center text-pw-text-dim hover:text-pw-text hover:bg-pw-surface-soft transition-colors duration-150"
-                  aria-label={theme === 'dark' ? 'Tema chiaro' : 'Tema scuro'}
-                  title={theme === 'dark' ? 'Tema chiaro' : 'Tema scuro'}
-                >
-                  {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
-                </button>
                 <button
                   onClick={handleLogout}
                   disabled={loggingOut}
