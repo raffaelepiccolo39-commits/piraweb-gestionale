@@ -9,10 +9,17 @@
     "start": "next start",
     "start:sg": "node .next/standalone/server.js",
     "lint": "eslint",
-    "build:app": "node scripts/build-app.mjs"
+    "build:app": "node scripts/build-app.mjs",
+    "app": "npm run build:app && npx cap sync",
+    "app:ios": "npm run app && npx cap open ios",
+    "app:android": "npm run app && npx cap open android"
   },
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.2.96",
+    "@capacitor/android": "^8.4.2",
+    "@capacitor/cli": "^8.4.2",
+    "@capacitor/core": "^8.4.2",
+    "@capacitor/ios": "^8.4.2",
     "@hello-pangea/dnd": "^18.0.1",
     "@supabase/ssr": "^0.10.0",
     "@supabase/supabase-js": "^2.101.1",

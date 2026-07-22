@@ -39,3 +39,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+/out
+.app-build-stash
+/ios/App/App/public
+/android/app/src/main/assets/public
