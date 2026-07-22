@@ -1,5 +1,10 @@
 # Account sviluppatore: cosa fare, in che ordine
 
+> ✅ **D-U-N-S ottenuto (22/07/2026): `508789763`** — Pira Web S.R.L., P.IVA 04891370613.
+> Il collo di bottiglia lato Apple e' superato. Prossimo passo: iscrizione all'Apple
+> Developer Program (99$/anno) usando questo codice.
+
+
 L'ordine non è indifferente. Il codice D-U-N-S può richiedere settimane e blocca tutto il resto lato Apple: va chiesto **per primo**, prima ancora di iscriversi.
 
 ---
