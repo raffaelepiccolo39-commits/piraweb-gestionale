@@ -2,12 +2,12 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-    <key>CAPACITOR_DEBUG</key>
+	<key>CAPACITOR_DEBUG</key>
 	<string>$(CAPACITOR_DEBUG)</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
-        <string>Pira Web</string>
+	<string>Pira Web</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -22,8 +22,16 @@
 	<string>$(MARKETING_VERSION)</string>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>La fotocamera serve per allegare foto ai contenuti e ai messaggi.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>La posizione viene registrata solo quando timbri l'entrata e l'uscita, per certificare la presenza. Non c'e' alcun tracciamento continuo.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Per scegliere foto e video da allegare ai contenuti e ai messaggi.</string>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>
@@ -47,11 +55,5 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>La posizione viene registrata solo quando timbri l'entrata e l'uscita, per certificare la presenza. Non c'e' alcun tracciamento continuo.</string>
-	<key>NSCameraUsageDescription</key>
-	<string>La fotocamera serve per allegare foto ai contenuti e ai messaggi.</string>
-	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Per scegliere foto e video da allegare ai contenuti e ai messaggi.</string>
 </dict>
 </plist>
