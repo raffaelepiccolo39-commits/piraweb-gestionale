@@ -127,7 +127,11 @@ export default function CashflowPage() {
       supabase.rpc('get_profit_loss_summary', { p_start_date: start, p_end_date: end }),
       supabase.rpc('get_monthly_expenses'),
       // Per ricostruire la composizione team mese per mese: salary + contract_start_date
-      supabase.from('profiles').select('id, salary, contract_start_date, is_active').gt('salary', 0),
+      // Dal lato employee_compensation con il profilo incorporato: la RLS da'
+      // all'admin (unico a vedere questa pagina) tutte le righe.
+      supabase.from('employee_compensation')
+        .select('salary, contract_start_date, profile:profiles!inner(id, is_active)')
+        .gt('salary', 0),
       // Quando esistono payslip storici, usali (verità inattaccabile invece di stima da profile)
       supabase.from('payslips').select('employee_id, month, lordo_mensile').gte('month', start).lte('month', end).limit(500),
       // Gestione siti: canoni annuali, sommati al fatturato social (atteso dal
@@ -173,7 +177,17 @@ export default function CashflowPage() {
     if (expensesRes.data?.[0]) setExpenses(expensesRes.data[0] as MonthlyExpenses);
     else setExpenses(null);
     if (clientsRes.data) setClients(clientsRes.data as RevenuePerClient[]);
-    setTeamForSalaryCalc((profilesRes.data as TeamForSalary[]) || []);
+    // Appiattisce il profilo incorporato: il resto del calcolo usa p.is_active
+    // e p.salary come prima.
+    setTeamForSalaryCalc(
+      ((profilesRes.data as unknown as { salary: number | null; contract_start_date: string | null; profile: { id: string; is_active: boolean } | null }[]) || [])
+        .map((r) => ({
+          id: r.profile?.id ?? '',
+          salary: r.salary,
+          contract_start_date: r.contract_start_date,
+          is_active: r.profile?.is_active ?? false,
+        })) as TeamForSalary[]
+    );
     setPayslipsForSalaryCalc((payslipsRes.data as PayslipForSalary[]) || []);
 
     // Fetch previous period for comparison

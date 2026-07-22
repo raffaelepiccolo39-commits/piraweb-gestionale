@@ -274,11 +274,18 @@ export default function SettingsPage() {
   };
 
   const fetchTeam = useCallback(async () => {
+    // I dati retributivi stanno in employee_compensation: si incorporano e si
+    // appiattiscono sul profilo, cosi' il resto della pagina resta invariato.
     const { data } = await supabase
       .from('profiles')
-      .select('*')
+      .select('*, comp:employee_compensation(salary, iban, contract_type, contract_start_date)')
       .order('full_name');
-    if (data) setTeamMembers(data as Profile[]);
+    if (data) {
+      const piatti = (data as (Profile & { comp: unknown })[]).map((m) => ({
+        ...m, ...((m.comp as object) || {}), comp: undefined,
+      }));
+      setTeamMembers(piatti as Profile[]);
+    }
     setLoading(false);
   }, []);
 

@@ -77,13 +77,16 @@ export default function ProfitabilityPage() {
 
   const fetchData = useCallback(async () => {
     // 1. Fetch all employees with salary
-    const { data: profiles } = await supabase
+    const { data: profilesRaw } = await supabase
       .from('profiles')
-      .select('id, full_name, role, color, salary, is_active')
+      .select('id, full_name, role, color, is_active, comp:employee_compensation(salary)')
       .eq('is_active', true)
       .order('full_name');
 
-    const employees: EmployeeCost[] = ((profiles as Profile[]) || [])
+    const profiles = ((profilesRaw as (Profile & { comp: { salary: number | null } | null })[]) || [])
+      .map((p) => ({ ...p, salary: p.comp?.salary ?? null }));
+
+    const employees: EmployeeCost[] = (profiles || [])
       .filter((p) => p.salary && p.salary > 0)
       .map((p) => ({
         profile: p,

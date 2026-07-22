@@ -67,10 +67,6 @@ export async function POST(request: NextRequest) {
       email,
       full_name,
       role,
-      salary: salary || null,
-      iban: iban || null,
-      contract_type: contract_type || null,
-      contract_start_date: contract_start_date || null,
       must_change_password: true,
       onboarded_at: null,
     }, { onConflict: 'id' });
@@ -79,6 +75,27 @@ export async function POST(request: NextRequest) {
     await logError({ error: profileError, route: '/api/auth/create-user', source: 'api', context: { op: 'create-user-profile' } });
     return NextResponse.json(
       { error: `Utente creato ma errore profilo: ${profileError.message}` },
+      { status: 400 }
+    );
+  }
+
+  // Stipendio, IBAN e contratto in una tabella a parte, leggibile solo dal
+  // diretto interessato e dall'admin: non piu' in profiles, che tutto il team
+  // legge per nomi e ruoli.
+  const { error: compError } = await serviceClient
+    .from('employee_compensation')
+    .upsert({
+      profile_id: newUser.user.id,
+      salary: salary || null,
+      iban: iban || null,
+      contract_type: contract_type || null,
+      contract_start_date: contract_start_date || null,
+    }, { onConflict: 'profile_id' });
+
+  if (compError) {
+    await logError({ error: compError, route: '/api/auth/create-user', source: 'api', context: { op: 'create-user-compensation' } });
+    return NextResponse.json(
+      { error: `Utente creato ma errore dati contrattuali: ${compError.message}` },
       { status: 400 }
     );
   }

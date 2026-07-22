@@ -55,12 +55,10 @@ export function PortalGate({ children }: { children: React.ReactNode }) {
       if (!user) { router.replace('/login'); return; }
 
       // La riga del portale è leggibile solo dal suo proprietario (policy
-      // "Il cliente legge il proprio accesso"). Il nome del cliente arriva
-      // dall'embed: se l'accesso è revocato, la RLS su clients non lo
-      // restituisce e restiamo comunque fuori.
+      // "Il cliente legge il proprio accesso").
       const { data } = await supabase
         .from('client_portal_users')
-        .select('id, client_id, email, full_name, is_active, password_set_at, client:clients(name, company, logo_url)')
+        .select('id, client_id, email, full_name, is_active, password_set_at')
         .eq('id', user.id)
         .maybeSingle();
 
@@ -69,18 +67,25 @@ export function PortalGate({ children }: { children: React.ReactNode }) {
       const row = data as {
         id: string; client_id: string; email: string; full_name: string | null;
         is_active: boolean; password_set_at: string | null;
-        client: { name: string; company: string | null; logo_url: string | null } | null;
       } | null;
 
       if (!row || !row.is_active) { setState({ kind: 'no_access' }); return; }
+
+      // Nome, azienda e logo da una funzione che restituisce SOLO questi tre
+      // campi: la tabella clients non è più leggibile dal cliente, così non
+      // può arrivare alle note interne o ai dati fiscali con select=*.
+      const { data: cli } = await supabase.rpc('portal_mio_cliente');
+      if (cancelled) return;
+      const client = (Array.isArray(cli) ? cli[0] : cli) as
+        { name: string; company: string | null; logo_url: string | null } | null;
 
       setState({
         kind: 'ok',
         identity: {
           userId: row.id,
           clientId: row.client_id,
-          clientName: row.client?.company || row.client?.name || '',
-          clientLogo: row.client?.logo_url || null,
+          clientName: client?.company || client?.name || '',
+          clientLogo: client?.logo_url || null,
           fullName: row.full_name,
           email: row.email,
           passwordScelta: !!row.password_set_at,

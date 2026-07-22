@@ -111,16 +111,27 @@ export async function POST(request: NextRequest) {
     const contractType = typeof body.contract_type === 'string' && body.contract_type ? body.contract_type : null;
     const contractStartDate = typeof body.contract_start_date === 'string' && body.contract_start_date ? body.contract_start_date : null;
 
-    const { error } = await serviceClient
+    // Il colore resta in profiles (lo vede tutto il team sugli avatar); i
+    // dati retributivi vanno nella tabella riservata.
+    const { error: colorError } = await serviceClient
       .from('profiles')
-      .update({
+      .update({ color })
+      .eq('id', targetUserId);
+
+    if (colorError) {
+      await logError({ error: colorError, route: '/api/admin/update-member', source: 'api', context: { op: 'update-employee-color' } });
+      return NextResponse.json({ error: 'Errore aggiornamento dipendente' }, { status: 500 });
+    }
+
+    const { error } = await serviceClient
+      .from('employee_compensation')
+      .upsert({
+        profile_id: targetUserId,
         salary,
         iban,
-        color,
         contract_type: contractType,
         contract_start_date: contractStartDate,
-      })
-      .eq('id', targetUserId);
+      }, { onConflict: 'profile_id' });
 
     if (error) {
       await logError({ error, route: '/api/admin/update-member', source: 'api', context: { op: 'update-employee' } });

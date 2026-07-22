@@ -166,7 +166,7 @@ export default function CFOPage() {
   const fetchAll = useCallback(async () => {
     // Parallel fetch all data
     const responses = await Promise.all([
-      supabase.from('profiles').select('*').eq('is_active', true).order('full_name'),
+      supabase.from('profiles').select('*, comp:employee_compensation(salary, contract_type, contract_start_date)').eq('is_active', true).order('full_name'),
       supabase.from('client_contracts').select('client_id, monthly_fee, status, duration_months, start_date').eq('status', 'active'),
       supabase.from('client_payments').select('contract_id, amount, is_paid, due_date, client_id:client_contracts(client_id, status)').limit(5000),
       supabase.from('operating_expenses').select('*').eq('is_active', true).order('category'),
@@ -191,7 +191,9 @@ export default function CFOPage() {
       timeRes, freelancerRes, clientsRes, payslipsRes, invoicesRes,
     ] = responses;
 
-    const profiles = (profilesRes.data || []) as Profile[];
+    // Appiattisce la retribuzione incorporata, cosi' p.salary resta valido.
+    const profiles = ((profilesRes.data || []) as (Profile & { comp: { salary: number | null; contract_type: string | null; contract_start_date: string | null } | null })[])
+      .map((p) => ({ ...p, salary: p.comp?.salary ?? null, contract_type: p.comp?.contract_type ?? null, contract_start_date: p.comp?.contract_start_date ?? null })) as Profile[];
     const contracts = contractsRes.data || [];
     // Conta solo i pagamenti di contratti attivi (coerente con la dashboard):
     // i pagamenti di contratti cancellati/completati non rientrano nel cashflow.

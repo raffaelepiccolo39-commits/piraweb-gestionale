@@ -81,6 +81,19 @@ function WidgetHeader({ icon: Icon, title, href }: { icon: React.ElementType; ti
 
 export default function ProfiloPage() {
   const { profile, retryLoadProfile } = useAuth();
+
+  // I dati retributivi non stanno piu' in profiles: la propria riga la si
+  // legge a parte (la RLS la concede al diretto interessato).
+  const [comp, setComp] = useState<{ iban: string | null; contract_type: string | null; contract_start_date: string | null } | null>(null);
+  useEffect(() => {
+    if (!profile) return;
+    supabase
+      .from('employee_compensation')
+      .select('iban, contract_type, contract_start_date')
+      .eq('profile_id', profile.id)
+      .maybeSingle()
+      .then(({ data }) => setComp(data as typeof comp));
+  }, [profile]);
   const supabase = createClient();
   const toast = useToast();
   const year = new Date().getFullYear();
@@ -94,14 +107,14 @@ export default function ProfiloPage() {
     if (profile) {
       setEditForm({
         full_name: profile.full_name || '',
-        iban: profile.iban || '',
+        iban: comp?.iban || '',
         color: profile.color || COLOR_PALETTE[8],
       });
     }
-  }, [profile]);
+  }, [profile, comp]);
   const editDirty = profile && (
     editForm.full_name !== (profile.full_name || '')
-    || editForm.iban !== (profile.iban || '')
+    || editForm.iban !== (comp?.iban || '')
     || editForm.color !== (profile.color || '')
   );
 
@@ -113,11 +126,18 @@ export default function ProfiloPage() {
       const { error } = await supabase.from('profiles')
         .update({
           full_name: editForm.full_name.trim(),
-          iban: editForm.iban.trim() || null,
           color: editForm.color || null,
         })
         .eq('id', profile.id);
       if (error) throw error;
+
+      // L'IBAN sta nella tabella riservata, non piu' in profiles: si scrive
+      // con la funzione che tocca solo la propria riga.
+      const { error: ibanError } = await supabase.rpc('aggiorna_mio_iban', {
+        p_iban: editForm.iban.trim() || null,
+      });
+      if (ibanError) throw ibanError;
+
       toast.success('Profilo aggiornato');
       retryLoadProfile();
     } catch (e) {
@@ -340,8 +360,8 @@ export default function ProfiloPage() {
                 <dl className="space-y-3.5">
                   <DetailRow icon={Mail} label="Email" value={profile.email} />
                   <DetailRow icon={Briefcase} label="Ruolo" value={getRoleLabel(profile.role)} />
-                  <DetailRow icon={Calendar} label="Data di inizio" value={profile.contract_start_date ? formatDate(profile.contract_start_date) : '—'} />
-                  <DetailRow icon={Briefcase} label="Contratto" value={profile.contract_type ? CONTRACT_LABELS[profile.contract_type as EmployeeContractType] : '—'} />
+                  <DetailRow icon={Calendar} label="Data di inizio" value={comp?.contract_start_date ? formatDate(comp.contract_start_date) : '—'} />
+                  <DetailRow icon={Briefcase} label="Contratto" value={comp?.contract_type ? CONTRACT_LABELS[comp.contract_type as EmployeeContractType] : '—'} />
                 </dl>
               </CardContent>
             </Card>
@@ -397,8 +417,8 @@ export default function ProfiloPage() {
             <div className="grid sm:grid-cols-2 gap-x-8 gap-y-4 pt-4 border-t border-pw-border">
               <DetailRow icon={Mail} label="Email" value={profile.email} />
               <DetailRow icon={Briefcase} label="Ruolo" value={getRoleLabel(profile.role)} />
-              <DetailRow icon={Briefcase} label="Tipo contratto" value={profile.contract_type ? CONTRACT_LABELS[profile.contract_type as EmployeeContractType] : '—'} />
-              <DetailRow icon={Calendar} label="Data di inizio" value={profile.contract_start_date ? formatDate(profile.contract_start_date) : '—'} />
+              <DetailRow icon={Briefcase} label="Tipo contratto" value={comp?.contract_type ? CONTRACT_LABELS[comp.contract_type as EmployeeContractType] : '—'} />
+              <DetailRow icon={Calendar} label="Data di inizio" value={comp?.contract_start_date ? formatDate(comp.contract_start_date) : '—'} />
             </div>
 
             <div className="flex justify-end pt-2">

@@ -107,7 +107,7 @@ export default function FeriePage() {
       const [reqRes, accruedRes, profileRes] = await Promise.all([
         supabase.from('time_off_requests').select('*').eq('user_id', profile.id).order('start_date', { ascending: false }),
         supabase.rpc('accrued_vacation_days', { p_user_id: profile.id }),
-        supabase.from('profiles').select('contract_start_date').eq('id', profile.id).single(),
+        supabase.from('employee_compensation').select('contract_start_date').eq('profile_id', profile.id).maybeSingle(),
       ]);
       if (reqRes.error) throw reqRes.error;
       setMyRequests((reqRes.data as TimeOffRequest[]) || []);
