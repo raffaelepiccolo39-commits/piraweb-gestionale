@@ -117,3 +117,33 @@ nessun dato reale di clienti o team.
 Nota: "Studio Demo" compare tra i clienti del team perché è una riga vera nel database
 (serve perché l'accesso funzioni durante la revisione). **Dopo l'approvazione Apple si
 può cancellare** cliente + accesso + contenuti demo. Fino ad allora va lasciato attivo.
+
+---
+
+## Come si ricostruisce e ricarica una nuova versione
+
+Prerequisito una tantum (già fatto): Xcode aperto almeno una volta con la password
+amministratore, così installa i componenti di sistema. Senza quel passaggio i runtime
+del simulatore non si installano davvero e l'archiviazione fallisce con
+"No available simulator runtimes" — ci abbiamo perso un pomeriggio.
+
+Prima di ogni nuova versione, alza i numeri in `ios/App/App.xcodeproj`:
+MARKETING_VERSION (es. 1.1) e CURRENT_PROJECT_VERSION (+1, obbligatorio a ogni upload).
+
+```bash
+# 1. web statico per l'app
+NEXT_PUBLIC_API_ORIGIN=https://gestionale.piraweb.it npm run build:app
+npx cap sync ios
+
+# 2. archivio firmato
+xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Release \
+  -destination 'generic/platform=iOS' -archivePath build/App.xcarchive archive \
+  -allowProvisioningUpdates DEVELOPMENT_TEAM=LLR5VGHMCF CODE_SIGN_STYLE=Automatic
+
+# 3. carica su App Store Connect (ExportOptions con destination=upload)
+xcodebuild -exportArchive -archivePath build/App.xcarchive \
+  -exportPath build/upload -exportOptionsPlist ios/ExportOptions.plist \
+  -allowProvisioningUpdates
+```
+
+Team ID: LLR5VGHMCF · ID Apple app: 6793584368 · Bundle: it.piraweb.gestionale
