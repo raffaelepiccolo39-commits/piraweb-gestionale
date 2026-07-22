@@ -15,7 +15,7 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { PageHeader } from '@/components/ui/page-header';
 import { SkeletonStats, SkeletonList } from '@/components/ui/skeleton';
 import { formatCurrency } from '@/lib/utils';
-import type { Profile, OperatingExpense, Payslip, Invoice, Client } from '@/types/database';
+import type { Profile, OperatingExpense, Payslip, Invoice, Client, EmployeeContractType } from '@/types/database';
 import {
   TrendingUp,
   TrendingDown,
@@ -128,7 +128,14 @@ export default function CFOPage() {
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [deletingExpenseId, setDeletingExpenseId] = useState<string | null>(null);
   const [deletingPayslipId, setDeletingPayslipId] = useState<string | null>(null);
-  const [employees, setEmployees] = useState<(Profile & { costs: ReturnType<typeof calculateEmployeeCosts> })[]>([]);
+  // Profile + retribuzione appiattita (salary/contract non stanno piu' in
+  // Profile: vengono dall'embed employee_compensation) + costi calcolati.
+  const [employees, setEmployees] = useState<(Profile & {
+    salary: number | null;
+    contract_type: EmployeeContractType | null;
+    contract_start_date: string | null;
+    costs: ReturnType<typeof calculateEmployeeCosts>;
+  })[]>([]);
   const [expenses, setExpenses] = useState<OperatingExpense[]>([]);
   const [clientProfitability, setClientProfitability] = useState<ClientProfitability[]>([]);
   const [showExpenseForm, setShowExpenseForm] = useState(false);
@@ -192,8 +199,15 @@ export default function CFOPage() {
     ] = responses;
 
     // Appiattisce la retribuzione incorporata, cosi' p.salary resta valido.
-    const profiles = ((profilesRes.data || []) as (Profile & { comp: { salary: number | null; contract_type: string | null; contract_start_date: string | null } | null })[])
-      .map((p) => ({ ...p, salary: p.comp?.salary ?? null, contract_type: p.comp?.contract_type ?? null, contract_start_date: p.comp?.contract_start_date ?? null })) as Profile[];
+    // Profile con la retribuzione appiattita dall'embed: salary/contract non
+    // stanno piu' nel tipo Profile, quindi si dichiarano in un tipo locale.
+    type ProfiloConComp = Profile & {
+      salary: number | null;
+      contract_type: EmployeeContractType | null;
+      contract_start_date: string | null;
+    };
+    const profiles: ProfiloConComp[] = ((profilesRes.data || []) as (Profile & { comp: { salary: number | null; contract_type: EmployeeContractType | null; contract_start_date: string | null } | null })[])
+      .map((p) => ({ ...p, salary: p.comp?.salary ?? null, contract_type: p.comp?.contract_type ?? null, contract_start_date: p.comp?.contract_start_date ?? null }));
     const contracts = contractsRes.data || [];
     // Conta solo i pagamenti di contratti attivi (coerente con la dashboard):
     // i pagamenti di contratti cancellati/completati non rientrano nel cashflow.

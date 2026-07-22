@@ -176,15 +176,24 @@ export interface Profile {
   role: UserRole;
   avatar_url: string | null;
   is_active: boolean;
-  salary: number | null;
-  iban: string | null;
   color: string | null;
-  contract_type: EmployeeContractType | null;
-  contract_start_date: string | null;
   must_change_password: boolean;
   onboarded_at: string | null;
   terminated_at: string | null;
   created_at: string;
+  updated_at: string;
+}
+
+/**
+ * Retribuzione, IBAN e contratto: tabella a parte, non piu' in profiles.
+ * Leggibile solo dal diretto interessato e dall'admin. Vedi 20260722b.
+ */
+export interface EmployeeCompensation {
+  profile_id: string;
+  salary: number | null;
+  iban: string | null;
+  contract_type: EmployeeContractType | null;
+  contract_start_date: string | null;
   updated_at: string;
 }
 

@@ -39,7 +39,15 @@ const createRoleOptions = [
 export default function SettingsPage() {
   const { profile } = useAuth();
   const supabase = createClient();
-  const [teamMembers, setTeamMembers] = useState<Profile[]>([]);
+  // Profile + retribuzione appiattita dall'embed employee_compensation:
+  // salary/iban/contract non stanno piu' nel tipo Profile.
+  type MembroConComp = Profile & {
+    salary: number | null;
+    iban: string | null;
+    contract_type: string | null;
+    contract_start_date: string | null;
+  };
+  const [teamMembers, setTeamMembers] = useState<MembroConComp[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [profileForm, setProfileForm] = useState({
@@ -74,8 +82,8 @@ export default function SettingsPage() {
   });
 
   // View/Edit employee modal state
-  const [viewingMember, setViewingMember] = useState<Profile | null>(null);
-  const [editingMember, setEditingMember] = useState<Profile | null>(null);
+  const [viewingMember, setViewingMember] = useState<MembroConComp | null>(null);
+  const [editingMember, setEditingMember] = useState<MembroConComp | null>(null);
   const [editForm, setEditForm] = useState({
     salary: '',
     iban: '',
@@ -281,10 +289,16 @@ export default function SettingsPage() {
       .select('*, comp:employee_compensation(salary, iban, contract_type, contract_start_date)')
       .order('full_name');
     if (data) {
-      const piatti = (data as (Profile & { comp: unknown })[]).map((m) => ({
-        ...m, ...((m.comp as object) || {}), comp: undefined,
+      const piatti: MembroConComp[] = (data as (Profile & {
+        comp: { salary: number | null; iban: string | null; contract_type: string | null; contract_start_date: string | null } | null
+      })[]).map((m) => ({
+        ...m,
+        salary: m.comp?.salary ?? null,
+        iban: m.comp?.iban ?? null,
+        contract_type: m.comp?.contract_type ?? null,
+        contract_start_date: m.comp?.contract_start_date ?? null,
       }));
-      setTeamMembers(piatti as Profile[]);
+      setTeamMembers(piatti);
     }
     setLoading(false);
   }, []);
@@ -456,7 +470,7 @@ export default function SettingsPage() {
     }
   };
 
-  const openEditMember = (member: Profile) => {
+  const openEditMember = (member: MembroConComp) => {
     setViewingMember(null);
     setEditingMember(member);
     setEditForm({
