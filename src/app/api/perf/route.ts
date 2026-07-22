@@ -24,8 +24,21 @@ export async function POST(request: NextRequest) {
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
 
+  /**
+   * Senza sessione le misure si buttano in silenzio, con un 204.
+   *
+   * Prima si rispondeva 401 e il browser lo scriveva in console in rosso:
+   * un errore ben visibile per una cosa che non e' un errore. Succede
+   * normalmente — le misure partono con sendBeacon quando la scheda si
+   * chiude o passa in secondo piano, e in quel momento la sessione puo'
+   * essere gia' finita o in fase di rinnovo.
+   *
+   * Questa e' telemetria, non un'operazione dell'utente: se non si sa a chi
+   * attribuirla non c'e' niente da salvare e niente da segnalare. Rifiutarla
+   * ad alta voce spaventa chi apre la console e non serve a nessuno.
+   */
   if (!user) {
-    return NextResponse.json({ error: 'Non autenticato' }, { status: 401 });
+    return new NextResponse(null, { status: 204 });
   }
 
   const blocked = applyRateLimit(request, `perf:${user.id}`, PERF_RATE_LIMIT, 'Troppe metriche.');
