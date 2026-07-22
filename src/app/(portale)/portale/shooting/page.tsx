@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useToast } from '@/components/ui/toast';
 import { reportSupabaseError } from '@/lib/report-error';
 import { cn } from '@/lib/utils';
-import { Camera, Loader2, Check, Clock, X } from 'lucide-react';
+import { Camera, Loader2, Check, ChevronLeft, ChevronRight, Clock, X } from 'lucide-react';
 
 /**
  * Il cliente propone una data per il prossimo shooting.
@@ -84,23 +84,62 @@ export default function PortaleShootingPage() {
   }, [scelto, occupati, fascia]);
 
 
-  // I prossimi 45 giorni, esclusi sabato e domenica: uno shooting si fa
-  // in settimana, e proporre un sabato porterebbe solo a un rifiuto.
-  const giorni = useMemo(() => {
-    const out: Date[] = [];
-    const oggi = new Date();
-    for (let i = 2; i <= 45; i++) {
-      const d = new Date(oggi);
-      d.setDate(d.getDate() + i);
-      const dow = d.getDay();
-      if (dow !== 0 && dow !== 6) out.push(d);
-    }
-    return out;
+  /**
+   * La finestra in cui si può proporre: da dopodomani a 45 giorni.
+   *
+   * Non domani: una data proposta per domani arriva quasi sempre tardi, e
+   * costringe a un no. Non oltre 45 giorni: più in là il calendario non è
+   * ancora deciso e prometteremmo una disponibilità che non abbiamo.
+   */
+  const { primo, ultimo } = useMemo(() => {
+    const a = new Date(); a.setHours(0, 0, 0, 0); a.setDate(a.getDate() + 2);
+    const b = new Date(); b.setHours(0, 0, 0, 0); b.setDate(b.getDate() + 45);
+    return { primo: a, ultimo: b };
   }, []);
 
+  // Il mese mostrato adesso. Si parte da quello del primo giorno proponibile.
+  const [meseVisto, setMeseVisto] = useState(() => {
+    const d = new Date(); d.setDate(d.getDate() + 2);
+    return new Date(d.getFullYear(), d.getMonth(), 1);
+  });
+
+  /**
+   * Le caselle del mese, allineate alla settimana che comincia di LUNEDÌ.
+   *
+   * Le caselle vuote all'inizio servono a far cadere ogni giorno sotto la sua
+   * colonna: senza, il 3 agosto finirebbe sotto "lunedì" solo per caso.
+   */
+  const caselle = useMemo(() => {
+    const anno = meseVisto.getFullYear();
+    const mese = meseVisto.getMonth();
+    const primoDelMese = new Date(anno, mese, 1);
+    // getDay(): 0 = domenica. Con la settimana che parte da lunedì, domenica
+    // vale 6 e lunedì 0.
+    const sfasamento = (primoDelMese.getDay() + 6) % 7;
+    const quantiGiorni = new Date(anno, mese + 1, 0).getDate();
+
+    const out: (Date | null)[] = Array(sfasamento).fill(null);
+    for (let g = 1; g <= quantiGiorni; g++) out.push(new Date(anno, mese, g));
+    return out;
+  }, [meseVisto]);
+
+  /** Un giorno si può proporre solo se è nella finestra e non è nel weekend. */
+  const proponibile = useCallback((d: Date) => {
+    const dow = d.getDay();
+    if (dow === 0 || dow === 6) return false;
+    return d >= primo && d <= ultimo;
+  }, [primo, ultimo]);
+
+  // Si può andare avanti e indietro solo dentro la finestra: mesi vuoti non
+  // servono a niente.
+  const meseIndietro = new Date(meseVisto.getFullYear(), meseVisto.getMonth() - 1, 1);
+  const meseAvanti = new Date(meseVisto.getFullYear(), meseVisto.getMonth() + 1, 1);
+  const puoIndietro = meseIndietro >= new Date(primo.getFullYear(), primo.getMonth(), 1);
+  const puoAvanti = meseAvanti <= new Date(ultimo.getFullYear(), ultimo.getMonth(), 1);
+
   const carica = useCallback(async () => {
-    const da = ymd(giorni[0]);
-    const a = ymd(giorni[giorni.length - 1]);
+    const da = ymd(primo);
+    const a = ymd(ultimo);
 
     const [req, occ] = await Promise.all([
       supabase
@@ -119,7 +158,7 @@ export default function PortaleShootingPage() {
         .map((r) => `${r.giorno}|${r.fascia}`)
     ));
     setLoading(false);
-  }, [supabase, giorni]);
+  }, [supabase, primo, ultimo]);
 
   useEffect(() => { carica(); }, [carica]);
 
@@ -197,43 +236,81 @@ export default function PortaleShootingPage() {
         </p>
       ) : (
         <>
-          <div className="grid grid-cols-4 sm:grid-cols-7 gap-1.5 mb-4">
-            {giorni.map((d) => {
-              const key = ymd(d);
-              const mattinaPresa = occupati.has(`${key}|mattina`);
-              const pomeriggioPreso = occupati.has(`${key}|pomeriggio`);
-              // Fuori solo se non resta niente: con mezza giornata libera il
-              // cliente deve poterla chiedere.
-              const occupato = mattinaPresa && pomeriggioPreso;
-              const attivo = scelto === key;
-              return (
-                <button
-                  key={key}
-                  disabled={occupato}
-                  onClick={() => setScelto(key)}
-                  className={cn(
-                    'rounded-xl border p-2 text-center transition-colors',
-                    occupato
-                      ? 'border-pw-border bg-pw-surface-2 text-pw-text-dim opacity-40 cursor-not-allowed'
-                      : attivo
-                        ? 'border-pw-accent bg-pw-accent/10 text-pw-accent'
-                        : 'border-pw-border bg-pw-surface text-pw-text hover:border-pw-accent'
-                  )}
-                >
-                  <span className="block text-[10px] uppercase">
-                    {d.toLocaleDateString('it-IT', { weekday: 'short' })}
-                  </span>
-                  <span className="block text-base font-semibold leading-tight">{d.getDate()}</span>
-                  <span className="block text-[10px]">
-                    {d.toLocaleDateString('it-IT', { month: 'short' })}
-                  </span>
-                </button>
-              );
-            })}
+          {/* Calendario del mese, settimana da lunedì a domenica. */}
+          <div className="rounded-2xl border border-pw-border bg-pw-surface p-3 mb-4">
+            <div className="flex items-center justify-between mb-3">
+              <button
+                onClick={() => setMeseVisto(meseIndietro)}
+                disabled={!puoIndietro}
+                aria-label="Mese precedente"
+                className="p-2 rounded-lg text-pw-text-dim disabled:opacity-30 hover:bg-pw-surface-2"
+              >
+                <ChevronLeft size={18} />
+              </button>
+              <p className="text-sm font-semibold text-pw-text first-letter:uppercase">
+                {meseVisto.toLocaleDateString('it-IT', { month: 'long', year: 'numeric' })}
+              </p>
+              <button
+                onClick={() => setMeseVisto(meseAvanti)}
+                disabled={!puoAvanti}
+                aria-label="Mese successivo"
+                className="p-2 rounded-lg text-pw-text-dim disabled:opacity-30 hover:bg-pw-surface-2"
+              >
+                <ChevronRight size={18} />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-7 gap-1 mb-1">
+              {['L', 'M', 'M', 'G', 'V', 'S', 'D'].map((g, i) => (
+                <span key={i} className="text-center text-[10px] font-semibold text-pw-text-dim py-1">
+                  {g}
+                </span>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-7 gap-1">
+              {caselle.map((d, i) => {
+                if (!d) return <span key={`vuota-${i}`} />;
+
+                const key = ymd(d);
+                const mattinaPresa = occupati.has(`${key}|mattina`);
+                const pomeriggioPreso = occupati.has(`${key}|pomeriggio`);
+                const pieno = mattinaPresa && pomeriggioPreso;
+                const mezzo = (mattinaPresa || pomeriggioPreso) && !pieno;
+                const fuori = !proponibile(d);
+                const attivo = scelto === key;
+
+                return (
+                  <button
+                    key={key}
+                    disabled={fuori || pieno}
+                    onClick={() => setScelto(key)}
+                    className={cn(
+                      'relative aspect-square rounded-lg text-sm transition-colors flex items-center justify-center',
+                      fuori || pieno
+                        ? 'text-pw-text-dim opacity-35 cursor-not-allowed'
+                        : attivo
+                          ? 'bg-pw-accent text-[#0A263A] font-bold'
+                          : 'text-pw-text hover:bg-pw-surface-2 font-medium'
+                    )}
+                    title={pieno ? 'Giornata già impegnata' : mezzo ? 'Mezza giornata libera' : undefined}
+                  >
+                    {d.getDate()}
+                    {/* Il puntino avverte che il giorno è libero solo a metà:
+                        senza, il cliente lo sceglie e scopre solo dopo che la
+                        mattina non c'è. */}
+                    {mezzo && !attivo && (
+                      <span className="absolute bottom-1 w-1 h-1 rounded-full bg-pw-accent" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
           </div>
+
           <p className="text-[11px] text-pw-text-dim mb-5">
-            I giorni in grigio sono già impegnati. Su alcuni giorni può essere
-            libera solo mezza giornata: lo vedi scegliendo la data.
+            I giorni in grigio non sono disponibili. Quelli con il puntino
+            hanno libera solo mezza giornata.
           </p>
 
           {scelto && (
