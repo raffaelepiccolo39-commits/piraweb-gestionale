@@ -1,8 +1,27 @@
 apply plugin: 'com.android.application'
 
+// Credenziali di firma release, tenute fuori da git (android/keystore.properties).
+// Se il file non c'è (es. su un altro pc), la firma release semplicemente non si
+// configura e il build di debug continua a funzionare.
+def keystorePropsFile = rootProject.file("keystore.properties")
+def keystoreProps = new Properties()
+if (keystorePropsFile.exists()) {
+    keystoreProps.load(new FileInputStream(keystorePropsFile))
+}
+
 android {
     namespace = "it.piraweb.gestionale"
     compileSdk = rootProject.ext.compileSdkVersion
+    signingConfigs {
+        release {
+            if (keystorePropsFile.exists()) {
+                storeFile = rootProject.file(keystoreProps['storeFile'])
+                storePassword = keystoreProps['storePassword']
+                keyAlias = keystoreProps['keyAlias']
+                keyPassword = keystoreProps['keyPassword']
+            }
+        }
+    }
     defaultConfig {
         applicationId "it.piraweb.gestionale"
         minSdkVersion rootProject.ext.minSdkVersion
@@ -20,6 +39,9 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            if (keystorePropsFile.exists()) {
+                signingConfig = signingConfigs.release
+            }
         }
     }
 }

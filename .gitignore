@@ -43,3 +43,7 @@ next-env.d.ts
 .app-build-stash
 /ios/App/App/public
 /android/app/src/main/assets/public
+
+# Firma Android release (NON committare la chiave né le password)
+android/keystore/
+android/keystore.properties
