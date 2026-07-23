@@ -20,7 +20,6 @@ interface WebsiteCashflowMonthly {
   received: number;
 }
 import { HealthIndicators } from '@/components/cashflow/health-indicators';
-import { ProfitLossChart } from '@/components/cashflow/profit-loss-chart';
 import { PeriodComparison } from '@/components/cashflow/period-comparison';
 import { ForecastCard } from '@/components/cashflow/forecast-card';
 import {
@@ -564,18 +563,6 @@ export default function CashflowPage() {
                 <CashflowMargine data={chartData} />
               </CardContent>
             </Card>
-          )}
-
-          {/* Profit/Loss Area Chart */}
-          {chartData.length > 0 && (
-            <ProfitLossChart
-              data={chartData.map((d) => ({
-                month: d.name,
-                entrate: d.Entrate,
-                costi: d.Uscite,
-                margine: d.Margine,
-              }))}
-            />
           )}
 
           {/* Period Comparison */}
