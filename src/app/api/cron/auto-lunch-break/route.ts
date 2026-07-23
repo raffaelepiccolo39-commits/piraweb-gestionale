@@ -59,13 +59,13 @@ async function handleCron(request: NextRequest) {
 
   const { date: today, hour } = romeParts();
 
-  // Guard ora legale. Il piano Hobby di Vercel ammette un solo cron al giorno,
-  // quindi lo schedule è fisso a 11:30 UTC = 13:30 a Roma solo con l'ora legale.
-  // Dal 25 ottobre 2026 (ora solare) firerà alle 12:30 di Roma e questa guardia
-  // lo scarterà: la pausa automatica smetterebbe di aprirsi. Lo registriamo nel log
-  // invece di uscire in silenzio — altrimenti nessuno se ne accorge fino a marzo.
+  // Due esecuzioni in vercel.json (11:00 e 12:00 UTC) coprono sia l'ora legale
+  // sia l'ora solare: qui procediamo solo quando a Roma sono le 13, così la
+  // pausa scatta una volta sola. L'altra esecuzione cade a un'ora diversa (12 o
+  // 14 a Roma) e passa a vuoto: è previsto, non un guasto, quindi non lo
+  // registriamo. Programmare a inizio ora lascia quasi un'ora di margine per
+  // gli eventuali ritardi del cron di Vercel senza uscire dalla finestra delle 13.
   if (hour !== 13) {
-    await logError({ error: `auto-lunch-break: scattato alle ${hour}:xx ora di Roma, non alle 13. Probabile passaggio all'ora solare: lo schedule in vercel.json va portato a "30 12 * * 1-5".`, route: '/api/cron/auto-lunch-break', source: 'cron', level: 'warning' });
     return NextResponse.json({ success: true, skipped: true, reason: `Non sono le 13 a Roma (ora Roma: ${hour})` });
   }
 

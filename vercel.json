@@ -38,7 +38,11 @@
     },
     {
       "path": "/api/cron/auto-lunch-break",
-      "schedule": "30 11 * * 1-5"
+      "schedule": "0 11 * * 1-5"
+    },
+    {
+      "path": "/api/cron/auto-lunch-break",
+      "schedule": "0 12 * * 1-5"
     },
     {
       "path": "/api/cron/ped-monitor",
