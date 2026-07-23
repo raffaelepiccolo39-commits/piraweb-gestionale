@@ -53,18 +53,21 @@ export async function GET(request: NextRequest) {
 
   if (error) {
     // Un link scaduto o già usato è comportamento normale dell'utente, non un
-    // guasto del sistema: lo registriamo come 'warning' così /log resta pulita
-    // e mostra solo le cose davvero rotte. Al login mandiamo un codice stabile
+    // guasto del sistema: NON lo registriamo affatto, così /log resta pulita e
+    // mostra solo le cose davvero rotte. Al login mandiamo un codice stabile
     // (link_expired) invece del messaggio grezzo di Supabase, che è in inglese.
+    // Registriamo solo gli errori di verifica reali (non scadenza/riuso link).
     const isExpiredLink = error.status === 401 || error.status === 403 || /expired|invalid/i.test(error.message);
 
-    await logError({
-      error,
-      route: '/api/auth/confirm',
-      source: 'api',
-      level: isExpiredLink ? 'warning' : 'error',
-      context: { op: 'confirm', type },
-    });
+    if (!isExpiredLink) {
+      await logError({
+        error,
+        route: '/api/auth/confirm',
+        source: 'api',
+        level: 'error',
+        context: { op: 'confirm', type },
+      });
+    }
 
     const reason = isExpiredLink ? 'link_expired' : encodeURIComponent(error.message);
     return NextResponse.redirect(new URL(`/login?error=${reason}`, url));

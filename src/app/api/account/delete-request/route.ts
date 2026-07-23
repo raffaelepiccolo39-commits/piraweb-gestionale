@@ -54,6 +54,10 @@ export async function POST() {
     port: smtpPort,
     secure: smtpPort === 465,
     auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+    // Il certificato del server mail è emesso per il nome host, non per l'IP a
+    // cui si risolve: fissiamo il servername così la verifica TLS avviene contro
+    // il nome giusto e non fallisce con "IP non è nella lista del certificato".
+    tls: process.env.SMTP_HOST ? { servername: process.env.SMTP_HOST } : undefined,
   });
 
   try {
