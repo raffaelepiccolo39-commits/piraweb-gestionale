@@ -166,19 +166,16 @@ export default function CFOPage() {
     activeContracts: 0,
   });
 
-  const now = new Date();
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-  const yearStart = new Date(now.getFullYear(), 0, 1).toISOString();
-
   const fetchAll = useCallback(async () => {
     // Parallel fetch all data
+    // NB: time_entries e task_freelancer_assignments erano scaricati (fino a 15k righe)
+    // ma non usati nei calcoli (hoursLogged/freelancerCost sono fissi a 0) → rimossi
+    // per non trasferire dati inutili a ogni apertura (perf + egress).
     const responses = await Promise.all([
       supabase.from('profiles').select('*, comp:employee_compensation(salary, contract_type, contract_start_date)').eq('is_active', true).order('full_name'),
       supabase.from('client_contracts').select('client_id, monthly_fee, status, duration_months, start_date').eq('status', 'active'),
       supabase.from('client_payments').select('contract_id, amount, is_paid, due_date, client_id:client_contracts(client_id, status)').limit(5000),
       supabase.from('operating_expenses').select('*').eq('is_active', true).order('category'),
-      supabase.from('time_entries').select('user_id, task_id, duration_minutes, started_at').gte('started_at', yearStart).not('duration_minutes', 'is', null).limit(10000),
-      supabase.from('task_freelancer_assignments').select('task_id, total_cost, status').limit(5000),
       supabase.from('clients').select('id, name, company, ragione_sociale, is_active').eq('is_active', true),
       supabase.from('payslips').select('*').order('month', { ascending: false }).limit(200),
       supabase.from('invoices').select('*, client:clients(id, name, company, ragione_sociale)').order('issue_date', { ascending: false }).limit(100),
@@ -195,7 +192,7 @@ export default function CFOPage() {
 
     const [
       profilesRes, contractsRes, paymentsRes, expensesRes,
-      timeRes, freelancerRes, clientsRes, payslipsRes, invoicesRes,
+      clientsRes, payslipsRes, invoicesRes,
     ] = responses;
 
     // Appiattisce la retribuzione incorporata, cosi' p.salary resta valido.
@@ -215,8 +212,6 @@ export default function CFOPage() {
       (p) => (p.client_id as { status?: string } | null)?.status === 'active'
     );
     const expData = (expensesRes.data || []) as OperatingExpense[];
-    const timeEntries = timeRes.data || [];
-    const freelancerAssignments = freelancerRes.data || [];
     setPayslips((payslipsRes.data || []) as (Payslip & { employee?: Profile })[]);
     setInvoices((invoicesRes.data || []) as (Invoice & { client?: Client })[]);
     const clients = clientsRes.data || [];
