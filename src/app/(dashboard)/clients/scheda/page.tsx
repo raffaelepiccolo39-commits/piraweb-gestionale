@@ -1,7 +1,7 @@
 'use client';
 
 
-import { Suspense, useEffect, useMemo, useState, useCallback,  } from 'react';
+import { Suspense, useEffect, useState, useCallback,  } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { reportUnknown, reportSupabaseError } from '@/lib/report-error';
@@ -136,12 +136,6 @@ function ClientDetailPageInner() {
   const [contractError, setContractError] = useState<string | null>(null);
 
   const isAdmin = profile?.role === 'admin';
-
-  // Attivo + storico: serve al form contratto per avvisare sulle sovrapposizioni.
-  const allContracts = useMemo(
-    () => (contract ? [contract, ...pastContracts] : pastContracts),
-    [contract, pastContracts],
-  );
 
   const fetchData = useCallback(async () => {
     const { data: clientData } = await supabase
@@ -827,7 +821,6 @@ function ClientDetailPageInner() {
         <ContractForm
           onSubmit={handleCreateContract}
           onCancel={() => { setShowContractForm(false); setContractError(null); }}
-          existingContracts={allContracts}
         />
       </Modal>
 
@@ -845,7 +838,6 @@ function ClientDetailPageInner() {
         <ContractForm
           onSubmit={handleRenewContract}
           onCancel={() => setShowRenewForm(false)}
-          existingContracts={allContracts}
         />
       </Modal>
     </div>

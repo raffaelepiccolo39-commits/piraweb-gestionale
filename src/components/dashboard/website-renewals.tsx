@@ -5,21 +5,15 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { useToast } from '@/components/ui/toast';
 import { reportSupabaseError } from '@/lib/report-error';
-import { formatDate } from '@/lib/utils';
-import { Globe, ArrowRight, HandCoins } from 'lucide-react';
+import { Globe, ArrowRight } from 'lucide-react';
 
 /**
  * Promemoria rinnovi siti in dashboard (solo admin): elenca i rinnovi non
  * ancora incassati in scadenza entro 30 giorni (e quelli già scaduti). È
  * l'avviso "30 giorni prima": lo vedi appena apri il gestionale. "Segna
  * incassato" chiude il rinnovo e genera in automatico quello dell'anno dopo.
- *
- * L'incasso passa da una conferma esplicita: il pulsante sta nella prima
- * schermata che si apre (anche da telefono) e un tocco per sbaglio segnerebbe
- * incassati soldi mai visti, programmando pure il rinnovo dell'anno dopo.
  */
 
 interface RenewalRow {
@@ -50,7 +44,6 @@ export function WebsiteRenewals() {
   const [rows, setRows] = useState<RenewalRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [paying, setPaying] = useState<string | null>(null);
-  const [confirming, setConfirming] = useState<RenewalRow | null>(null);
 
   const fetchRows = useCallback(async () => {
     const limit = new Date(); limit.setDate(limit.getDate() + 30);
@@ -84,13 +77,7 @@ export function WebsiteRenewals() {
   // Niente da mostrare (e nessun errore) → non ingombrare la dashboard.
   if (loading || rows.length === 0) return null;
 
-  const confirmClientName = confirming
-    ? confirming.website?.client?.company || confirming.website?.client?.name || 'Cliente'
-    : '';
-  const confirmNextYear = confirming ? Number(confirming.due_date.slice(0, 4)) + 1 : 0;
-
   return (
-    <>
     <Card>
       <CardContent>
         <div className="mb-3 flex items-center justify-between">
@@ -119,7 +106,7 @@ export function WebsiteRenewals() {
                 <span className={overdue ? 'shrink-0 text-xs font-semibold text-pw-danger' : 'shrink-0 text-xs font-medium text-pw-text-muted'}>
                   {overdue ? `scaduto da ${-d}g` : d === 0 ? 'scade oggi' : `tra ${d}g`}
                 </span>
-                <Button size="sm" variant="soft" loading={paying === r.id} onClick={() => setConfirming(r)}>
+                <Button size="sm" variant="soft" loading={paying === r.id} onClick={() => markPaid(r.id)}>
                   Segna incassato
                 </Button>
               </div>
@@ -128,28 +115,5 @@ export function WebsiteRenewals() {
         </div>
       </CardContent>
     </Card>
-
-    <ConfirmDialog
-      open={!!confirming}
-      onClose={() => setConfirming(null)}
-      onConfirm={async () => { if (confirming) await markPaid(confirming.id); }}
-      title="Confermi l'incasso?"
-      variant="primary"
-      icon={HandCoins}
-      confirmLabel="Sì, incassato"
-      description={confirming ? (
-        <>
-          Stai segnando come incassato il rinnovo di{' '}
-          <strong className="text-pw-text">{confirmClientName}</strong>
-          {confirming.website?.site_url ? ` (${confirming.website.site_url})` : ''} da{' '}
-          <strong className="text-pw-text">{euro(confirming.amount)}</strong>, in scadenza il{' '}
-          {formatDate(confirming.due_date)}.
-          <br />
-          Il rinnovo entra nel cashflow come entrata e viene programmato in automatico
-          quello del {confirmNextYear}. Fallo solo se i soldi sono arrivati davvero.
-        </>
-      ) : ''}
-    />
-    </>
   );
 }
