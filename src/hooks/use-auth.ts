@@ -1,19 +1,31 @@
 'use client';
 
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useAuthStore } from '@/store/auth-store';
 import { reportUnknown, reportSupabaseError } from '@/lib/report-error';
 import type { Profile } from '@/types/database';
 
+/**
+ * Richiesta di profilo in corso, condivisa da TUTTE le istanze del hook.
+ *
+ * Prima la guardia era un useRef, cioè una per componente: useAuth() è chiamato
+ * da 71 componenti e su una pagina qualsiasi ne sono montati cinque o sei
+ * insieme (header, sidebar, gate presenze, widget…). Ognuno partiva per conto
+ * suo con getUser() + select profiles: dieci round-trip all'apertura per
+ * leggere sempre la stessa riga. GET profiles era la query più lenta dell'app
+ * (mediana ~340ms, coda oltre i 2s) proprio perché arrivava a raffica.
+ *
+ * Il modulo è condiviso, quindi la prima chiamata fa il lavoro e le altre si
+ * agganciano alla stessa promise.
+ */
+let inflightProfileLoad: Promise<void> | null = null;
+
 export function useAuth() {
   const { profile, isLoading, setProfile, setLoading } = useAuthStore();
   const supabase = createClient();
-  const fetchingRef = useRef(false);
 
-  const loadProfile = useCallback(async () => {
-    if (fetchingRef.current) return;
-    fetchingRef.current = true;
+  const runLoad = useCallback(async () => {
     setLoading(true);
 
     try {
@@ -71,10 +83,14 @@ export function useAuth() {
     } catch (err) {
       reportUnknown(err, 'client', { op: 'use-auth-load-profile' });
       setProfile(null);
-    } finally {
-      fetchingRef.current = false;
     }
   }, [supabase, setProfile, setLoading]);
+
+  const loadProfile = useCallback(async () => {
+    if (inflightProfileLoad) return inflightProfileLoad;
+    inflightProfileLoad = runLoad().finally(() => { inflightProfileLoad = null; });
+    return inflightProfileLoad;
+  }, [runLoad]);
 
   useEffect(() => {
     if (!profile) {

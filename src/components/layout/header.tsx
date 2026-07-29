@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
+import { useBadges } from '@/hooks/use-badges';
+import { useBadgeStore } from '@/store/badge-store';
 import { createClient } from '@/lib/supabase/client';
 import { normalizeLegacyLink } from '@/lib/legacy-links';
 import { getInitials, cn } from '@/lib/utils';
@@ -58,8 +60,11 @@ export function Header() {
   const router = useRouter();
   const { profile, signOut } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [unreadChatCount, setUnreadChatCount] = useState(0);
+  // I due contatori vivono nello store condiviso con la Sidebar: prima ognuno
+  // dei due componenti li calcolava per conto suo, raddoppiando le query.
+  const { chatUnread: unreadChatCount, notifUnread: unreadCount } = useBadges();
+  const setNotifUnread = useBadgeStore((s) => s.setNotifUnread);
+  const clearChat = useBadgeStore((s) => s.clearChat);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -102,68 +107,23 @@ export function Header() {
   useEffect(() => {
     if (!profile) return;
 
+    // Solo l'elenco da mostrare nel pannello: il numero dei non letti (e quello
+    // della chat) arriva dallo store condiviso, che li conta una volta sola.
     const fetchNotifications = async () => {
       try {
-        const [{ data }, { count }] = await Promise.all([
-          supabase
-            .from('notifications')
-            .select('*')
-            .eq('user_id', profile.id)
-            .order('created_at', { ascending: false })
-            .limit(20),
-          supabase
-            .from('notifications')
-            .select('id', { count: 'exact', head: true })
-            .eq('user_id', profile.id)
-            .eq('is_read', false),
-        ]);
+        const { data } = await supabase
+          .from('notifications')
+          .select('*')
+          .eq('user_id', profile.id)
+          .order('created_at', { ascending: false })
+          .limit(20);
         if (data) setNotifications(data as Notification[]);
-        setUnreadCount(count || 0);
       } catch {
         // Table may not exist yet
       }
     };
 
     fetchNotifications();
-
-    // Chat unread count: messaggi non scritti dall'utente, arrivati dopo
-    // l'ultima volta che ha aperto /chat (timestamp salvato in localStorage).
-    // Fallback: 7 giorni fa per il primo accesso su un device nuovo.
-    const fetchChatUnread = async () => {
-      try {
-        const stored = typeof window !== 'undefined' ? localStorage.getItem('chat_last_seen') : null;
-        const lastSeen = stored || new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-        const { count } = await supabase
-          .from('chat_messages')
-          .select('id', { count: 'exact', head: true })
-          .neq('sender_id', profile.id)
-          .gt('created_at', lastSeen);
-        setUnreadChatCount(count || 0);
-      } catch {
-        // Table may not exist yet
-      }
-    };
-    fetchChatUnread();
-
-    // Refresh quando la tab torna in foreground (es. switch tab → leggi chat → torna)
-    const onFocus = () => fetchChatUnread();
-    window.addEventListener('focus', onFocus);
-
-    // Realtime: incrementa il counter quando arriva un nuovo messaggio
-    // (chat_messages è già con realtime abilitato — vedi migration 00022)
-    const chatChannel = supabase
-      .channel('chat-header-badge')
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'chat_messages' },
-        (payload) => {
-          const newMsg = payload.new as { sender_id?: string };
-          if (newMsg.sender_id && newMsg.sender_id !== profile.id) {
-            setUnreadChatCount((c) => c + 1);
-          }
-        },
-      )
-      .subscribe();
 
     // Realtime subscription (graceful if not enabled)
     let channel: ReturnType<typeof supabase.channel> | null = null;
@@ -178,10 +138,8 @@ export function Header() {
             table: 'notifications',
             filter: `user_id=eq.${profile.id}`,
           },
-          (payload) => {
-            setNotifications((prev) => [payload.new as Notification, ...prev]);
-            setUnreadCount((c) => c + 1);
-          }
+          // Il contatore lo incrementa lo store (use-badges), qui basta la lista.
+          (payload) => setNotifications((prev) => [payload.new as Notification, ...prev]),
         )
         .subscribe();
     } catch {
@@ -190,8 +148,6 @@ export function Header() {
 
     return () => {
       if (channel) supabase.removeChannel(channel);
-      supabase.removeChannel(chatChannel);
-      window.removeEventListener('focus', onFocus);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile]);
@@ -199,7 +155,7 @@ export function Header() {
   const markAsRead = async (id: string) => {
     const target = notifications.find((n) => n.id === id);
     if (target && !target.is_read) {
-      setUnreadCount((c) => Math.max(0, c - 1));
+      setNotifUnread(Math.max(0, unreadCount - 1));
     }
     setNotifications((prev) =>
       prev.map((n) => (n.id === id ? { ...n, is_read: true } : n))
@@ -210,7 +166,7 @@ export function Header() {
   const markAllRead = async () => {
     if (!profile) return;
     setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
-    setUnreadCount(0);
+    setNotifUnread(0);
     await supabase
       .from('notifications')
       .update({ is_read: true })
@@ -318,7 +274,7 @@ export function Header() {
             // Marca tutto come letto: salva il timestamp e azzera counter.
             // /chat/page.tsx aggiornerà di nuovo questo timestamp al fetch dei messaggi.
             try { localStorage.setItem('chat_last_seen', new Date().toISOString()); } catch {}
-            setUnreadChatCount(0);
+            clearChat();
           }}
           className="w-[34px] h-[34px] flex items-center justify-center rounded-md text-pw-text-muted hover:text-pw-text hover:bg-pw-surface-soft transition-colors duration-150 relative"
           aria-label={unreadChatCount > 0 ? `Chat — ${unreadChatCount} messaggi non letti` : 'Apri chat'}

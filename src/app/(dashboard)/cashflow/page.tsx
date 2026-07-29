@@ -4,6 +4,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { readCache, writeCache } from '@/lib/data-cache';
 import { useAuth } from '@/hooks/use-auth';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -65,6 +66,19 @@ interface PayslipForSalary {
   lordo_mensile: number | null;
 }
 
+/** Tutto ciò che la pagina mostra per un dato periodo: è l'unità di cache. */
+interface CashflowSnapshot {
+  monthly: CashflowMonthly[];
+  cashSummary: CashflowSummary | null;
+  pnl: ProfitLossSummary | null;
+  expenses: MonthlyExpenses | null;
+  clients: RevenuePerClient[];
+  teamForSalaryCalc: TeamForSalary[];
+  payslipsForSalaryCalc: PayslipForSalary[];
+  prevSummary: CashflowSummary | null;
+  prevPnl: ProfitLossSummary | null;
+}
+
 const MONTHS_IT = ['Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno', 'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre'];
 
 export default function CashflowPage() {
@@ -87,6 +101,22 @@ export default function CashflowPage() {
   const [teamForSalaryCalc, setTeamForSalaryCalc] = useState<TeamForSalary[]>([]);
   const [payslipsForSalaryCalc, setPayslipsForSalaryCalc] = useState<PayslipForSalary[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Una cache per periodo selezionato: tornando su un intervallo già guardato i
+  // numeri ci sono già, invece dello scheletro per il mezzo secondo delle 11 RPC.
+  const cacheKey = `cashflow:${period}:${selectedMonth}:${selectedYear}:${customStart}:${customEnd}`;
+
+  const applySnapshot = useCallback((s: CashflowSnapshot) => {
+    setMonthly(s.monthly);
+    setCashSummary(s.cashSummary);
+    setPnl(s.pnl);
+    setExpenses(s.expenses);
+    setClients(s.clients);
+    setTeamForSalaryCalc(s.teamForSalaryCalc);
+    setPayslipsForSalaryCalc(s.payslipsForSalaryCalc);
+    setPrevSummary(s.prevSummary);
+    setPrevPnl(s.prevPnl);
+  }, []);
 
   function getDateRange(): { start: string; end: string } {
     switch (period) {
@@ -119,7 +149,22 @@ export default function CashflowPage() {
     setLoading(true);
     const { start, end } = getDateRange();
 
-    const [monthlyRes, summaryRes, clientsRes, pnlRes, expensesRes, profilesRes, payslipsRes, websiteRes] = await Promise.all([
+    // Il periodo di confronto si ricava dalle date, non dai risultati: si può
+    // chiedere insieme a tutto il resto. Prima erano tre RPC lanciate DOPO le
+    // altre otto, cioè un giro di rete in più (fino a un secondo e mezzo con la
+    // rete lenta) a ogni caricamento e a ogni cambio di periodo.
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+    const durationMs = endDate.getTime() - startDate.getTime();
+    const prevEnd = new Date(startDate.getTime() - 1);
+    const prevStart = new Date(prevEnd.getTime() - durationMs);
+    const prevStartStr = formatDateLocal(prevStart);
+    const prevEndStr = formatDateLocal(prevEnd);
+
+    const [
+      monthlyRes, summaryRes, clientsRes, pnlRes, expensesRes, profilesRes, payslipsRes, websiteRes,
+      prevSummaryRes, prevPnlRes, prevWebsiteRes,
+    ] = await Promise.all([
       supabase.rpc('get_cashflow_monthly', { p_start_date: start, p_end_date: end }),
       supabase.rpc('get_cashflow_summary', { p_start_date: start, p_end_date: end }),
       supabase.rpc('get_revenue_per_client', { p_start_date: start, p_end_date: end }),
@@ -136,6 +181,10 @@ export default function CashflowPage() {
       // Gestione siti: canoni annuali, sommati al fatturato social (atteso dal
       // rinnovo, incassato quando pagato). Vedi migration 20260718b.
       supabase.rpc('get_website_cashflow_monthly', { p_start: start, p_end: end }),
+      // Periodo precedente, per le frecce di confronto.
+      supabase.rpc('get_cashflow_summary', { p_start_date: prevStartStr, p_end_date: prevEndStr }),
+      supabase.rpc('get_profit_loss_summary', { p_start_date: prevStartStr, p_end_date: prevEndStr }),
+      supabase.rpc('get_website_cashflow_monthly', { p_start: prevStartStr, p_end: prevEndStr }),
     ]);
 
     // Fonde i canoni siti nei dati mensili social, per mese (aggiunge il mese se
@@ -157,75 +206,72 @@ export default function CashflowPage() {
         byMonth.set(key, { month_date: w.month, expected: exp, received: rec, pending: exp - rec, num_clients: 0 });
       }
     }
-    setMonthly([...byMonth.values()].sort((a, b) => a.month_date.localeCompare(b.month_date)));
-
     const webExpected = website.reduce((s, w) => s + Number(w.expected), 0);
     const webReceived = website.reduce((s, w) => s + Number(w.received), 0);
+
+    let summary: CashflowSummary;
     if (summaryRes.data?.length) {
       const s = summaryRes.data[0] as CashflowSummary;
-      setCashSummary({
+      summary = {
         ...s,
         total_expected: Number(s.total_expected) + webExpected,
         total_received: Number(s.total_received) + webReceived,
         total_pending: Number(s.total_pending) + (webExpected - webReceived),
-      });
+      };
+    } else {
+      summary = { total_expected: webExpected, total_received: webReceived, total_pending: webExpected - webReceived, active_contracts: 0, active_clients: 0, avg_monthly_revenue: 0 } as CashflowSummary;
     }
-    else setCashSummary({ total_expected: webExpected, total_received: webReceived, total_pending: webExpected - webReceived, active_contracts: 0, active_clients: 0, avg_monthly_revenue: 0 } as CashflowSummary);
-    if (pnlRes.data?.[0]) setPnl(pnlRes.data[0] as ProfitLossSummary);
-    else setPnl(null);
-    if (expensesRes.data?.[0]) setExpenses(expensesRes.data[0] as MonthlyExpenses);
-    else setExpenses(null);
-    if (clientsRes.data) setClients(clientsRes.data as RevenuePerClient[]);
-    // Appiattisce il profilo incorporato: il resto del calcolo usa p.is_active
-    // e p.salary come prima.
-    setTeamForSalaryCalc(
-      ((profilesRes.data as unknown as { salary: number | null; contract_start_date: string | null; profile: { id: string; is_active: boolean } | null }[]) || [])
-        .map((r) => ({
-          id: r.profile?.id ?? '',
-          salary: r.salary,
-          contract_start_date: r.contract_start_date,
-          is_active: r.profile?.is_active ?? false,
-        })) as TeamForSalary[]
-    );
-    setPayslipsForSalaryCalc((payslipsRes.data as PayslipForSalary[]) || []);
 
-    // Fetch previous period for comparison
-    const startDate = new Date(start);
-    const endDate = new Date(end);
-    const durationMs = endDate.getTime() - startDate.getTime();
-    const prevEnd = new Date(startDate.getTime() - 1);
-    const prevStart = new Date(prevEnd.getTime() - durationMs);
-    const prevStartStr = formatDateLocal(prevStart);
-    const prevEndStr = formatDateLocal(prevEnd);
-
-    const [prevSummaryRes, prevPnlRes, prevWebsiteRes] = await Promise.all([
-      supabase.rpc('get_cashflow_summary', { p_start_date: prevStartStr, p_end_date: prevEndStr }),
-      supabase.rpc('get_profit_loss_summary', { p_start_date: prevStartStr, p_end_date: prevEndStr }),
-      supabase.rpc('get_website_cashflow_monthly', { p_start: prevStartStr, p_end: prevEndStr }),
-    ]);
+    let prevSummaryValue: CashflowSummary | null = null;
     if (prevSummaryRes.data?.[0]) {
       const prevWebsite = (prevWebsiteRes.data as WebsiteCashflowMonthly[] | null) ?? [];
       const pExp = prevWebsite.reduce((s, w) => s + Number(w.expected), 0);
       const pRec = prevWebsite.reduce((s, w) => s + Number(w.received), 0);
       const s = prevSummaryRes.data[0] as CashflowSummary;
-      setPrevSummary({
+      prevSummaryValue = {
         ...s,
         total_expected: Number(s.total_expected) + pExp,
         total_received: Number(s.total_received) + pRec,
         total_pending: Number(s.total_pending) + (pExp - pRec),
-      });
+      };
     }
-    else setPrevSummary(null);
-    if (prevPnlRes.data?.[0]) setPrevPnl(prevPnlRes.data[0] as ProfitLossSummary);
-    else setPrevPnl(null);
 
+    const snapshot: CashflowSnapshot = {
+      monthly: [...byMonth.values()].sort((a, b) => a.month_date.localeCompare(b.month_date)),
+      cashSummary: summary,
+      pnl: (pnlRes.data?.[0] as ProfitLossSummary) ?? null,
+      expenses: (expensesRes.data?.[0] as MonthlyExpenses) ?? null,
+      clients: (clientsRes.data as RevenuePerClient[]) ?? [],
+      // Appiattisce il profilo incorporato: il resto del calcolo usa p.is_active
+      // e p.salary come prima.
+      teamForSalaryCalc: ((profilesRes.data as unknown as { salary: number | null; contract_start_date: string | null; profile: { id: string; is_active: boolean } | null }[]) || [])
+        .map((r) => ({
+          id: r.profile?.id ?? '',
+          salary: r.salary,
+          contract_start_date: r.contract_start_date,
+          is_active: r.profile?.is_active ?? false,
+        })) as TeamForSalary[],
+      payslipsForSalaryCalc: (payslipsRes.data as PayslipForSalary[]) || [],
+      prevSummary: prevSummaryValue,
+      prevPnl: (prevPnlRes.data?.[0] as ProfitLossSummary) ?? null,
+    };
+
+    applySnapshot(snapshot);
+    writeCache(cacheKey, snapshot);
     setLoading(false);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [supabase, period, selectedMonth, selectedYear, customStart, customEnd]);
+  }, [supabase, period, selectedMonth, selectedYear, customStart, customEnd, applySnapshot, cacheKey]);
 
   useEffect(() => {
+    // Dati finanziari: la cache vale due minuti e serve solo a evitare l'attesa
+    // a vuoto sul periodo che hai appena guardato. Il refresh parte comunque.
+    const cached = readCache<CashflowSnapshot>(cacheKey, 120_000);
+    if (cached) {
+      applySnapshot(cached);
+      setLoading(false);
+    }
     fetchData();
-  }, [fetchData]);
+  }, [fetchData, cacheKey, applySnapshot]);
 
   if (!profile || profile.role !== 'admin') {
     return (

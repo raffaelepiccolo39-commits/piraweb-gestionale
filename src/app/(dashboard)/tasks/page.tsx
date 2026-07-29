@@ -21,6 +21,12 @@ import { DataTable } from '@/components/ui/data-table';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { ListTodo, Calendar, Clock, ArrowRight, Sparkles, Brain, Check, Send, AlertTriangle, Archive, ArchiveRestore, ExternalLink } from 'lucide-react';
 import { STATUS_LABELS, PRIORITY_LABELS } from '@/lib/constants';
+import { readCache, writeCache, fetchShared } from '@/lib/data-cache';
+
+/** Anagrafiche condivise: chiavi globali, riusabili da qualsiasi pagina. */
+const CLIENTS_KEY = 'anagrafica:clients-attivi';
+const TEAM_KEY = 'anagrafica:profili-attivi';
+const ANAGRAFICHE_TTL_MS = 10 * 60_000;
 import { reportUnknown, reportSupabaseError } from '@/lib/report-error';
 
 interface ParsedTask {
@@ -96,6 +102,10 @@ export default function TasksPage() {
   // archiviate: zero). Scrive nello stato solo la richiesta più recente.
   const fetchSeq = useRef(0);
 
+  // Una chiave per combinazione di filtri: tornando su una vista già aperta i
+  // task compaiono subito e si rinfrescano dietro le quinte.
+  const tasksCacheKey = `tasks:${profile?.id ?? 'anon'}:${assigneeFilter}:${showArchived ? 'arch' : 'attive'}`;
+
   const fetchTasks = useCallback(async () => {
     if (!profile) return;
 
@@ -132,6 +142,7 @@ export default function TasksPage() {
       if (error) throw error;
       if (isStale()) return;
       setTasks((data as Task[]) || []);
+      writeCache(tasksCacheKey, data || []);
     } catch (err) {
       if (isStale()) return;
       reportUnknown(err, 'client', { op: 'tasks-fetch' });
@@ -139,31 +150,37 @@ export default function TasksPage() {
     } finally {
       if (!isStale()) setLoading(false);
     }
-  }, [profile, isAdmin, assigneeFilter, showArchived]);
+  }, [profile, isAdmin, assigneeFilter, showArchived, tasksCacheKey]);
 
+  // Anagrafiche: cambiano di rado e servono a mezza app, quindi cache lunga e
+  // condivisa (fetchShared evita anche due richieste uguali in parallelo).
   const fetchClients = useCallback(async () => {
-    const { data } = await supabase
-      .from('clients')
-      .select('*')
-      .eq('is_active', true)
-      .order('company');
-    if (data) setClients(data as Client[]);
+    const cached = readCache<Client[]>(CLIENTS_KEY, ANAGRAFICHE_TTL_MS);
+    if (cached) { setClients(cached); return; }
+    const data = await fetchShared(CLIENTS_KEY, async () => {
+      const { data } = await supabase.from('clients').select('*').eq('is_active', true).order('company');
+      return (data as Client[]) || [];
+    });
+    setClients(data);
   }, []);
 
   const fetchTeamMembers = useCallback(async () => {
-    const { data } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('is_active', true)
-      .order('full_name');
-    if (data) setTeamMembers(data as Profile[]);
+    const cached = readCache<Profile[]>(TEAM_KEY, ANAGRAFICHE_TTL_MS);
+    if (cached) { setTeamMembers(cached); return; }
+    const data = await fetchShared(TEAM_KEY, async () => {
+      const { data } = await supabase.from('profiles').select('*').eq('is_active', true).order('full_name');
+      return (data as Profile[]) || [];
+    });
+    setTeamMembers(data);
   }, []);
 
   useEffect(() => {
+    const cached = readCache<Task[]>(tasksCacheKey, 90_000);
+    if (cached) { setTasks(cached); setLoading(false); }
     fetchTasks();
     fetchClients();
     fetchTeamMembers();
-  }, [fetchTasks, fetchClients, fetchTeamMembers]);
+  }, [fetchTasks, fetchClients, fetchTeamMembers, tasksCacheKey]);
 
   const handleStatusChange = async (taskId: string, newStatus: string) => {
     const { error } = await supabase.from('tasks').update({ status: newStatus }).eq('id', taskId);

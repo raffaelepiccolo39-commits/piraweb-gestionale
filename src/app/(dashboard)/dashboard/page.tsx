@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { reportUnknown } from '@/lib/report-error';
+import { readCache, writeCache } from '@/lib/data-cache';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/components/ui/toast';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -51,6 +52,38 @@ interface TeamMemberStats {
   in_progress: number;
 }
 
+/**
+ * Tutto quello che la Dashboard mostra, in un oggetto solo: è ciò che finisce
+ * in cache e viene rimesso a schermo al rientro sulla pagina.
+ */
+interface DashboardSnapshot {
+  stats: DashboardStats;
+  dueTodayCount: number;
+  recentTasks: Array<{
+    id: string; title: string; status: string; priority: string;
+    project: { name: string; color: string } | null;
+    assignee: { full_name: string } | null;
+    deadline: string | null;
+  }>;
+  urgentTasks: Array<{
+    id: string; title: string; deadline: string;
+    project: { name: string; color: string } | null;
+    assignee: { full_name: string } | null;
+  }>;
+  attendance: AttendanceRecord | null;
+  projectProgress: Array<{
+    id: string; name: string; color: string;
+    tasks: { id: string; status: string }[];
+  }>;
+  activities: Array<{
+    id: string; action: string; entity_type: string; entity_name: string | null;
+    created_at: string; user: { full_name: string } | null;
+  }>;
+  teamStats: TeamMemberStats[];
+  teamAttendance: Array<{ user_id: string; full_name: string; status: string }>;
+  pendingTimeOff: TimeOffRequest[];
+}
+
 export default function DashboardPage() {
   const { profile, isLoading: authLoading, retryLoadProfile } = useAuth();
   const supabase = createClient();
@@ -79,17 +112,10 @@ export default function DashboardPage() {
     id: string; name: string; color: string;
     tasks: { id: string; status: string }[];
   }>>([]);
-  const [cashflow, setCashflow] = useState({ expected: 0, received: 0, pending: 0 });
   const [activities, setActivities] = useState<Array<{
     id: string; action: string; entity_type: string; entity_name: string | null;
     created_at: string; user: { full_name: string } | null;
   }>>([]);
-  const [recentMessages, setRecentMessages] = useState<Array<{
-    id: string; content: string; created_at: string;
-    sender: { full_name: string } | null;
-    channel: { name: string } | null;
-  }>>([]);
-  const [unreadCount, setUnreadCount] = useState(0);
   const [teamAttendance, setTeamAttendance] = useState<Array<{
     user_id: string; full_name: string; status: string;
   }>>([]);
@@ -99,6 +125,22 @@ export default function DashboardPage() {
   const [error, setError] = useState(false);
 
   const isAdmin = profile?.role === 'admin';
+  const cacheKey = `dashboard:${profile?.id ?? 'anon'}:${isAdmin ? 'admin' : 'team'}`;
+
+  // Un unico punto che riversa i dati negli stati: lo usano sia il fetch vero
+  // sia la cache, così le due strade non possono divergere.
+  const applySnapshot = useCallback((s: DashboardSnapshot) => {
+    setStats(s.stats);
+    setDueTodayCount(s.dueTodayCount);
+    setRecentTasks(s.recentTasks);
+    setUrgentTasks(s.urgentTasks);
+    setAttendance(s.attendance);
+    setProjectProgress(s.projectProgress);
+    setActivities(s.activities);
+    setTeamStats(s.teamStats);
+    setTeamAttendance(s.teamAttendance);
+    setPendingTimeOff(s.pendingTimeOff);
+  }, []);
 
   const fetchDashboardData = useCallback(async () => {
     if (!profile) return;
@@ -108,7 +150,6 @@ export default function DashboardPage() {
       const now = new Date();
       const todayStr = todayLocal();
       const tomorrowStr = formatDateLocal(new Date(now.getTime() + 86400000));
-      const currentMonth = todayStr.slice(0, 7);
 
       // Multi-assegnatario: id delle task in cui l'utente è assegnato.
       // Serve a tutti, admin compresi: "Le mie task" (query 3) filtra sempre su
@@ -156,31 +197,23 @@ export default function DashboardPage() {
           id, action, entity_type, entity_name, created_at,
           user:profiles!activity_log_user_id_fkey(full_name)
         `).order('created_at', { ascending: false }).limit(10),
-        // 8: recent messages
-        supabase.from('chat_messages').select(`
-          id, content, created_at,
-          sender:profiles!chat_messages_sender_id_fkey(full_name),
-          channel:chat_channels!chat_messages_channel_id_fkey(name)
-        `).neq('sender_id', profile.id).order('created_at', { ascending: false }).limit(3),
-        // 9: unread notifications
-        supabase.from('notifications').select('id', { count: 'exact', head: true }).eq('user_id', profile.id).eq('is_read', false),
+        // Qui c'erano tre query che scaricavano dati mai mostrati a schermo:
+        // ultimi messaggi in chat, conteggio notifiche non lette (lo fa già
+        // l'Header) e il cashflow del mese. Nessuna delle tre finiva nel render:
+        // erano ~3 query buttate a ogni caricamento della pagina più visitata
+        // dell'app, e il realtime le rilanciava a ogni modifica del team.
       ];
 
       // Admin-only queries
       if (isAdmin) {
         queries.push(
-          // 10: team profiles
+          // 8: team profiles
           supabase.from('profiles').select('id, full_name, role').eq('is_active', true),
-          // 11: all tasks for team stats (esclude archived)
+          // 9: all tasks for team stats (esclude archived)
           supabase.from('tasks').select('assigned_to, status').is('archived_at', null).limit(300),
-          // 12: cashflow this month - only active contracts
-          (() => {
-            const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-            return supabase.from('client_payments').select('amount, is_paid, contract:client_contracts!client_payments_contract_id_fkey(status)').gte('due_date', `${currentMonth}-01`).lte('due_date', `${currentMonth}-${lastDay}`);
-          })(),
-          // 13: team attendance
+          // 10: team attendance
           supabase.rpc('get_team_attendance_today'),
-          // 14: pending time-off requests (per inbox dashboard)
+          // 11: pending time-off requests (per inbox dashboard)
           supabase.from('time_off_requests')
             .select('*, user:profiles!time_off_requests_user_id_fkey(id, full_name, color)')
             .eq('status', 'pending')
@@ -193,37 +226,38 @@ export default function DashboardPage() {
 
       // Process stats
       const allTasks = (results[2].data as Array<{ id: string; status: string; deadline: string | null }>) || [];
-      const dueToday = allTasks.filter((t) => t.deadline && t.deadline >= todayStr && t.deadline < tomorrowStr && t.status !== 'done').length;
-      setDueTodayCount(dueToday);
 
-      setStats({
-        totalClients: results[0].count || 0,
-        activeProjects: results[1].count || 0,
-        totalTasks: allTasks.length,
-        // Solo 'todo': la card linka a /tasks?status=todo, quindi contare anche
-        // le 'review' faceva sparire task dalla lista rispetto al numero.
-        todoTasks: allTasks.filter((t) => t.status === 'todo').length,
-        completedTasks: allTasks.filter((t) => t.status === 'done').length,
-        inProgressTasks: allTasks.filter((t) => t.status === 'in_progress').length,
-        // In ritardo = deadline STRETTAMENTE precedente a oggi (le scadenze di oggi
-        // contano in dueToday, non in overdue). Confronto date-only: t.deadline è
-        // 'YYYY-MM-DD', usare nowIso (timestamp) marcava per errore le scadenze di
-        // oggi come già scadute.
-        overdueTasks: allTasks.filter((t) => t.deadline && t.deadline < todayStr && t.status !== 'done').length,
-      });
-
-      setRecentTasks((results[3].data as typeof recentTasks) || []);
-      setUrgentTasks((results[4].data as typeof urgentTasks) || []);
-      setAttendance((results[5].data as AttendanceRecord | null));
-      setProjectProgress((results[6].data as typeof projectProgress) || []);
-      setActivities((results[7].data as typeof activities) || []);
-      setRecentMessages((results[8].data as typeof recentMessages) || []);
-      setUnreadCount(results[9].count || 0);
+      const snapshot: DashboardSnapshot = {
+        dueTodayCount: allTasks.filter((t) => t.deadline && t.deadline >= todayStr && t.deadline < tomorrowStr && t.status !== 'done').length,
+        stats: {
+          totalClients: results[0].count || 0,
+          activeProjects: results[1].count || 0,
+          totalTasks: allTasks.length,
+          // Solo 'todo': la card linka a /tasks?status=todo, quindi contare anche
+          // le 'review' faceva sparire task dalla lista rispetto al numero.
+          todoTasks: allTasks.filter((t) => t.status === 'todo').length,
+          completedTasks: allTasks.filter((t) => t.status === 'done').length,
+          inProgressTasks: allTasks.filter((t) => t.status === 'in_progress').length,
+          // In ritardo = deadline STRETTAMENTE precedente a oggi (le scadenze di oggi
+          // contano in dueToday, non in overdue). Confronto date-only: t.deadline è
+          // 'YYYY-MM-DD', usare nowIso (timestamp) marcava per errore le scadenze di
+          // oggi come già scadute.
+          overdueTasks: allTasks.filter((t) => t.deadline && t.deadline < todayStr && t.status !== 'done').length,
+        },
+        recentTasks: (results[3].data as DashboardSnapshot['recentTasks']) || [],
+        urgentTasks: (results[4].data as DashboardSnapshot['urgentTasks']) || [],
+        attendance: (results[5].data as AttendanceRecord | null) ?? null,
+        projectProgress: (results[6].data as DashboardSnapshot['projectProgress']) || [],
+        activities: (results[7].data as DashboardSnapshot['activities']) || [],
+        teamStats: [],
+        teamAttendance: [],
+        pendingTimeOff: [],
+      };
 
       // Admin data
-      if (isAdmin && results.length > 10) {
-        const profiles = (results[10].data as Array<{ id: string; full_name: string; role: string }>) || [];
-        const taskData = (results[11].data as Array<{ assigned_to: string | null; status: string }>) || [];
+      if (isAdmin && results.length > 8) {
+        const profiles = (results[8].data as Array<{ id: string; full_name: string; role: string }>) || [];
+        const taskData = (results[9].data as Array<{ assigned_to: string | null; status: string }>) || [];
 
         const tasksByUser = new Map<string, { total: number; completed: number; in_progress: number }>();
         taskData.forEach((t) => {
@@ -234,33 +268,35 @@ export default function DashboardPage() {
           if (t.status === 'in_progress') s.in_progress++;
           tasksByUser.set(t.assigned_to, s);
         });
-        setTeamStats(profiles.map((p) => {
+        snapshot.teamStats = profiles.map((p) => {
           const s = tasksByUser.get(p.id) || { total: 0, completed: 0, in_progress: 0 };
           return { id: p.id, full_name: p.full_name, role: p.role, ...s };
-        }));
-
-        const allPayments = (results[12].data as Array<{ amount: number; is_paid: boolean; contract: { status: string } | null }>) || [];
-        const payments = allPayments.filter((p) => p.contract?.status === 'active');
-        setCashflow({
-          expected: payments.reduce((sum, p) => sum + Number(p.amount), 0),
-          received: payments.filter((p) => p.is_paid).reduce((sum, p) => sum + Number(p.amount), 0),
-          pending: payments.filter((p) => !p.is_paid).reduce((sum, p) => sum + Number(p.amount), 0),
         });
 
-        setTeamAttendance((results[13].data as typeof teamAttendance) || []);
-        setPendingTimeOff((results[14]?.data as TimeOffRequest[]) || []);
+        snapshot.teamAttendance = (results[10].data as DashboardSnapshot['teamAttendance']) || [];
+        snapshot.pendingTimeOff = (results[11]?.data as TimeOffRequest[]) || [];
       }
+
+      applySnapshot(snapshot);
+      writeCache(cacheKey, snapshot);
     } catch (err) {
       reportUnknown(err, 'client', { op: 'dashboard-carica' });
       setError(true);
     } finally {
       setLoading(false);
     }
-  }, [profile, isAdmin]);
+  }, [profile, isAdmin, applySnapshot, cacheKey]);
 
   useEffect(() => {
+    // Se la Dashboard è già stata vista in questa sessione si riparte da quei
+    // dati: niente scheletro grigio, il refresh gira sotto in silenzio.
+    const cached = readCache<DashboardSnapshot>(cacheKey);
+    if (cached) {
+      applySnapshot(cached);
+      setLoading(false);
+    }
     fetchDashboardData();
-  }, [fetchDashboardData]);
+  }, [fetchDashboardData, cacheKey, applySnapshot]);
 
   // Realtime: la dashboard si aggiorna da sé quando cambiano task, pagamenti o
   // chat.
