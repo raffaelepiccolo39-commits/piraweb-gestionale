@@ -1,12 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { FileText, Upload, X } from 'lucide-react';
-import { todayLocal } from '@/lib/utils';
+import { AlertTriangle, FileText, Upload, X } from 'lucide-react';
+import { formatDate, todayLocal } from '@/lib/utils';
 import { reportUnknown } from '@/lib/report-error';
 
 export interface ContractFormData {
@@ -19,9 +19,37 @@ export interface ContractFormData {
   attachment?: File;
 }
 
+/** Il minimo che serve per accorgersi di una sovrapposizione. */
+export interface ExistingContract {
+  id: string;
+  start_date: string;
+  duration_months: number;
+  status: string;
+}
+
 interface ContractFormProps {
   onSubmit: (data: ContractFormData) => Promise<void>;
   onCancel: () => void;
+  /**
+   * Contratti già presenti sul cliente. Se la data di inizio scelta cade dentro
+   * il periodo di uno di questi, il form avvisa e chiede conferma: le rate non
+   * incassate del vecchio contratto non spariscono da sole e finirebbero a
+   * sommarsi a quelle nuove in Crediti e nel cashflow (caso Alma consulenti,
+   * due rate al mese — una il 1°, una l'8).
+   */
+  existingContracts?: ExistingContract[];
+}
+
+/** Ultima scadenza coperta da un contratto: start + (durata - 1) mesi. */
+function lastDueDate(startDate: string, durationMonths: number): Date | null {
+  const parts = startDate.split('-').map(Number);
+  if (parts.length !== 3 || parts.some(Number.isNaN) || durationMonths < 1) return null;
+  const [y, m, d] = parts;
+  const target = new Date(y, m - 1 + (durationMonths - 1), 1);
+  // Clamp al mese più corto (31 gen + 1 mese = 28/29 feb, non 3 marzo).
+  const lastDayOfMonth = new Date(target.getFullYear(), target.getMonth() + 1, 0).getDate();
+  target.setDate(Math.min(d, lastDayOfMonth));
+  return target;
 }
 
 const durationOptions = [
@@ -34,7 +62,7 @@ const paymentTimingOptions = [
   { value: 'fine_mese', label: 'Fine mese (posticipato)' },
 ];
 
-export function ContractForm({ onSubmit, onCancel }: ContractFormProps) {
+export function ContractForm({ onSubmit, onCancel, existingContracts = [] }: ContractFormProps) {
   const [noContract, setNoContract] = useState(false);
   const [form, setForm] = useState({
     monthly_fee: '',
@@ -44,9 +72,30 @@ export function ContractForm({ onSubmit, onCancel }: ContractFormProps) {
     notes: '',
   });
   const [attachment, setAttachment] = useState<File | null>(null);
+  const [overlapAck, setOverlapAck] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const totalValue = Number(form.monthly_fee || 0) * Number(form.duration_months);
+
+  // Contratti ancora "in corso" alla data scelta: le loro rate si sommerebbero
+  // a quelle del nuovo contratto negli stessi mesi.
+  const overlapping = useMemo(() => {
+    if (noContract || !form.start_date) return [];
+    const start = new Date(`${form.start_date}T00:00:00`);
+    if (Number.isNaN(start.getTime())) return [];
+    return existingContracts
+      .filter((c) => c.status !== 'cancelled' && c.duration_months > 0)
+      .map((c) => ({ contract: c, last: lastDueDate(c.start_date, c.duration_months) }))
+      .filter((c): c is { contract: ExistingContract; last: Date } => c.last !== null && c.last >= start)
+      .sort((a, b) => a.contract.start_date.localeCompare(b.contract.start_date));
+  }, [existingContracts, form.start_date, noContract]);
+
+  const blockedByOverlap = overlapping.length > 0 && !overlapAck;
+
+  const setStartDate = (value: string) => {
+    setForm({ ...form, start_date: value });
+    setOverlapAck(false); // cambio data = avviso da riconfermare
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -55,6 +104,7 @@ export function ContractForm({ onSubmit, onCancel }: ContractFormProps) {
 
   const handleSubmit = async () => {
     if (!noContract && (!form.monthly_fee || !form.start_date)) return;
+    if (blockedByOverlap) return;
     setLoading(true);
     try {
       await onSubmit({
@@ -137,7 +187,7 @@ export function ContractForm({ onSubmit, onCancel }: ContractFormProps) {
               label="Data Inizio Contratto *"
               type="date"
               value={form.start_date}
-              onChange={(e) => setForm({ ...form, start_date: e.target.value })}
+              onChange={(e) => setStartDate(e.target.value)}
             />
             <Select
               id="payment-timing"
@@ -147,6 +197,40 @@ export function ContractForm({ onSubmit, onCancel }: ContractFormProps) {
               options={paymentTimingOptions}
             />
           </div>
+
+          {overlapping.length > 0 && (
+            <div role="alert" className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-sm space-y-2">
+              <p className="flex items-start gap-2 font-medium text-pw-warning">
+                <AlertTriangle size={16} className="mt-0.5 shrink-0" />
+                {overlapping.length === 1
+                  ? 'Questo cliente ha già un contratto che copre questo periodo'
+                  : `Questo cliente ha già ${overlapping.length} contratti che coprono questo periodo`}
+              </p>
+              <ul className="pl-6 space-y-0.5 text-pw-text-muted">
+                {overlapping.map(({ contract, last }) => (
+                  <li key={contract.id}>
+                    dal {formatDate(contract.start_date)} al {formatDate(last)} · {contract.duration_months} mesi
+                    {contract.status === 'active' ? ' · attivo' : ''}
+                  </li>
+                ))}
+              </ul>
+              <p className="pl-6 text-pw-text-muted">
+                Le rate non incassate del vecchio contratto <strong>restano aperte</strong>: nei mesi
+                sovrapposti il cliente risulterà con due rate, e il doppio importo finirà in Crediti e nel
+                cashflow. Se stai correggendo un contratto sbagliato, modifica quello esistente invece di
+                crearne un altro.
+              </p>
+              <label className="flex items-start gap-2 pl-6 pt-1 cursor-pointer text-pw-text">
+                <input
+                  type="checkbox"
+                  checked={overlapAck}
+                  onChange={(e) => setOverlapAck(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 rounded border-pw-border accent-amber-500"
+                />
+                <span>Ho verificato, la sovrapposizione è voluta</span>
+              </label>
+            </div>
+          )}
 
           {Number(form.monthly_fee) > 0 && (
             <div className="p-3 rounded-xl bg-indigo-500/10 text-pw-accent text-sm">
@@ -213,7 +297,7 @@ export function ContractForm({ onSubmit, onCancel }: ContractFormProps) {
         <Button
           onClick={handleSubmit}
           loading={loading}
-          disabled={!noContract && (!form.monthly_fee || !form.start_date)}
+          disabled={!noContract && (!form.monthly_fee || !form.start_date || blockedByOverlap)}
           className="flex-1"
         >
           <FileText size={16} />
