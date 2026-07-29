@@ -17,7 +17,6 @@ import { SkeletonStats, SkeletonList } from '@/components/ui/skeleton';
 import { PageHeader } from '@/components/ui/page-header';
 import { todayLocal as getTodayLocal } from '@/lib/utils';
 import { reportUnknown } from '@/lib/report-error';
-import { readCache, writeCache } from '@/lib/data-cache';
 
 export default function PresenzePage() {
   const { profile } = useAuth();
@@ -31,7 +30,6 @@ export default function PresenzePage() {
   const [actionLoading, setActionLoading] = useState(false);
 
   const isAdmin = profile?.role === 'admin';
-  const cacheKey = `presenze:${profile?.id ?? 'anon'}`;
 
   const fetchData = useCallback(async () => {
     if (!profile) return;
@@ -46,35 +44,23 @@ export default function PresenzePage() {
         .eq('date', today)
         .maybeSingle();
 
-      const record = (data as AttendanceRecord | null) ?? null;
-      setTodayRecord(record);
+      setTodayRecord(data as AttendanceRecord | null);
 
-      let team: TeamAttendanceToday[] = [];
       if (isAdmin) {
         const { data: teamData } = await supabase.rpc('get_team_attendance_today');
-        team = (teamData as TeamAttendanceToday[]) || [];
-        setTeamStatus(team);
+        setTeamStatus((teamData as TeamAttendanceToday[]) || []);
       }
-      writeCache(cacheKey, { record, team });
     } catch (err) {
       reportUnknown(err, 'client', { op: 'presenze-fetch' });
       setError(true);
     } finally {
       setLoading(false);
     }
-  }, [profile, isAdmin, cacheKey]);
+  }, [profile, isAdmin]);
 
   useEffect(() => {
-    // Le timbrature cambiano spesso: la cache serve solo a evitare lo scheletro
-    // quando si rientra nella scheda, e vale un minuto scarso.
-    const cached = readCache<{ record: AttendanceRecord | null; team: TeamAttendanceToday[] }>(cacheKey, 60_000);
-    if (cached) {
-      setTodayRecord(cached.record);
-      setTeamStatus(cached.team);
-      setLoading(false);
-    }
     fetchData();
-  }, [fetchData, cacheKey]);
+  }, [fetchData]);
 
   const handleAction = async (action: 'clock_in' | 'lunch_start' | 'lunch_end' | 'clock_out') => {
     if (!profile) return;

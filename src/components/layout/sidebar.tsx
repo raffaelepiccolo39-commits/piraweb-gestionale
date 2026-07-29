@@ -1,14 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { cn, getRoleLabel, getInitials, getUserColor, getContrastTextColor } from '@/lib/utils';
 import { useTheme } from '@/components/theme-provider';
 import { useAuth } from '@/hooks/use-auth';
-import { useBadges } from '@/hooks/use-badges';
-import { invalidateCache } from '@/lib/data-cache';
 import { createClient } from '@/lib/supabase/client';
 import { ChevronDown, LogOut } from 'lucide-react';
 import { navSections, type NavItem, type NavSection } from '@/components/layout/nav-config';
@@ -26,20 +24,61 @@ interface SidebarProps {
 export function Sidebar({ collapsed, onToggle, onNavigate }: SidebarProps) {
   const pathname = usePathname();
   const { profile } = useAuth();
+  const [badges, setBadges] = useState<Record<string, number>>({});
   const [loggingOut, setLoggingOut] = useState(false);
   const { theme } = useTheme();
 
   const isAdmin = profile?.role === 'admin';
 
-  // Conteggi condivisi con l'Header: un solo fetch e una sola sottoscrizione
-  // realtime per tutta l'app (vedi use-badges). Qui serve solo "Task".
-  const { myTasks } = useBadges();
-  const badges: Record<string, number> = { tasks: myTasks };
+  useEffect(() => {
+    const userId = profile?.id;
+    if (!userId) return;
+    const supabase = createClient();
+
+    const fetchBadges = async () => {
+      const counts: Record<string, number> = {};
+      const [tasksRes, chatRes] = await Promise.all([
+        supabase
+          .from('task_assignees')
+          .select('task_id, tasks!inner(status)', { count: 'exact', head: true })
+          .eq('user_id', userId)
+          .in('tasks.status', ['todo', 'in_progress']),
+        supabase
+          .from('chat_messages')
+          .select('id', { count: 'exact', head: true })
+          .neq('sender_id', userId)
+          .gt('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()),
+      ]);
+      if (tasksRes.count) counts.tasks = tasksRes.count;
+      if (chatRes.count) counts.chat = chatRes.count;
+      setBadges(counts);
+    };
+
+    fetchBadges();
+
+    // Realtime badge. Protetto: rimuove eventuali canali duplicati con lo stesso
+    // topic (causa dell'errore "cannot add callbacks after subscribe()") e avvolto
+    // in try/catch — un problema realtime NON deve mai bloccare l'app (su iOS
+    // WebKit un throw qui crashava l'intera pagina → tutto non cliccabile).
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    try {
+      supabase.getChannels().forEach((ch) => {
+        if (ch.topic === 'realtime:sidebar-badges') supabase.removeChannel(ch);
+      });
+      channel = supabase
+        .channel('sidebar-badges')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, fetchBadges)
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages' }, fetchBadges)
+        .subscribe();
+    } catch {
+      // realtime non disponibile: i badge non si aggiornano live, ma l'app resta viva
+    }
+
+    return () => { if (channel) supabase.removeChannel(channel); };
+  }, [profile?.id]);
 
   const handleLogout = async () => {
     setLoggingOut(true);
-    // I dati in cache sono di questo utente: non devono sopravvivere al logout.
-    invalidateCache();
     const supabase = createClient();
     // Prima cancella il cookie 2fa_verified server-side (httpOnly, non eliminabile
     // da JS). Senza, il prossimo login bypassa il prompt 2FA per lo stesso utente.
