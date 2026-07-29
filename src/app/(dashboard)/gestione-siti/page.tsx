@@ -17,8 +17,9 @@ import { useToast } from '@/components/ui/toast';
 import { formatDate, todayLocal } from '@/lib/utils';
 import { reportSupabaseError } from '@/lib/report-error';
 import type { WebsiteManagement, WebsiteRenewal } from '@/types/database';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { ClientForm, type ClientFormData } from '@/components/clients/client-form';
-import { Globe, Plus, ShieldCheck, Pencil, CheckCircle2 } from 'lucide-react';
+import { Globe, Plus, ShieldCheck, Pencil, CheckCircle2, HandCoins } from 'lucide-react';
 
 /**
  * Gestione Siti — solo admin.
@@ -56,6 +57,8 @@ export default function GestioneSitiPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [paying, setPaying] = useState<string | null>(null);
+  // Incasso sempre dietro conferma: chiude il rinnovo e ne programma un altro.
+  const [confirming, setConfirming] = useState<{ renewal: WebsiteRenewal; clientName: string; siteUrl: string | null } | null>(null);
 
   // Modale: creazione o modifica.
   const [modalOpen, setModalOpen] = useState(false);
@@ -280,7 +283,7 @@ export default function GestioneSitiPage() {
                         <td className="px-4 py-3">
                           <div className="flex items-center justify-end gap-2">
                             {next && !next.is_paid && row.status === 'active' && (
-                              <Button size="sm" variant="soft" loading={paying === next.id} onClick={() => markPaid(next.id)}>
+                              <Button size="sm" variant="soft" loading={paying === next.id} onClick={() => setConfirming({ renewal: next, clientName, siteUrl: row.site_url })}>
                                 <CheckCircle2 size={14} /> Segna incassato
                               </Button>
                             )}
@@ -358,6 +361,28 @@ export default function GestioneSitiPage() {
       <Modal open={clientFormOpen} onClose={backToSite} title="Nuovo cliente" size="lg">
         <ClientForm onSubmit={handleCreateClientInline} onCancel={backToSite} defaultNeedsPed={false} />
       </Modal>
+
+      <ConfirmDialog
+        open={!!confirming}
+        onClose={() => setConfirming(null)}
+        onConfirm={async () => { if (confirming) await markPaid(confirming.renewal.id); }}
+        title="Confermi l'incasso?"
+        variant="primary"
+        icon={HandCoins}
+        confirmLabel="Sì, incassato"
+        description={confirming ? (
+          <>
+            Stai segnando come incassato il rinnovo di{' '}
+            <strong className="text-pw-text">{confirming.clientName}</strong>
+            {confirming.siteUrl ? ` (${confirming.siteUrl})` : ''} da{' '}
+            <strong className="text-pw-text">{euro(confirming.renewal.amount)}</strong>, in scadenza il{' '}
+            {formatDate(confirming.renewal.due_date)}.
+            <br />
+            Entra nel cashflow come entrata e viene programmato in automatico il rinnovo
+            del {Number(confirming.renewal.due_date.slice(0, 4)) + 1}.
+          </>
+        ) : ''}
+      />
     </div>
   );
 }

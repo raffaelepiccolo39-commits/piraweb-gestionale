@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/ui/empty-state';
 import { SkeletonList } from '@/components/ui/skeleton';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { useToast } from '@/components/ui/toast';
 import { formatDate, todayLocal } from '@/lib/utils';
 import { reportSupabaseError } from '@/lib/report-error';
@@ -48,6 +49,8 @@ export default function CreditiPage() {
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [paying, setPaying] = useState<string | null>(null);
+  // L'incasso entra nel cashflow e la rata sparisce dalla lista: prima si conferma.
+  const [confirming, setConfirming] = useState<Row | null>(null);
 
   const fetchData = useCallback(async () => {
     if (!isAdmin) return;
@@ -145,7 +148,7 @@ export default function CreditiPage() {
                           <Badge tone={tone} size="sm">{dd === 0 ? 'oggi' : `${dd}gg fa`}</Badge>
                           <span className="flex-1" />
                           <span className="text-sm font-semibold text-pw-text tabular-nums">{euro(r.amount)}</span>
-                          <Button size="sm" variant="soft" loading={paying === r.id} onClick={() => markPaid(r.id)}>
+                          <Button size="sm" variant="soft" loading={paying === r.id} onClick={() => setConfirming(r)}>
                             <CheckCircle2 size={14} /> Segna incassato
                           </Button>
                         </div>
@@ -162,6 +165,27 @@ export default function CreditiPage() {
           </p>
         </>
       )}
+
+      <ConfirmDialog
+        open={!!confirming}
+        onClose={() => setConfirming(null)}
+        onConfirm={async () => { if (confirming) await markPaid(confirming.id); }}
+        title="Confermi l'incasso?"
+        variant="primary"
+        icon={HandCoins}
+        confirmLabel="Sì, incassato"
+        description={confirming ? (
+          <>
+            Stai segnando come incassata la rata di{' '}
+            <strong className="text-pw-text">{confirming.client_name}</strong> da{' '}
+            <strong className="text-pw-text">{euro(confirming.amount)}</strong>, scaduta il{' '}
+            {formatDate(confirming.due_date)}.
+            <br />
+            Sparisce dai crediti ed entra nel cashflow come entrata: fallo solo se i soldi
+            sono arrivati davvero. Per annullarlo devi passare dalla scheda del cliente.
+          </>
+        ) : ''}
+      />
     </div>
   );
 }
