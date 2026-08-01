@@ -1,14 +1,26 @@
 'use client';
 
 import { useEffect, useRef, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { isPackagedApp } from '@/lib/api-origin';
 import { useAuthStore } from '@/store/auth-store';
 import { reportUnknown, reportSupabaseError } from '@/lib/report-error';
 import type { Profile } from '@/types/database';
 
+/** Pagine che vivono senza sessione: mandarci il redirect sarebbe un cerchio. */
+const PAGINE_SENZA_SESSIONE = ['/login', '/onboarding', '/password-dimenticata', '/reimposta-password'];
+
+function suPaginaPubblica(): boolean {
+  if (typeof window === 'undefined') return true;
+  const path = window.location.pathname;
+  return PAGINE_SENZA_SESSIONE.some((p) => path === p || path.startsWith(`${p}/`));
+}
+
 export function useAuth() {
   const { profile, isLoading, setProfile, setLoading } = useAuthStore();
   const supabase = createClient();
+  const router = useRouter();
   const fetchingRef = useRef(false);
 
   const loadProfile = useCallback(async () => {
@@ -21,6 +33,26 @@ export function useAuth() {
 
       if (userError || !user) {
         setProfile(null);
+
+        /**
+         * Chi rimanda al login quando la sessione non c'e'? Sul sito il proxy
+         * (`src/proxy.ts`). Nel pacchetto iOS/Android nessuno: `build:app` lo
+         * toglie, perche' l'export statico non lo tollera. Risultato visto
+         * sull'app approvata da Apple: si apre su /dashboard, l'AttendanceGate
+         * aspetta un profilo che non arrivera' mai e resta uno spinner
+         * infinito, senza nessuna strada per arrivare al login.
+         *
+         * Qui il redirect lo fa il client. `router.replace` e non
+         * `window.location`: nel pacchetto un caricamento di documento su
+         * /login cade sul fallback index.html di Capacitor, che rimanda a
+         * /dashboard — cioe' al punto di partenza.
+         *
+         * Solo se la sessione manca davvero: un errore di rete su getUser()
+         * non deve buttare fuori chi e' gia' dentro. getSession() legge
+         * l'archivio locale e non tocca la rete.
+         */
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session && !suPaginaPubblica()) router.replace('/login');
         return;
       }
 
@@ -55,7 +87,7 @@ export function useAuth() {
 
         if (eUnCliente) {
           if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/portale')) {
-            window.location.replace('/portale');
+            router.replace('/portale');
           }
           return;
         }
@@ -74,7 +106,7 @@ export function useAuth() {
     } finally {
       fetchingRef.current = false;
     }
-  }, [supabase, setProfile, setLoading]);
+  }, [supabase, setProfile, setLoading, router]);
 
   useEffect(() => {
     if (!profile) {
@@ -100,7 +132,11 @@ export function useAuth() {
     await fetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
     await supabase.auth.signOut();
     setProfile(null);
-    window.location.href = '/login';
+    // Sul sito navigazione dura: costringe il proxy a rileggere i cookie.
+    // Nel pacchetto no: un documento su /login cadrebbe sul fallback
+    // index.html di Capacitor, che rimanda a /dashboard.
+    if (isPackagedApp()) router.replace('/login');
+    else window.location.href = '/login';
   };
 
   return { profile, isLoading, signOut, supabase, retryLoadProfile: loadProfile };

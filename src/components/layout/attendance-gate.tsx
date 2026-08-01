@@ -37,7 +37,7 @@ function stateFromRecord(record: AttendanceRecord | null): GateState {
 }
 
 export function AttendanceGate({ children }: { children: React.ReactNode }) {
-  const { profile } = useAuth();
+  const { profile, isLoading, signOut, retryLoadProfile } = useAuth();
   const supabase = createClient();
   const toast = useToast();
   const pathname = usePathname();
@@ -220,6 +220,30 @@ export function AttendanceGate({ children }: { children: React.ReactNode }) {
     await check();
     toast.success('Giornata riaperta — ricordati di timbrare l’uscita a fine turno');
   };
+
+  // Profilo irraggiungibile a sessione valida (rete giu', query rifiutata):
+  // senza questa via d'uscita si resta sullo spinner per sempre — ed e' proprio
+  // quello che si vede nell'app, dove non c'e' una barra indirizzi per uscirne.
+  if (!profile && !isLoading) {
+    return (
+      <div className="min-h-[70vh] flex items-center justify-center px-4">
+        <div className="max-w-md w-full text-center rounded-2xl border border-pw-border bg-pw-surface p-8 shadow-[var(--pw-shadow-md)]">
+          <h1 className="text-xl font-bold text-pw-text mb-2">Non riesco a caricare il tuo profilo</h1>
+          <p className="text-sm text-pw-text-muted mb-5">
+            Controlla la connessione e riprova. Se il problema resta, esci e rientra con le tue credenziali.
+          </p>
+          <div className="flex flex-col gap-2">
+            <Button onClick={() => retryLoadProfile()} className="w-full justify-center">
+              <RotateCcw size={16} /> Riprova
+            </Button>
+            <Button variant="outline" onClick={signOut} className="w-full justify-center">
+              Vai al login
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // In attesa di sapere lo stato (evita di mostrare l'app prima del cancello)
   if (!profile || state === 'loading') {

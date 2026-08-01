@@ -3,11 +3,12 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { cn, getRoleLabel, getInitials, getUserColor, getContrastTextColor } from '@/lib/utils';
 import { useTheme } from '@/components/theme-provider';
 import { useAuth } from '@/hooks/use-auth';
 import { createClient } from '@/lib/supabase/client';
+import { isPackagedApp } from '@/lib/api-origin';
 import { ChevronDown, LogOut } from 'lucide-react';
 import { navSections, type NavItem, type NavSection } from '@/components/layout/nav-config';
 
@@ -23,6 +24,7 @@ interface SidebarProps {
 
 export function Sidebar({ collapsed, onToggle, onNavigate }: SidebarProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const { profile } = useAuth();
   const [badges, setBadges] = useState<Record<string, number>>({});
   const [loggingOut, setLoggingOut] = useState(false);
@@ -93,7 +95,10 @@ export function Sidebar({ collapsed, onToggle, onNavigate }: SidebarProps) {
       // procedi col redirect anche se signOut fallisce
     }
     // Hard navigation: forza il middleware a rivalutare i cookie di sessione.
-    window.location.href = '/login';
+    // Nel pacchetto iOS/Android no: il middleware non c'e' e un documento su
+    // /login cadrebbe sul fallback index.html di Capacitor (→ /dashboard).
+    if (isPackagedApp()) router.replace('/login');
+    else window.location.href = '/login';
   };
 
   return (

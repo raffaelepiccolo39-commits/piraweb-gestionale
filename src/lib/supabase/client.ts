@@ -1,7 +1,52 @@
 import { createBrowserClient } from '@supabase/ssr';
 import { recordTiming, describeSupabaseCall } from '@/lib/perf';
+import { isPackagedApp } from '@/lib/api-origin';
 
 let client: ReturnType<typeof createBrowserClient> | null = null;
+
+/**
+ * Dove vive la sessione dentro il pacchetto iOS/Android.
+ *
+ * Sul sito la sessione sta nei cookie: e' quello che serve, perche' il proxy
+ * lato server li deve poter leggere a ogni richiesta. Nel pacchetto pero' le
+ * pagine non stanno su https ma su `capacitor://localhost`, e su uno schema
+ * inventato WebKit i cookie scritti da JavaScript non sopravvivono. Risultato
+ * visto sull'app: l'accesso riesce, la navigazione porta a /dashboard, ma un
+ * istante dopo la sessione non c'e' piu' — "non mi fa accedere".
+ *
+ * `localStorage` invece funziona senza riserve. Qui si da' a Supabase un
+ * finto barattolo di cookie che scrive li' dentro: la libreria continua a
+ * ragionare per cookie (compreso lo spezzettamento dei token lunghi), noi li
+ * conserviamo altrove. Nel browser questa funzione non viene mai usata.
+ */
+const CHIAVE_SESSIONE = 'pw-sessione';
+
+function barattoloSuLocalStorage() {
+  const leggi = (): Record<string, string> => {
+    try {
+      return JSON.parse(window.localStorage.getItem(CHIAVE_SESSIONE) || '{}');
+    } catch {
+      return {};
+    }
+  };
+
+  return {
+    getAll: () => Object.entries(leggi()).map(([name, value]) => ({ name, value })),
+    setAll: (cookies: { name: string; value: string }[]) => {
+      const salvati = leggi();
+      for (const { name, value } of cookies) {
+        // Valore vuoto = cancellazione (e' cosi' che Supabase fa il logout).
+        if (value) salvati[name] = value;
+        else delete salvati[name];
+      }
+      try {
+        window.localStorage.setItem(CHIAVE_SESSIONE, JSON.stringify(salvati));
+      } catch {
+        // Spazio finito o storage negato: meglio una sessione persa che un crash.
+      }
+    },
+  };
+}
 
 /**
  * fetch strumentato: cronometra ogni chiamata che il client Supabase fa.
@@ -69,6 +114,8 @@ export function createClient() {
   }
   client = createBrowserClient(url, key, {
     global: { fetch: timedFetch },
+    // Solo nel pacchetto: sul sito i cookie servono al proxy e restano cookie.
+    ...(isPackagedApp() ? { cookies: barattoloSuLocalStorage() } : {}),
   });
   return client;
 }
