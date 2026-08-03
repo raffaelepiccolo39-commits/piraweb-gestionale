@@ -5,6 +5,7 @@ import { Analytics } from '@vercel/analytics/next';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import './globals.css';
 import { ApiOriginSetup } from '@/components/api-origin-setup';
+import { PushRegistration } from '@/components/push-registration';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -70,6 +71,7 @@ export default function RootLayout({
     <html lang="it" className={`${inter.variable} ${syne.variable} ${jetbrainsMono.variable} ${bebasNeue.variable} ${dmSerif.variable} h-full`} suppressHydrationWarning>
       <body className={`${inter.className} min-h-full bg-pw-bg text-pw-text antialiased`}>
         <ApiOriginSetup />
+        <PushRegistration />
         <ThemeProvider>
           {children}
         </ThemeProvider>

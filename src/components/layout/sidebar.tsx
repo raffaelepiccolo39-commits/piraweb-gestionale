@@ -9,6 +9,7 @@ import { useTheme } from '@/components/theme-provider';
 import { useAuth } from '@/hooks/use-auth';
 import { createClient } from '@/lib/supabase/client';
 import { isPackagedApp } from '@/lib/api-origin';
+import { dimenticaDispositivo } from '@/lib/push-client';
 import { ChevronDown, LogOut } from 'lucide-react';
 import { navSections, type NavItem, type NavSection } from '@/components/layout/nav-config';
 
@@ -82,6 +83,9 @@ export function Sidebar({ collapsed, onToggle, onNavigate }: SidebarProps) {
   const handleLogout = async () => {
     setLoggingOut(true);
     const supabase = createClient();
+    // Prima della disconnessione, finche' l'RLS lascia ancora cancellare la
+    // riga: altrimenti il telefono resta agganciato a chi sta uscendo.
+    await dimenticaDispositivo();
     // Prima cancella il cookie 2fa_verified server-side (httpOnly, non eliminabile
     // da JS). Senza, il prossimo login bypassa il prompt 2FA per lo stesso utente.
     try {

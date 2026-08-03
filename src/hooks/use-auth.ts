@@ -4,6 +4,7 @@ import { useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { isPackagedApp } from '@/lib/api-origin';
+import { dimenticaDispositivo } from '@/lib/push-client';
 import { useAuthStore } from '@/store/auth-store';
 import { reportUnknown, reportSupabaseError } from '@/lib/report-error';
 import type { Profile } from '@/types/database';
@@ -128,6 +129,9 @@ export function useAuth() {
   }, []);
 
   const signOut = async () => {
+    // Prima della disconnessione: dopo, l'RLS non lascerebbe piu' cancellare
+    // la riga del dispositivo, e il telefono resterebbe agganciato a chi esce.
+    await dimenticaDispositivo();
     // Cancella cookie 2FA (httpOnly, serve API server-side)
     await fetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
     await supabase.auth.signOut();
