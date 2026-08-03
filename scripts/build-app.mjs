@@ -18,7 +18,7 @@
  */
 
 import { execSync } from 'node:child_process';
-import { existsSync, renameSync, rmSync } from 'node:fs';
+import { existsSync, readFileSync, renameSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 
 const root = process.cwd();
@@ -33,6 +33,24 @@ const DA_ESCLUDERE = [
   [join(root, 'src/app/api'), join(PARCHEGGIO, 'api')],
   [join(root, 'src/proxy.ts'), join(PARCHEGGIO, 'proxy.ts')],
 ];
+
+/**
+ * La versione dichiarata al progetto Xcode, letta dal progetto stesso.
+ *
+ * Cosi' il numero che finisce nel registro errori e quello che l'utente vede
+ * nelle impostazioni del telefono sono lo stesso numero, sempre: se restassero
+ * due valori da tenere allineati a mano, prima o poi divergerebbero — e un
+ * registro che attribuisce l'errore alla versione sbagliata e' peggio di uno
+ * che non dice la versione.
+ */
+function versioneApp() {
+  try {
+    const progetto = readFileSync(join(root, 'ios/App/App.xcodeproj/project.pbxproj'), 'utf8');
+    return progetto.match(/MARKETING_VERSION = ([^;]+);/)?.[1]?.trim() ?? '';
+  } catch {
+    return '';
+  }
+}
 
 function sposta(coppie) {
   for (const [da, a] of coppie) {
@@ -62,7 +80,7 @@ try {
 
   execSync('next build', {
     stdio: 'inherit',
-    env: { ...process.env, BUILD_TARGET: 'app' },
+    env: { ...process.env, BUILD_TARGET: 'app', APP_VERSION: versioneApp() },
   });
 
   console.log('\n  Fatto: i file statici sono in out/');

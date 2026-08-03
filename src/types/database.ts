@@ -1377,6 +1377,12 @@ export interface ErrorLogGroup {
   context: Record<string, unknown>;
   build_id: string | null;
   last_user_email: string | null;
+  /** 'ios' | 'android' se l'errore arriva dall'app; null dal sito. */
+  platform: string | null;
+  /** Versione dell'app che ha segnalato per ultima, es. '1.1'. */
+  app_version: string | null;
+  /** Su quante piattaforme diverse si e' visto: 1 = solo li'. */
+  piattaforme: number;
   occurrences: number;
   users_affected: number;
   first_seen: string;

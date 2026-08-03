@@ -23,6 +23,10 @@ export interface LogErrorEntry {
   request?: NextRequest | null;
   /** Stack già serializzato (arriva così dagli errori del browser). */
   stack?: string | null;
+  /** 'ios' | 'android' quando l'errore arriva dall'app impacchettata. */
+  platform?: 'ios' | 'android' | null;
+  /** Versione dell'app che ha segnalato, es. '1.1'. */
+  appVersion?: string | null;
   userAgent?: string | null;
   buildId?: string | null;
 }
@@ -174,6 +178,10 @@ export async function logError(entry: LogErrorEntry): Promise<void> {
         : entry.context ?? {},
       user_agent: userAgent,
       build_id: entry.buildId ?? process.env.NEXT_PUBLIC_BUILD_ID ?? null,
+      // Solo per le righe che arrivano dall'app: sul sito restano vuote, ed
+      // e' proprio quel vuoto a distinguere le due provenienze.
+      platform: entry.platform ?? null,
+      app_version: entry.appVersion ?? null,
     });
   } catch (err) {
     // Ultima spiaggia: se non riusciamo nemmeno a loggare, almeno non

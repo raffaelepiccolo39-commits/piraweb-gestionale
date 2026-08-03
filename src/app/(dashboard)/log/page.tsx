@@ -22,6 +22,7 @@ import {
   Gauge,
   RotateCw,
   ShieldCheck,
+  Smartphone,
   TriangleAlert,
   Users,
 } from 'lucide-react';
@@ -80,7 +81,7 @@ export default function LogPage() {
 
   const [sourceFilter, setSourceFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('open');
-  const [tab, setTab] = useState<'errors' | 'perf'>('errors');
+  const [tab, setTab] = useState<'errors' | 'app' | 'perf'>('errors');
 
   const isAdmin = profile?.role === 'admin';
 
@@ -95,6 +96,10 @@ export default function LogPage() {
       .select('*')
       .order('last_seen', { ascending: false })
       .limit(200);
+
+    // La scheda App mostra solo cio' che arriva da un telefono: sul sito la
+    // piattaforma resta vuota, ed e' quel vuoto a fare da filtro.
+    if (tab === 'app') query = query.not('platform', 'is', null);
 
     if (sourceFilter) query = query.eq('source', sourceFilter);
     if (statusFilter === 'open') query = query.eq('resolved', false);
@@ -112,7 +117,7 @@ export default function LogPage() {
 
     setGroups((data ?? []) as ErrorLogGroup[]);
     setLoading(false);
-  }, [supabase, isAdmin, sourceFilter, statusFilter]);
+  }, [supabase, isAdmin, sourceFilter, statusFilter, tab]);
 
   useEffect(() => {
     void fetchGroups();
@@ -163,6 +168,8 @@ export default function LogPage() {
         subtitle={
           tab === 'perf'
             ? 'Cosa rallenta il gestionale, misurato sugli ultimi 7 giorni'
+            : tab === 'app' && !loading
+            ? `Solo dai telefoni: ${openCount} ${openCount === 1 ? 'problema aperto' : 'problemi aperti'} · ${totalOccurrences} occorrenze`
             : loading
               ? 'Carico…'
               : `${openCount} ${openCount === 1 ? 'problema aperto' : 'problemi aperti'} · ${totalOccurrences} occorrenze totali`
@@ -182,6 +189,7 @@ export default function LogPage() {
       <div className="mb-5 flex gap-1 border-b border-pw-border">
         {([
           { key: 'errors', label: 'Errori', icon: TriangleAlert },
+          { key: 'app', label: 'App', icon: Smartphone },
           { key: 'perf', label: 'Lentezza', icon: Gauge },
         ] as const).map(({ key, label, icon: Icon }) => (
           <button
@@ -203,7 +211,7 @@ export default function LogPage() {
 
       {tab === 'perf' && <PerfPanel />}
 
-      {tab === 'errors' && (
+      {(tab === 'errors' || tab === 'app') && (
       <>
       <div className="mb-5 flex flex-wrap gap-3">
         <Select
@@ -275,6 +283,19 @@ export default function LogPage() {
                         <Badge tone={SOURCE_TONES[group.source]} size="sm">
                           {SOURCE_LABELS[group.source]}
                         </Badge>
+
+                        {group.platform && (
+                          <Badge tone="accent" size="sm">
+                            {group.platform === 'ios' ? 'iPhone' : 'Android'}
+                            {group.app_version ? ` ${group.app_version}` : ''}
+                          </Badge>
+                        )}
+
+                        {Number(group.piattaforme) > 1 && (
+                          <Badge tone="neutral" size="sm">
+                            anche altrove
+                          </Badge>
+                        )}
 
                         {group.route && (
                           <span className="font-mono text-xs text-pw-text-dim">

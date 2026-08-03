@@ -15,6 +15,10 @@ const nextConfig: NextConfig = {
   // (usato da VersionWatcher per invitare a ricaricare).
   env: {
     NEXT_PUBLIC_BUILD_ID: process.env.VERCEL_GIT_COMMIT_SHA || 'dev',
+    // Versione dell'app impacchettata, scritta dentro il bundle al momento
+    // del build. Serve nel registro errori: "succede solo sulla 1.1" e'
+    // un'indagine, "succede nell'app" non lo e'. Sul sito resta vuota.
+    NEXT_PUBLIC_APP_VERSION: isApp ? (process.env.APP_VERSION || '') : '',
   },
   images: {
     remotePatterns: [

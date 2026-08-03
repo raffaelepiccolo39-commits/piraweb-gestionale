@@ -6,6 +6,8 @@
  * problema suo, non gliene aggiungiamo un secondo.
  */
 
+import { isPackagedApp } from '@/lib/api-origin';
+
 interface ReportPayload {
   message: string;
   stack?: string | null;
@@ -33,6 +35,53 @@ function alreadySent(key: string): boolean {
   return false;
 }
 
+/**
+ * Da dove sta segnalando: 'ios'/'android' dentro il pacchetto, null sul sito.
+ *
+ * Serve a rendere leggibile il registro: un errore che capita solo su iPhone
+ * e uno che capita ovunque richiedono due indagini diverse, e senza questo
+ * dato sembrano la stessa riga.
+ */
+function piattaforma(): 'ios' | 'android' | null {
+  if (!isPackagedApp()) return null;
+  // La stessa domanda che si fa Capacitor, senza dover importare il plugin
+  // dentro un file che gira anche nel browser.
+  const ua = navigator.userAgent || '';
+  if (/android/i.test(ua)) return 'android';
+  return 'ios';
+}
+
+/**
+ * Il token della sessione, per chi non ha i cookie.
+ *
+ * Nel pacchetto la sessione sta in localStorage, quindi la chiamata a
+ * /api/logs arriverebbe senza credenziali e verrebbe respinta. Si legge il
+ * token dallo stesso posto dove Supabase lo ha scritto, senza creare un
+ * client: questo file deve restare leggero e non deve mai fallire.
+ */
+function tokenSessione(): string | null {
+  try {
+    const grezzo = window.localStorage.getItem('pw-sessione');
+    if (!grezzo) return null;
+
+    const barattolo = JSON.parse(grezzo) as Record<string, string>;
+    const pezzi = Object.keys(barattolo)
+      .filter((k) => k.includes('auth-token'))
+      .sort();
+    if (pezzi.length === 0) return null;
+
+    let valore = pezzi.map((k) => barattolo[k]).join('');
+    if (valore.startsWith('base64-')) {
+      valore = atob(valore.slice(7).replace(/-/g, '+').replace(/_/g, '/'));
+    }
+
+    const sessione = JSON.parse(valore) as { access_token?: string };
+    return sessione.access_token ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export function reportError(payload: ReportPayload): void {
   if (typeof window === 'undefined') return;
 
@@ -48,11 +97,19 @@ export function reportError(payload: ReportPayload): void {
       source: payload.source ?? 'client',
       context: payload.context ?? {},
       buildId: process.env.NEXT_PUBLIC_BUILD_ID ?? null,
+      platform: piattaforma(),
+      appVersion: process.env.NEXT_PUBLIC_APP_VERSION ?? null,
     });
+
+    const token = tokenSessione();
 
     void fetch('/api/logs', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        // Solo nel pacchetto: sul sito il cookie fa gia' il suo lavoro.
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
       body,
       keepalive: true, // sopravvive se l'utente cambia pagina subito dopo il crash
     }).catch(() => {

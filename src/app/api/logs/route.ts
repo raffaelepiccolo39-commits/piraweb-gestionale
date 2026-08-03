@@ -20,7 +20,29 @@ const CLIENT_ERROR_RATE_LIMIT = { maxRequests: 20, windowSeconds: 300 };
 
 export async function POST(request: NextRequest) {
   const supabase = await createServerSupabaseClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  let { data: { user } } = await supabase.auth.getUser();
+
+  /**
+   * Chi arriva dall'app non ha il cookie di sessione.
+   *
+   * Nel pacchetto la sessione vive in localStorage — sullo schema
+   * `capacitor://` i cookie non sopravvivono — quindi una chiamata da li'
+   * arriva senza credenziali e finora si prendeva un 401. Risultato: gli
+   * errori dell'app venivano buttati via, ed e' il posto dove servirebbero
+   * di piu', perche' li' nessuno puo' aprire la console del browser.
+   *
+   * L'app manda quindi il suo token nell'intestazione, e lo si verifica con
+   * Supabase come farebbe il cookie: stessa fiducia, strada diversa.
+   */
+  if (!user) {
+    const intestazione = request.headers.get('authorization');
+    const token = intestazione?.startsWith('Bearer ') ? intestazione.slice(7) : null;
+
+    if (token) {
+      const { data } = await supabase.auth.getUser(token);
+      user = data.user;
+    }
+  }
 
   if (!user) {
     return NextResponse.json({ error: 'Non autenticato' }, { status: 401 });
@@ -42,6 +64,8 @@ export async function POST(request: NextRequest) {
     source?: unknown;
     context?: unknown;
     buildId?: unknown;
+    platform?: unknown;
+    appVersion?: unknown;
   };
 
   try {
@@ -71,6 +95,10 @@ export async function POST(request: NextRequest) {
       ? (body.context as Record<string, unknown>)
       : {},
     buildId: typeof body.buildId === 'string' ? body.buildId : null,
+    // Da dove arriva e con quale versione: senza questi due, un errore
+    // dell'app e uno del browser sono indistinguibili nel registro.
+    platform: body.platform === 'ios' || body.platform === 'android' ? body.platform : null,
+    appVersion: typeof body.appVersion === 'string' ? body.appVersion.slice(0, 20) : null,
     request,
   });
 
