@@ -164,13 +164,47 @@ export async function PATCH(request: NextRequest) {
   if (auth.error) return auth.error;
   const actor = auth.user!;
 
-  const { id, is_active, resend } = await request.json();
+  const { id, is_active, resend, solo_link } = await request.json();
   const serviceClient = await createServiceRoleClient();
 
   // Rimanda l'invito. Serve perché il link di primo accesso scade: finché il
   // cliente non ha scelto una password quello è l'unico modo di entrare, e
   // senza questo pulsante l'unica via d'uscita era cancellare e ricreare
   // l'accesso.
+  /**
+   * Rigenera il link di primo accesso e lo restituisce, SENZA mandare email.
+   *
+   * Serve per l'invito via WhatsApp: il cliente riceve il link su un canale
+   * che legge davvero. L'email resta per chi la preferisce — cambia solo chi
+   * consegna il messaggio, non come funziona l'accesso.
+   */
+  if (solo_link === true) {
+    const { data: pu } = await serviceClient
+      .from('client_portal_users')
+      .select('email, full_name')
+      .eq('id', id)
+      .maybeSingle();
+
+    if (!pu) return NextResponse.json({ error: 'Accesso non trovato' }, { status: 404 });
+
+    const riga = pu as { email: string; full_name: string | null };
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+
+    const { data: linkData, error: genError } = await serviceClient.auth.admin.generateLink({
+      type: 'magiclink',
+      email: riga.email,
+    });
+    if (genError || !linkData?.properties?.hashed_token) {
+      await logError({ error: genError ?? new Error('link non generato'), route: 'portal/access', source: 'api', context: { op: 'solo-link', id } });
+      return NextResponse.json({ error: 'Non è stato possibile generare il link' }, { status: 400 });
+    }
+
+    return NextResponse.json({
+      inviteLink: `${appUrl}/api/auth/confirm?token_hash=${linkData.properties.hashed_token}&type=magiclink&next=/portale/benvenuto`,
+      full_name: riga.full_name,
+    });
+  }
+
   if (resend === true) {
     const { data: pu } = await serviceClient
       .from('client_portal_users')

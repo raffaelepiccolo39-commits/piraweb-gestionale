@@ -572,7 +572,7 @@ function ClientDetailPageInner() {
       </CollapsibleSection>
 
       {/* Accesso al portale (admin only): crea e revoca i login del cliente */}
-      {isAdmin && <PortalAccess clientId={id} clientName={client.company || client.name} />}
+      {isAdmin && <PortalAccess clientId={id} clientName={client.company || client.name} clientPhone={client.phone} />}
 
       {/* Quello che il cliente scrive dal portale. In alto perché è l'unica
           cosa qui dentro che può stare aspettando una risposta. */}

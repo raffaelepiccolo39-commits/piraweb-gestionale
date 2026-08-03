@@ -7,7 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/components/ui/toast';
 import { reportSupabaseError } from '@/lib/report-error';
-import { KeyRound, Plus, Mail, Ban, RotateCcw, Loader2, Send, BellRing } from 'lucide-react';
+import { KeyRound, Plus, Mail, Ban, RotateCcw, Loader2, Send, BellRing, MessageCircle } from 'lucide-react';
+import { testoInvito, linkWhatsApp } from '@/lib/invito-whatsapp';
 
 /**
  * Accessi al portale per un cliente.
@@ -27,7 +28,12 @@ interface PortalUser {
   created_at: string;
 }
 
-export function PortalAccess({ clientId, clientName }: { clientId: string; clientName: string }) {
+export function PortalAccess({ clientId, clientName, clientPhone }: {
+  clientId: string;
+  clientName: string;
+  /** Serve solo a preselezionare il contatto su WhatsApp: se manca, si sceglie a mano. */
+  clientPhone?: string | null;
+}) {
   const supabase = createClient();
   const toast = useToast();
 
@@ -52,8 +58,18 @@ export function PortalAccess({ clientId, clientName }: { clientId: string; clien
 
   useEffect(() => { fetchUsers(); }, [fetchUsers]);
 
-  const handleCreate = async () => {
+  /**
+   * Crea l'accesso. `viaWhatsApp` non cambia cosa viene creato: cambia solo
+   * come arriva l'invito. L'email parte comunque (e' la ricevuta scritta), ma
+   * se il cliente non la legge il messaggio su WhatsApp lo trova di sicuro.
+   */
+  const handleCreate = async (viaWhatsApp = false) => {
     if (!email.trim()) { toast.error('Serve un indirizzo email'); return; }
+
+    // La finestra va aperta dentro il clic, non dopo la risposta del server:
+    // altrimenti il browser la blocca come popup.
+    const scheda = viaWhatsApp ? window.open('', '_blank') : null;
+
     setSubmitting(true);
     try {
       const res = await fetch('/api/portal/access', {
@@ -63,7 +79,19 @@ export function PortalAccess({ clientId, clientName }: { clientId: string; clien
       });
       const body = await res.json();
 
-      if (!res.ok) { toast.error(body.error || 'Errore nella creazione dell\'accesso'); return; }
+      if (!res.ok) { scheda?.close(); toast.error(body.error || 'Errore nella creazione dell\'accesso'); return; }
+
+      if (viaWhatsApp && body.inviteLink) {
+        const url = linkWhatsApp(testoInvito({ nome: fullName || null, link: body.inviteLink }), clientPhone);
+        if (scheda) scheda.location.href = url;
+        else window.open(url, '_blank');
+        toast.success('Accesso creato: manda il messaggio da WhatsApp');
+        setEmail('');
+        setFullName('');
+        setAdding(false);
+        await fetchUsers();
+        return;
+      }
 
       // L'accesso esiste comunque: se l'email non parte va detto, non nascosto,
       // altrimenti si resta ad aspettare un invito che non arriverà mai.
@@ -95,6 +123,41 @@ export function PortalAccess({ clientId, clientName }: { clientId: string; clien
     }
     toast.success(u.is_active ? 'Accesso revocato' : 'Accesso riattivato');
     await fetchUsers();
+  };
+
+  /**
+   * Invito via WhatsApp.
+   *
+   * L'email spesso non viene letta: qui si apre WhatsApp col messaggio gia'
+   * scritto — dove scaricare l'app e il link per entrare — e a premere invio
+   * e' una persona. Il link viene rigenerato adesso, perche' quello vecchio
+   * probabilmente e' gia' scaduto.
+   *
+   * La finestra si apre PRIMA della chiamata al server: aprirla dopo
+   * significherebbe farlo fuori dal gesto dell'utente, e il browser la
+   * bloccherebbe come popup.
+   */
+  const handleWhatsApp = async (u: PortalUser) => {
+    const scheda = window.open('', '_blank');
+
+    const res = await fetch('/api/portal/access', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: u.id, solo_link: true }),
+    });
+    const body = await res.json().catch(() => ({}));
+
+    if (!res.ok || !body.inviteLink) {
+      scheda?.close();
+      toast.error(body.error || 'Non sono riuscito a generare il link');
+      return;
+    }
+
+    const testo = testoInvito({ nome: u.full_name, link: body.inviteLink });
+    const url = linkWhatsApp(testo, clientPhone);
+
+    if (scheda) scheda.location.href = url;
+    else window.location.href = url;
   };
 
   const handleResend = async (u: PortalUser) => {
@@ -170,8 +233,11 @@ export function PortalAccess({ clientId, clientName }: { clientId: string; clien
               <Button size="sm" variant="outline" onClick={() => { setAdding(false); setEmail(''); setFullName(''); }}>
                 Annulla
               </Button>
-              <Button size="sm" variant="primary" onClick={handleCreate} loading={submitting}>
-                <Mail size={14} /> Crea e invia invito
+              <Button size="sm" variant="outline" onClick={() => handleCreate(false)} loading={submitting}>
+                <Mail size={14} /> Crea e manda per email
+              </Button>
+              <Button size="sm" variant="primary" onClick={() => handleCreate(true)} loading={submitting}>
+                <MessageCircle size={14} /> Crea e apri WhatsApp
               </Button>
             </div>
           </div>
@@ -205,9 +271,19 @@ export function PortalAccess({ clientId, clientName }: { clientId: string; clien
                   <Badge tone={u.is_active ? 'success' : 'neutral'} dot>
                     {u.is_active ? 'Attivo' : 'Revocato'}
                   </Badge>
+                  {u.is_active && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleWhatsApp(u)}
+                      title="Apre WhatsApp col messaggio pronto: link per scaricare l'app e link per entrare"
+                    >
+                      <MessageCircle size={14} /> WhatsApp
+                    </Button>
+                  )}
                   {!u.password_set_at && u.is_active && (
-                    <Button size="sm" variant="outline" onClick={() => handleResend(u)} title="Rimanda il link di primo accesso">
-                      <Send size={14} /> Reinvia
+                    <Button size="sm" variant="outline" onClick={() => handleResend(u)} title="Rimanda il link di primo accesso per email">
+                      <Send size={14} /> Email
                     </Button>
                   )}
                   <Button size="sm" variant="outline" onClick={() => handleToggle(u)}>
