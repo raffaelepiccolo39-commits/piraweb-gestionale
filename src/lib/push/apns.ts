@@ -77,6 +77,28 @@ export async function inviaAdApns(
   if (!apnsConfigurato()) return { ok: false, tokenMorto: false, dettaglio: 'APNs non configurato' };
 
   const host = process.env.APNS_HOST || 'api.push.apple.com';
+  const esito = await inviaAllHost(host, tokenDispositivo, contenuto);
+
+  // Un token di una build installata col cavo (o da Xcode) vive nell'ambiente
+  // di prova di Apple, e in produzione risulta "BadDeviceToken" — che sembra
+  // un token rotto e invece e' solo nell'altra stanza. Si ritenta una volta
+  // di la': cosi' una build di sviluppo riceve le push senza dover cambiare
+  // configurazione al server, che e' la trappola classica di questo impianto.
+  if (!esito.ok && esito.tokenMorto && host === 'api.push.apple.com') {
+    const prova = await inviaAllHost('api.sandbox.push.apple.com', tokenDispositivo, contenuto);
+    if (prova.ok) return prova;
+    // Morto davvero solo se lo dicono entrambi gli ambienti.
+    return { ...esito, tokenMorto: prova.tokenMorto };
+  }
+
+  return esito;
+}
+
+async function inviaAllHost(
+  host: string,
+  tokenDispositivo: string,
+  contenuto: { titolo: string; testo: string; link?: string | null; badge?: number },
+): Promise<EsitoInvio> {
   const sessione = connect(`https://${host}`);
 
   const corpo = JSON.stringify({

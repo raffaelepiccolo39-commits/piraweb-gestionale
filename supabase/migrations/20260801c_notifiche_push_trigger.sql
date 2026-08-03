@@ -10,27 +10,59 @@
 -- di Apple, e se il server delle push e' giu' la notifica in-app viene
 -- scritta lo stesso. Le notifiche sono un avviso, non un pagamento: meglio
 -- perderne una che bloccare l'operazione che l'ha generata.
---
--- PRIMA DI ESEGUIRE, imposta le due impostazioni (una volta sola, sono
--- lette da qui e non compaiono nel codice):
---
---   ALTER DATABASE postgres SET app.push_endpoint = 'https://gestionale.piraweb.it/api/push/send';
---   ALTER DATABASE postgres SET app.push_secret   = '<valore di PUSH_HOOK_SECRET su Vercel>';
---
--- e riapri la connessione (o riavvia il progetto) perche' vengano lette.
 
 CREATE EXTENSION IF NOT EXISTS pg_net;
 
+-- ============================================
+-- Dove tenere endpoint e segreto
+-- ============================================
+-- Non in `ALTER DATABASE ... SET`: nel SQL Editor di Supabase non si e'
+-- superuser e Postgres rifiuta ("permission denied to set parameter").
+-- Non nel corpo della funzione: la definizione di una funzione e' leggibile
+-- e il segreto smetterebbe di essere tale.
+--
+-- Quindi una tabella in uno schema tutto suo: `private` non e' tra gli schemi
+-- che PostgREST espone, percio' non e' raggiungibile dall'app ne' con la
+-- chiave anon ne' da un utente collegato. Ci arriva solo chi gira dentro il
+-- database, cioe' la funzione del trigger.
+
+CREATE SCHEMA IF NOT EXISTS private;
+REVOKE ALL ON SCHEMA private FROM anon, authenticated;
+
+CREATE TABLE IF NOT EXISTS private.app_config (
+  chiave TEXT PRIMARY KEY,
+  valore TEXT NOT NULL,
+  aggiornato_il TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+ALTER TABLE private.app_config ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE private.app_config FROM anon, authenticated;
+
+-- I due valori (l'indirizzo della rotta di invio e il segreto che la protegge)
+-- si scrivono una volta sola. Il segreto e' lo stesso di PUSH_HOOK_SECRET su
+-- Vercel: se un giorno va cambiato, si cambia in tutti e due i posti.
+INSERT INTO private.app_config (chiave, valore) VALUES
+  ('push_endpoint', 'https://gestionale.piraweb.it/api/push/send'),
+  ('push_secret', '<INCOLLA QUI IL VALORE DI PUSH_HOOK_SECRET>')
+ON CONFLICT (chiave) DO UPDATE
+  SET valore = EXCLUDED.valore, aggiornato_il = now();
+
+-- ============================================
+-- Il trigger
+-- ============================================
 CREATE OR REPLACE FUNCTION notifica_push()
 RETURNS TRIGGER
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public, extensions
+SET search_path = public, private, extensions
 AS $$
 DECLARE
-  v_endpoint TEXT := current_setting('app.push_endpoint', true);
-  v_secret   TEXT := current_setting('app.push_secret', true);
+  v_endpoint TEXT;
+  v_secret   TEXT;
 BEGIN
+  SELECT valore INTO v_endpoint FROM private.app_config WHERE chiave = 'push_endpoint';
+  SELECT valore INTO v_secret   FROM private.app_config WHERE chiave = 'push_secret';
+
   -- Impianto non configurato: si esce in silenzio, la notifica in-app resta.
   IF v_endpoint IS NULL OR v_secret IS NULL THEN
     RETURN NEW;
