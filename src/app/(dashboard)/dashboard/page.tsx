@@ -151,25 +151,25 @@ export default function DashboardPage() {
           id, action, entity_type, entity_name, created_at,
           user:profiles!activity_log_user_id_fkey(full_name)
         `).order('created_at', { ascending: false }).limit(10),
-        // 9: unread notifications
+        // 8: unread notifications
         supabase.from('notifications').select('id', { count: 'exact', head: true }).eq('user_id', profile.id).eq('is_read', false),
       ];
 
       // Admin-only queries
       if (isAdmin) {
         queries.push(
-          // 10: team profiles
+          // 9: team profiles
           supabase.from('profiles').select('id, full_name, role').eq('is_active', true),
-          // 11: all tasks for team stats (esclude archived)
+          // 10: all tasks for team stats (esclude archived)
           supabase.from('tasks').select('assigned_to, status').is('archived_at', null).limit(300),
-          // 12: cashflow this month - only active contracts
+          // 11: cashflow this month - only active contracts
           (() => {
             const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
             return supabase.from('client_payments').select('amount, is_paid, contract:client_contracts!client_payments_contract_id_fkey(status)').gte('due_date', `${currentMonth}-01`).lte('due_date', `${currentMonth}-${lastDay}`);
           })(),
-          // 13: team attendance
+          // 12: team attendance
           supabase.rpc('get_team_attendance_today'),
-          // 14: pending time-off requests (per inbox dashboard)
+          // 13: pending time-off requests (per inbox dashboard)
           supabase.from('time_off_requests')
             .select('*, user:profiles!time_off_requests_user_id_fkey(id, full_name, color)')
             .eq('status', 'pending')
@@ -206,12 +206,12 @@ export default function DashboardPage() {
       setAttendance((results[5].data as AttendanceRecord | null));
       setProjectProgress((results[6].data as typeof projectProgress) || []);
       setActivities((results[7].data as typeof activities) || []);
-      setUnreadCount(results[9].count || 0);
+      setUnreadCount(results[8].count || 0);
 
       // Admin data
       if (isAdmin && results.length > 10) {
-        const profiles = (results[10].data as Array<{ id: string; full_name: string; role: string }>) || [];
-        const taskData = (results[11].data as Array<{ assigned_to: string | null; status: string }>) || [];
+        const profiles = (results[9].data as Array<{ id: string; full_name: string; role: string }>) || [];
+        const taskData = (results[10].data as Array<{ assigned_to: string | null; status: string }>) || [];
 
         const tasksByUser = new Map<string, { total: number; completed: number; in_progress: number }>();
         taskData.forEach((t) => {
@@ -227,7 +227,7 @@ export default function DashboardPage() {
           return { id: p.id, full_name: p.full_name, role: p.role, ...s };
         }));
 
-        const allPayments = (results[12].data as Array<{ amount: number; is_paid: boolean; contract: { status: string } | null }>) || [];
+        const allPayments = (results[11].data as Array<{ amount: number; is_paid: boolean; contract: { status: string } | null }>) || [];
         const payments = allPayments.filter((p) => p.contract?.status === 'active');
         setCashflow({
           expected: payments.reduce((sum, p) => sum + Number(p.amount), 0),
@@ -235,8 +235,8 @@ export default function DashboardPage() {
           pending: payments.filter((p) => !p.is_paid).reduce((sum, p) => sum + Number(p.amount), 0),
         });
 
-        setTeamAttendance((results[13].data as typeof teamAttendance) || []);
-        setPendingTimeOff((results[14]?.data as TimeOffRequest[]) || []);
+        setTeamAttendance((results[12].data as typeof teamAttendance) || []);
+        setPendingTimeOff((results[13]?.data as TimeOffRequest[]) || []);
       }
     } catch (err) {
       reportUnknown(err, 'client', { op: 'dashboard-carica' });
