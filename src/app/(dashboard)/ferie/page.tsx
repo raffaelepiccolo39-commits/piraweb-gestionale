@@ -428,7 +428,12 @@ export default function FeriePage() {
             </span>
           </div>
           <Card>
-            <CardContent className="p-0 divide-y divide-pw-border">
+            {/* Cinque colonne a larghezza fissa non entrano in un telefono:
+                sommate fanno piu' di 390px prima ancora dei nomi. Invece di
+                comprimerle fino a renderle illeggibili, la tabella scorre di
+                lato — e sul computer resta identica a prima. */}
+            <CardContent className="p-0 overflow-x-auto">
+             <div className="min-w-[560px] divide-y divide-pw-border">
               <div className="flex items-center gap-4 px-4 py-2 bg-pw-surface-2 text-[11px] uppercase tracking-wide text-pw-text-dim font-medium">
                 <span className="flex-1">Dipendente</span>
                 <span className="w-28">Inizio contratto</span>
@@ -454,6 +459,7 @@ export default function FeriePage() {
                   </div>
                 );
               })}
+             </div>
             </CardContent>
           </Card>
         </div>
