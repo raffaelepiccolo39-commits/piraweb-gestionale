@@ -128,6 +128,9 @@ export type EmployeeContractType = '6_mesi' | '12_mesi' | 'indeterminato';
 export type TimeOffType = 'ferie' | 'permesso' | 'malattia';
 export type TimeOffStatus = 'pending' | 'approved' | 'rejected' | 'cancelled';
 
+/** Serve a sapere se chi prende mezza giornata c'e' la mattina o il pomeriggio. */
+export type MetaGiornata = 'mattina' | 'pomeriggio' | null;
+
 export interface TimeOffRequest {
   id: string;
   user_id: string;
@@ -136,6 +139,9 @@ export interface TimeOffRequest {
   end_date: string;
   start_half: boolean;
   end_half: boolean;
+  /** Quale meta' del giorno, quando e' mezza giornata. Vuoto per lo storico. */
+  start_half_period: MetaGiornata;
+  end_half_period: MetaGiornata;
   total_days: number;
   reason: string | null;
   status: TimeOffStatus;
@@ -166,6 +172,8 @@ export interface TeamAbsence {
   end_date: string;
   start_half: boolean;
   end_half: boolean;
+  start_half_period: MetaGiornata;
+  end_half_period: MetaGiornata;
   total_days: number;
 }
 

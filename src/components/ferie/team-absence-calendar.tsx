@@ -17,6 +17,27 @@ function ymd(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
+/**
+ * Se quel giorno la persona e' via solo mezza giornata, dice quale meta'.
+ *
+ * Serve nel calendario piu' che altrove: e' li' che si guarda per capire chi
+ * c'e' e quando, e "mezza giornata" senza altro obbliga ad aprire la
+ * richiesta per scoprirlo.
+ */
+function mezzaDelGiorno(
+  a: { start_date: string; end_date: string; start_half: boolean; end_half: boolean;
+       start_half_period?: string | null; end_half_period?: string | null },
+  giorno: string,
+): string {
+  if (giorno === a.start_date && a.start_half) {
+    return a.start_half_period ? ` · solo ${a.start_half_period}` : ' · mezza giornata';
+  }
+  if (giorno === a.end_date && a.end_half) {
+    return a.end_half_period ? ` · solo ${a.end_half_period}` : ' · mezza giornata';
+  }
+  return '';
+}
+
 export function TeamAbsenceCalendar() {
   const supabase = createClient();
   const today = new Date();
@@ -113,7 +134,7 @@ export function TeamAbsenceCalendar() {
                     return (
                       <div
                         key={a.request_id}
-                        title={`${a.full_name} · ${TIME_OFF_TYPE_LABELS[a.type]}`}
+                        title={`${a.full_name} · ${TIME_OFF_TYPE_LABELS[a.type]}${mezzaDelGiorno(a, key)}`}
                         className="flex items-center gap-1 rounded px-1 py-0.5 min-w-0"
                         style={{ backgroundColor: (a.color || '#0A263A') + '22' }}
                       >

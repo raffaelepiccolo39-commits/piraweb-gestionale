@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { formatDate } from '@/lib/utils';
+import { dateRangeLabel } from '@/lib/time-off';
 import { TIME_OFF_TYPE_LABELS } from '@/lib/constants';
 import { reportSupabaseError } from '@/lib/report-error';
 import type { TimeOffRequest } from '@/types/database';
@@ -8,6 +8,12 @@ type Decision = 'approved' | 'rejected';
 
 type ReqInput = Pick<TimeOffRequest, 'user_id' | 'type' | 'start_date' | 'end_date'> & {
   user?: { full_name?: string } | null;
+  // Facoltativi: le richieste vecchie non li hanno, e la notifica deve
+  // funzionare lo stesso.
+  start_half?: boolean;
+  end_half?: boolean;
+  start_half_period?: 'mattina' | 'pomeriggio' | null;
+  end_half_period?: 'mattina' | 'pomeriggio' | null;
 };
 
 /**
@@ -24,10 +30,16 @@ export async function notifyTimeOffDecision(
   reviewNote?: string | null,
   adminId?: string,
 ) {
-  const range =
-    req.start_date === req.end_date
-      ? formatDate(req.start_date)
-      : `${formatDate(req.start_date)} → ${formatDate(req.end_date)}`;
+  // Stessa etichetta dell'elenco, cosi' la notifica dice anche QUALE meta'
+  // della giornata: "mezza giornata" da sola obbliga a chiedere.
+  const range = dateRangeLabel({
+    start_date: req.start_date,
+    end_date: req.end_date,
+    start_half: req.start_half ?? false,
+    end_half: req.end_half ?? false,
+    start_half_period: req.start_half_period ?? null,
+    end_half_period: req.end_half_period ?? null,
+  });
   const title = decision === 'approved' ? 'Richiesta ferie approvata' : 'Richiesta ferie rifiutata';
   const note = reviewNote?.trim();
   const message = `${TIME_OFF_TYPE_LABELS[req.type]} · ${range}${

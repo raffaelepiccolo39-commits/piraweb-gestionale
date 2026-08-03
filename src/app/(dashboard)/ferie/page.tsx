@@ -61,6 +61,12 @@ function computeTotalDays(start: string, end: string, startHalf: boolean, endHal
   return Math.max(0, days);
 }
 
+/** Le due meta' di una giornata: non ne esistono altre. */
+const PERIODI_MEZZA_GIORNATA = [
+  { value: 'mattina', label: 'La mattina' },
+  { value: 'pomeriggio', label: 'Il pomeriggio' },
+];
+
 export default function FeriePage() {
   const { profile } = useAuth();
   const supabase = createClient();
@@ -92,6 +98,10 @@ export default function FeriePage() {
     end_date: todayLocal(),
     start_half: false,
     end_half: false,
+    // Quale meta' del giorno: chi organizza il lavoro deve saperlo senza
+    // doverlo chiedere. Predefinito mattina, che e' il caso piu' comune.
+    start_half_period: 'mattina' as 'mattina' | 'pomeriggio',
+    end_half_period: 'mattina' as 'mattina' | 'pomeriggio',
     reason: '',
   });
   // Admin: collaboratore per cui si registra l'assenza ('' = nessuno selezionato)
@@ -173,7 +183,8 @@ export default function FeriePage() {
 
   const resetForm = () => {
     setForm({
-      type: 'ferie', start_date: todayLocal(), end_date: todayLocal(), start_half: false, end_half: false, reason: '',
+      type: 'ferie', start_date: todayLocal(), end_date: todayLocal(), start_half: false, end_half: false,
+      start_half_period: 'mattina', end_half_period: 'mattina', reason: '',
     });
     setTargetUserId('');
   };
@@ -212,6 +223,8 @@ export default function FeriePage() {
         end_date: form.end_date,
         start_half: form.start_half,
         end_half: sameDay ? false : form.end_half,
+        start_half_period: form.start_half ? form.start_half_period : null,
+        end_half_period: (!sameDay && form.end_half) ? form.end_half_period : null,
         total_days: formTotal,
         reason: form.reason.trim() || null,
       });
@@ -620,11 +633,42 @@ export default function FeriePage() {
                 <input type="checkbox" checked={form.start_half} onChange={(e) => setForm(f => ({ ...f, start_half: e.target.checked }))} className="accent-pw-accent" />
                 Primo giorno a mezza giornata
               </label>
+              {form.start_half && (
+                <Select
+                  id="start-half-period"
+                  label="Il primo giorno sei assente"
+                  value={form.start_half_period}
+                  onChange={(e) => setForm(f => ({ ...f, start_half_period: e.target.value as 'mattina' | 'pomeriggio' }))}
+                  options={PERIODI_MEZZA_GIORNATA}
+                />
+              )}
               <label className="flex items-center gap-2 text-sm text-pw-text cursor-pointer">
                 <input type="checkbox" checked={form.end_half} onChange={(e) => setForm(f => ({ ...f, end_half: e.target.checked }))} className="accent-pw-accent" />
                 Ultimo giorno a mezza giornata
               </label>
+              {form.end_half && (
+                <Select
+                  id="end-half-period"
+                  label="L'ultimo giorno sei assente"
+                  value={form.end_half_period}
+                  onChange={(e) => setForm(f => ({ ...f, end_half_period: e.target.value as 'mattina' | 'pomeriggio' }))}
+                  options={PERIODI_MEZZA_GIORNATA}
+                />
+              )}
             </div>
+          )}
+
+          {/* Giorno singolo a mezza giornata: quale meta'. Senza, chi deve
+              organizzare il lavoro non sa se la persona c'e' la mattina o il
+              pomeriggio, e finisce per chiederlo a voce. */}
+          {sameDay && form.start_half && (
+            <Select
+              id="half-period"
+              label="Sei assente"
+              value={form.start_half_period}
+              onChange={(e) => setForm(f => ({ ...f, start_half_period: e.target.value as 'mattina' | 'pomeriggio' }))}
+              options={PERIODI_MEZZA_GIORNATA}
+            />
           )}
 
           <div>
