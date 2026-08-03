@@ -218,5 +218,69 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true });
   }
 
+  if (action === 'delete_member') {
+    /**
+     * Eliminazione definitiva.
+     *
+     * Esiste perche' restavano in giro account che nessuno poteva togliere:
+     * due profili di prova creati da un test automatico il 22 luglio si
+     * potevano solo disattivare, e continuavano a comparire negli elenchi.
+     *
+     * Ma cancellare una persona che ha lavorato significa cancellare la sua
+     * storia: task, presenze, ore, compensi. Quello non e' un ripulire, e'
+     * un buco nei dati — per chi ha lavorato c'e' la cessazione, che chiude
+     * l'accesso e conserva tutto. Qui si elimina solo chi non ha mai fatto
+     * niente, e se ha fatto qualcosa lo si dice invece di rifiutare in
+     * silenzio.
+     */
+    if (targetUserId === user.id) {
+      return NextResponse.json({ error: 'Non puoi eliminare te stesso' }, { status: 400 });
+    }
+
+    const tracce: Array<{ tabella: string; colonna: string; etichetta: string }> = [
+      { tabella: 'tasks', colonna: 'assigned_to', etichetta: 'task assegnate' },
+      { tabella: 'tasks', colonna: 'created_by', etichetta: 'task create' },
+      { tabella: 'attendance_records', colonna: 'user_id', etichetta: 'timbrature' },
+      { tabella: 'time_off_requests', colonna: 'user_id', etichetta: 'richieste di ferie' },
+      { tabella: 'employee_compensation', colonna: 'user_id', etichetta: 'compensi' },
+      { tabella: 'chat_messages', colonna: 'user_id', etichetta: 'messaggi in chat' },
+    ];
+
+    const trovate: string[] = [];
+    for (const t of tracce) {
+      const { count } = await serviceClient
+        .from(t.tabella)
+        .select('id', { count: 'exact', head: true })
+        .eq(t.colonna, targetUserId);
+      if ((count ?? 0) > 0) trovate.push(`${count} ${t.etichetta}`);
+    }
+
+    if (trovate.length > 0) {
+      return NextResponse.json({
+        error: `Questa persona ha lasciato del lavoro nel gestionale (${trovate.join(', ')}). Eliminarla cancellerebbe anche quello: usa "Termina rapporto", che chiude l'accesso e conserva la storia.`,
+      }, { status: 409 });
+    }
+
+    // Niente da conservare: via l'accesso, e il profilo se ne va con lui.
+    const { error: delError } = await serviceClient.auth.admin.deleteUser(targetUserId);
+    if (delError) {
+      await logError({ error: delError, route: '/api/admin/update-member', source: 'api', context: { op: 'delete-member' } });
+      return NextResponse.json({ error: `Errore nell'eliminazione: ${delError.message}` }, { status: 500 });
+    }
+
+    await serviceClient.from('profiles').delete().eq('id', targetUserId);
+
+    await logAudit({
+      action: 'user.deleted',
+      actorId: user.id,
+      actorEmail: user.email,
+      entityType: 'profile',
+      entityId: targetUserId,
+      request,
+    });
+
+    return NextResponse.json({ success: true });
+  }
+
   return NextResponse.json({ error: 'Azione non valida' }, { status: 400 });
 }

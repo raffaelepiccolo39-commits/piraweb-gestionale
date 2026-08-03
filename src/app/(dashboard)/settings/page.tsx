@@ -15,7 +15,7 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { getRoleLabel, getRoleTone, getInitials, formatCurrency, todayLocal } from '@/lib/utils';
 import type { Profile, UserRole } from '@/types/database';
 import { OfficeLocationSettings } from '@/components/settings/office-location';
-import { Settings, Users, Shield, ShieldCheck, ShieldOff, Save, UserPlus, Eye, EyeOff, Pencil, Lock, ArrowRightLeft, AlertTriangle, Loader2, Copy, Check, UserX, UserCheck } from 'lucide-react';
+import { Settings, Users, Shield, ShieldCheck, ShieldOff, Save, UserPlus, Eye, EyeOff, Pencil, Lock, ArrowRightLeft, AlertTriangle, Loader2, Copy, Check, UserX, UserCheck, Trash2 } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
 import { SkeletonStats, SkeletonList } from '@/components/ui/skeleton';
 import { reportUnknown, reportSupabaseError } from '@/lib/report-error';
@@ -403,6 +403,37 @@ export default function SettingsPage() {
       toast.success('Membro licenziato: accesso bloccato e task liberate');
     } catch (err) {
       reportUnknown(err, 'client', { op: 'settings-terminate-member' });
+      toast.error('Errore di connessione');
+      return;
+    }
+    fetchTeam();
+  };
+
+  /**
+   * Eliminazione definitiva, per gli account che non hanno mai lavorato.
+   *
+   * Serve perche' restavano in giro profili che nessuno poteva togliere: due
+   * account di prova creati da un test automatico si potevano solo
+   * disattivare, e continuavano a comparire negli elenchi. Se invece la
+   * persona ha lasciato del lavoro, il server rifiuta e spiega perche': in
+   * quel caso si usa "Licenzia", che chiude l'accesso e conserva la storia.
+   */
+  const handleDeleteMember = async (userId: string, nome: string) => {
+    if (!window.confirm(`Eliminare definitivamente ${nome}? L'operazione non si puo' annullare.`)) return;
+    try {
+      const res = await fetch('/api/admin/update-member', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'delete_member', user_id: userId }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error || 'Errore durante l\'eliminazione');
+        return;
+      }
+      toast.success('Account eliminato');
+    } catch (err) {
+      reportUnknown(err, 'client', { op: 'settings-delete-member' });
       toast.error('Errore di connessione');
       return;
     }
@@ -902,6 +933,16 @@ export default function SettingsPage() {
                           >
                             <UserX size={13} />
                             Licenzia
+                          </button>
+                        )}
+                        {member.id !== profile.id && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleDeleteMember(member.id, member.full_name); }}
+                            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-pw-text-dim hover:bg-red-500/10 hover:text-red-400 transition-colors"
+                            title="Elimina definitivamente: possibile solo se non ha mai lavorato nel gestionale"
+                          >
+                            <Trash2 size={13} />
+                            Elimina
                           </button>
                         )}
                       </>
