@@ -25,9 +25,12 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  experimental: {
-    optimizeCss: true,
-  },
+  // `experimental.optimizeCss` e' stato tolto: pretende il pacchetto
+  // `critters`, che qui non c'e' mai stato. In sviluppo faceva fallire la
+  // pagina di errore ("Cannot find module 'critters'"), e quei fallimenti
+  // erano l'unica cosa che sporcava il registro — 40 righe in due minuti il
+  // 29 luglio. In produzione non stava ottimizzando nulla: senza il pacchetto
+  // non poteva farlo. Meglio niente che una promessa che non viene mantenuta.
   headers: isApp ? undefined : async () => [
     {
       source: '/(.*)',
