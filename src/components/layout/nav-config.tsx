@@ -12,6 +12,7 @@ import {
   MessageSquareWarning,
   Sparkles,
   Users,
+  KeyRound,
   Briefcase,
   Globe,
   HandCoins,
@@ -72,6 +73,8 @@ export const navSections: NavSection[] = [
     label: 'Business',
     items: [
       { label: 'Clienti', href: '/clients', icon: Users },
+      // Non adminOnly: il team vede le credenziali (scelta del 2026-08-03).
+      { label: 'Accessi', href: '/accessi', icon: KeyRound },
       { label: 'CRM', href: '/crm', icon: Briefcase, adminOnly: true },
       { label: 'Gestione Siti', href: '/gestione-siti', icon: Globe, adminOnly: true },
       { label: 'Crediti', href: '/crediti', icon: HandCoins, adminOnly: true },

@@ -22,6 +22,35 @@ export function isPackagedApp(): boolean {
   return p === 'capacitor:' || p === 'file:' || p === 'ionic:';
 }
 
+/**
+ * Il token della sessione, letto dove Supabase lo ha scritto.
+ *
+ * Nel pacchetto la sessione sta in localStorage (sullo schema
+ * `capacitor://` i cookie non sopravvivono), quindi ogni chiamata a /api
+ * arriverebbe al server senza credenziali — e il server risponderebbe 401.
+ * Qui si recupera il token per poterlo mettere nell'intestazione.
+ */
+function tokenSessione(): string | null {
+  try {
+    const grezzo = window.localStorage.getItem('pw-sessione');
+    if (!grezzo) return null;
+
+    const barattolo = JSON.parse(grezzo) as Record<string, string>;
+    const pezzi = Object.keys(barattolo).filter((k) => k.includes('auth-token')).sort();
+    if (pezzi.length === 0) return null;
+
+    let valore = pezzi.map((k) => barattolo[k]).join('');
+    if (valore.startsWith('base64-')) {
+      valore = atob(valore.slice(7).replace(/-/g, '+').replace(/_/g, '/'));
+    }
+
+    const sessione = JSON.parse(valore) as { access_token?: string };
+    return sessione.access_token ?? null;
+  } catch {
+    return null;
+  }
+}
+
 let installed = false;
 
 export function installApiOriginPatch(): void {
@@ -42,7 +71,15 @@ export function installApiOriginPatch(): void {
 
     if (url.startsWith('/api/')) {
       url = origin.replace(/\/$/, '') + url;
-      return nativeFetch(url, { ...init, credentials: 'include' });
+
+      // Il cookie non c'e' e non ci sara': si manda il token. Senza questo
+      // ogni rotta protetta risponde 401 e nell'app le funzioni che passano
+      // dal server sembrano semplicemente non funzionare.
+      const token = tokenSessione();
+      const headers = new Headers(init?.headers || (typeof input === 'object' && 'headers' in input ? input.headers : undefined));
+      if (token && !headers.has('Authorization')) headers.set('Authorization', `Bearer ${token}`);
+
+      return nativeFetch(url, { ...init, headers, credentials: 'include' });
     }
     return nativeFetch(input as RequestInfo, init);
   };

@@ -21,7 +21,14 @@ export type AuditAction =
   | 'portal_access.created'
   | 'portal_access.revoked'
   | 'portal_access.restored'
-  | 'export.downloaded';
+  | 'export.downloaded'
+  // Archivio accessi: chi legge una password lascia una traccia. Non e'
+  // sfiducia verso il team — e' che il giorno in cui una credenziale gira
+  // dove non doveva, si vuole sapere quando e' stata letta l'ultima volta.
+  | 'credenziale.letta'
+  | 'credenziale.creata'
+  | 'credenziale.modificata'
+  | 'credenziale.eliminata';
 
 export interface AuditEntry {
   action: AuditAction;

@@ -1,13 +1,15 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import type { ClientOnboarding, ClientSocialCredentials } from '@/types/database';
+import type { ClientOnboarding } from '@/types/database';
 import {
   ClipboardCheck,
   Check,
+  KeyRound,
   Eye,
   EyeOff,
   Save,
@@ -71,37 +73,15 @@ function CollapsibleCard({
 export function OnboardingSection({ clientId }: OnboardingSectionProps) {
   const supabase = createClient();
   const [onboarding, setOnboarding] = useState<ClientOnboarding | null>(null);
-  const [credentials, setCredentials] = useState<ClientSocialCredentials | null>(null);
-  const [showPasswords, setShowPasswords] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [credForm, setCredForm] = useState({
-    instagram_username: '', instagram_password: '',
-    facebook_username: '', facebook_password: '',
-    tiktok_username: '', tiktok_password: '',
-  });
 
   useEffect(() => {
     fetchData();
   }, [clientId]);
 
   const fetchData = async () => {
-    const [obRes, credRes] = await Promise.all([
-      supabase.from('client_onboarding').select('*').eq('client_id', clientId).maybeSingle(),
-      supabase.from('client_social_credentials').select('*').eq('client_id', clientId).maybeSingle(),
-    ]);
+    const obRes = await supabase.from('client_onboarding').select('*').eq('client_id', clientId).maybeSingle();
     setOnboarding(obRes.data as ClientOnboarding | null);
-    const cred = credRes.data as ClientSocialCredentials | null;
-    setCredentials(cred);
-    if (cred) {
-      setCredForm({
-        instagram_username: cred.instagram_username || '',
-        instagram_password: cred.instagram_password || '',
-        facebook_username: cred.facebook_username || '',
-        facebook_password: cred.facebook_password || '',
-        tiktok_username: cred.tiktok_username || '',
-        tiktok_password: cred.tiktok_password || '',
-      });
-    }
   };
 
   const toggleCheck = async (key: keyof ClientOnboarding) => {
@@ -116,26 +96,6 @@ export function OnboardingSection({ clientId }: OnboardingSectionProps) {
     fetchData();
   };
 
-  const handleSaveCredentials = async () => {
-    setSaving(true);
-    const data = {
-      client_id: clientId,
-      instagram_username: credForm.instagram_username || null,
-      instagram_password: credForm.instagram_password || null,
-      facebook_username: credForm.facebook_username || null,
-      facebook_password: credForm.facebook_password || null,
-      tiktok_username: credForm.tiktok_username || null,
-      tiktok_password: credForm.tiktok_password || null,
-    };
-
-    if (credentials) {
-      await supabase.from('client_social_credentials').update(data).eq('id', credentials.id);
-    } else {
-      await supabase.from('client_social_credentials').insert(data);
-    }
-    setSaving(false);
-    fetchData();
-  };
 
   const completedCount = CHECKLIST_ITEMS.filter((item) => onboarding?.[item.key] as boolean).length;
   const progressPct = Math.round((completedCount / CHECKLIST_ITEMS.length) * 100);
@@ -183,96 +143,25 @@ export function OnboardingSection({ clientId }: OnboardingSectionProps) {
         </div>
       </CollapsibleCard>
 
-      {/* Social credentials */}
-      <CollapsibleCard
-        title="Credenziali Social"
-        icon={Share2}
-        headerRight={
-          <button
-            onClick={() => setShowPasswords(!showPasswords)}
-            className="p-2 rounded-lg text-pw-text-muted hover:text-pw-text hover:bg-pw-surface-2 transition-colors"
-            aria-label={showPasswords ? 'Nascondi password' : 'Mostra password'}
-          >
-            {showPasswords ? <EyeOff size={16} /> : <Eye size={16} />}
-          </button>
-        }
-      >
-        <div className="space-y-4">
-          {/* Instagram */}
-          <div>
-            <label className="flex items-center gap-2 text-[11px] uppercase tracking-[0.08em] font-medium text-pw-text-muted mb-2">
-              <div className="w-4 h-4 rounded bg-gradient-to-tr from-yellow-500 via-pink-500 to-purple-500" />
-              Instagram
-            </label>
-            <div className="grid grid-cols-2 gap-3">
-              <input
-                value={credForm.instagram_username}
-                onChange={(e) => setCredForm({ ...credForm, instagram_username: e.target.value })}
-                placeholder="Username"
-                className="px-3 py-2 rounded-xl border border-pw-border bg-pw-surface-2 text-pw-text placeholder:text-pw-text-dim text-sm outline-none focus:ring-2 focus:ring-pw-accent/30"
-              />
-              <input
-                type={showPasswords ? 'text' : 'password'}
-                value={credForm.instagram_password}
-                onChange={(e) => setCredForm({ ...credForm, instagram_password: e.target.value })}
-                placeholder="Password"
-                className="px-3 py-2 rounded-xl border border-pw-border bg-pw-surface-2 text-pw-text placeholder:text-pw-text-dim text-sm outline-none focus:ring-2 focus:ring-pw-accent/30"
-              />
-            </div>
+      {/* Le credenziali stavano qui, in chiaro e solo per tre social. Ora
+          vivono nella sezione Accessi: cifrate, per qualsiasi piattaforma e
+          con la traccia di chi le legge. Qui resta il rimando, perche' e'
+          durante l'onboarding che si raccolgono. */}
+      <Card>
+        <CardContent className="flex flex-wrap items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-pw-text">Credenziali del cliente</p>
+            <p className="text-xs text-pw-text-muted mt-0.5">
+              Sito, Instagram, Facebook, TikTok, LinkedIn — si archiviano nella sezione Accessi.
+            </p>
           </div>
-
-          {/* Facebook */}
-          <div>
-            <label className="flex items-center gap-2 text-[11px] uppercase tracking-[0.08em] font-medium text-pw-text-muted mb-2">
-              <div className="w-4 h-4 rounded bg-blue-600" />
-              Facebook
-            </label>
-            <div className="grid grid-cols-2 gap-3">
-              <input
-                value={credForm.facebook_username}
-                onChange={(e) => setCredForm({ ...credForm, facebook_username: e.target.value })}
-                placeholder="Username / Email"
-                className="px-3 py-2 rounded-xl border border-pw-border bg-pw-surface-2 text-pw-text placeholder:text-pw-text-dim text-sm outline-none focus:ring-2 focus:ring-pw-accent/30"
-              />
-              <input
-                type={showPasswords ? 'text' : 'password'}
-                value={credForm.facebook_password}
-                onChange={(e) => setCredForm({ ...credForm, facebook_password: e.target.value })}
-                placeholder="Password"
-                className="px-3 py-2 rounded-xl border border-pw-border bg-pw-surface-2 text-pw-text placeholder:text-pw-text-dim text-sm outline-none focus:ring-2 focus:ring-pw-accent/30"
-              />
-            </div>
-          </div>
-
-          {/* TikTok */}
-          <div>
-            <label className="flex items-center gap-2 text-[11px] uppercase tracking-[0.08em] font-medium text-pw-text-muted mb-2">
-              <div className="w-4 h-4 rounded bg-black border border-pw-border" />
-              TikTok
-            </label>
-            <div className="grid grid-cols-2 gap-3">
-              <input
-                value={credForm.tiktok_username}
-                onChange={(e) => setCredForm({ ...credForm, tiktok_username: e.target.value })}
-                placeholder="Username"
-                className="px-3 py-2 rounded-xl border border-pw-border bg-pw-surface-2 text-pw-text placeholder:text-pw-text-dim text-sm outline-none focus:ring-2 focus:ring-pw-accent/30"
-              />
-              <input
-                type={showPasswords ? 'text' : 'password'}
-                value={credForm.tiktok_password}
-                onChange={(e) => setCredForm({ ...credForm, tiktok_password: e.target.value })}
-                placeholder="Password"
-                className="px-3 py-2 rounded-xl border border-pw-border bg-pw-surface-2 text-pw-text placeholder:text-pw-text-dim text-sm outline-none focus:ring-2 focus:ring-pw-accent/30"
-              />
-            </div>
-          </div>
-
-          <Button onClick={handleSaveCredentials} loading={saving}>
-            <Save size={14} />
-            Salva Credenziali
-          </Button>
-        </div>
-      </CollapsibleCard>
+          <Link href={`/accessi?cliente=${clientId}`}>
+            <Button variant="outline" size="sm">
+              <KeyRound size={14} /> Vai agli Accessi
+            </Button>
+          </Link>
+        </CardContent>
+      </Card>
     </div>
   );
 }
