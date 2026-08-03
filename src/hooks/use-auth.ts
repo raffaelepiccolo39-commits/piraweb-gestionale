@@ -93,6 +93,20 @@ export function useAuth() {
           return;
         }
 
+        /**
+         * Account senza invito. Non e' un errore del gestionale: e' la
+         * difesa che funziona (chiunque avesse un account, aprendo la
+         * dashboard, si creava un profilo del team). Lo si riporta al login
+         * con scritto perche', invece di lasciarlo davanti a un messaggio
+         * generico sulla connessione, che manderebbe a cercare un guasto che
+         * non c'e'.
+         */
+        if (rpcError?.code === 'P0002') {
+          await supabase.auth.signOut();
+          router.replace(`/login?error=${encodeURIComponent(rpcError.message)}`);
+          return;
+        }
+
         if (rpcError) reportSupabaseError(rpcError, 'use-auth-ensure-profile');
         if (!rpcError && synced) {
           setProfile(synced as Profile);

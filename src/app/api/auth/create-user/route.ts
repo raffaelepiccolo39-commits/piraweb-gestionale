@@ -50,6 +50,10 @@ export async function POST(request: NextRequest) {
     email,
     password: placeholderPassword,
     email_confirm: true,
+    // La traccia dell'invito. `ensure_my_profile` guarda qui per distinguere
+    // un dipendente da uno sconosciuto che apre la dashboard: prima non lo
+    // distingueva, e creava un profilo del team a chiunque avesse un account.
+    user_metadata: { full_name, invitato: true },
   });
 
   if (authError) {

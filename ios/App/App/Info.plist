@@ -4,8 +4,15 @@
 <dict>
 	<key>CAPACITOR_DEBUG</key>
 	<string>$(CAPACITOR_DEBUG)</string>
+	<!-- L'app e' interamente in italiano: dichiararla 'en' faceva scrivere
+	     "Lingue: Inglese" sulla scheda dell'App Store, e iOS la trattava come
+	     un'app inglese quando sceglieva la lingua da mostrare. -->
 	<key>CFBundleDevelopmentRegion</key>
-	<string>en</string>
+	<string>it</string>
+	<key>CFBundleLocalizations</key>
+	<array>
+		<string>it</string>
+	</array>
 	<key>CFBundleDisplayName</key>
 	<string>Pira Web</string>
 	<key>CFBundleExecutable</key>
