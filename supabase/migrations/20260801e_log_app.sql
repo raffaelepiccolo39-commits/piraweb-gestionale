@@ -34,20 +34,26 @@ SELECT
   (array_agg(context ORDER BY created_at DESC))[1]      AS context,
   (array_agg(build_id ORDER BY created_at DESC))[1]     AS build_id,
   (array_agg(user_email ORDER BY created_at DESC))[1]   AS last_user_email,
-  -- L'ultima piattaforma vista e l'ultima versione: bastano a dire "questo
-  -- succede su iOS" senza aprire il dettaglio.
-  (array_agg(platform ORDER BY created_at DESC))[1]     AS platform,
-  (array_agg(app_version ORDER BY created_at DESC))[1]  AS app_version,
-  -- Su quante piattaforme diverse si e' visto: 1 = problema di quel telefono,
-  -- 2+ = problema del gestionale che si vede anche altrove.
-  count(DISTINCT platform)                              AS piattaforme,
   count(*)                                              AS occurrences,
   count(DISTINCT user_id)                               AS users_affected,
   min(created_at)                                       AS first_seen,
   max(created_at)                                       AS last_seen,
   -- Il gruppo è "risolto" solo se ogni occorrenza lo è: se ricompare dopo il
   -- fix, la nuova riga ha resolved_at NULL e il gruppo torna aperto da solo.
-  bool_and(resolved_at IS NOT NULL)                     AS resolved
+  bool_and(resolved_at IS NOT NULL)                     AS resolved,
+  -- Le tre colonne nuove vanno IN FONDO: CREATE OR REPLACE VIEW non sa
+  -- infilare colonne in mezzo a quelle esistenti (prova a rinominare la
+  -- prima che trova e si ferma con un 42P16). Aggiungerle qui evita di
+  -- dover cancellare e ricreare la vista, che vorrebbe dire perdere i
+  -- permessi concessi.
+  --
+  -- L'ultima piattaforma vista e l'ultima versione: bastano a dire "questo
+  -- succede su iPhone" senza aprire il dettaglio.
+  (array_agg(platform ORDER BY created_at DESC))[1]     AS platform,
+  (array_agg(app_version ORDER BY created_at DESC))[1]  AS app_version,
+  -- Su quante piattaforme diverse si e' visto: 1 = problema di quel telefono,
+  -- 2+ = problema del gestionale, che si vede anche altrove.
+  count(DISTINCT platform)                              AS piattaforme
 FROM error_logs
 GROUP BY fingerprint;
 
