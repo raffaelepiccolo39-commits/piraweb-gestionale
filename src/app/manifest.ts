@@ -12,7 +12,7 @@ export default function manifest(): MetadataRoute.Manifest {
     description: 'Gestionale interno PiraWeb - Gestione clienti, progetti e team',
     start_url: '/dashboard',
     // Scope su tutta l'app: la PWA installata deve considerare "dentro l'app"
-    // ogni pagina (/tasks, /clienti, /chat…), non solo /dashboard. Con scope
+    // ogni pagina (/tasks, /clienti, /calendario…), non solo /dashboard. Con scope
     // ristretto le scorciatoie fuori-scope venivano ignorate dal browser
     // (warning "property 'url' ignored / not present" nel manifest).
     scope: '/',
@@ -34,10 +34,6 @@ export default function manifest(): MetadataRoute.Manifest {
       {
         name: 'Task',
         url: '/tasks',
-      },
-      {
-        name: 'Chat',
-        url: '/chat',
       },
     ],
   };

@@ -40,20 +40,14 @@ export function Sidebar({ collapsed, onToggle, onNavigate }: SidebarProps) {
 
     const fetchBadges = async () => {
       const counts: Record<string, number> = {};
-      const [tasksRes, chatRes] = await Promise.all([
+      const [tasksRes] = await Promise.all([
         supabase
           .from('task_assignees')
           .select('task_id, tasks!inner(status)', { count: 'exact', head: true })
           .eq('user_id', userId)
           .in('tasks.status', ['todo', 'in_progress']),
-        supabase
-          .from('chat_messages')
-          .select('id', { count: 'exact', head: true })
-          .neq('sender_id', userId)
-          .gt('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()),
       ]);
       if (tasksRes.count) counts.tasks = tasksRes.count;
-      if (chatRes.count) counts.chat = chatRes.count;
       setBadges(counts);
     };
 
@@ -71,7 +65,6 @@ export function Sidebar({ collapsed, onToggle, onNavigate }: SidebarProps) {
       channel = supabase
         .channel('sidebar-badges')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, fetchBadges)
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages' }, fetchBadges)
         .subscribe();
     } catch {
       // realtime non disponibile: i badge non si aggiornano live, ma l'app resta viva

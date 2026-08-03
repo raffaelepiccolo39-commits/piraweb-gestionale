@@ -243,7 +243,6 @@ export async function POST(request: NextRequest) {
       { tabella: 'attendance_records', colonna: 'user_id', etichetta: 'timbrature' },
       { tabella: 'time_off_requests', colonna: 'user_id', etichetta: 'richieste di ferie' },
       { tabella: 'employee_compensation', colonna: 'user_id', etichetta: 'compensi' },
-      { tabella: 'chat_messages', colonna: 'user_id', etichetta: 'messaggi in chat' },
     ];
 
     const trovate: string[] = [];

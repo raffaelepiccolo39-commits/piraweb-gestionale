@@ -84,11 +84,6 @@ export default function DashboardPage() {
     id: string; action: string; entity_type: string; entity_name: string | null;
     created_at: string; user: { full_name: string } | null;
   }>>([]);
-  const [recentMessages, setRecentMessages] = useState<Array<{
-    id: string; content: string; created_at: string;
-    sender: { full_name: string } | null;
-    channel: { name: string } | null;
-  }>>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [teamAttendance, setTeamAttendance] = useState<Array<{
     user_id: string; full_name: string; status: string;
@@ -156,12 +151,6 @@ export default function DashboardPage() {
           id, action, entity_type, entity_name, created_at,
           user:profiles!activity_log_user_id_fkey(full_name)
         `).order('created_at', { ascending: false }).limit(10),
-        // 8: recent messages
-        supabase.from('chat_messages').select(`
-          id, content, created_at,
-          sender:profiles!chat_messages_sender_id_fkey(full_name),
-          channel:chat_channels!chat_messages_channel_id_fkey(name)
-        `).neq('sender_id', profile.id).order('created_at', { ascending: false }).limit(3),
         // 9: unread notifications
         supabase.from('notifications').select('id', { count: 'exact', head: true }).eq('user_id', profile.id).eq('is_read', false),
       ];
@@ -217,7 +206,6 @@ export default function DashboardPage() {
       setAttendance((results[5].data as AttendanceRecord | null));
       setProjectProgress((results[6].data as typeof projectProgress) || []);
       setActivities((results[7].data as typeof activities) || []);
-      setRecentMessages((results[8].data as typeof recentMessages) || []);
       setUnreadCount(results[9].count || 0);
 
       // Admin data
@@ -298,7 +286,6 @@ export default function DashboardPage() {
       .channel('dashboard-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'client_payments' }, debouncedFetch)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, debouncedFetch)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages' }, debouncedFetch)
       .subscribe();
 
     return () => {
