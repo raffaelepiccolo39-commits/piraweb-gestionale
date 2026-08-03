@@ -267,6 +267,11 @@ function ClientDetailPageInner() {
         duration_months: data.no_contract ? 0 : data.duration_months,
         start_date: data.start_date,
         payment_timing: data.payment_timing,
+        payment_day: data.payment_day,
+        tipo_contratto: data.tipo_contratto,
+        importo_totale: data.importo_totale,
+        acconto: data.acconto,
+        data_saldo: data.data_saldo,
         attachment_url: attachmentUrl,
         attachment_name: attachmentName,
         notes: data.notes || null,
@@ -314,6 +319,7 @@ function ClientDetailPageInner() {
       p_duration_months: data.duration_months,
       p_start_date: data.start_date,
       p_payment_timing: data.payment_timing,
+      p_payment_day: data.payment_day,
       p_attachment_url: attachmentUrl,
       p_attachment_name: attachmentName,
       p_notes: data.notes || null,
@@ -631,7 +637,35 @@ function ClientDetailPageInner() {
                   </Button>
                 }
               >
-                  {contract.duration_months === 0 ? (
+                  {contract.tipo_contratto === 'progetto' ? (
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                      <div>
+                        <p className="text-pw-text-muted">Importo totale</p>
+                        <p className="font-semibold text-pw-accent text-lg">
+                          {formatCurrency(Number(contract.importo_totale || 0))}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-pw-text-muted">Acconto</p>
+                        <p className="font-semibold text-pw-text text-lg">
+                          {contract.acconto ? formatCurrency(Number(contract.acconto)) : '—'}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-pw-text-muted">Saldo</p>
+                        <p className="font-semibold text-pw-text text-lg">
+                          {formatCurrency(Number(contract.importo_totale || 0) - Number(contract.acconto || 0))}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-pw-text-muted">Date</p>
+                        <p className="font-semibold text-pw-text">
+                          {formatDate(contract.start_date)}
+                          {contract.data_saldo && <> → {formatDate(contract.data_saldo)}</>}
+                        </p>
+                      </div>
+                    </div>
+                  ) : contract.duration_months === 0 ? (
                     <div className="text-sm text-pw-text-muted">
                       <p>Cliente senza contratto scritto. {contract.notes && <span>{contract.notes}</span>}</p>
                       {contract.monthly_fee > 0 && (
@@ -664,7 +698,9 @@ function ClientDetailPageInner() {
                     <div>
                       <p className="text-pw-text-muted">Modalità Pagamento</p>
                       <p className="font-semibold text-pw-text">
-                        {contract.payment_timing === 'inizio_mese' ? 'Anticipato' : 'Fine mese'}
+                        {contract.payment_day
+                          ? `Il ${contract.payment_day} del mese`
+                          : contract.payment_timing === 'inizio_mese' ? 'Inizio mese' : 'Fine mese'}
                       </p>
                     </div>
                     <div>

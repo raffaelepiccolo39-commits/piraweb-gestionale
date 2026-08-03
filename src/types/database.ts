@@ -561,6 +561,13 @@ export interface ClientContract {
   start_date: string;
   status: ContractStatus;
   payment_timing: PaymentTiming;
+  /** Giorno preciso del mese, quando non e' ne' il primo ne' l'ultimo. */
+  payment_day?: number | null;
+  /** 'mensile' (canone) oppure 'progetto' (acconto + saldo). */
+  tipo_contratto?: string;
+  importo_totale?: number | null;
+  acconto?: number | null;
+  data_saldo?: string | null;
   attachment_url: string | null;
   attachment_name: string | null;
   notes: string | null;

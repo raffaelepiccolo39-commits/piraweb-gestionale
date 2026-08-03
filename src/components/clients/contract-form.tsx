@@ -15,6 +15,13 @@ export interface ContractFormData {
   duration_months: number;
   start_date: string;
   payment_timing: string;
+  /** Giorno preciso del mese, quando non e' ne' il primo ne' l'ultimo. */
+  payment_day: number | null;
+  /** 'mensile' (canone che si ripete) oppure 'progetto' (acconto + saldo). */
+  tipo_contratto: string;
+  importo_totale: number | null;
+  acconto: number | null;
+  data_saldo: string | null;
   notes: string;
   attachment?: File;
 }
@@ -58,8 +65,9 @@ const durationOptions = [
 ];
 
 const paymentTimingOptions = [
-  { value: 'inizio_mese', label: 'Inizio mese (anticipato)' },
-  { value: 'fine_mese', label: 'Fine mese (posticipato)' },
+  { value: 'inizio_mese', label: 'Inizio mese (il 1°)' },
+  { value: 'fine_mese', label: 'Fine mese (l\'ultimo giorno)' },
+  { value: 'giorno_fisso', label: 'Un giorno preciso del mese' },
 ];
 
 export function ContractForm({ onSubmit, onCancel, existingContracts = [] }: ContractFormProps) {
@@ -69,6 +77,11 @@ export function ContractForm({ onSubmit, onCancel, existingContracts = [] }: Con
     duration_months: '12',
     start_date: todayLocal(),
     payment_timing: 'inizio_mese',
+    payment_day: '',
+    tipo_contratto: 'mensile',
+    importo_totale: '',
+    acconto: '',
+    data_saldo: '',
     notes: '',
   });
   const [attachment, setAttachment] = useState<File | null>(null);
@@ -102,17 +115,29 @@ export function ContractForm({ onSubmit, onCancel, existingContracts = [] }: Con
     if (file) setAttachment(file);
   };
 
+  const aProgetto = form.tipo_contratto === 'progetto';
+
   const handleSubmit = async () => {
-    if (!noContract && (!form.monthly_fee || !form.start_date)) return;
+    if (!noContract && !form.start_date) return;
+    // Un progetto chiede il totale, un mensile il canone: non si controlla
+    // il campo sbagliato, altrimenti il pulsante non risponde e sembra rotto.
+    if (!noContract && (aProgetto ? !form.importo_totale : !form.monthly_fee)) return;
     if (blockedByOverlap) return;
     setLoading(true);
     try {
       await onSubmit({
         no_contract: noContract,
-        monthly_fee: noContract ? 0 : Number(form.monthly_fee),
-        duration_months: noContract ? 0 : Number(form.duration_months),
+        tipo_contratto: noContract ? 'mensile' : form.tipo_contratto,
+        // Su un progetto canone e durata non esistono: restano a zero, e i
+        // soldi stanno in totale/acconto.
+        monthly_fee: noContract || aProgetto ? 0 : Number(form.monthly_fee),
+        duration_months: noContract || aProgetto ? 0 : Number(form.duration_months),
+        importo_totale: !noContract && aProgetto ? Number(form.importo_totale) : null,
+        acconto: !noContract && aProgetto && form.acconto ? Number(form.acconto) : null,
+        data_saldo: !noContract && aProgetto && form.data_saldo ? form.data_saldo : null,
         start_date: noContract ? todayLocal() : form.start_date,
         payment_timing: noContract ? 'inizio_mese' : form.payment_timing,
+        payment_day: noContract || !form.payment_day ? null : Number(form.payment_day),
         notes: noContract ? (form.notes || 'Cliente senza contratto scritto') : form.notes,
         attachment: attachment || undefined,
       });
@@ -156,6 +181,69 @@ export function ContractForm({ onSubmit, onCancel, existingContracts = [] }: Con
 
       {!noContract && (
         <>
+          {/* Prima domanda: si ripete ogni mese o si paga a lavoro finito?
+              Da questa dipende tutto il resto del modulo. */}
+          <Select
+            id="tipo-contratto"
+            label="Tipo di contratto *"
+            value={form.tipo_contratto}
+            onChange={(e) => setForm({ ...form, tipo_contratto: e.target.value })}
+            options={[
+              { value: 'mensile', label: 'Canone mensile (si ripete ogni mese)' },
+              { value: 'progetto', label: 'A progetto (acconto + saldo)' },
+            ]}
+          />
+
+          {aProgetto ? (
+            <>
+              <div className="grid grid-cols-2 gap-4">
+                <Input
+                  id="importo-totale"
+                  label="Importo totale (EUR) *"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={form.importo_totale}
+                  onChange={(e) => setForm({ ...form, importo_totale: e.target.value })}
+                  placeholder="es. 3000"
+                />
+                <Input
+                  id="acconto"
+                  label="Acconto (EUR)"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={form.acconto}
+                  onChange={(e) => setForm({ ...form, acconto: e.target.value })}
+                  placeholder="es. 1000"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <Input
+                  id="start-date-progetto"
+                  label="Data acconto *"
+                  type="date"
+                  value={form.start_date}
+                  onChange={(e) => setStartDate(e.target.value)}
+                />
+                <Input
+                  id="data-saldo"
+                  label="Data saldo"
+                  type="date"
+                  value={form.data_saldo}
+                  onChange={(e) => setForm({ ...form, data_saldo: e.target.value })}
+                />
+              </div>
+
+              <p className="text-[11px] text-pw-text-dim">
+                {Number(form.acconto) > 0
+                  ? `Verranno create due scadenze: ${Number(form.acconto).toLocaleString('it-IT')}€ di acconto e ${(Number(form.importo_totale || 0) - Number(form.acconto)).toLocaleString('it-IT')}€ di saldo.`
+                  : 'Senza acconto viene creata una sola scadenza col totale. Se la data del saldo manca, si usa un mese dopo l\'acconto.'}
+              </p>
+            </>
+          ) : (
+          <>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label htmlFor="monthly-fee" className="block text-sm font-medium text-pw-text-muted mb-1">
@@ -192,11 +280,38 @@ export function ContractForm({ onSubmit, onCancel, existingContracts = [] }: Con
             <Select
               id="payment-timing"
               label="Modalità Pagamento *"
-              value={form.payment_timing}
-              onChange={(e) => setForm({ ...form, payment_timing: e.target.value })}
+              value={form.payment_day ? 'giorno_fisso' : form.payment_timing}
+              onChange={(e) => {
+                // "Giorno preciso" non e' un valore che il database conosce:
+                // e' il modo di dire "guarda payment_day invece del resto".
+                if (e.target.value === 'giorno_fisso') {
+                  setForm({ ...form, payment_day: form.payment_day || '15' });
+                } else {
+                  setForm({ ...form, payment_timing: e.target.value, payment_day: '' });
+                }
+              }}
               options={paymentTimingOptions}
             />
           </div>
+
+          {form.payment_day && (
+            <Input
+              id="payment-day"
+              label="Giorno del mese"
+              type="number"
+              min="1"
+              max="31"
+              value={form.payment_day}
+              onChange={(e) => setForm({ ...form, payment_day: e.target.value })}
+            />
+          )}
+          {form.payment_day && (
+            <p className="-mt-2 text-[11px] text-pw-text-dim">
+              Nei mesi più corti la scadenza scala all&apos;ultimo giorno disponibile: il 31 a febbraio diventa il 28.
+            </p>
+          )}
+          </>
+          )}
 
           {overlapping.length > 0 && (
             <div role="alert" className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-sm space-y-2">
