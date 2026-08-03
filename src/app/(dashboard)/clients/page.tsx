@@ -532,8 +532,8 @@ export default function ClientsPage() {
           isAdmin ? (
             <Card hover>
               <CardContent className="p-5">
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center gap-3">
+                <div className="flex items-start justify-between gap-2 mb-3">
+                  <div className="flex items-center gap-3 min-w-0">
                     {client.logo_url ? (
                       <div className="w-10 h-10 rounded-xl border border-pw-border overflow-hidden bg-pw-surface shrink-0">
                         <Image src={client.logo_url} alt={client.name} width={40} height={40} className="w-full h-full object-contain" />
@@ -543,16 +543,20 @@ export default function ClientsPage() {
                         <Building2 size={20} className="text-pw-accent" />
                       </div>
                     )}
-                    <div>
-                      <h3 className="font-semibold text-pw-text">
+                    {/* min-w-0 + truncate: senza, un nome lungo non poteva
+                        restringersi (i figli di un flex non scendono sotto la
+                        larghezza del contenuto) e allargava la scheda, la
+                        colonna e infine tutta la pagina. */}
+                    <div className="min-w-0">
+                      <h3 className="font-semibold text-pw-text truncate">
                         {client.company || client.name}
                       </h3>
-                      <p className="text-xs text-pw-text-muted mt-0.5">
+                      <p className="text-xs text-pw-text-muted mt-0.5 truncate">
                         Ref. {client.name}
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 shrink-0">
                     {paymentAlerts[client.id] === 'warning' && (
                       <div className="w-6 h-6 rounded-full bg-amber-500/15 flex items-center justify-center" title="Pagamento non ancora ricevuto">
                         <AlertTriangle size={14} className="text-amber-400" />
@@ -583,21 +587,21 @@ export default function ClientsPage() {
 
                 <div className="space-y-1.5 mb-4">
                   {client.email && (
-                    <div className="flex items-center gap-2 text-sm text-pw-text-muted">
+                    <div className="flex items-center gap-2 text-sm text-pw-text-muted min-w-0">
                       <Mail size={14} />
-                      <span className="truncate">{client.email}</span>
+                      <span className="truncate min-w-0">{client.email}</span>
                     </div>
                   )}
                   {client.phone && (
-                    <div className="flex items-center gap-2 text-sm text-pw-text-muted">
+                    <div className="flex items-center gap-2 text-sm text-pw-text-muted min-w-0">
                       <Phone size={14} />
-                      <span>{client.phone}</span>
+                      <span className="truncate min-w-0">{client.phone}</span>
                     </div>
                   )}
                   {client.website && (
-                    <div className="flex items-center gap-2 text-sm text-pw-text-muted">
+                    <div className="flex items-center gap-2 text-sm text-pw-text-muted min-w-0">
                       <Globe size={14} />
-                      <span className="truncate">{client.website}</span>
+                      <span className="truncate min-w-0">{client.website}</span>
                     </div>
                   )}
                 </div>
@@ -605,19 +609,19 @@ export default function ClientsPage() {
                 {(client.sector || client.service_types || client.relationship_start) && (
                   <div className="space-y-1.5 mb-4">
                     {client.sector && (
-                      <div className="flex items-center gap-2 text-sm text-pw-text-muted">
+                      <div className="flex items-center gap-2 text-sm text-pw-text-muted min-w-0">
                         <Tag size={14} />
-                        <span className="truncate">{client.sector}</span>
+                        <span className="truncate min-w-0">{client.sector}</span>
                       </div>
                     )}
                     {client.service_types && (
-                      <div className="flex items-center gap-2 text-sm text-pw-text-muted">
+                      <div className="flex items-center gap-2 text-sm text-pw-text-muted min-w-0">
                         <Briefcase size={14} />
-                        <span className="truncate">{client.service_types}</span>
+                        <span className="truncate min-w-0">{client.service_types}</span>
                       </div>
                     )}
                     {client.relationship_start && (
-                      <div className="flex items-center gap-2 text-sm text-pw-text-muted">
+                      <div className="flex items-center gap-2 text-sm text-pw-text-muted min-w-0">
                         <CalendarDays size={14} />
                         <span>Dal {new Date(client.relationship_start).toLocaleDateString('it-IT')}</span>
                       </div>
@@ -631,7 +635,7 @@ export default function ClientsPage() {
                   </p>
                 )}
 
-                <div className="flex items-center gap-2 pt-3 border-t border-pw-border">
+                <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-pw-border">
                   <Button
                     variant="ghost"
                     size="sm"

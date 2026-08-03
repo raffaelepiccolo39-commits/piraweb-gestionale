@@ -21,6 +21,13 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_APP_VERSION: isApp ? (process.env.APP_VERSION || '') : '',
   },
   images: {
+    // Nel pacchetto non c'e' nessun server: l'ottimizzatore di Next
+    // (`/_next/image?url=...`) non risponde e OGNI immagine resta un
+    // riquadro vuoto — logo del login, loghi dei clienti, avatar. Con
+    // `unoptimized` i tag <img> puntano direttamente al file, che e' l'unica
+    // cosa che nel pacchetto puo' funzionare. Sul sito l'ottimizzazione
+    // resta accesa, perche' li' il server c'e'.
+    unoptimized: isApp,
     remotePatterns: [
       {
         protocol: 'https',

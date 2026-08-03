@@ -28,14 +28,15 @@ export function TeamStatus({ teamData, loading }: TeamStatusProps) {
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <Users size={20} className="text-pw-text-dim" />
             <h2 className="text-lg font-semibold text-pw-text">
               Stato Team Oggi
             </h2>
           </div>
-          <div className="flex gap-2">
+          {/* Quattro targhette in fila non entrano in 393px: vanno a capo. */}
+          <div className="flex flex-wrap gap-2">
             <Badge className="bg-green-500/15 text-green-400">
               {working} al lavoro
             </Badge>

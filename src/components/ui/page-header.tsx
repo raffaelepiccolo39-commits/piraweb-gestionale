@@ -28,7 +28,11 @@ export function PageHeader({ eyebrow, title, subtitle, actions, className }: Pag
             : <div className="mt-1.5">{subtitle}</div>
         )}
       </div>
-      {actions && <div className="flex items-center gap-2 shrink-0">{actions}</div>}
+      {/* flex-wrap e niente shrink-0: su un telefono tre pulsanti in fila
+          sono piu' larghi dello schermo, e con shrink-0 il blocco non poteva
+          ne' restringersi ne' andare a capo — sfondava la pagina, e la barra
+          di navigazione in basso (fixed inset-x-0) si allungava con lei. */}
+      {actions && <div className="flex flex-wrap items-center justify-end gap-2 max-w-full">{actions}</div>}
     </div>
   );
 }

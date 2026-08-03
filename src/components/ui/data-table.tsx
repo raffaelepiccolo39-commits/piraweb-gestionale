@@ -203,7 +203,7 @@ export function DataTable<T>({
             <div
               key={rowKey(item)}
               onClick={onRowClick ? () => onRowClick(item) : undefined}
-              className={onRowClick ? 'cursor-pointer' : undefined}
+              className={cn('min-w-0', onRowClick && 'cursor-pointer')}
             >
               {cardRender(item)}
             </div>
@@ -239,7 +239,7 @@ export function DataTable<T>({
                     <div
                       key={rowKey(item)}
                       onClick={onRowClick ? () => onRowClick(item) : undefined}
-                      className={onRowClick ? 'cursor-pointer' : undefined}
+                      className={cn('min-w-0', onRowClick && 'cursor-pointer')}
                     >
                       {cardRender(item)}
                     </div>
