@@ -4,6 +4,7 @@ export const maxDuration = 60;
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { sendInvoiceReminder, generateWhatsAppReminderLink } from '@/lib/email-invoice';
+import { avvisaTutti, conDispositivo } from '@/lib/avvisa';
 import { withRetry, isTransientEmailError } from '@/lib/retry';
 import { logError } from '@/lib/logger';
 
@@ -64,7 +65,8 @@ async function handleCron(request: NextRequest) {
   }
 
   let emailsSent = 0;
-  let whatsappLinks: string[] = [];
+  let appNotificati = 0;
+  const whatsappLinks: string[] = [];
   const errors: string[] = [];
 
   for (const invoice of overdueInvoices) {
@@ -86,8 +88,31 @@ async function handleCron(request: NextRequest) {
       await supabase.from('invoices').update({ status: 'overdue' }).eq('id', invoice.id);
     }
 
-    // Send email reminder if client has email
-    if (client.email) {
+    // Prima strada: la notifica nell'app, a chi del cliente ce l'ha.
+    //
+    // Il sollecito e' l'avviso che meno di tutti puo' permettersi di non
+    // arrivare: se nessun referente ha installato l'app si ripiega sulla mail
+    // aziendale — una sola, come prima, non una per referente.
+    const { data: referenti } = await supabase
+      .from('client_portal_users')
+      .select('id')
+      .eq('client_id', client.id)
+      .eq('is_active', true);
+
+    const conApp = await conDispositivo((referenti ?? []).map((r) => r.id as string));
+
+    if (conApp.length > 0) {
+      await avvisaTutti(conApp, {
+        tipo: 'deadline_approaching',
+        titolo: `Fattura ${invoice.invoice_number} da saldare`,
+        testo: daysOverdue > 0
+          ? `In scadenza da ${daysOverdue} ${daysOverdue === 1 ? 'giorno' : 'giorni'}.`
+          : 'Trovi il dettaglio nella sezione pagamenti.',
+        link: '/portale/pagamenti',
+      });
+      appNotificati++;
+    } else if (client.email) {
+      // Nessuno ha l'app: si ripiega sulla mail, come si e' sempre fatto.
       try {
         await withRetry(() => sendInvoiceReminder({
           to: client.email!,
@@ -138,12 +163,20 @@ async function handleCron(request: NextRequest) {
       .maybeSingle();
 
     if (admin) {
-      await supabase.from('notifications').insert({
+      // 'alert' non esiste tra i valori ammessi da notification_type: questo
+      // insert falliva da sempre, in silenzio, e l'admin non ha mai visto
+      // l'avviso. Ora usa un tipo vero — e passa da `avvisa`, quindi diventa
+      // anche una notifica sul telefono.
+      const { error: erroreAvviso } = await supabase.from('notifications').insert({
         user_id: admin.id,
         title: `${overdueInvoices.length} fatture scadute`,
-        message: `Inviate ${emailsSent} email di reminder. ${whatsappLinks.length} clienti da contattare su WhatsApp.`,
-        type: 'alert',
+        message: `${appNotificati} avvisati nell'app, ${emailsSent} per mail. ${whatsappLinks.length} da contattare su WhatsApp.`,
+        type: 'deadline_approaching',
+        link: '/invoices',
       });
+      if (erroreAvviso) {
+        await logError({ error: erroreAvviso, route: 'cron/invoice-reminder', source: 'cron', context: { op: 'notifica-admin' } });
+      }
     }
   }
 
@@ -151,6 +184,7 @@ async function handleCron(request: NextRequest) {
     success: true,
     invoices_checked: overdueInvoices.length,
     emails_sent: emailsSent,
+    notificati_in_app: appNotificati,
     whatsapp_ready: whatsappLinks.length,
     errors: errors.length > 0 ? errors : undefined,
   });

@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { sendMessaggioClienteEmail } from '@/lib/email-portal';
+import { avvisaTutti, conDispositivo } from '@/lib/avvisa';
 import { getAppOrigin } from '@/lib/app-origin';
 import { logError } from '@/lib/logger';
 
@@ -49,15 +50,37 @@ export async function POST() {
 
   const { data: admin } = await service
     .from('profiles')
-    .select('email')
+    .select('id, email')
     .eq('role', 'admin')
     .eq('is_active', true);
 
-  const destinatari = (admin || []).map((a) => a.email).filter(Boolean) as string[];
-  if (destinatari.length === 0) return NextResponse.json({ ok: true, inviata: false });
+  if ((admin || []).length === 0) return NextResponse.json({ ok: true, inviata: false });
 
   const cliente = portale.client as unknown as { name: string | null; company: string | null } | null;
   const testo = (ultimo.testo || '').trim();
+
+  // Gli admin che hanno l'app la ricevono sul telefono; la mail va solo agli
+  // altri, cosi' nessuno riceve due volte la stessa cosa. Un messaggio di un
+  // cliente e' quello a cui si risponde piu' in fretta se arriva subito.
+  const adminConApp = new Set(await conDispositivo((admin || []).map((a) => a.id as string)));
+
+  if (adminConApp.size > 0) {
+    await avvisaTutti([...adminConApp], {
+      tipo: 'mention',
+      titolo: `Messaggio da ${cliente?.company || cliente?.name || 'un cliente'}`,
+      testo: testo.slice(0, 120) || '(solo allegati)',
+      link: `/clients/scheda?id=${portale.client_id}`,
+    });
+  }
+
+  const destinatari = (admin || [])
+    .filter((a) => !adminConApp.has(a.id as string))
+    .map((a) => a.email)
+    .filter(Boolean) as string[];
+
+  if (destinatari.length === 0) {
+    return NextResponse.json({ ok: true, inviata: false, viaApp: adminConApp.size });
+  }
 
   try {
     await sendMessaggioClienteEmail({

@@ -4,6 +4,7 @@ export const maxDuration = 60;
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { sendPortalDigestEmail } from '@/lib/email-portal';
+import { avvisa } from '@/lib/avvisa';
 import { logError } from '@/lib/logger';
 
 /**
@@ -48,7 +49,7 @@ async function handleCron(request: NextRequest) {
     };
 
     // Contenuti del piano editoriale: solo quelli presentabili e senza risposta.
-    let qPost = supabase
+    const qPost = supabase
       .from('social_posts')
       .select('id', { count: 'exact', head: true })
       .eq('client_id', user.client_id)
@@ -57,7 +58,7 @@ async function handleCron(request: NextRequest) {
 
     // Materiali: piani scatti, script, idee video. Solo quelli pubblicati —
     // finche' il team non li mostra, per il cliente non esistono.
-    let qMat = supabase
+    const qMat = supabase
       .from('client_materials')
       .select('id', { count: 'exact', head: true })
       .eq('client_id', user.client_id)
@@ -98,13 +99,27 @@ async function handleCron(request: NextRequest) {
     if (!qualcosaDiNuovo || nPost + nMat === 0) { skipped += 1; continue; }
 
     try {
-      await sendPortalDigestEmail({
-        to: user.email,
-        fullName: user.full_name,
-        clientName: user.client?.company || user.client?.name || '',
-        pendingPost: nPost,
-        pendingMateriali: nMat,
-        portalLink: `${appUrl}/portale`,
+      // Notifica nell'app a chi ce l'ha, mail a chi non l'ha ancora
+      // installata: la regola vale per tutti gli avvisi, e la decide `avvisa`.
+      const cose = [
+        nPost > 0 ? `${nPost} ${nPost === 1 ? 'contenuto' : 'contenuti'}` : null,
+        nMat > 0 ? `${nMat} ${nMat === 1 ? 'materiale' : 'materiali'}` : null,
+      ].filter(Boolean).join(' e ');
+
+      await avvisa({
+        utente: user.id,
+        tipo: 'post_created',
+        titolo: 'Hai cose da approvare',
+        testo: `${cose} in attesa di una tua occhiata.`,
+        link: '/portale/contenuti',
+        mailDiRipiego: () => sendPortalDigestEmail({
+          to: user.email,
+          fullName: user.full_name,
+          clientName: user.client?.company || user.client?.name || '',
+          pendingPost: nPost,
+          pendingMateriali: nMat,
+          portalLink: `${appUrl}/portale`,
+        }),
       });
 
       // Si segna DOPO l'invio riuscito: se l'email non parte, domani riprova.

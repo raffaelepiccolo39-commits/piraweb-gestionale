@@ -4,6 +4,7 @@ export const maxDuration = 60;
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { sendShootingPromemoriaEmail } from '@/lib/email-portal';
+import { avvisa } from '@/lib/avvisa';
 import { logError } from '@/lib/logger';
 
 const ALERT_DAYS = 14; // preavviso interno al team prima della scadenza del PED
@@ -124,24 +125,36 @@ async function handleCron(request: NextRequest) {
     if (!r.client || !r.client.is_active || r.client.paused_at) continue;
     if (r.client_alert_sent_for === r.covered_until) continue;
 
+    // Fuori dalla chiusura: dentro la callback della mail il controllo qui
+    // sopra non varrebbe piu' e il tipo tornerebbe a essere "forse niente".
+    const cliente = r.client;
+
     // Ha senso solo se qualcuno può leggerlo: senza accesso al portale
     // l'email manderebbe a una pagina in cui non può entrare.
     const { data: utenti } = await supabase
       .from('client_portal_users')
-      .select('email, full_name')
+      .select('id, email, full_name')
       .eq('client_id', r.client_id)
       .eq('is_active', true);
 
     if (!utenti || utenti.length === 0) continue;
 
     try {
-      for (const u of utenti as { email: string; full_name: string | null }[]) {
-        await sendShootingPromemoriaEmail({
-          to: u.email,
-          fullName: u.full_name,
-          clientName: r.client.company || r.client.name,
-          copertoFino: r.covered_until,
-          portalLink: `${process.env.NEXT_PUBLIC_APP_URL || 'https://gestionale.piraweb.it'}/portale/shooting`,
+      for (const u of utenti as { id: string; email: string; full_name: string | null }[]) {
+        // In app a chi ce l'ha, per mail a chi non l'ha ancora installata.
+        await avvisa({
+          utente: u.id,
+          tipo: 'deadline_approaching',
+          titolo: 'Il piano editoriale sta per finire',
+          testo: 'Fissiamo lo shooting: proponi una data quando vuoi.',
+          link: '/portale/shooting',
+          mailDiRipiego: () => sendShootingPromemoriaEmail({
+            to: u.email,
+            fullName: u.full_name,
+            clientName: cliente.company || cliente.name,
+            copertoFino: r.covered_until,
+            portalLink: `${process.env.NEXT_PUBLIC_APP_URL || 'https://gestionale.piraweb.it'}/portale/shooting`,
+          }),
         });
       }
 

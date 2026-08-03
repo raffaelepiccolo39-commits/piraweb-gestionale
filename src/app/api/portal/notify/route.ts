@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { isStaff } from '@/lib/require-admin';
 import { sendPortalDigestEmail } from '@/lib/email-portal';
+import { avvisa } from '@/lib/avvisa';
 import { getAppOrigin } from '@/lib/app-origin';
 import { logError } from '@/lib/logger';
 
@@ -63,13 +64,26 @@ export async function POST(request: NextRequest) {
   let inviate = 0;
   for (const u of utenti as unknown as { id: string; email: string; full_name: string | null; client: { name: string; company: string | null } | null }[]) {
     try {
-      await sendPortalDigestEmail({
-        to: u.email,
-        fullName: u.full_name,
-        clientName: u.client?.company || u.client?.name || '',
-        pendingPost: nPost,
-        pendingMateriali: nMat,
-        portalLink: `${origin}/portale`,
+      const cose = [
+        nPost > 0 ? `${nPost} ${nPost === 1 ? 'contenuto' : 'contenuti'}` : null,
+        nMat > 0 ? `${nMat} ${nMat === 1 ? 'materiale' : 'materiali'}` : null,
+      ].filter(Boolean).join(' e ');
+
+      // Notifica nell'app a chi ce l'ha, mail agli altri.
+      await avvisa({
+        utente: u.id,
+        tipo: 'post_created',
+        titolo: 'Hai cose da approvare',
+        testo: `${cose} in attesa di una tua occhiata.`,
+        link: '/portale/contenuti',
+        mailDiRipiego: () => sendPortalDigestEmail({
+          to: u.email,
+          fullName: u.full_name,
+          clientName: u.client?.company || u.client?.name || '',
+          pendingPost: nPost,
+          pendingMateriali: nMat,
+          portalLink: `${origin}/portale`,
+        }),
       });
       inviate += 1;
     } catch (err) {
