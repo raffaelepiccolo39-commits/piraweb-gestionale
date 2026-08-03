@@ -67,6 +67,18 @@ const PERIODI_MEZZA_GIORNATA = [
   { value: 'pomeriggio', label: 'Il pomeriggio' },
 ];
 
+/**
+ * L'anno di ferie va dal 1° settembre al 31 agosto: 2 giorni maturati al
+ * mese, dodici mesi, ventiquattro giorni. Il 1° settembre il conteggio
+ * riparte da zero e quello che non si e' preso non passa all'anno dopo —
+ * scritto qui in chiaro perche' e' la domanda che si fa tutti a giugno.
+ */
+function periodoFerie(): string {
+  const oggi = new Date();
+  const inizio = oggi.getMonth() >= 8 ? oggi.getFullYear() : oggi.getFullYear() - 1;
+  return `Anno ferie: 1 settembre ${inizio} – 31 agosto ${inizio + 1} · 2 giorni al mese, massimo 24`;
+}
+
 export default function FeriePage() {
   const { profile } = useAuth();
   const supabase = createClient();
@@ -320,7 +332,7 @@ export default function FeriePage() {
     <div className="space-y-6 animate-slide-up">
       <PageHeader
         title="Ferie & Permessi"
-        subtitle={`Anno ${year}`}
+        subtitle={periodoFerie()}
         actions={
           <Button variant="primary" onClick={() => { resetForm(); setShowModal(true); }}>
             <Plus size={14} />
