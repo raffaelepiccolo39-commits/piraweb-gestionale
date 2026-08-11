@@ -234,8 +234,9 @@ export default function DashboardPage() {
 
         const allPayments = (results[11].data as Array<{ amount: number; is_paid: boolean; contract: { status: string } | null }>) || [];
         const payments = allPayments.filter((p) => p.contract?.status === 'active');
-        // Acconti del mese, sommati alle rate: un progetto one-shot incassato
-        // adesso deve comparire nel cashflow del mese come qualunque canone.
+        // Acconti incassati nel mese: soldi entrati davvero, quindi vanno
+        // nell'incassato. Non nell'atteso — quello resta il canone, e le rate
+        // che l'acconto copre sono già lì.
         const ultimoGiorno = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
         const acconti = totaliAcconti(accontiNelPeriodo(
           (results[14]?.data as AccontoContabile[]) || [],
@@ -243,9 +244,9 @@ export default function DashboardPage() {
           `${currentMonth}-${ultimoGiorno}`,
         ));
         setCashflow({
-          expected: payments.reduce((sum, p) => sum + Number(p.amount), 0) + acconti.expected,
+          expected: payments.reduce((sum, p) => sum + Number(p.amount), 0),
           received: payments.filter((p) => p.is_paid).reduce((sum, p) => sum + Number(p.amount), 0) + acconti.received,
-          pending: payments.filter((p) => !p.is_paid).reduce((sum, p) => sum + Number(p.amount), 0) + acconti.pending,
+          pending: payments.filter((p) => !p.is_paid).reduce((sum, p) => sum + Number(p.amount), 0),
         });
 
         setTeamAttendance((results[12].data as typeof teamAttendance) || []);

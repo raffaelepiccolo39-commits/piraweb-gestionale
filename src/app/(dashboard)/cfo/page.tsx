@@ -233,13 +233,13 @@ export default function CFOPage() {
     setExpenses(expData);
 
     // ── Revenue summary ──
-    // Gli acconti si contano tutti: a differenza delle rate non vengono
-    // generati in anticipo dal contratto, quindi ogni riga è un importo
-    // concordato davvero e non c'è nessun futuro da filtrare via.
+    // Gli acconti entrano solo nell'incassato: sono soldi versati su quanto il
+    // cliente già deve, non fatturato in più. L'atteso resta quello dei
+    // contratti, altrimenti la stessa cifra verrebbe contata due volte.
     const acconti = (accontiRes.data as AccontoContabile[] | null) ?? [];
     const totAcconti = totaliAcconti(acconti);
     const mrr = contracts.reduce((s, c) => s + (c.monthly_fee || 0), 0);
-    const totalExpected = payments.reduce((s, p) => s + (p.amount || 0), 0) + totAcconti.expected;
+    const totalExpected = payments.reduce((s, p) => s + (p.amount || 0), 0);
     const totalReceived = payments.filter(p => p.is_paid).reduce((s, p) => s + (p.amount || 0), 0) + totAcconti.received;
     const totalPending = totalExpected - totalReceived;
 
@@ -269,12 +269,10 @@ export default function CFOPage() {
       clientExpectedMap.set(clientId, (clientExpectedMap.get(clientId) || 0) + (p.amount || 0));
       if (p.is_paid) clientPaidMap.set(clientId, (clientPaidMap.get(clientId) || 0) + (p.amount || 0));
     });
-    // Stessi due totali per gli acconti, così un cliente senza canone ma con
-    // un progetto pagato compare comunque nella redditività.
+    // Solo l'incassato, come sopra: l'atteso del cliente è il suo contratto.
     acconti.forEach(a => {
-      const importo = Number(a.amount) || 0;
-      clientExpectedMap.set(a.client_id, (clientExpectedMap.get(a.client_id) || 0) + importo);
-      if (a.paid_at) clientPaidMap.set(a.client_id, (clientPaidMap.get(a.client_id) || 0) + importo);
+      if (!a.paid_at) return;
+      clientPaidMap.set(a.client_id, (clientPaidMap.get(a.client_id) || 0) + (Number(a.amount) || 0));
     });
 
     // Average hourly cost across all employees

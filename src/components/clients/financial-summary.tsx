@@ -8,21 +8,22 @@ import { Euro, TrendingUp, AlertTriangle, CheckCircle2 } from 'lucide-react';
 interface FinancialSummaryProps {
   summary: ClientFinancialSummary;
   /**
-   * Acconti del cliente (lavori one-shot fuori dal canone). Le quattro card
-   * restano sul contratto — mescolarci dentro un acconto renderebbe falso
-   * "Valore Contratto" — e la somma dei due mondi va nella riga in fondo.
+   * Acconti del cliente. Sono INCASSI, non valore in più: quanto il cliente
+   * deve resta il contratto, e l'acconto lo scala. Sommarli al totale
+   * gonfierebbe il dovuto con soldi che il cliente ha già dato.
    */
   acconti?: { paid: number; pending: number };
 }
 
 export function FinancialSummary({ summary, acconti }: FinancialSummaryProps) {
+  const accontiIncassati = acconti?.paid ?? 0;
+  // Le quattro card restano sul solo contratto (è quello il "Valore Contratto"),
+  // il conto vero col cliente sta nella riga in fondo.
+  const incassatoCliente = Number(summary.total_paid) + accontiIncassati;
+  const residuoCliente = Number(summary.total_value) - incassatoCliente;
   const progressPercent = summary.total_value > 0
-    ? Math.round((summary.total_paid / summary.total_value) * 100)
+    ? Math.round((incassatoCliente / summary.total_value) * 100)
     : 0;
-
-  const totaleAcconti = (acconti?.paid ?? 0) + (acconti?.pending ?? 0);
-  const totaleCliente = Number(summary.total_value) + totaleAcconti;
-  const incassatoCliente = Number(summary.total_paid) + (acconti?.paid ?? 0);
 
   return (
     <div className="space-y-4">
@@ -100,27 +101,30 @@ export function FinancialSummary({ summary, acconti }: FinancialSummaryProps) {
         </div>
       </div>
 
-      {/* Contratto + acconti: il totale vero del cliente. */}
-      {totaleAcconti > 0 && (
+      {/* Il conto vero col cliente, con gli acconti già scalati. */}
+      {accontiIncassati > 0 && (
         <div className="bg-pw-surface rounded-xl border border-pw-border p-4">
-          <p className="text-sm font-medium text-pw-text-muted mb-3">Contratto + acconti</p>
+          <p className="text-sm font-medium text-pw-text-muted mb-3">Acconti scalati</p>
           <div className="grid grid-cols-3 gap-4">
             <div>
-              <p className="text-lg font-bold text-pw-text tabular-nums">{formatCurrency(totaleCliente)}</p>
-              <p className="text-xs text-pw-text-muted mt-0.5">Totale cliente</p>
+              <p className="text-lg font-bold text-pw-text tabular-nums">{formatCurrency(summary.total_value)}</p>
+              <p className="text-xs text-pw-text-muted mt-0.5">Ti deve in tutto</p>
             </div>
             <div>
               <p className="text-lg font-bold text-green-500 tabular-nums">{formatCurrency(incassatoCliente)}</p>
-              <p className="text-xs text-pw-text-muted mt-0.5">Incassato</p>
+              <p className="text-xs text-pw-text-muted mt-0.5">Ha gia&apos; pagato</p>
             </div>
             <div>
-              <p className="text-lg font-bold text-amber-500 tabular-nums">{formatCurrency(totaleCliente - incassatoCliente)}</p>
-              <p className="text-xs text-pw-text-muted mt-0.5">Ancora da incassare</p>
+              <p className={`text-lg font-bold tabular-nums ${residuoCliente < 0 ? 'text-pw-danger' : 'text-amber-500'}`}>
+                {formatCurrency(residuoCliente)}
+              </p>
+              <p className="text-xs text-pw-text-muted mt-0.5">Restano da avere</p>
             </div>
           </div>
           <p className="text-xs text-pw-text-dim mt-3">
-            Di cui acconti: {formatCurrency(acconti?.paid ?? 0)} incassati
-            {(acconti?.pending ?? 0) > 0 && <> · {formatCurrency(acconti!.pending)} in attesa</>}
+            Di cui {formatCurrency(accontiIncassati)} arrivati come acconto, gia&apos; tolti dal residuo
+            {(acconti?.pending ?? 0) > 0 && <> · altri {formatCurrency(acconti!.pending)} di acconti sono registrati ma non ancora incassati</>}.
+            {residuoCliente < 0 && ' Il cliente ha versato più del valore del contratto.'}
           </p>
         </div>
       )}

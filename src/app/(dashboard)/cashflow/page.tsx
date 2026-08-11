@@ -163,18 +163,18 @@ export default function CashflowPage() {
         byMonth.set(key, { month_date: w.month, expected: exp, received: rec, pending: exp - rec, num_clients: 0 });
       }
     }
-    // Stessa fusione per gli acconti dei lavori one-shot: senza questo un
-    // progetto pagato a tranche non compariva da nessuna parte nel cashflow.
+    // Acconti: solo sull'incassato. L'atteso resta quello dei contratti — le
+    // rate coperte da un acconto restano segnate da incassare, quindi
+    // sommare l'acconto anche all'atteso conterebbe due volte gli stessi soldi.
     const tuttiAcconti = (accontiRes.data as AccontoContabile[] | null) ?? [];
     const accontiDelPeriodo = accontiNelPeriodo(tuttiAcconti, start, end);
     for (const [key, tot] of accontiPerMese(accontiDelPeriodo)) {
+      if (tot.received === 0) continue;
       const existing = byMonth.get(key);
       if (existing) {
-        existing.expected = Number(existing.expected) + tot.expected;
         existing.received = Number(existing.received) + tot.received;
-        existing.pending = Number(existing.pending) + tot.pending;
       } else {
-        byMonth.set(key, { month_date: `${key}-01`, ...tot, num_clients: 0 });
+        byMonth.set(key, { month_date: `${key}-01`, expected: 0, received: tot.received, pending: 0, num_clients: 0 });
       }
     }
 
@@ -187,12 +187,12 @@ export default function CashflowPage() {
       const s = summaryRes.data[0] as CashflowSummary;
       setCashSummary({
         ...s,
-        total_expected: Number(s.total_expected) + webExpected + acconti.expected,
+        total_expected: Number(s.total_expected) + webExpected,
         total_received: Number(s.total_received) + webReceived + acconti.received,
-        total_pending: Number(s.total_pending) + (webExpected - webReceived) + acconti.pending,
+        total_pending: Number(s.total_pending) + (webExpected - webReceived),
       });
     }
-    else setCashSummary({ total_expected: webExpected + acconti.expected, total_received: webReceived + acconti.received, total_pending: (webExpected - webReceived) + acconti.pending, active_contracts: 0, active_clients: 0, avg_monthly_revenue: 0 } as CashflowSummary);
+    else setCashSummary({ total_expected: webExpected, total_received: webReceived + acconti.received, total_pending: webExpected - webReceived, active_contracts: 0, active_clients: 0, avg_monthly_revenue: 0 } as CashflowSummary);
     if (pnlRes.data?.[0]) setPnl(pnlRes.data[0] as ProfitLossSummary);
     else setPnl(null);
     if (expensesRes.data?.[0]) setExpenses(expensesRes.data[0] as MonthlyExpenses);
@@ -235,9 +235,9 @@ export default function CashflowPage() {
       const s = prevSummaryRes.data[0] as CashflowSummary;
       setPrevSummary({
         ...s,
-        total_expected: Number(s.total_expected) + pExp + prevAcconti.expected,
+        total_expected: Number(s.total_expected) + pExp,
         total_received: Number(s.total_received) + pRec + prevAcconti.received,
-        total_pending: Number(s.total_pending) + (pExp - pRec) + prevAcconti.pending,
+        total_pending: Number(s.total_pending) + (pExp - pRec),
       });
     }
     else setPrevSummary(null);

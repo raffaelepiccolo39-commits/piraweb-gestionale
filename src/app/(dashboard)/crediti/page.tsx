@@ -16,27 +16,18 @@ import { reportSupabaseError } from '@/lib/report-error';
 import { HandCoins, ShieldCheck, CheckCircle2, AlertTriangle } from 'lucide-react';
 
 /**
- * Crediti da recuperare (admin): tutto quello che è scaduto e non incassato,
- * per cliente. La lista di lavoro per gli incassi — "Segna incassato" quando il
- * cliente paga e la voce sparisce ed entra nel cashflow.
- *
- * Due fonti: le rate del canone (client_payments, via RPC toggle_payment_paid)
- * e gli acconti dei lavori one-shot (client_installments, che si segnano
- * scrivendo paid_at). Gli acconti senza scadenza non compaiono: senza una data
- * non c'è modo di dirli in ritardo.
+ * Crediti da recuperare (admin): tutte le rate scadute e non incassate, per
+ * cliente. La lista di lavoro per gli incassi — "Segna incassato" quando il
+ * cliente paga (RPC toggle_payment_paid) e la rata sparisce ed entra nel cashflow.
  */
-
-type TipoCredito = 'rata' | 'acconto';
 
 interface Row {
   id: string;
-  kind: TipoCredito;
-  /** Descrizione dell'acconto ("Acconto 1", "Saldo"). Vuota per le rate. */
-  label: string;
   amount: number;
   due_date: string;
   client_id: string;
   client_name: string;
+  contract_status: string;
 }
 
 function euro(n: number): string {
@@ -64,53 +55,27 @@ export default function CreditiPage() {
   const fetchData = useCallback(async () => {
     if (!isAdmin) return;
     setLoading(true);
-    const oggi = todayLocal();
-    const [rateRes, accontiRes] = await Promise.all([
-      supabase
-        .from('client_payments')
-        .select('id, amount, due_date, contract:client_contracts!client_payments_contract_id_fkey(status, client:clients(id, name, company))')
-        .eq('is_paid', false)
-        .lte('due_date', oggi)
-        .order('due_date', { ascending: true }),
-      supabase
-        .from('client_installments')
-        .select('id, amount, due_date, label, client:clients(id, name, company)')
-        .is('paid_at', null)
-        .not('due_date', 'is', null)
-        .lte('due_date', oggi)
-        .order('due_date', { ascending: true }),
-    ]);
+    const { data, error } = await supabase
+      .from('client_payments')
+      .select('id, amount, due_date, contract:client_contracts!client_payments_contract_id_fkey(status, client:clients(id, name, company))')
+      .eq('is_paid', false)
+      .lte('due_date', todayLocal())
+      .order('due_date', { ascending: true });
 
-    const error = rateRes.error ?? accontiRes.error;
     if (error) { reportSupabaseError(error, 'crediti-carica'); setLoading(false); return; }
 
-    const rate: Row[] = ((rateRes.data as unknown as {
+    const list: Row[] = ((data as unknown as {
       id: string; amount: number; due_date: string;
       contract: { status: string; client: { id: string; name: string; company: string | null } | null } | null;
     }[]) ?? []).map((r) => ({
       id: r.id,
-      kind: 'rata' as const,
-      label: '',
       amount: Number(r.amount) || 0,
       due_date: r.due_date,
       client_id: r.contract?.client?.id ?? '—',
       client_name: r.contract?.client?.company || r.contract?.client?.name || 'Cliente',
+      contract_status: r.contract?.status ?? '—',
     }));
-
-    const acconti: Row[] = ((accontiRes.data as unknown as {
-      id: string; amount: number; due_date: string; label: string;
-      client: { id: string; name: string; company: string | null } | null;
-    }[]) ?? []).map((r) => ({
-      id: r.id,
-      kind: 'acconto' as const,
-      label: r.label,
-      amount: Number(r.amount) || 0,
-      due_date: r.due_date,
-      client_id: r.client?.id ?? '—',
-      client_name: r.client?.company || r.client?.name || 'Cliente',
-    }));
-
-    setRows([...rate, ...acconti].sort((a, b) => a.due_date.localeCompare(b.due_date)));
+    setRows(list);
     setLoading(false);
   }, [supabase, isAdmin]);
 
@@ -129,19 +94,14 @@ export default function CreditiPage() {
     return [...m.values()].sort((a, b) => b.total - a.total);
   }, [rows]);
 
-  async function markPaid(row: Row) {
+  async function markPaid(id: string) {
     if (!profile) return;
-    setPaying(row.id);
-    // Due tabelle, due modi di segnare l'incasso: la rata passa dalla RPC (che
-    // scrive anche il log pagamenti), l'acconto è un semplice paid_at — il suo
-    // audit lo fa il trigger su client_installments.
-    const { error } = row.kind === 'acconto'
-      ? await supabase.from('client_installments').update({ paid_at: new Date().toISOString() }).eq('id', row.id)
-      : await supabase.rpc('toggle_payment_paid', { p_payment_id: row.id, p_performed_by: profile.id });
+    setPaying(id);
+    const { error } = await supabase.rpc('toggle_payment_paid', { p_payment_id: id, p_performed_by: profile.id });
     setPaying(null);
-    if (error) { reportSupabaseError(error, 'crediti-segna-incassato', { id: row.id, kind: row.kind }); toast.error('Errore, riprova'); return; }
-    toast.success(row.kind === 'acconto' ? 'Acconto incassato' : 'Rata incassata');
-    setRows((prev) => prev.filter((r) => r.id !== row.id));
+    if (error) { reportSupabaseError(error, 'crediti-segna-incassato', { id }); toast.error('Errore, riprova'); return; }
+    toast.success('Rata incassata');
+    setRows((prev) => prev.filter((r) => r.id !== id));
   }
 
   if (!isAdmin) {
@@ -150,12 +110,12 @@ export default function CreditiPage() {
 
   return (
     <div className="space-y-6 animate-slide-up">
-      <PageHeader eyebrow="Business" title="Crediti da recuperare" subtitle="Rate e acconti scaduti e non ancora incassati, per cliente" />
+      <PageHeader eyebrow="Business" title="Crediti da recuperare" subtitle="Rate scadute e non ancora incassate, per cliente" />
 
       {loading ? (
         <SkeletonList />
       ) : rows.length === 0 ? (
-        <EmptyState icon={CheckCircle2} title="Nessun credito in sospeso" description="Tutte le rate e gli acconti scaduti risultano incassati. 🎉" />
+        <EmptyState icon={CheckCircle2} title="Nessun credito in sospeso" description="Tutte le rate scadute risultano incassate. 🎉" />
       ) : (
         <>
           <Card>
@@ -165,7 +125,7 @@ export default function CreditiPage() {
               </div>
               <div>
                 <p className="text-2xl font-bold text-pw-text leading-none">{euro(total)}</p>
-                <p className="mt-1 text-xs text-pw-text-dim">da recuperare · {rows.length} voci · {groups.length} clienti</p>
+                <p className="mt-1 text-xs text-pw-text-dim">da recuperare · {rows.length} rate · {groups.length} clienti</p>
               </div>
             </CardContent>
           </Card>
@@ -186,9 +146,7 @@ export default function CreditiPage() {
                         <div key={r.id} className="flex items-center gap-3 px-4 py-2.5">
                           <span className="w-24 shrink-0 text-sm text-pw-text-muted tabular-nums">{formatDate(r.due_date)}</span>
                           <Badge tone={tone} size="sm">{dd === 0 ? 'oggi' : `${dd}gg fa`}</Badge>
-                          <span className="flex-1 min-w-0 truncate text-sm text-pw-text-muted">
-                            {r.kind === 'acconto' && (r.label || 'Acconto')}
-                          </span>
+                          <span className="flex-1" />
                           <span className="text-sm font-semibold text-pw-text tabular-nums">{euro(r.amount)}</span>
                           <Button size="sm" variant="soft" loading={paying === r.id} onClick={() => setConfirming(r)}>
                             <CheckCircle2 size={14} /> Segna incassato
@@ -203,7 +161,7 @@ export default function CreditiPage() {
           </div>
 
           <p className="flex items-center gap-2 text-xs text-pw-text-dim">
-            <AlertTriangle size={13} /> Include le rate di contratti già conclusi e gli acconti scaduti dei lavori a progetto. Se una voce risulta pagata ma non segnata, "Segna incassato" la sistema.
+            <AlertTriangle size={13} /> Include anche le rate di contratti già conclusi. Se una risulta pagata ma non segnata, "Segna incassato" la sistema.
           </p>
         </>
       )}
@@ -211,14 +169,14 @@ export default function CreditiPage() {
       <ConfirmDialog
         open={!!confirming}
         onClose={() => setConfirming(null)}
-        onConfirm={async () => { if (confirming) await markPaid(confirming); }}
+        onConfirm={async () => { if (confirming) await markPaid(confirming.id); }}
         title="Confermi l'incasso?"
         variant="primary"
         icon={HandCoins}
         confirmLabel="Sì, incassato"
         description={confirming ? (
           <>
-            Stai segnando come incassato {confirming.kind === 'acconto' ? `l'acconto "${confirming.label || 'Acconto'}"` : 'la rata'} di{' '}
+            Stai segnando come incassata la rata di{' '}
             <strong className="text-pw-text">{confirming.client_name}</strong> da{' '}
             <strong className="text-pw-text">{euro(confirming.amount)}</strong>, scaduta il{' '}
             {formatDate(confirming.due_date)}.

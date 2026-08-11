@@ -1,12 +1,19 @@
 /**
  * Acconti (`client_installments`) nei conti dell'agenzia.
  *
- * Gli acconti nascono per i lavori one-shot pagati in tranche (tipicamente un
- * progetto di coding) e fino a qui vivevano in un registro isolato: nessuna
- * pagina dei soldi li leggeva, quindi un progetto incassato ad acconti non
- * compariva né nel cashflow, né nei crediti, né nel riepilogo del cliente.
- * Questo file è la lettura condivisa da tutte quelle pagine, così la regola
- * di conteggio è scritta una volta sola.
+ * Fino a qui vivevano in un registro isolato: nessuna pagina dei soldi li
+ * leggeva, quindi un acconto incassato non risultava da nessuna parte. Questo
+ * file è la lettura condivisa da tutte quelle pagine, così la regola di
+ * conteggio è scritta una volta sola.
+ *
+ * REGOLA: l'acconto è un INCASSO, non fatturato in più. Quanto un cliente
+ * deve resta il suo contratto; l'acconto lo scala. Per questo entra solo
+ * nell'"incassato" e mai nell'"atteso": le rate del canone restano segnate da
+ * incassare anche quando l'acconto le copre, quindi sommare l'acconto
+ * all'atteso conterebbe gli stessi soldi due volte.
+ *
+ * Per lo stesso motivo un acconto non ancora incassato NON entra nei crediti
+ * da recuperare: quella cifra è già lì sotto forma di rate non incassate.
  *
  * Nessuna migration: la RLS di `client_installments` ("Installments select
  * all") consente già la lettura a ogni utente autenticato, e le pagine che
@@ -29,9 +36,12 @@ export interface AccontoContabile {
 }
 
 export interface TotaliAcconti {
-  /** Tutti gli acconti del periodo, incassati o no. */
+  /**
+   * Tutti gli acconti del periodo, incassati o no. Serve al box Acconti per
+   * mostrare il quadro completo: NON va sommato all'atteso dell'agenzia.
+   */
   expected: number;
-  /** Solo quelli con una data di incasso. */
+  /** Solo quelli con una data di incasso: è questo che entra nei conti. */
   received: number;
   /** Registrati ma non ancora incassati. */
   pending: number;
