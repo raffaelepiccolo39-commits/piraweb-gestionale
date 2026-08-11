@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { formatDate, getStatusTone, getPriorityTone, getRoleLabel, getRoleTone, getInitials, formatDateLocal, todayLocal } from '@/lib/utils';
 import { AlertTriangle, Calendar, ChevronRight, ChevronDown, Users } from 'lucide-react';
 import { STATUS_LABELS, PRIORITY_LABELS } from '@/lib/constants';
+import { COLONNE_ACCONTO, accontiNelPeriodo, totaliAcconti, type AccontoContabile } from '@/lib/acconti';
 import type { AttendanceRecord } from '@/types/database';
 
 // Dashboard components
@@ -175,6 +176,10 @@ export default function DashboardPage() {
             .eq('status', 'pending')
             .order('start_date', { ascending: true })
             .limit(20),
+          // 14: acconti dei lavori one-shot. In coda per non spostare gli
+          // indici già in uso. Si scaricano tutti perché la data con cui
+          // contano è calcolata (incasso se c'è, altrimenti scadenza).
+          supabase.from('client_installments').select(COLONNE_ACCONTO).limit(2000),
         );
       }
 
@@ -229,10 +234,18 @@ export default function DashboardPage() {
 
         const allPayments = (results[11].data as Array<{ amount: number; is_paid: boolean; contract: { status: string } | null }>) || [];
         const payments = allPayments.filter((p) => p.contract?.status === 'active');
+        // Acconti del mese, sommati alle rate: un progetto one-shot incassato
+        // adesso deve comparire nel cashflow del mese come qualunque canone.
+        const ultimoGiorno = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+        const acconti = totaliAcconti(accontiNelPeriodo(
+          (results[14]?.data as AccontoContabile[]) || [],
+          `${currentMonth}-01`,
+          `${currentMonth}-${ultimoGiorno}`,
+        ));
         setCashflow({
-          expected: payments.reduce((sum, p) => sum + Number(p.amount), 0),
-          received: payments.filter((p) => p.is_paid).reduce((sum, p) => sum + Number(p.amount), 0),
-          pending: payments.filter((p) => !p.is_paid).reduce((sum, p) => sum + Number(p.amount), 0),
+          expected: payments.reduce((sum, p) => sum + Number(p.amount), 0) + acconti.expected,
+          received: payments.filter((p) => p.is_paid).reduce((sum, p) => sum + Number(p.amount), 0) + acconti.received,
+          pending: payments.filter((p) => !p.is_paid).reduce((sum, p) => sum + Number(p.amount), 0) + acconti.pending,
         });
 
         setTeamAttendance((results[12].data as typeof teamAttendance) || []);
@@ -285,6 +298,7 @@ export default function DashboardPage() {
     const channel = supabase
       .channel('dashboard-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'client_payments' }, debouncedFetch)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'client_installments' }, debouncedFetch)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, debouncedFetch)
       .subscribe();
 

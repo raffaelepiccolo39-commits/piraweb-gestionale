@@ -7,12 +7,22 @@ import { Euro, TrendingUp, AlertTriangle, CheckCircle2 } from 'lucide-react';
 
 interface FinancialSummaryProps {
   summary: ClientFinancialSummary;
+  /**
+   * Acconti del cliente (lavori one-shot fuori dal canone). Le quattro card
+   * restano sul contratto — mescolarci dentro un acconto renderebbe falso
+   * "Valore Contratto" — e la somma dei due mondi va nella riga in fondo.
+   */
+  acconti?: { paid: number; pending: number };
 }
 
-export function FinancialSummary({ summary }: FinancialSummaryProps) {
+export function FinancialSummary({ summary, acconti }: FinancialSummaryProps) {
   const progressPercent = summary.total_value > 0
     ? Math.round((summary.total_paid / summary.total_value) * 100)
     : 0;
+
+  const totaleAcconti = (acconti?.paid ?? 0) + (acconti?.pending ?? 0);
+  const totaleCliente = Number(summary.total_value) + totaleAcconti;
+  const incassatoCliente = Number(summary.total_paid) + (acconti?.paid ?? 0);
 
   return (
     <div className="space-y-4">
@@ -89,6 +99,31 @@ export function FinancialSummary({ summary }: FinancialSummaryProps) {
           />
         </div>
       </div>
+
+      {/* Contratto + acconti: il totale vero del cliente. */}
+      {totaleAcconti > 0 && (
+        <div className="bg-pw-surface rounded-xl border border-pw-border p-4">
+          <p className="text-sm font-medium text-pw-text-muted mb-3">Contratto + acconti</p>
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <p className="text-lg font-bold text-pw-text tabular-nums">{formatCurrency(totaleCliente)}</p>
+              <p className="text-xs text-pw-text-muted mt-0.5">Totale cliente</p>
+            </div>
+            <div>
+              <p className="text-lg font-bold text-green-500 tabular-nums">{formatCurrency(incassatoCliente)}</p>
+              <p className="text-xs text-pw-text-muted mt-0.5">Incassato</p>
+            </div>
+            <div>
+              <p className="text-lg font-bold text-amber-500 tabular-nums">{formatCurrency(totaleCliente - incassatoCliente)}</p>
+              <p className="text-xs text-pw-text-muted mt-0.5">Ancora da incassare</p>
+            </div>
+          </div>
+          <p className="text-xs text-pw-text-dim mt-3">
+            Di cui acconti: {formatCurrency(acconti?.paid ?? 0)} incassati
+            {(acconti?.pending ?? 0) > 0 && <> · {formatCurrency(acconti!.pending)} in attesa</>}
+          </p>
+        </div>
+      )}
     </div>
   );
 }

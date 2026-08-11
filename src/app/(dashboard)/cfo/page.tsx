@@ -15,6 +15,7 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { PageHeader } from '@/components/ui/page-header';
 import { SkeletonStats, SkeletonList } from '@/components/ui/skeleton';
 import { formatCurrency } from '@/lib/utils';
+import { COLONNE_ACCONTO, totaliAcconti, type AccontoContabile } from '@/lib/acconti';
 import type { Profile, OperatingExpense, Payslip, Invoice, Client, EmployeeContractType } from '@/types/database';
 import {
   TrendingUp,
@@ -179,6 +180,9 @@ export default function CFOPage() {
       supabase.from('clients').select('id, name, company, ragione_sociale, is_active').eq('is_active', true),
       supabase.from('payslips').select('*').order('month', { ascending: false }).limit(200),
       supabase.from('invoices').select('*, client:clients(id, name, company, ragione_sociale)').order('issue_date', { ascending: false }).limit(100),
+      // Acconti dei lavori one-shot: senza questi un cliente pagato solo a
+      // progetto risultava a fatturato zero.
+      supabase.from('client_installments').select(COLONNE_ACCONTO).limit(2000),
     ]);
 
     // Se anche solo una query fallisce: mostra errore in UI invece di pagina vuota silenziosa.
@@ -192,7 +196,7 @@ export default function CFOPage() {
 
     const [
       profilesRes, contractsRes, paymentsRes, expensesRes,
-      clientsRes, payslipsRes, invoicesRes,
+      clientsRes, payslipsRes, invoicesRes, accontiRes,
     ] = responses;
 
     // Appiattisce la retribuzione incorporata, cosi' p.salary resta valido.
@@ -229,9 +233,14 @@ export default function CFOPage() {
     setExpenses(expData);
 
     // ── Revenue summary ──
+    // Gli acconti si contano tutti: a differenza delle rate non vengono
+    // generati in anticipo dal contratto, quindi ogni riga è un importo
+    // concordato davvero e non c'è nessun futuro da filtrare via.
+    const acconti = (accontiRes.data as AccontoContabile[] | null) ?? [];
+    const totAcconti = totaliAcconti(acconti);
     const mrr = contracts.reduce((s, c) => s + (c.monthly_fee || 0), 0);
-    const totalExpected = payments.reduce((s, p) => s + (p.amount || 0), 0);
-    const totalReceived = payments.filter(p => p.is_paid).reduce((s, p) => s + (p.amount || 0), 0);
+    const totalExpected = payments.reduce((s, p) => s + (p.amount || 0), 0) + totAcconti.expected;
+    const totalReceived = payments.filter(p => p.is_paid).reduce((s, p) => s + (p.amount || 0), 0) + totAcconti.received;
     const totalPending = totalExpected - totalReceived;
 
     setSummary({
@@ -259,6 +268,13 @@ export default function CFOPage() {
       if (!clientId) return;
       clientExpectedMap.set(clientId, (clientExpectedMap.get(clientId) || 0) + (p.amount || 0));
       if (p.is_paid) clientPaidMap.set(clientId, (clientPaidMap.get(clientId) || 0) + (p.amount || 0));
+    });
+    // Stessi due totali per gli acconti, così un cliente senza canone ma con
+    // un progetto pagato compare comunque nella redditività.
+    acconti.forEach(a => {
+      const importo = Number(a.amount) || 0;
+      clientExpectedMap.set(a.client_id, (clientExpectedMap.get(a.client_id) || 0) + importo);
+      if (a.paid_at) clientPaidMap.set(a.client_id, (clientPaidMap.get(a.client_id) || 0) + importo);
     });
 
     // Average hourly cost across all employees

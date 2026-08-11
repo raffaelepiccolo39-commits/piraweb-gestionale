@@ -11,6 +11,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { PageHeader } from '@/components/ui/page-header';
 import { SkeletonStats, SkeletonList } from '@/components/ui/skeleton';
 import { formatCurrency, getRoleLabel, formatDateLocal, todayLocal } from '@/lib/utils';
+import { COLONNE_ACCONTO, accontiNelPeriodo, accontiPerMese, totaliAcconti, type AccontoContabile } from '@/lib/acconti';
 import type { CashflowMonthly, CashflowSummary, RevenuePerClient, ProfitLossSummary, MonthlyExpenses } from '@/types/database';
 
 /** Righe di get_website_cashflow_monthly: canoni gestione siti per mese. */
@@ -119,7 +120,7 @@ export default function CashflowPage() {
     setLoading(true);
     const { start, end } = getDateRange();
 
-    const [monthlyRes, summaryRes, clientsRes, pnlRes, expensesRes, profilesRes, payslipsRes, websiteRes] = await Promise.all([
+    const [monthlyRes, summaryRes, clientsRes, pnlRes, expensesRes, profilesRes, payslipsRes, websiteRes, accontiRes] = await Promise.all([
       supabase.rpc('get_cashflow_monthly', { p_start_date: start, p_end_date: end }),
       supabase.rpc('get_cashflow_summary', { p_start_date: start, p_end_date: end }),
       supabase.rpc('get_revenue_per_client', { p_start_date: start, p_end_date: end }),
@@ -136,6 +137,11 @@ export default function CashflowPage() {
       // Gestione siti: canoni annuali, sommati al fatturato social (atteso dal
       // rinnovo, incassato quando pagato). Vedi migration 20260718b.
       supabase.rpc('get_website_cashflow_monthly', { p_start: start, p_end: end }),
+      // Acconti dei lavori one-shot. Si scaricano tutti (sono poche righe,
+      // inserite a mano) perché la data con cui entrano nei conti è calcolata —
+      // incasso se c'è, altrimenti scadenza — e non si filtra a colpi di SQL.
+      // Serve tutta la lista anche per il periodo di confronto qui sotto.
+      supabase.from('client_installments').select(COLONNE_ACCONTO).limit(2000),
     ]);
 
     // Fonde i canoni siti nei dati mensili social, per mese (aggiunge il mese se
@@ -157,20 +163,36 @@ export default function CashflowPage() {
         byMonth.set(key, { month_date: w.month, expected: exp, received: rec, pending: exp - rec, num_clients: 0 });
       }
     }
+    // Stessa fusione per gli acconti dei lavori one-shot: senza questo un
+    // progetto pagato a tranche non compariva da nessuna parte nel cashflow.
+    const tuttiAcconti = (accontiRes.data as AccontoContabile[] | null) ?? [];
+    const accontiDelPeriodo = accontiNelPeriodo(tuttiAcconti, start, end);
+    for (const [key, tot] of accontiPerMese(accontiDelPeriodo)) {
+      const existing = byMonth.get(key);
+      if (existing) {
+        existing.expected = Number(existing.expected) + tot.expected;
+        existing.received = Number(existing.received) + tot.received;
+        existing.pending = Number(existing.pending) + tot.pending;
+      } else {
+        byMonth.set(key, { month_date: `${key}-01`, ...tot, num_clients: 0 });
+      }
+    }
+
     setMonthly([...byMonth.values()].sort((a, b) => a.month_date.localeCompare(b.month_date)));
 
     const webExpected = website.reduce((s, w) => s + Number(w.expected), 0);
     const webReceived = website.reduce((s, w) => s + Number(w.received), 0);
+    const acconti = totaliAcconti(accontiDelPeriodo);
     if (summaryRes.data?.length) {
       const s = summaryRes.data[0] as CashflowSummary;
       setCashSummary({
         ...s,
-        total_expected: Number(s.total_expected) + webExpected,
-        total_received: Number(s.total_received) + webReceived,
-        total_pending: Number(s.total_pending) + (webExpected - webReceived),
+        total_expected: Number(s.total_expected) + webExpected + acconti.expected,
+        total_received: Number(s.total_received) + webReceived + acconti.received,
+        total_pending: Number(s.total_pending) + (webExpected - webReceived) + acconti.pending,
       });
     }
-    else setCashSummary({ total_expected: webExpected, total_received: webReceived, total_pending: webExpected - webReceived, active_contracts: 0, active_clients: 0, avg_monthly_revenue: 0 } as CashflowSummary);
+    else setCashSummary({ total_expected: webExpected + acconti.expected, total_received: webReceived + acconti.received, total_pending: (webExpected - webReceived) + acconti.pending, active_contracts: 0, active_clients: 0, avg_monthly_revenue: 0 } as CashflowSummary);
     if (pnlRes.data?.[0]) setPnl(pnlRes.data[0] as ProfitLossSummary);
     else setPnl(null);
     if (expensesRes.data?.[0]) setExpenses(expensesRes.data[0] as MonthlyExpenses);
@@ -207,12 +229,15 @@ export default function CashflowPage() {
       const prevWebsite = (prevWebsiteRes.data as WebsiteCashflowMonthly[] | null) ?? [];
       const pExp = prevWebsite.reduce((s, w) => s + Number(w.expected), 0);
       const pRec = prevWebsite.reduce((s, w) => s + Number(w.received), 0);
+      // Gli acconti li abbiamo già tutti in memoria: basta rifiltrarli sul
+      // periodo precedente, senza una seconda query.
+      const prevAcconti = totaliAcconti(accontiNelPeriodo(tuttiAcconti, prevStartStr, prevEndStr));
       const s = prevSummaryRes.data[0] as CashflowSummary;
       setPrevSummary({
         ...s,
-        total_expected: Number(s.total_expected) + pExp,
-        total_received: Number(s.total_received) + pRec,
-        total_pending: Number(s.total_pending) + (pExp - pRec),
+        total_expected: Number(s.total_expected) + pExp + prevAcconti.expected,
+        total_received: Number(s.total_received) + pRec + prevAcconti.received,
+        total_pending: Number(s.total_pending) + (pExp - pRec) + prevAcconti.pending,
       });
     }
     else setPrevSummary(null);

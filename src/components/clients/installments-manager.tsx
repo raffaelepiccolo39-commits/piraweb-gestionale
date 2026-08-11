@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
 import { Card, CardContent } from '@/components/ui/card';
@@ -17,6 +17,7 @@ import { formatDate, todayLocal } from '@/lib/utils';
 import { Plus, Check, Pencil, Trash2, Wallet, AlertTriangle } from 'lucide-react';
 import type { ClientInstallment, InstallmentPaymentMethod } from '@/types/database';
 import { reportUnknown } from '@/lib/report-error';
+import { totaliAcconti } from '@/lib/acconti';
 
 const formatEur = (n: number | null | undefined) =>
   n == null ? '—' : new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(n);
@@ -36,12 +37,18 @@ const PAYMENT_METHOD_LABELS: Record<InstallmentPaymentMethod, string> =
 
 interface Props {
   clientId: string;
-  /** Se valorizzato, gli acconti sono filtrati per progetto e l'add li crea col project_id. */
+  /**
+   * Se passato, gli acconti sono filtrati per progetto e l'add li crea col
+   * project_id (`null` = solo quelli senza progetto). Se omesso il box mostra
+   * TUTTI gli acconti del cliente e lascia scegliere il progetto a mano.
+   */
   projectId?: string | null;
   /** Budget del progetto (se presente). Mostra il riepilogo Budget · Incassato · Residuo. */
   projectBudget?: number | null;
   /** Read-only: solo visualizzazione, niente bottoni di CRUD. */
   readonly?: boolean;
+  /** Chiamata a ogni ricarica: serve alle schede per aggiornare i totali attorno al box. */
+  onTotaliChange?: (totali: { paid: number; pending: number }) => void;
 }
 
 interface FormState {
@@ -52,6 +59,8 @@ interface FormState {
   paid_now: boolean;
   paid_date: string;
   notes: string;
+  /** Usato solo quando il box non è già dentro un progetto. */
+  project_id: string;
 }
 
 const emptyForm = (): FormState => ({
@@ -62,16 +71,21 @@ const emptyForm = (): FormState => ({
   paid_now: false,
   paid_date: todayLocal(),
   notes: '',
+  project_id: '',
 });
 
-export function InstallmentsManager({ clientId, projectId, projectBudget, readonly }: Props) {
+export function InstallmentsManager({ clientId, projectId, projectBudget, readonly, onTotaliChange }: Props) {
   const supabase = createClient();
   const { profile } = useAuth();
   const toast = useToast();
   const isAdmin = profile?.role === 'admin';
   const canEdit = isAdmin && !readonly;
+  // Box non ancorato a un progetto: mostra tutti gli acconti del cliente e
+  // lascia scegliere il progetto nel form.
+  const sceltaProgetto = projectId === undefined;
 
   const [items, setItems] = useState<ClientInstallment[]>([]);
+  const [projects, setProjects] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<ClientInstallment | null>(null);
@@ -80,6 +94,11 @@ export function InstallmentsManager({ clientId, projectId, projectBudget, readon
   const [markingPaid, setMarkingPaid] = useState<ClientInstallment | null>(null);
   const [paidForm, setPaidForm] = useState({ paid_date: todayLocal(), payment_method: '' as InstallmentPaymentMethod | '' });
   const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  // In un ref: se finisse nelle dipendenze di fetchData, un genitore che passa
+  // la callback inline farebbe ripartire la fetch a ogni render.
+  const onTotaliChangeRef = useRef(onTotaliChange);
+  onTotaliChangeRef.current = onTotaliChange;
 
   const fetchData = useCallback(async () => {
     let q = supabase
@@ -96,12 +115,32 @@ export function InstallmentsManager({ clientId, projectId, projectBudget, readon
       reportUnknown(error, 'client', { stage: 'fetch' });
       toast.error('Errore caricamento acconti');
     } else {
-      setItems((data as ClientInstallment[]) || []);
+      const righe = (data as ClientInstallment[]) || [];
+      setItems(righe);
+      const { received, pending } = totaliAcconti(righe);
+      onTotaliChangeRef.current?.({ paid: received, pending });
     }
     setLoading(false);
   }, [supabase, clientId, projectId, toast]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  // I progetti del cliente servono solo quando il box non è già dentro un
+  // progetto: è lì che si sceglie a quale lavoro appartiene l'acconto.
+  useEffect(() => {
+    if (!sceltaProgetto) return;
+    let annullato = false;
+    (async () => {
+      const { data, error } = await supabase
+        .from('projects')
+        .select('id, name')
+        .eq('client_id', clientId)
+        .order('name');
+      if (error) { reportUnknown(error, 'client', { stage: 'fetch_projects' }); return; }
+      if (!annullato) setProjects((data as { id: string; name: string }[]) || []);
+    })();
+    return () => { annullato = true; };
+  }, [supabase, clientId, sceltaProgetto]);
 
   const paidTotal = items.filter((i) => i.paid_at).reduce((s, i) => s + Number(i.amount), 0);
   const pendingTotal = items.filter((i) => !i.paid_at).reduce((s, i) => s + Number(i.amount), 0);
@@ -124,6 +163,7 @@ export function InstallmentsManager({ clientId, projectId, projectBudget, readon
       paid_now: !!it.paid_at,
       paid_date: it.paid_at ? it.paid_at.slice(0, 10) : todayLocal(),
       notes: it.notes || '',
+      project_id: it.project_id || '',
     });
     setShowForm(true);
   };
@@ -136,7 +176,7 @@ export function InstallmentsManager({ clientId, projectId, projectBudget, readon
     try {
       const payload = {
         client_id: clientId,
-        project_id: projectId ?? null,
+        project_id: sceltaProgetto ? (form.project_id || null) : (projectId ?? null),
         sequence_number: editing?.sequence_number ?? nextSequence,
         label: form.label.trim(),
         amount: amt,
@@ -212,31 +252,39 @@ export function InstallmentsManager({ clientId, projectId, projectBudget, readon
 
   if (loading) return <div className="text-sm text-pw-text-muted">Caricamento acconti…</div>;
 
-  const showBudgetSummary = projectBudget != null;
+  // Il riepilogo si vede sempre che ci sia almeno un acconto: prima compariva
+  // solo dentro un progetto con budget, quindi chi registrava un acconto sulla
+  // scheda cliente vedeva una riga in elenco e nessun totale.
+  const hasBudget = projectBudget != null;
 
   return (
     <div className="space-y-3">
-      {/* Riepilogo budget (solo se progetto con budget) */}
-      {showBudgetSummary && (
-        <div className="grid gap-3 grid-cols-2 sm:grid-cols-4">
+      {items.length > 0 && (
+        <div className={`grid gap-3 grid-cols-2 ${hasBudget ? 'sm:grid-cols-4' : 'sm:grid-cols-3'}`}>
           <Card><CardContent className="p-3">
-            <div className="text-[11px] text-pw-text-muted uppercase tracking-wide">Budget</div>
-            <div className="text-lg font-semibold text-pw-text tabular-nums">{formatEur(projectBudget)}</div>
+            <div className="text-[11px] text-pw-text-muted uppercase tracking-wide">{hasBudget ? 'Budget' : 'Totale acconti'}</div>
+            <div className="text-lg font-semibold text-pw-text tabular-nums">
+              {formatEur(hasBudget ? projectBudget : paidTotal + pendingTotal)}
+            </div>
           </CardContent></Card>
           <Card><CardContent className="p-3">
             <div className="text-[11px] text-pw-text-muted uppercase tracking-wide">Incassato</div>
-            <div className="text-lg font-semibold text-pw-text tabular-nums">{formatEur(paidTotal)}</div>
+            <div className="text-lg font-semibold text-green-500 tabular-nums">{formatEur(paidTotal)}</div>
           </CardContent></Card>
           <Card><CardContent className="p-3">
             <div className="text-[11px] text-pw-text-muted uppercase tracking-wide">In attesa</div>
-            <div className="text-lg font-semibold text-pw-text tabular-nums">{formatEur(pendingTotal)}</div>
-          </CardContent></Card>
-          <Card><CardContent className="p-3">
-            <div className="text-[11px] text-pw-text-muted uppercase tracking-wide">Residuo</div>
-            <div className={`text-lg font-semibold tabular-nums ${(residual ?? 0) < 0 ? 'text-pw-danger' : 'text-pw-text'}`}>
-              {formatEur(residual)}
+            <div className={`text-lg font-semibold tabular-nums ${pendingTotal > 0 ? 'text-amber-500' : 'text-pw-text'}`}>
+              {formatEur(pendingTotal)}
             </div>
           </CardContent></Card>
+          {hasBudget && (
+            <Card><CardContent className="p-3">
+              <div className="text-[11px] text-pw-text-muted uppercase tracking-wide">Residuo</div>
+              <div className={`text-lg font-semibold tabular-nums ${(residual ?? 0) < 0 ? 'text-pw-danger' : 'text-pw-text'}`}>
+                {formatEur(residual)}
+              </div>
+            </CardContent></Card>
+          )}
         </div>
       )}
 
@@ -345,6 +393,16 @@ export function InstallmentsManager({ clientId, projectId, projectBudget, readon
             onChange={(e) => setForm({ ...form, label: e.target.value })}
             placeholder='Es. "Acconto 1", "Saldo"'
           />
+          {sceltaProgetto && projects.length > 0 && (
+            <Select
+              id="inst-project"
+              label="Progetto (opzionale)"
+              value={form.project_id}
+              onChange={(e) => setForm({ ...form, project_id: e.target.value })}
+              options={projects.map((p) => ({ value: p.id, label: p.name }))}
+              placeholder="Nessun progetto"
+            />
+          )}
           <div className="grid grid-cols-2 gap-3">
             <Input
               id="inst-amount"

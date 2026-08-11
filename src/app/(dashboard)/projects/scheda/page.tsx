@@ -14,6 +14,7 @@ import { KanbanBoard } from '@/components/kanban/kanban-board';
 import { TaskForm, type TaskFormData } from '@/components/tasks/task-form';
 import { TaskDetailModal } from '@/components/tasks/task-detail-modal';
 import { ProjectForm, type ProjectFormData } from '@/components/projects/project-form';
+import { InstallmentsManager } from '@/components/clients/installments-manager';
 import { formatDate, getStatusTone, getInitials, getContrastTextColor } from '@/lib/utils';
 import { STATUS_LABELS } from '@/lib/constants';
 import type { Project, Task, Profile, Client } from '@/types/database';
@@ -364,6 +365,18 @@ function ProjectDetailPageInner() {
           </div>
         );
       })()}
+
+      {/* Acconti del progetto: col budget impostato, il residuo dice quanto
+          manca ancora all'incasso di questo lavoro. */}
+      {isAdmin && project.client_id && (
+        <div className="rounded-xl border border-pw-border bg-pw-surface p-4">
+          <InstallmentsManager
+            clientId={project.client_id}
+            projectId={id}
+            projectBudget={project.budget_amount}
+          />
+        </div>
+      )}
 
       {/* Kanban Board */}
       <KanbanBoard

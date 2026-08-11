@@ -128,6 +128,8 @@ function ClientDetailPageInner() {
   const [pastContracts, setPastContracts] = useState<ClientContract[]>([]);
   const [payments, setPayments] = useState<ClientPayment[]>([]);
   const [summary, setSummary] = useState<ClientFinancialSummary | null>(null);
+  // Alimentato dal box Acconti: il riepilogo qui sopra somma contratto + acconti.
+  const [acconti, setAcconti] = useState({ paid: 0, pending: 0 });
   const [logs, setLogs] = useState<PaymentLog[]>([]);
   const [knowledgeBase, setKnowledgeBase] = useState<ClientKnowledgeBase | null>(null);
   const [loading, setLoading] = useState(true);
@@ -734,10 +736,12 @@ function ClientDetailPageInner() {
                   </div>
               </CollapsibleSection>
 
-              {summary && <FinancialSummary summary={summary} />}
+              {summary && <FinancialSummary summary={summary} acconti={acconti} />}
 
+              {/* Senza projectId: tutti gli acconti del cliente, anche quelli
+                  legati a un progetto (prima si vedevano solo i "senza progetto"). */}
               <CollapsibleSection title="Acconti / Progetti puntuali" icon={Wallet}>
-                <InstallmentsManager clientId={id} projectId={null} />
+                <InstallmentsManager clientId={id} onTotaliChange={setAcconti} />
               </CollapsibleSection>
 
               <CollapsibleSection title="Calendario Pagamenti" icon={Calendar} defaultOpen>
