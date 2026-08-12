@@ -19,6 +19,7 @@ import { KnowledgeBaseForm } from '@/components/clients/knowledge-base-form';
 import { OnboardingSection } from '@/components/clients/onboarding-section';
 import { AssetLibrary } from '@/components/clients/asset-library';
 import { InstallmentsManager } from '@/components/clients/installments-manager';
+import { ClientExtras } from '@/components/clients/client-extras';
 import { ClientAssistant } from '@/components/clients/client-assistant';
 import { PortalAccess } from '@/components/clients/portal-access';
 import { ClientMaterials } from '@/components/clients/client-materials';
@@ -50,6 +51,7 @@ import {
   ChevronDown,
   FolderOpen,
   Wallet,
+  Sparkles,
   Briefcase,
   Tag,
   CalendarDays,
@@ -128,8 +130,10 @@ function ClientDetailPageInner() {
   const [pastContracts, setPastContracts] = useState<ClientContract[]>([]);
   const [payments, setPayments] = useState<ClientPayment[]>([]);
   const [summary, setSummary] = useState<ClientFinancialSummary | null>(null);
-  // Alimentato dal box Acconti: il riepilogo qui sopra somma contratto + acconti.
+  // Alimentati dai due box qui sotto: il riepilogo somma contratto + lavori
+  // extra e scala gli acconti già incassati.
   const [acconti, setAcconti] = useState({ paid: 0, pending: 0 });
+  const [extra, setExtra] = useState(0);
   const [logs, setLogs] = useState<PaymentLog[]>([]);
   const [knowledgeBase, setKnowledgeBase] = useState<ClientKnowledgeBase | null>(null);
   const [loading, setLoading] = useState(true);
@@ -736,7 +740,11 @@ function ClientDetailPageInner() {
                   </div>
               </CollapsibleSection>
 
-              {summary && <FinancialSummary summary={summary} acconti={acconti} />}
+              {summary && <FinancialSummary summary={summary} acconti={acconti} extra={extra} />}
+
+              <CollapsibleSection title="Lavori extra (fuori canone)" icon={Sparkles}>
+                <ClientExtras clientId={id} onTotaleChange={setExtra} />
+              </CollapsibleSection>
 
               {/* Senza projectId: tutti gli acconti del cliente, anche quelli
                   legati a un progetto (prima si vedevano solo i "senza progetto"). */}

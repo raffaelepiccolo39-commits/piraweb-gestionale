@@ -16,6 +16,7 @@ import { PageHeader } from '@/components/ui/page-header';
 import { SkeletonStats, SkeletonList } from '@/components/ui/skeleton';
 import { formatCurrency } from '@/lib/utils';
 import { COLONNE_ACCONTO, totaliAcconti, type AccontoContabile } from '@/lib/acconti';
+import { COLONNE_EXTRA, totaleExtra, type ExtraContabile } from '@/lib/lavori-extra';
 import type { Profile, OperatingExpense, Payslip, Invoice, Client, EmployeeContractType } from '@/types/database';
 import {
   TrendingUp,
@@ -183,6 +184,8 @@ export default function CFOPage() {
       // Acconti dei lavori one-shot: senza questi un cliente pagato solo a
       // progetto risultava a fatturato zero.
       supabase.from('client_installments').select(COLONNE_ACCONTO).limit(2000),
+      // Lavori extra fuori canone: fatturato in più su quel cliente.
+      supabase.from('client_extras').select(COLONNE_EXTRA).limit(2000),
     ]);
 
     // Se anche solo una query fallisce: mostra errore in UI invece di pagina vuota silenziosa.
@@ -196,7 +199,7 @@ export default function CFOPage() {
 
     const [
       profilesRes, contractsRes, paymentsRes, expensesRes,
-      clientsRes, payslipsRes, invoicesRes, accontiRes,
+      clientsRes, payslipsRes, invoicesRes, accontiRes, extraRes,
     ] = responses;
 
     // Appiattisce la retribuzione incorporata, cosi' p.salary resta valido.
@@ -238,8 +241,11 @@ export default function CFOPage() {
     // contratti, altrimenti la stessa cifra verrebbe contata due volte.
     const acconti = (accontiRes.data as AccontoContabile[] | null) ?? [];
     const totAcconti = totaliAcconti(acconti);
+    // I lavori extra fanno il contrario: alzano l'atteso, mai l'incassato
+    // (quando arrivano i soldi si registra un acconto, già contato sopra).
+    const extra = (extraRes.data as ExtraContabile[] | null) ?? [];
     const mrr = contracts.reduce((s, c) => s + (c.monthly_fee || 0), 0);
-    const totalExpected = payments.reduce((s, p) => s + (p.amount || 0), 0);
+    const totalExpected = payments.reduce((s, p) => s + (p.amount || 0), 0) + totaleExtra(extra);
     const totalReceived = payments.filter(p => p.is_paid).reduce((s, p) => s + (p.amount || 0), 0) + totAcconti.received;
     const totalPending = totalExpected - totalReceived;
 
@@ -269,10 +275,13 @@ export default function CFOPage() {
       clientExpectedMap.set(clientId, (clientExpectedMap.get(clientId) || 0) + (p.amount || 0));
       if (p.is_paid) clientPaidMap.set(clientId, (clientPaidMap.get(clientId) || 0) + (p.amount || 0));
     });
-    // Solo l'incassato, come sopra: l'atteso del cliente è il suo contratto.
+    // Acconti solo sull'incassato, lavori extra solo sull'atteso.
     acconti.forEach(a => {
       if (!a.paid_at) return;
       clientPaidMap.set(a.client_id, (clientPaidMap.get(a.client_id) || 0) + (Number(a.amount) || 0));
+    });
+    extra.forEach(e => {
+      clientExpectedMap.set(e.client_id, (clientExpectedMap.get(e.client_id) || 0) + (Number(e.amount) || 0));
     });
 
     // Average hourly cost across all employees

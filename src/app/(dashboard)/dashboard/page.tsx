@@ -12,6 +12,7 @@ import { formatDate, getStatusTone, getPriorityTone, getRoleLabel, getRoleTone, 
 import { AlertTriangle, Calendar, ChevronRight, ChevronDown, Users } from 'lucide-react';
 import { STATUS_LABELS, PRIORITY_LABELS } from '@/lib/constants';
 import { COLONNE_ACCONTO, accontiNelPeriodo, totaliAcconti, type AccontoContabile } from '@/lib/acconti';
+import { COLONNE_EXTRA, extraNelPeriodo, totaleExtra, type ExtraContabile } from '@/lib/lavori-extra';
 import type { AttendanceRecord } from '@/types/database';
 
 // Dashboard components
@@ -180,6 +181,8 @@ export default function DashboardPage() {
           // indici già in uso. Si scaricano tutti perché la data con cui
           // contano è calcolata (incasso se c'è, altrimenti scadenza).
           supabase.from('client_installments').select(COLONNE_ACCONTO).limit(2000),
+          // 15: lavori extra fuori canone, fatturato atteso in più.
+          supabase.from('client_extras').select(COLONNE_EXTRA).limit(2000),
         );
       }
 
@@ -243,10 +246,17 @@ export default function DashboardPage() {
           `${currentMonth}-01`,
           `${currentMonth}-${ultimoGiorno}`,
         ));
+        // Lavori extra del mese: fatturato atteso in più, mai incassato — i
+        // soldi che arrivano si registrano come acconto, già contato sopra.
+        const extra = totaleExtra(extraNelPeriodo(
+          (results[15]?.data as ExtraContabile[]) || [],
+          `${currentMonth}-01`,
+          `${currentMonth}-${ultimoGiorno}`,
+        ));
         setCashflow({
-          expected: payments.reduce((sum, p) => sum + Number(p.amount), 0),
+          expected: payments.reduce((sum, p) => sum + Number(p.amount), 0) + extra,
           received: payments.filter((p) => p.is_paid).reduce((sum, p) => sum + Number(p.amount), 0) + acconti.received,
-          pending: payments.filter((p) => !p.is_paid).reduce((sum, p) => sum + Number(p.amount), 0),
+          pending: payments.filter((p) => !p.is_paid).reduce((sum, p) => sum + Number(p.amount), 0) + extra,
         });
 
         setTeamAttendance((results[12].data as typeof teamAttendance) || []);

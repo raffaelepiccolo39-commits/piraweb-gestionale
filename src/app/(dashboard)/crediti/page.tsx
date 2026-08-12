@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
 import { Card, CardContent } from '@/components/ui/card';
@@ -21,9 +22,20 @@ import { HandCoins, ShieldCheck, CheckCircle2, AlertTriangle } from 'lucide-reac
  * cliente paga (RPC toggle_payment_paid) e la rata sparisce ed entra nel cashflow.
  */
 
+/**
+ * Rata del canone o lavoro extra fuori canone. Sono due debiti diversi ma
+ * si recuperano allo stesso modo, e gli acconti li scalano entrambi.
+ * Differenza pratica: una rata si può segnare incassata da qui, un lavoro
+ * extra no — non ha una spunta "pagato", l'incasso si registra come acconto.
+ */
+type TipoCredito = 'rata' | 'extra';
+
 interface Row {
   id: string;
-  /** Importo pieno della rata. */
+  kind: TipoCredito;
+  /** Descrizione del lavoro extra. Vuota per le rate. */
+  label: string;
+  /** Importo pieno della rata o del lavoro extra. */
   amount: number;
   /** Quanto resta davvero da avere dopo gli acconti già incassati dal cliente. */
   residuo: number;
@@ -33,7 +45,7 @@ interface Row {
   contract_status: string;
 }
 
-/** Quanto acconto è stato usato per coprire le rate di un cliente. */
+/** Quanto acconto è stato usato per coprire i debiti di un cliente. */
 interface Copertura {
   applicato: number;
   rateCoperte: number;
@@ -65,28 +77,37 @@ export default function CreditiPage() {
   const fetchData = useCallback(async () => {
     if (!isAdmin) return;
     setLoading(true);
-    const [rateRes, accontiRes] = await Promise.all([
+    const oggi = todayLocal();
+    const [rateRes, accontiRes, extraRes] = await Promise.all([
       supabase
         .from('client_payments')
         .select('id, amount, due_date, contract:client_contracts!client_payments_contract_id_fkey(status, client:clients(id, name, company))')
         .eq('is_paid', false)
-        .lte('due_date', todayLocal())
+        .lte('due_date', oggi)
         .order('due_date', { ascending: true }),
       // Acconti già incassati: sono soldi che il cliente ha versato su quanto
       // deve, quindi vanno scalati da qui. Le rate che coprono restano segnate
       // "da incassare" (è il modo in cui teniamo i conti), perciò senza questo
       // passaggio il cliente risultava debitore di soldi che ha già dato.
       supabase.from('client_installments').select('client_id, amount').not('paid_at', 'is', null),
+      // Lavori extra fuori canone già scaduti: sono debiti del cliente esattamente
+      // come una rata. Senza scadenza vale la data del lavoro, altrimenti non
+      // potrebbero mai risultare da recuperare.
+      supabase
+        .from('client_extras')
+        .select('id, label, amount, work_date, due_date, client:clients(id, name, company)'),
     ]);
 
-    const error = rateRes.error ?? accontiRes.error;
+    const error = rateRes.error ?? accontiRes.error ?? extraRes.error;
     if (error) { reportSupabaseError(error, 'crediti-carica'); setLoading(false); return; }
 
-    const list: Row[] = ((rateRes.data as unknown as {
+    const rate: Row[] = ((rateRes.data as unknown as {
       id: string; amount: number; due_date: string;
       contract: { status: string; client: { id: string; name: string; company: string | null } | null } | null;
     }[]) ?? []).map((r) => ({
       id: r.id,
+      kind: 'rata' as const,
+      label: '',
       amount: Number(r.amount) || 0,
       residuo: Number(r.amount) || 0,
       due_date: r.due_date,
@@ -94,6 +115,27 @@ export default function CreditiPage() {
       client_name: r.contract?.client?.company || r.contract?.client?.name || 'Cliente',
       contract_status: r.contract?.status ?? '—',
     }));
+
+    const extra: Row[] = ((extraRes.data as unknown as {
+      id: string; label: string; amount: number; work_date: string; due_date: string | null;
+      client: { id: string; name: string; company: string | null } | null;
+    }[]) ?? [])
+      .map((e) => ({
+        id: e.id,
+        kind: 'extra' as const,
+        label: e.label,
+        amount: Number(e.amount) || 0,
+        residuo: Number(e.amount) || 0,
+        due_date: e.due_date ?? e.work_date,
+        client_id: e.client?.id ?? '—',
+        client_name: e.client?.company || e.client?.name || 'Cliente',
+        contract_status: '—',
+      }))
+      .filter((e) => e.due_date <= oggi);
+
+    // Un elenco solo, ordinato per scadenza: gli acconti si scalano dal debito
+    // più vecchio, che sia una rata o un lavoro extra.
+    const list = [...rate, ...extra].sort((a, b) => a.due_date.localeCompare(b.due_date));
 
     // Credito disponibile per cliente = tutti i suoi acconti incassati.
     const credito = new Map<string, number>();
@@ -113,7 +155,7 @@ export default function CreditiPage() {
       credito.set(r.client_id, disponibile - usato);
       const c = copertura.get(r.client_id) ?? { applicato: 0, rateCoperte: 0 };
       c.applicato += usato;
-      if (r.residuo === 0) c.rateCoperte += 1;
+      if (r.residuo <= 0.005) c.rateCoperte += 1;
       copertura.set(r.client_id, c);
     }
 
@@ -199,12 +241,25 @@ export default function CreditiPage() {
                           <span className="w-24 shrink-0 text-sm text-pw-text-muted tabular-nums">{formatDate(r.due_date)}</span>
                           <Badge tone={tone} size="sm">{dd === 0 ? 'oggi' : `${dd}gg fa`}</Badge>
                           <span className="flex-1 min-w-0 truncate text-xs text-pw-text-dim">
-                            {r.residuo < r.amount && `resto della rata da ${euro(r.amount)}`}
+                            {r.kind === 'extra' && <span className="text-pw-text-muted">{r.label || 'Lavoro extra'} · </span>}
+                            {r.residuo < r.amount && `resto di ${euro(r.amount)}`}
                           </span>
                           <span className="text-sm font-semibold text-pw-text tabular-nums">{euro(r.residuo)}</span>
-                          <Button size="sm" variant="soft" loading={paying === r.id} onClick={() => setConfirming(r)}>
-                            <CheckCircle2 size={14} /> Segna incassato
-                          </Button>
+                          {r.kind === 'rata' ? (
+                            <Button size="sm" variant="soft" loading={paying === r.id} onClick={() => setConfirming(r)}>
+                              <CheckCircle2 size={14} /> Segna incassato
+                            </Button>
+                          ) : (
+                            // Un lavoro extra non ha una spunta "pagato": quando i soldi
+                            // arrivano si registra un acconto, che poi lo scala da qui.
+                            <Link
+                              href={`/clients/scheda?id=${r.client_id}`}
+                              className="shrink-0 text-xs text-pw-accent hover:underline whitespace-nowrap"
+                              title="Registra l'incasso come acconto sulla scheda del cliente"
+                            >
+                              Registra acconto
+                            </Link>
+                          )}
                         </div>
                       );
                     })}
@@ -215,7 +270,7 @@ export default function CreditiPage() {
           </div>
 
           <p className="flex items-center gap-2 text-xs text-pw-text-dim">
-            <AlertTriangle size={13} /> Gli acconti già incassati sono scalati dalle rate più vecchie. Include anche le rate di contratti già conclusi. Se una risulta pagata ma non segnata, "Segna incassato" la sistema.
+            <AlertTriangle size={13} /> Rate del canone e lavori extra fuori canone, con gli acconti già incassati scalati dal debito più vecchio. Include anche le rate di contratti già conclusi. Se una rata risulta pagata ma non segnata, &quot;Segna incassato&quot; la sistema; per un lavoro extra registra invece un acconto sul cliente.
           </p>
         </>
       )}

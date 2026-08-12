@@ -362,6 +362,26 @@ export interface ClientInstallment {
   project?: { id: string; name: string } | null;
 }
 
+/**
+ * Lavoro extra fatturato al cliente fuori dal canone. Alza quanto il cliente
+ * deve — è l'opposto dell'acconto, che lo abbassa. Niente flag "pagato": gli
+ * incassi si registrano come acconto.
+ */
+export interface ClientExtra {
+  id: string;
+  client_id: string;
+  project_id: string | null;
+  label: string;
+  amount: number;
+  work_date: string;
+  due_date: string | null;
+  notes: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+  project?: { id: string; name: string } | null;
+}
+
 export interface InstallmentLog {
   id: string;
   installment_id: string | null;
