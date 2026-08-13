@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "893777463953",
+    "project_id": "pira-web-gestionale",
+    "storage_bucket": "pira-web-gestionale.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:893777463953:android:84e24948d11dedd6ac4d30",
+        "android_client_info": {
+          "package_name": "it.piraweb.gestionale"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC_J3thFA957DERuSqKcCb_6h8Mo9zMkgQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
