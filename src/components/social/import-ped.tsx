@@ -9,6 +9,7 @@ import { useToast } from '@/components/ui/toast';
 import { useAuth } from '@/hooks/use-auth';
 import { reportUnknown } from '@/lib/report-error';
 import { leggiCsv, leggiPdf, type RigaPed } from '@/lib/ped-parser';
+import { SOCIAL_MEDIA_BUCKET, buildMediaPath } from '@/lib/social-media';
 import type { Client } from '@/types/database';
 import { Upload, FileSpreadsheet, Loader2, AlertTriangle, Trash2 } from 'lucide-react';
 
@@ -73,8 +74,30 @@ export function ImportPed({
     try {
       const daCreare = righe.filter((r) => r.data && r.copy);
 
+      // Le foto trovate nel PDF si caricano prima, così il contenuto nasce
+      // già con la sua immagine. Se un caricamento fallisce il contenuto si
+      // crea lo stesso senza foto: meglio un piano da completare a mano che
+      // un'importazione che si blocca a metà.
+      const percorsi = await Promise.all(
+        daCreare.map(async (r) => {
+          if (!r.immagine) return null;
+          try {
+            const nome = `ped-${r.data}.jpg`;
+            const percorso = buildMediaPath(cliente, nome);
+            const { error } = await supabase.storage
+              .from(SOCIAL_MEDIA_BUCKET)
+              .upload(percorso, r.immagine, { cacheControl: '3600', upsert: false, contentType: 'image/jpeg' });
+            if (error) throw error;
+            return percorso;
+          } catch (e) {
+            reportUnknown(e, 'client', { op: 'ped-foto', data: r.data });
+            return null;
+          }
+        })
+      );
+
       const { error } = await supabase.from('social_posts').insert(
-        daCreare.map((r) => ({
+        daCreare.map((r, i) => ({
           client_id: cliente,
           // Il titolo serve al team nel calendario: la prima frase basta.
           title: (r.copy.split('\n').find((l) => l.length > 12) || 'Contenuto').slice(0, 70),
@@ -82,6 +105,7 @@ export function ImportPed({
           platforms: ['instagram'],
           status: 'ready',
           formato: r.formato,
+          media_urls: percorsi[i] ? [percorsi[i]] : [],
           // 10:00 italiane: l'orario esatto lo sistema chi programma.
           scheduled_at: new Date(`${r.data}T10:00:00`).toISOString(),
           created_by: profile.id,
@@ -94,7 +118,12 @@ export function ImportPed({
         return;
       }
 
-      toast.success(`${daCreare.length} contenuti creati — ora carica le foto`);
+      const conFoto = percorsi.filter(Boolean).length;
+      toast.success(
+        conFoto === daCreare.length
+          ? `${daCreare.length} contenuti creati, foto comprese`
+          : `${daCreare.length} contenuti creati · ${conFoto} con la foto — le altre vanno messe con "Assegna media"`
+      );
       chiudi();
       onFatto();
     } finally {

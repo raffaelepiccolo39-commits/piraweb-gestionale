@@ -148,6 +148,144 @@ export function leggiCsv(testo: string): RigaPed[] {
 // PDF
 // ─────────────────────────────────────────────────────────────
 
+interface VocePdf { testo: string; x: number; y: number }
+
+/** Il lato lungo massimo delle foto estratte: nel PDF sono anche 4000px. */
+const MAX_LATO = 1600;
+
+/** Prodotto di due matrici PDF, nell'ordine in cui le applica il disegno. */
+function componi(m: number[], n: number[]): number[] {
+  return [
+    m[0] * n[0] + m[2] * n[1], m[1] * n[0] + m[3] * n[1],
+    m[0] * n[2] + m[2] * n[3], m[1] * n[2] + m[3] * n[3],
+    m[0] * n[4] + m[2] * n[5] + m[4], m[1] * n[4] + m[3] * n[5] + m[5],
+  ];
+}
+
+/**
+ * Dove finisce la colonna della didascalia.
+ *
+ * Non una frazione fissa della larghezza: su un piano vero (Quadrifoglio) la
+ * colonna del canale cadeva dentro il 30% e i suoi "IG, FB & TikTok"
+ * finivano in mezzo al testo. Le colonne di una tabella sono separate da
+ * spazi vuoti larghi, quindi il confine sta al primo salto grosso fra le x.
+ */
+function confineColonnaCopy(voci: VocePdf[]): number {
+  const xs = [...new Set(voci.map((v) => Math.round(v.x)))].sort((a, b) => a - b);
+  for (let i = 1; i < xs.length; i++) {
+    if (xs[i] - xs[i - 1] > 60) return (xs[i] + xs[i - 1]) / 2;
+  }
+  return Infinity;
+}
+
+interface ImmaginePdf { nome: string; alto: number; basso: number; presa: boolean }
+
+/** Le immagini disegnate nella pagina, con la fascia verticale che occupano. */
+async function immaginiDellaPagina(
+  pagina: { getOperatorList: () => Promise<{ fnArray: number[]; argsArray: unknown[][] }> },
+  altezza: number,
+  OPS: Record<string, number>,
+): Promise<ImmaginePdf[]> {
+  const lista = await pagina.getOperatorList();
+  const fuori: ImmaginePdf[] = [];
+  let ctm = [1, 0, 0, 1, 0, 0];
+  const pila: number[][] = [];
+
+  for (let i = 0; i < lista.fnArray.length; i++) {
+    const fn = lista.fnArray[i];
+    if (fn === OPS.save) pila.push(ctm.slice());
+    else if (fn === OPS.restore) ctm = pila.pop() ?? [1, 0, 0, 1, 0, 0];
+    else if (fn === OPS.transform) ctm = componi(ctm, lista.argsArray[i] as number[]);
+    else if (fn === OPS.paintImageXObject || fn === OPS.paintJpegXObject) {
+      // L'immagine è disegnata in un quadrato unitario e poi trasformata:
+      // il centro vero è la matrice applicata a (0.5, 0.5).
+      const centro = altezza - (ctm[1] * 0.5 + ctm[3] * 0.5 + ctm[5]);
+      const alta = Math.abs(ctm[3]);
+      fuori.push({
+        nome: String((lista.argsArray[i] as unknown[])[0]),
+        alto: centro - alta / 2,
+        basso: centro + alta / 2,
+        presa: false,
+      });
+    }
+  }
+  return fuori;
+}
+
+/** Converte l'immagine grezza di pdf.js in un JPEG, rimpicciolita. */
+async function immagineInBlob(
+  pagina: { objs: { get: (n: string, cb: (o: unknown) => void) => void } },
+  nome: string,
+): Promise<Blob | undefined> {
+  try {
+    const oggetto = await new Promise<unknown>((r) => pagina.objs.get(nome, r));
+    const o = oggetto as {
+      width?: number; height?: number; data?: Uint8ClampedArray | Uint8Array;
+      bitmap?: ImageBitmap;
+    };
+
+    const larga = o.bitmap?.width ?? o.width ?? 0;
+    const alta = o.bitmap?.height ?? o.height ?? 0;
+    if (!larga || !alta) return undefined;
+
+    const scala = Math.min(1, MAX_LATO / Math.max(larga, alta));
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.max(1, Math.round(larga * scala));
+    canvas.height = Math.max(1, Math.round(alta * scala));
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return undefined;
+
+    if (o.bitmap) {
+      ctx.drawImage(o.bitmap, 0, 0, canvas.width, canvas.height);
+    } else if (o.data) {
+      // I dati arrivano a 1, 3 o 4 canali: ImageData ne vuole 4.
+      const canali = o.data.length / (larga * alta);
+      const rgba = new Uint8ClampedArray(larga * alta * 4);
+      for (let p = 0; p < larga * alta; p++) {
+        const s = p * canali;
+        const d = p * 4;
+        if (canali >= 3) {
+          rgba[d] = o.data[s]; rgba[d + 1] = o.data[s + 1]; rgba[d + 2] = o.data[s + 2];
+          rgba[d + 3] = canali === 4 ? o.data[s + 3] : 255;
+        } else {
+          rgba[d] = rgba[d + 1] = rgba[d + 2] = o.data[s];
+          rgba[d + 3] = 255;
+        }
+      }
+      // Passa da un canvas a grandezza naturale, poi rimpicciolisce.
+      const pieno = document.createElement('canvas');
+      pieno.width = larga; pieno.height = alta;
+      pieno.getContext('2d')?.putImageData(new ImageData(rgba, larga, alta), 0, 0);
+      ctx.drawImage(pieno, 0, 0, canvas.width, canvas.height);
+    } else {
+      return undefined;
+    }
+
+    return await new Promise<Blob | undefined>((r) =>
+      canvas.toBlob((b) => r(b ?? undefined), 'image/jpeg', 0.85),
+    );
+  } catch {
+    // Una foto illeggibile non deve far saltare l'importazione del piano.
+    return undefined;
+  }
+}
+
+/**
+ * Legge un piano editoriale in PDF: date, didascalie, formato e le foto.
+ *
+ * Le righe si delimitano a metà strada fra una data e la successiva. La data
+ * è centrata verticalmente nella sua riga, quindi il punto di mezzo cade
+ * nello spazio bianco fra due contenuti: la didascalia che scende sotto la
+ * propria data resta dalla parte giusta, e gli hashtag non finiscono
+ * appiccicati al contenuto dopo.
+ *
+ * La versione precedente cercava invece una coppia di emoji bandiera come
+ * inizio di ogni didascalia — regola presa da un piano solo (Maestri
+ * Cotonieri). Su un piano senza bandierine non trovava nessun confine e
+ * assegnava a OGNI data l'intera pagina: 23 contenuti con la stessa
+ * didascalia, intestazione compresa. Le date invece ci sono sempre, perché
+ * sono ciò che rende un piano un piano.
+ */
 export async function leggiPdf(file: File): Promise<RigaPed[]> {
   const pdfjs = await import('pdfjs-dist');
   pdfjs.GlobalWorkerOptions.workerSrc = new URL(
@@ -166,57 +304,62 @@ export async function leggiPdf(file: File): Promise<RigaPed[]> {
     // y misurato dall'alto, per ragionare come si legge.
     // items contiene anche marcatori di struttura senza testo: si tengono
     // solo quelli con `str`, che sono i frammenti veri.
-    const voci = contenuto.items
+    const voci: VocePdf[] = contenuto.items
       .flatMap((i) => {
         const t = i as { str?: string; transform?: number[] };
         if (typeof t.str !== 'string' || !t.transform) return [];
-        return [{
-          testo: t.str,
-          x: t.transform[4],
-          y: vista.height - t.transform[5],
-        }];
+        return [{ testo: t.str, x: t.transform[4], y: vista.height - t.transform[5] }];
       })
       .filter((v) => v.testo.trim());
+    if (!voci.length) continue;
 
-    // 1. Le righe iniziano dove inizia il copy, NON dove sta la data.
-    //    La data e' centrata verticalmente mentre il copy scende piu in
-    //    basso: usando le date come confine, gli hashtag di un contenuto
-    //    finiscono attaccati al successivo. La bandierina che apre ogni
-    //    didascalia e' il delimitatore giusto.
-    const inizi = voci
-      .filter((v) => /[\u{1F1E6}-\u{1F1FF}]{2}/u.test(v.testo))
-      .map((v) => v.y)
-      .sort((a, b) => a - b);
+    const limiteCopy = confineColonnaCopy(voci);
 
-    // 2. Data e tipologia stanno nella stessa zona, a destra.
-    const marcatori = voci
-      .filter((v) => leggiData(v.testo) !== null)
-      .map((v) => ({ y: v.y, data: leggiData(v.testo)!, x: v.x }));
+    const date = voci
+      .flatMap((v) => {
+        const d = leggiData(v.testo);
+        return d ? [{ y: v.y, data: d }] : [];
+      })
+      .sort((a, b) => a.y - b.y);
+    if (!date.length) continue;
 
-    if (marcatori.length === 0) continue;
+    // Quanto è alta una riga: mediana delle distanze fra date consecutive.
+    // Serve solo a chiudere la prima e l'ultima, che non hanno una vicina
+    // da un lato. Con una data sola si tiene tutta la pagina.
+    const passi = date.slice(1).map((d, i) => d.y - date[i].y).sort((a, b) => a - b);
+    const passo = passi.length ? passi[Math.floor(passi.length / 2)] : vista.height * 2;
 
-    for (const m of marcatori) {
-      const sopra = inizi.filter((y) => y <= m.y + 40);
-      const da = sopra.length ? Math.max(...sopra) - 12 : 0;
-      const sotto = inizi.filter((y) => y > m.y + 40);
-      const a = sotto.length ? Math.min(...sotto) - 12 : Infinity;
+    const immagini = await immaginiDellaPagina(pagina, vista.height, pdfjs.OPS as unknown as Record<string, number>);
+
+    for (let i = 0; i < date.length; i++) {
+      const da = i === 0 ? date[i].y - passo / 2 : (date[i - 1].y + date[i].y) / 2;
+      const a = i === date.length - 1 ? date[i].y + passo / 2 : (date[i].y + date[i + 1].y) / 2;
 
       const dentro = voci.filter((v) => v.y >= da && v.y < a);
-
-      // Colonna di sinistra = didascalia. Il resto sono tipologia, data e
-      // i menu a tendina dell'export, che non servono.
       const colonnaCopy = dentro
-        .filter((v) => v.x < vista.width * 0.3)
-        .sort((x1, x2) => x1.y - x2.y || x1.x - x2.x);
+        .filter((v) => v.x < limiteCopy)
+        .sort((p, q) => p.y - q.y || p.x - q.x);
 
       const formatoVoce = dentro.find((v) => /^(video|post|reel|carosello|storia|stories)$/i.test(v.testo.trim()));
-
       const copy = ricompatta(colonnaCopy.map((v) => v.testo).join('\n'));
 
+      // Non "il centro dell'immagine cade nella riga": una foto più alta
+      // delle altre ha il centro spostato e resterebbe orfana. Vince quella
+      // che si sovrappone di più, e ognuna si usa una volta sola.
+      let scelta: ImmaginePdf | null = null;
+      let meglio = 0;
+      for (const im of immagini) {
+        if (im.presa) continue;
+        const sovrapposta = Math.min(a, im.basso) - Math.max(da, im.alto);
+        if (sovrapposta > meglio) { meglio = sovrapposta; scelta = im; }
+      }
+      if (scelta) scelta.presa = true;
+
       out.push({
-        data: m.data,
+        data: date[i].data,
         formato: leggiFormato(formatoVoce?.testo || ''),
         copy,
+        immagine: scelta ? await immagineInBlob(pagina, scelta.nome) : undefined,
         avviso: copy.length < 40 ? 'didascalia molto corta: controlla' : undefined,
       });
     }
