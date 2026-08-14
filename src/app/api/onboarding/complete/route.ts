@@ -30,17 +30,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Devi prima impostare una password' }, { status: 400 });
   }
 
-  // Admin DEVE avere 2FA attiva per completare onboarding
-  if (prof.role === 'admin') {
-    const { data: totp } = await service
-      .from('user_totp')
-      .select('enabled')
-      .eq('user_id', user.id)
-      .maybeSingle();
-    if (!totp || !totp.enabled) {
-      return NextResponse.json({ error: '2FA obbligatoria per gli admin: completa il setup' }, { status: 400 });
-    }
-  }
+  // La 2FA non è più parte dell'onboarding: si attiva dalla pagina dedicata
+  // (/sicurezza-2fa, MFA nativo Supabase). Il vecchio blocco su user_totp
+  // custom qui avrebbe impedito il completamento con un sistema ormai dismesso.
 
   const update: Record<string, unknown> = { onboarded_at: new Date().toISOString() };
   if (typeof full_name === 'string' && full_name.trim().length > 0) update.full_name = full_name.trim();

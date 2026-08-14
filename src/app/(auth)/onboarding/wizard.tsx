@@ -2,11 +2,11 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Eye, EyeOff, Loader2, ShieldCheck, Check, ArrowRight, KeyRound, User as UserIcon } from 'lucide-react';
+import { Eye, EyeOff, Loader2, Check, ArrowRight, KeyRound, User as UserIcon } from 'lucide-react';
 import Image from 'next/image';
 import type { UserRole } from '@/types/database';
 
-type Step = 'password' | 'profile' | '2fa';
+type Step = 'password' | 'profile';
 
 interface Props {
   email: string;
@@ -54,14 +54,6 @@ export default function OnboardingWizard(props: Props) {
   const [name, setName] = useState(props.fullName);
   const [avatar, setAvatar] = useState(props.avatarUrl || '');
 
-  // Step 3: 2FA
-  const [qr, setQr] = useState<string | null>(null);
-  const [secret, setSecret] = useState<string | null>(null);
-  const [code, setCode] = useState('');
-  const [tfaError, setTfaError] = useState('');
-  const [tfaLoading, setTfaLoading] = useState(false);
-  const [tfaEnabled, setTfaEnabled] = useState(false);
-
   const [completing, setCompleting] = useState(false);
   const [completeError, setCompleteError] = useState('');
 
@@ -86,42 +78,8 @@ export default function OnboardingWizard(props: Props) {
     setStep('profile');
   }
 
-  async function setupTfa() {
-    setTfaError('');
-    setTfaLoading(true);
-    const res = await fetch('/api/auth/2fa/setup', { method: 'POST' });
-    setTfaLoading(false);
-    if (!res.ok) {
-      const j = await res.json().catch(() => ({}));
-      return setTfaError(j.error || 'Errore setup 2FA');
-    }
-    const data = await res.json();
-    setQr(data.qrCode);
-    setSecret(data.secret);
-  }
-
-  async function verifyTfa() {
-    setTfaError('');
-    if (code.length !== 6) return setTfaError('Inserisci il codice di 6 cifre');
-    setTfaLoading(true);
-    const res = await fetch('/api/auth/2fa/verify-setup', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ code }),
-    });
-    setTfaLoading(false);
-    if (!res.ok) {
-      const j = await res.json().catch(() => ({}));
-      return setTfaError(j.error || 'Codice non valido');
-    }
-    setTfaEnabled(true);
-  }
-
-  async function complete(skipTfa = false) {
+  async function complete() {
     setCompleteError('');
-    if (isAdmin && !tfaEnabled && !skipTfa) {
-      return setCompleteError('Devi attivare la 2FA prima di continuare');
-    }
     setCompleting(true);
     const res = await fetch('/api/onboarding/complete', {
       method: 'POST',
@@ -140,7 +98,6 @@ export default function OnboardingWizard(props: Props) {
   const steps: { id: Step; label: string; icon: typeof KeyRound }[] = [
     { id: 'password', label: 'Password', icon: KeyRound },
     { id: 'profile', label: 'Profilo', icon: UserIcon },
-    { id: '2fa', label: '2FA', icon: ShieldCheck },
   ];
   const currentIdx = steps.findIndex(s => s.id === step);
 
@@ -264,95 +221,11 @@ export default function OnboardingWizard(props: Props) {
                   </div>
                 )}
               </div>
-              <div className="flex gap-2 pt-2">
-                <button
-                  onClick={() => setStep('2fa')}
-                  disabled={!name.trim()}
-                  className="flex-1 bg-pw-accent text-[#0A263A] rounded-lg py-2.5 font-medium hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
-                >
-                  Continua <ArrowRight className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          )}
-
-          {step === '2fa' && (
-            <div className="space-y-4">
-              <div>
-                <h2 className="text-xl font-semibold text-pw-text mb-1">
-                  {isAdmin ? 'Attiva 2FA (obbligatoria per admin)' : 'Attiva 2FA (consigliato)'}
-                </h2>
-                <p className="text-sm text-pw-text-muted">
-                  {isAdmin
-                    ? 'Come amministratore, il secondo fattore è obbligatorio per proteggere dati sensibili.'
-                    : 'Aggiungi un livello di sicurezza extra. Potrai sempre attivarla dopo da Impostazioni.'}
-                </p>
-              </div>
-
-              {!qr && !tfaEnabled && (
-                <button
-                  onClick={setupTfa}
-                  disabled={tfaLoading}
-                  className="w-full bg-pw-accent text-[#0A263A] rounded-lg py-2.5 font-medium hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
-                >
-                  {tfaLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Configura 2FA <ShieldCheck className="w-4 h-4" /></>}
-                </button>
-              )}
-
-              {qr && !tfaEnabled && (
-                <div className="space-y-3">
-                  <p className="text-sm text-pw-text">1. Scansiona il QR con Google Authenticator, 1Password, Authy o app simile.</p>
-                  <div className="flex justify-center bg-pw-navy rounded-lg p-4">
-                    <Image src={qr} alt="QR code 2FA" width={200} height={200} unoptimized />
-                  </div>
-                  {secret && (
-                    <p className="text-xs text-pw-text-muted text-center break-all">
-                      Codice manuale: <code className="font-mono">{secret}</code>
-                    </p>
-                  )}
-                  <p className="text-sm text-pw-text">2. Inserisci il codice a 6 cifre generato dall&apos;app.</p>
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    maxLength={6}
-                    value={code}
-                    onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
-                    className="w-full px-3 py-2 bg-pw-bg border border-pw-border rounded-lg text-pw-text text-center text-2xl tracking-widest font-mono focus:outline-none focus:ring-2 focus:ring-pw-accent"
-                    placeholder="000000"
-                  />
-                  <button
-                    onClick={verifyTfa}
-                    disabled={tfaLoading || code.length !== 6}
-                    className="w-full bg-pw-accent text-[#0A263A] rounded-lg py-2.5 font-medium hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
-                  >
-                    {tfaLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Verifica e attiva'}
-                  </button>
-                </div>
-              )}
-
-              {tfaEnabled && (
-                <div className="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg p-3 flex items-center gap-2">
-                  <Check className="w-5 h-5 text-green-600" />
-                  <span className="text-sm text-green-800 dark:text-green-200">2FA attivata correttamente</span>
-                </div>
-              )}
-
-              {tfaError && <p className="text-sm text-red-500">{tfaError}</p>}
               {completeError && <p className="text-sm text-red-500">{completeError}</p>}
-
               <div className="flex gap-2 pt-2">
-                {!isAdmin && !tfaEnabled && (
-                  <button
-                    onClick={() => complete(true)}
-                    disabled={completing}
-                    className="flex-1 bg-pw-surface border border-pw-border text-pw-text rounded-lg py-2.5 font-medium hover:bg-pw-bg disabled:opacity-50"
-                  >
-                    Salta per ora
-                  </button>
-                )}
                 <button
-                  onClick={() => complete(false)}
-                  disabled={completing || (isAdmin && !tfaEnabled)}
+                  onClick={() => complete()}
+                  disabled={completing || !name.trim()}
                   className="flex-1 bg-pw-accent text-[#0A263A] rounded-lg py-2.5 font-medium hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   {completing ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Completa <Check className="w-4 h-4" /></>}
@@ -360,6 +233,7 @@ export default function OnboardingWizard(props: Props) {
               </div>
             </div>
           )}
+
         </div>
 
         <p className="text-center text-xs text-pw-text-muted mt-6">
