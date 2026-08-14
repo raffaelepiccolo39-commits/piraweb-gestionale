@@ -94,6 +94,7 @@ export default function AiActDashboard() {
         eyebrow="Conformità"
         title="Conformità IA"
         subtitle="Registro dei sistemi di IA, tracciabilità delle generazioni e formazione del team — Reg. UE 2024/1689 (AI Act)"
+        actions={isAdmin ? <Link href="/ai-act/dossier" className="inline-flex items-center gap-1.5 rounded-lg bg-pw-accent px-3 py-2 text-sm font-medium text-[#0A263A] hover:opacity-90"><FileText size={15} /> Genera dossier</Link> : undefined}
       />
 
       {loading ? (
