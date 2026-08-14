@@ -19,6 +19,7 @@ import {
   Wallet,
   Crown,
   ScrollText,
+  ShieldCheck,
   Settings,
 } from 'lucide-react';
 
@@ -79,6 +80,8 @@ export const navSections: NavSection[] = [
       { label: 'Gestione Siti', href: '/gestione-siti', icon: Globe, adminOnly: true },
       { label: 'Crediti', href: '/crediti', icon: HandCoins, adminOnly: true },
       { label: 'Cashflow', href: '/cashflow', icon: Wallet, adminOnly: true },
+      // Non adminOnly: il team deve accedere alla propria formazione (art. 4).
+      { label: 'Conformità IA', href: '/ai-act', icon: ShieldCheck },
     ],
   },
   {
