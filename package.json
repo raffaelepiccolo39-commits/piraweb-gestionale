@@ -9,6 +9,7 @@
     "start": "next start",
     "start:sg": "node .next/standalone/server.js",
     "lint": "eslint",
+    "test:ai-act": "node --test --experimental-strip-types src/lib/ai-act/*.test.ts",
     "build:app": "node scripts/build-app.mjs",
     "app": "npm run build:app && npx cap sync",
     "app:ios": "npm run app && npx cap open ios",
