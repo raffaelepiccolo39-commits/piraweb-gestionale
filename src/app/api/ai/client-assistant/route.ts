@@ -4,6 +4,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { checkRateLimit, AI_RATE_LIMIT } from '@/lib/rate-limit';
 import { logError } from '@/lib/logger';
+import { logGenerazione, contestoNeutro } from '@/lib/ai-act/logger';
+import { SISTEMI } from '@/lib/ai-act/sistemi';
 
 // Schema dell'output: JSON garantito valido (structured outputs di Opus 4.8),
 // indispensabile perché le "azioni proposte" vengono poi eseguite dalla UI.
@@ -245,6 +247,18 @@ Analizza la situazione e restituisci l'esito nello schema richiesto.`;
       await logError({ error: insErr, route: '/api/ai/client-assistant', source: 'api', context: { op: 'client-assistant' } });
       return NextResponse.json({ error: `Salvataggio non riuscito: ${insErr.message}` }, { status: 500 });
     }
+
+    // Evidenza AI Act (non bloccante, prompt solo come hash).
+    await logGenerazione({
+      sistemaId: SISTEMI.CLAUDE_API,
+      modello: 'claude-opus-4-8',
+      tipoOutput: 'TESTO',
+      prompt,
+      utenteId: user.id,
+      clienteId: client_id,
+      contesto: contestoNeutro('TESTO'),
+      outputRef: inserted?.id ? String(inserted.id) : null,
+    });
 
     return NextResponse.json({ insight: inserted });
   } catch (e) {

@@ -6,6 +6,8 @@ import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { isAdmin } from '@/lib/require-admin';
 import { checkRateLimit, AI_RATE_LIMIT } from '@/lib/rate-limit';
 import { logError } from '@/lib/logger';
+import { logGenerazione, contestoNeutro } from '@/lib/ai-act/logger';
+import { SISTEMI } from '@/lib/ai-act/sistemi';
 
 /**
  * Agente operativo: da un messaggio (o audio trascritto) capisce COSA fare e
@@ -125,17 +127,27 @@ Rispondi ESCLUSIVAMENTE con JSON valido (niente markdown):
 Regole: usa solo client_id dalla lista. Per payment/website_renewal, se non riconosci il cliente ometti l'azione. Se il mese non è chiaro per un payment, usa il mese corrente. Più richieste nel messaggio → più azioni.`;
 
   let raw: string;
+  let sistemaUsato: string = SISTEMI.CLAUDE_API;
+  let modelloUsato = 'claude-sonnet-4-6';
   try {
     raw = await callClaude(prompt);
   } catch (claudeErr) {
     await logError({ error: claudeErr, route: '/api/ai/capture-action', source: 'api', context: { op: 'capture-action' } });
     try {
       raw = await callOpenAI(prompt);
+      sistemaUsato = SISTEMI.CHATGPT;
+      modelloUsato = 'gpt-4o';
     } catch (openaiErr) {
       await logError({ error: openaiErr, route: '/api/ai/capture-action', source: 'api', context: { op: 'capture-action' } });
       return NextResponse.json({ error: 'Errore nella generazione AI. Verifica le API key.' }, { status: 500 });
     }
   }
+
+  // Evidenza AI Act (non bloccante, prompt solo come hash).
+  await logGenerazione({
+    sistemaId: sistemaUsato, modello: modelloUsato, tipoOutput: 'DATI',
+    prompt, utenteId: user.id, contesto: contestoNeutro('DATI'),
+  });
 
   let parsed: { actions: Record<string, unknown>[] };
   try {

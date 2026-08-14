@@ -4,6 +4,8 @@ import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { isAdmin } from '@/lib/require-admin';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { logError } from '@/lib/logger';
+import { logGenerazione, contestoNeutro } from '@/lib/ai-act/logger';
+import { sistemaDaProvider } from '@/lib/ai-act/sistemi';
 
 const BULK_CONTENT_RATE_LIMIT = {
   maxRequests: 10,
@@ -290,6 +292,16 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+
+  // Evidenza AI Act (non bloccante, prompt solo come hash).
+  await logGenerazione({
+    sistemaId: sistemaDaProvider(provider as 'claude' | 'openai' | 'gemini'),
+    modello: result.model,
+    tipoOutput: 'TESTO',
+    prompt: userPrompt,
+    utenteId: user.id,
+    contesto: contestoNeutro('TESTO'),
+  });
 
   return NextResponse.json({
     content,

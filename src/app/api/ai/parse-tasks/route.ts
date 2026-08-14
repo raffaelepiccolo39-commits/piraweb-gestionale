@@ -7,6 +7,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { checkRateLimit, AI_RATE_LIMIT } from '@/lib/rate-limit';
 import { isStaff } from '@/lib/require-admin';
+import { logGenerazione, contestoNeutro } from '@/lib/ai-act/logger';
+import { SISTEMI } from '@/lib/ai-act/sistemi';
 import { logError } from '@/lib/logger';
 
 interface ParsedTask {
@@ -149,6 +151,8 @@ Rispondi ESCLUSIVAMENTE con un array JSON valido (senza markdown, senza backtick
 Genera task specifici, actionable. Se l'input menziona più attività, crea un task separato per ciascuna.`;
 
   let result: string;
+  let sistemaUsato: string = SISTEMI.CLAUDE_API;
+  let modelloUsato = 'claude-sonnet-4-6';
 
   try {
     result = await callClaude(prompt);
@@ -157,6 +161,8 @@ Genera task specifici, actionable. Se l'input menziona più attività, crea un t
     console.error('[parse-tasks] Claude fallito:', claudeErr);
     try {
       result = await callOpenAI(prompt);
+      sistemaUsato = SISTEMI.CHATGPT;
+      modelloUsato = 'gpt-4o';
     } catch (openaiErr) {
       await logError({ error: openaiErr, route: '/api/ai/parse-tasks', source: 'api', context: { op: 'parse-tasks' } });
       console.error('[parse-tasks] OpenAI fallito:', openaiErr);
@@ -166,6 +172,13 @@ Genera task specifici, actionable. Se l'input menziona più attività, crea un t
       );
     }
   }
+
+  // Evidenza AI Act (non bloccante, prompt solo come hash).
+  await logGenerazione({
+    sistemaId: sistemaUsato, modello: modelloUsato, tipoOutput: 'DATI',
+    prompt, utenteId: user.id, clienteId: project?.client_id ?? null,
+    contesto: contestoNeutro('DATI'),
+  });
 
   try {
     // Clean potential markdown formatting
