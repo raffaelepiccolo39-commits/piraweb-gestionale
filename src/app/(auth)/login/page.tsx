@@ -62,18 +62,19 @@ function LoginContent() {
     }
 
     try {
-      // userId è dedotto server-side dalla sessione, non più dal body
-      const res = await fetch('/api/auth/2fa/check', { method: 'POST' });
-      const result = await res.json();
-
-      if (result.enabled) {
+      // 2FA NATIVA (Supabase MFA): se l'utente ha un fattore TOTP verificato,
+      // la sessione è ancora aal1 e va elevata ad aal2 con un codice. Il
+      // secondo passo è richiesto solo a chi ha davvero un fattore.
+      const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+      if (aal?.currentLevel === 'aal1' && aal?.nextLevel === 'aal2') {
         setStep('2fa');
         setLoading(false);
         setTimeout(() => inputRefs.current[0]?.focus(), 100);
         return;
       }
     } catch {
-      // se errore nel check 2FA, procedi normalmente
+      // se il controllo AAL fallisce, procedi normalmente (le RLS aal2
+      // proteggono comunque i dati sensibili).
     }
 
     router.push(await destinazioneDopoAccesso());
@@ -141,15 +142,18 @@ function LoginContent() {
     setError('');
 
     try {
-      const res = await fetch('/api/auth/2fa/verify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code }),
-      });
-      const data = await res.json();
+      const supabase = createClient();
+      // Verifica col MFA nativo: challenge sul fattore TOTP + verify del codice.
+      // Se va a buon fine, la sessione sale ad aal2.
+      const { data: fattori } = await supabase.auth.mfa.listFactors();
+      const totp = fattori?.totp?.find((f) => f.status === 'verified') ?? fattori?.totp?.[0];
+      if (!totp) { setError('Nessun fattore di autenticazione trovato'); setVerifying2FA(false); return; }
 
-      if (!res.ok) {
-        setError(data.error || 'Codice non valido');
+      const { data: ch, error: chErr } = await supabase.auth.mfa.challenge({ factorId: totp.id });
+      if (chErr) throw chErr;
+      const { error: vErr } = await supabase.auth.mfa.verify({ factorId: totp.id, challengeId: ch.id, code });
+      if (vErr) {
+        setError('Codice non valido');
         setTotpCode(['', '', '', '', '', '']);
         inputRefs.current[0]?.focus();
         setVerifying2FA(false);

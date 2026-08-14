@@ -1,7 +1,6 @@
 import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse, type NextRequest } from 'next/server';
-import { provaTfaValida } from '@/lib/tfa-cookie';
 
 // Pagine accessibili SOLO agli admin. I non-admin che provano questi URL
 // vengono rimbalzati su /dashboard dal middleware.
@@ -154,47 +153,11 @@ export async function updateSession(request: NextRequest) {
     return redirectResponse;
   }
 
-  // 2FA check: tabella diversa, riusa il client service-role già creato.
-  if (inApp && !isOnboardingPage) {
-    const tfaCookie = request.cookies.get('2fa_verified');
-    // Prova firmata dal server, non piu' un confronto con l'user.id in chiaro
-    // (che l'utente conosce e poteva falsificare). Vedi src/lib/tfa-cookie.ts.
-    const isTfaVerified = await provaTfaValida(tfaCookie?.value, user.id, Date.now());
-
-    if (!isTfaVerified) {
-      try {
-        const sc = serviceClient ?? createClient(
-          process.env.NEXT_PUBLIC_SUPABASE_URL!,
-          process.env.SUPABASE_SERVICE_ROLE_KEY!
-        );
-        const { data: totp } = await sc
-          .from('user_totp')
-          .select('enabled')
-          .eq('user_id', user.id)
-          .eq('enabled', true)
-          .single();
-
-        if (totp) {
-          // 2FA abilitata ma non verificata → redirect a login con verify
-          const url = request.nextUrl.clone();
-          const originalPath = request.nextUrl.pathname + request.nextUrl.search;
-          url.pathname = '/login';
-          url.search = '';
-          url.searchParams.set('verify', '2fa');
-          if (originalPath && originalPath !== '/' && !originalPath.startsWith('/dashboard')) {
-            url.searchParams.set('redirect', originalPath);
-          }
-          const redirectResponse = NextResponse.redirect(url);
-          supabaseResponse.cookies.getAll().forEach((cookie) => {
-            redirectResponse.cookies.set(cookie.name, cookie.value, cookie);
-          });
-          return redirectResponse;
-        }
-      } catch {
-        // Se la tabella non esiste ancora o errore, lascia passare
-      }
-    }
-  }
+  // 2FA: il gate è passato al MFA NATIVO di Supabase. La challenge avviene al
+  // login (login/page.tsx eleva la sessione ad aal2) e la protezione vera è
+  // nelle RLS delle tabelle sensibili, che pretendono aal2 anche via PostgREST
+  // — cosa che il vecchio gate a cookie non poteva fare. Qui non serve più un
+  // controllo di pagina: un utente aal1 vede il guscio, non i dati.
 
   // ── Guard URL admin-only ──
   // Usa il ruolo GIÀ letto sopra (nessuna seconda query). Se la lettura del
