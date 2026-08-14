@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { verifyTOTPCode } from '@/lib/totp';
+import { firmaProvaTfa, TFA_TTL_SEC } from '@/lib/tfa-cookie';
 import { cookies } from 'next/headers';
 
 // Verifica il codice TOTP durante il login
@@ -36,17 +37,17 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Codice non valido. Riprova.' }, { status: 400 });
   }
 
-  // Imposta cookie di verifica 2FA (httpOnly, secure, same-site)
-  // Durata lunga: richiesta solo al primo accesso sul device, poi persiste finche'
-  // l'utente non fa logout o cancella i cookie. Il cookie e' legato all'user_id:
-  // se un altro utente fa login sullo stesso browser, la 2FA viene richiesta di nuovo.
+  // Cookie di verifica 2FA: valore FIRMATO dal server (exp.hmac), non piu'
+  // l'user.id in chiaro. Falsificarlo richiede la chiave segreta, e scade in
+  // ~24h invece di un anno. Se un altro utente fa login sullo stesso browser,
+  // la firma non combacia col suo id e la 2FA viene richiesta di nuovo.
   const cookieStore = await cookies();
-  cookieStore.set('2fa_verified', user.id, {
+  cookieStore.set('2fa_verified', await firmaProvaTfa(user.id, Date.now()), {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'strict',
     path: '/',
-    maxAge: 60 * 60 * 24 * 365, // 1 anno
+    maxAge: TFA_TTL_SEC,
   });
 
   return NextResponse.json({ success: true });

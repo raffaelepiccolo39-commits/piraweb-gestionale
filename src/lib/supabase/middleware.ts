@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse, type NextRequest } from 'next/server';
+import { provaTfaValida } from '@/lib/tfa-cookie';
 
 // Pagine accessibili SOLO agli admin. I non-admin che provano questi URL
 // vengono rimbalzati su /dashboard dal middleware.
@@ -151,7 +152,9 @@ export async function updateSession(request: NextRequest) {
   // 2FA check: tabella diversa, riusa il client service-role già creato.
   if (inApp && !isOnboardingPage) {
     const tfaCookie = request.cookies.get('2fa_verified');
-    const isTfaVerified = tfaCookie?.value === user.id;
+    // Prova firmata dal server, non piu' un confronto con l'user.id in chiaro
+    // (che l'utente conosce e poteva falsificare). Vedi src/lib/tfa-cookie.ts.
+    const isTfaVerified = await provaTfaValida(tfaCookie?.value, user.id, Date.now());
 
     if (!isTfaVerified) {
       try {
