@@ -6,6 +6,30 @@ import type { NextConfig } from "next";
 // La differenza la fa scripts/build-app.mjs, che imposta BUILD_TARGET.
 const isApp = process.env.BUILD_TARGET === 'app';
 
+// Content-Security-Policy del sito (non dell'app impacchettata).
+// Prudente di proposito: 'unsafe-inline'/'unsafe-eval' restano perche' Next
+// inietta script e stili inline senza nonce, e toglierli romperebbe il
+// rendering. Il valore vero e' altrove: nessuno script puo' arrivare da un
+// dominio esterno non elencato, e una fetch di esfiltrazione verso un dominio
+// attaccante viene bloccata da connect-src. Da qui si puo' stringere col tempo.
+// I domini esterni contattati dal BROWSER sono solo Supabase (REST/Auth/Storage
+// + il websocket wss del realtime); Anthropic, Facebook, Aruba ecc. sono
+// chiamati lato server. I beacon di Vercel Analytics usano percorsi relativi.
+const SUPABASE = 'https://queboudvijstvpjuacix.supabase.co';
+const CSP = [
+  "default-src 'self'",
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: blob: https:",
+  "font-src 'self' data:",
+  `connect-src 'self' ${SUPABASE} wss://queboudvijstvpjuacix.supabase.co`,
+  "worker-src 'self' blob:",
+  "frame-ancestors 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+  "object-src 'none'",
+].join('; ');
+
 const nextConfig: NextConfig = {
   output: isApp ? 'export' : 'standalone',
   poweredByHeader: false,
@@ -49,6 +73,9 @@ const nextConfig: NextConfig = {
         { key: 'X-Content-Type-Options', value: 'nosniff' },
         { key: 'X-Frame-Options', value: 'DENY' },
         { key: 'X-XSS-Protection', value: '1; mode=block' },
+        { key: 'Content-Security-Policy', value: CSP },
+        { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+        { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(self), payment=()' },
       ],
     },
     {

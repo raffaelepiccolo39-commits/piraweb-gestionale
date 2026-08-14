@@ -125,8 +125,10 @@ export default function NoteDevPage() {
       reportSupabaseError(error, 'note-dev-upload-screenshot');
       return null;
     }
-    const { data } = supabase.storage.from('dev-note-screenshots').getPublicUrl(path);
-    return data.publicUrl;
+    // Si salva il PERCORSO, non un URL pubblico: il bucket e' privato e lo
+    // screenshot (che puo' ritrarre schede clienti, IBAN, GPS) va servito solo
+    // con un link firmato a scadenza, generato al momento della visualizzazione.
+    return path;
   };
 
   const handleCreate = async (formData: NoteFormData) => {
@@ -415,7 +417,15 @@ export default function NoteDevPage() {
                   {/* Screenshot thumbnail */}
                   {note.screenshot_url && (
                     <button
-                      onClick={() => setShowScreenshot(note.screenshot_url)}
+                      onClick={async () => {
+                        // screenshot_url e' il percorso nel bucket privato:
+                        // si chiede un link firmato valido un'ora e lo si apre.
+                        const { data, error } = await supabase.storage
+                          .from('dev-note-screenshots')
+                          .createSignedUrl(note.screenshot_url!, 3600);
+                        if (error || !data) { toast.error('Screenshot non disponibile'); return; }
+                        setShowScreenshot(data.signedUrl);
+                      }}
                       className="mb-3 flex items-center gap-1.5 text-xs text-pw-accent hover:text-pw-accent-hover transition-colors duration-200 ease-out"
                     >
                       <ImageIcon size={14} />
