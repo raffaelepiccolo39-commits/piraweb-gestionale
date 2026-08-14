@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { logError } from '@/lib/logger';
 import { applyRateLimit } from '@/lib/rate-limit';
+import { limitaContext } from '@/lib/log-context';
 
 /**
  * Riceve i batch di misurazioni dal browser (lib/perf.ts) e li scrive in
@@ -68,9 +69,7 @@ export async function POST(request: NextRequest) {
       route: typeof t.route === 'string' ? t.route.slice(0, 300) : null,
       status: Number.isFinite(Number(t.status)) ? Math.round(Number(t.status)) : null,
       user_id: user.id,
-      context: (t.context && typeof t.context === 'object' && !Array.isArray(t.context))
-        ? t.context
-        : {},
+      context: limitaContext(t.context),
       build_id: process.env.NEXT_PUBLIC_BUILD_ID ?? null,
     }));
 

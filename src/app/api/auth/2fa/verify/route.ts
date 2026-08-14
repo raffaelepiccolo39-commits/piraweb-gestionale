@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { verifyTOTPCode } from '@/lib/totp';
 import { firmaProvaTfa, TFA_TTL_SEC } from '@/lib/tfa-cookie';
+import { checkRateLimit } from '@/lib/rate-limit';
 import { cookies } from 'next/headers';
 
 // Verifica il codice TOTP durante il login
@@ -11,6 +12,18 @@ export async function POST(request: Request) {
 
   if (!user) {
     return NextResponse.json({ error: 'Non autenticato' }, { status: 401 });
+  }
+
+  // Freno ai tentativi: senza, un codice a 6 cifre e' provabile a tappeto.
+  // Per utente (e' gia' autenticato con la password), 5 tentativi ogni 15 min.
+  // Nota: il contatore e' in memoria e per-istanza su Vercel, quindi e' un
+  // rallentamento, non un muro — ma alza di molto l'asticella del brute-force.
+  const limite = checkRateLimit(`2fa-verify:${user.id}`, { maxRequests: 5, windowSeconds: 900 });
+  if (!limite.allowed) {
+    return NextResponse.json(
+      { error: 'Troppi tentativi. Riprova tra qualche minuto.' },
+      { status: 429 },
+    );
   }
 
   const { code } = await request.json();

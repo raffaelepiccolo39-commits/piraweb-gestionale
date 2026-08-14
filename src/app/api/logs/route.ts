@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { logError, type ErrorSource } from '@/lib/logger';
 import { applyRateLimit } from '@/lib/rate-limit';
+import { limitaContext } from '@/lib/log-context';
 
 /**
  * Riceve gli errori del browser (ErrorBoundary, window.onerror, promise
@@ -91,9 +92,7 @@ export async function POST(request: NextRequest) {
     level: 'error',
     userId: user.id,
     userEmail: user.email ?? null,
-    context: (body.context && typeof body.context === 'object' && !Array.isArray(body.context))
-      ? (body.context as Record<string, unknown>)
-      : {},
+    context: limitaContext(body.context),
     buildId: typeof body.buildId === 'string' ? body.buildId : null,
     // Da dove arriva e con quale versione: senza questi due, un errore
     // dell'app e uno del browser sono indistinguibili nel registro.
