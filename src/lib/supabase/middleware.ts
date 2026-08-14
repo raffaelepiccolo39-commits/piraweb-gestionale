@@ -21,6 +21,11 @@ const ADMIN_ROUTES: readonly string[] = [
   '/automations',
   '/analytics',
   '/gestione',
+  // '/gestione-siti' NON è coperta da '/gestione' (lo startsWith richiede la
+  // barra), quindi va elencata a parte.
+  '/gestione-siti',
+  '/rendimento',
+  '/log',
   '/settings',
 ];
 

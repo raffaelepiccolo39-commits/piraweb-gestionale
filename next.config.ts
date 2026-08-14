@@ -73,6 +73,11 @@ const nextConfig: NextConfig = {
         { key: 'X-Content-Type-Options', value: 'nosniff' },
         { key: 'X-Frame-Options', value: 'DENY' },
         { key: 'X-XSS-Protection', value: '1; mode=block' },
+        // HSTS esplicito: prima era solo il default di Vercel senza
+        // includeSubDomains. Niente `preload` di proposito — richiederebbe che
+        // ogni sotto-dominio sia HTTPS in eterno, impegno da non prendere alla
+        // leggera. includeSubDomains qui copre solo *.gestionale.piraweb.it.
+        { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains' },
         { key: 'Content-Security-Policy', value: CSP },
         { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
         { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(self), payment=()' },

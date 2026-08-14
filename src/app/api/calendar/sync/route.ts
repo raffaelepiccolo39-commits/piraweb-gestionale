@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { isStaff } from '@/lib/require-admin';
 import { syncCalendarForConfig } from '@/lib/calendar-sync';
 import { logError } from '@/lib/logger';
 
@@ -8,6 +9,8 @@ export async function POST() {
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 });
+  // Endpoint del team: un cliente del portale è "autenticato" ma non staff.
+  if (!(await isStaff(supabase, user.id))) return NextResponse.json({ error: 'Riservato al team' }, { status: 403 });
 
   const { data: config } = await supabase
     .from('calendar_sync_config')

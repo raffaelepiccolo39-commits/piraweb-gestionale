@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { isStaff } from '@/lib/require-admin';
 import { getAppOrigin } from '@/lib/app-origin';
 
 /**
@@ -11,6 +12,9 @@ export async function GET() {
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 });
+  // "Autenticato" da quando esiste il portale include i clienti: questo è un
+  // endpoint del team, quindi serve una riga in profiles.
+  if (!(await isStaff(supabase, user.id))) return NextResponse.json({ error: 'Riservato al team' }, { status: 403 });
 
   const appId = process.env.META_APP_ID;
   if (!appId) return NextResponse.json({ error: 'META_APP_ID non configurato' }, { status: 500 });
