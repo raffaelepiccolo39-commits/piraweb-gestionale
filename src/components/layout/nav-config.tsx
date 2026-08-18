@@ -65,7 +65,7 @@ export const navSections: NavSection[] = [
   {
     label: 'Lavoro',
     items: [
-      { label: 'Contenuti', href: '/contenuti', icon: Sparkles },
+      { label: 'Piano Editoriale', href: '/contenuti', icon: Sparkles },
     ],
   },
   {
