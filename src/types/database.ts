@@ -1020,6 +1020,12 @@ export interface ClientHealth {
   budget_score: number;
   engagement_score: number;
   risk_level: RiskLevel;
+  /**
+   * Nessun segnale su cui basarsi: né rate scadute, né task, né attività.
+   * Il punteggio che ne esce è fatto solo di valori d'ufficio, quindi non
+   * va letto come un giudizio.
+   */
+  senza_dati?: boolean;
 }
 
 // === AUTOMATIONS ===

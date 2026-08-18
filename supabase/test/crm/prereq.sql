@@ -15,6 +15,11 @@ $$;
 
 CREATE TYPE user_role AS ENUM ('admin','social_media_manager','content_creator','graphic_social','graphic_brand');
 CREATE TYPE notification_type AS ENUM ('task_assigned','task_updated','task_completed','project_created','post_created','comment_added','mention','deadline_approaching','ai_script_ready');
+-- Enum dello schema reale (00001) usati da task e progetti.
+CREATE TYPE project_status AS ENUM ('draft','active','paused','completed','archived');
+CREATE TYPE task_status AS ENUM ('backlog','todo','in_progress','review','done');
+CREATE TYPE task_priority AS ENUM ('low','medium','high','urgent');
+
 CREATE TYPE deal_stage AS ENUM ('lead','qualified','proposal','negotiation','closed_won','closed_lost');
 CREATE TYPE deal_source AS ENUM ('website','referral','social_media','cold_outreach','event','ads','other');
 CREATE TYPE deal_priority AS ENUM ('high','medium','low');
@@ -37,6 +42,13 @@ CREATE TABLE clients (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
   company TEXT,
+  email TEXT,
+  phone TEXT,
+  website TEXT,
+  notes TEXT,
+  logo_url TEXT,
+  sector TEXT,
+  is_active BOOLEAN NOT NULL DEFAULT true,
   created_by UUID NOT NULL REFERENCES profiles(id),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()

@@ -167,8 +167,16 @@ export default function DirectionPage() {
         return health ? { client_name: client.company || client.name, client_id: client.id, health: health as ClientHealth } : null;
       })
       .filter((r): r is NonNullable<typeof r> => r !== null);
-    clientHealth.sort((a, b) => a.health.health_score - b.health.health_score);
-    const atRiskCount = clientHealth.filter((c) => c.health.risk_level === 'at_risk' || c.health.risk_level === 'critical').length;
+    // I senza-dati in fondo: in testa alla lista stanno i clienti messi
+    // peggio, e uno di cui non sappiamo niente non è uno messo male.
+    clientHealth.sort((a, b) =>
+      Number(a.health.senza_dati ?? false) - Number(b.health.senza_dati ?? false)
+      || a.health.health_score - b.health.health_score);
+    // Chi non ha dati non è "a rischio": è solo sconosciuto. Contarlo qui
+    // gonfiava l'allarme con clienti di cui non sappiamo niente.
+    const atRiskCount = clientHealth.filter(
+      (c) => !c.health.senza_dati && (c.health.risk_level === 'at_risk' || c.health.risk_level === 'critical'),
+    ).length;
 
     // Operations
     const activeTasks = tasks.filter((t) => !['done', 'archived'].includes(t.status));
@@ -333,8 +341,14 @@ export default function DirectionPage() {
           <CardContent className="space-y-2">
             {data.clientHealth.map((c) => (
               <div key={c.client_id} className="flex items-center gap-3 py-1.5">
-                <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${RISK_COLORS[c.health.risk_level]}`} />
-                <span className="text-sm text-pw-text flex-1 truncate">{c.client_name}</span>
+                {/* Grigio e senza punteggio per chi non ha dati: un numero
+                    inventato dai valori d'ufficio si legge come un giudizio,
+                    e non lo è. */}
+                <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${c.health.senza_dati ? 'bg-pw-border' : RISK_COLORS[c.health.risk_level]}`} />
+                <span className={`text-sm flex-1 truncate ${c.health.senza_dati ? 'text-pw-text-muted' : 'text-pw-text'}`}>{c.client_name}</span>
+                {c.health.senza_dati ? (
+                  <span className="text-[11px] text-pw-text-dim">dati insufficienti</span>
+                ) : (
                 <div className="flex items-center gap-2">
                   <div className="w-16 h-1.5 bg-pw-surface-2 rounded-full overflow-hidden">
                     <div className={`h-full rounded-full progress-animated ${
@@ -345,6 +359,7 @@ export default function DirectionPage() {
                   </div>
                   <span className="text-xs font-medium text-pw-text w-8 text-right">{c.health.health_score}</span>
                 </div>
+                )}
               </div>
             ))}
             {data.clientHealth.length === 0 && <p className="text-xs text-pw-text-dim text-center py-4">Nessun dato disponibile</p>}

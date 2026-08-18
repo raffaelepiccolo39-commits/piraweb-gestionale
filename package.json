@@ -15,7 +15,7 @@
     "app:ios": "npm run app && npx cap open ios",
     "app:android": "npm run app && npx cap open android",
     "test:crm": "node supabase/test/crm/test.mjs && node supabase/test/crm/test-import.mjs && node supabase/test/crm/test-rls.mjs",
-    "test:migrazioni": "node supabase/test/migrazioni/pulizia-20260818h.mjs && node supabase/test/migrazioni/sospensione-20260818i.mjs && node supabase/test/migrazioni/rpc-finanziarie-20260818l.mjs"
+    "test:migrazioni": "node supabase/test/migrazioni/pulizia-20260818h.mjs && node supabase/test/migrazioni/sospensione-20260818i.mjs && node supabase/test/migrazioni/rpc-finanziarie-20260818l.mjs && node supabase/test/migrazioni/salute-clienti-20260818m.mjs"
   },
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.2.96",
