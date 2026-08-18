@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { LayoutDashboard, MessageSquare, FolderKanban, Calendar, LayoutGrid } from 'lucide-react';
+import { LayoutDashboard, MessageSquare, Clock, Calendar, LayoutGrid } from 'lucide-react';
 import { MenuSheet } from '@/components/layout/menu-sheet';
 
 /**
@@ -15,7 +15,9 @@ import { MenuSheet } from '@/components/layout/menu-sheet';
 const TABS = [
   { label: 'Home', href: '/dashboard', icon: LayoutDashboard },
   { label: 'Bacheca', href: '/team', icon: MessageSquare },
-  { label: 'Progetti', href: '/projects', icon: FolderKanban },
+  // Presenze e non Progetti: dal telefono si timbra entrata e uscita tutti i
+  // giorni, i progetti si guardano dalla scrivania.
+  { label: 'Presenze', href: '/presenze', icon: Clock },
   { label: 'Calendario', href: '/calendario', icon: Calendar },
 ];
 
