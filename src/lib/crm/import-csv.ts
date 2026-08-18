@@ -75,7 +75,7 @@ export function analizzaCsv(testo: string): { intestazione: string[]; righe: Rig
   return { intestazione, righe };
 }
 
-const SOURCE_VALIDE = ['referral', 'inbound', 'outbound', 'paid', 'partnership'];
+const SOURCE_VALIDE = ['referral', 'inbound', 'outbound', 'paid', 'partnership', 'evento'];
 const ESITI_VALIDI = ['won', 'lost', 'nurture'];
 const MOTIVI_VALIDI = ['prezzo', 'timing', 'no_decision_maker', 'concorrente', 'no_fit', 'silenzio'];
 

@@ -12,6 +12,8 @@ await db.exec(readFileSync(`${MIG}/20260818b_crm_pipeline.sql`, 'utf8'));
 await db.exec(readFileSync(`${MIG}/20260818c_crm_followup_proposta.sql`, 'utf8'));
 await db.exec(readFileSync(`${MIG}/20260818d_crm_sla_primo_contatto.sql`, 'utf8'));
 await db.exec(readFileSync(`${MIG}/20260818e_crm_kpi.sql`, 'utf8'));
+await db.exec(readFileSync(`${MIG}/20260818f_crm_permessi_stretti.sql`, 'utf8'));
+await db.exec(readFileSync(`${MIG}/20260818g_source_evento.sql`, 'utf8'));
 
 const ADMIN = '11111111-1111-1111-1111-111111111111';
 const TEAM  = '22222222-2222-2222-2222-222222222222';
@@ -256,6 +258,14 @@ verifica('AC-16 per_source elenca le provenienze', Array.isArray(kpi.per_source)
 await comeUtente(TEAM);
 await deveFallire('i KPI sono riservati alla direzione', 'SELECT public.crm_kpi(90)', [], 'Riservato alla direzione');
 await comeUtente(ADMIN);
+
+console.log('\n=== Provenienze ===');
+await devePassare("'evento' è una provenienza valida",
+  `INSERT INTO deals (title, source, owner_id, created_by, prossima_azione, data_prossima_azione)
+   VALUES ('Da una fiera', 'evento', $1, $1, 'Richiamare', CURRENT_DATE)`, [ADMIN]);
+await deveFallire('una provenienza inventata no',
+  `INSERT INTO deals (title, source, owner_id, created_by, prossima_azione, data_prossima_azione)
+   VALUES ('X', 'passaparola', $1, $1, 'x', CURRENT_DATE)`, [ADMIN], 'invalid input value for enum');
 
 console.log('\n=== Ponte con la colonna stage vecchia ===');
 const { rows: [pon] } = await db.query(

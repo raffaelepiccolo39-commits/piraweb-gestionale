@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
   // da qui e non si aggiorna nello stesso deploy.
   const SOURCE_DAL_SITO: Record<string, string> = {
     website: 'inbound', social_media: 'inbound', other: 'inbound',
-    cold_outreach: 'outbound', event: 'partnership', ads: 'paid',
+    cold_outreach: 'outbound', event: 'evento', ads: 'paid',
     referral: 'referral',
   };
   const sourceGrezza = typeof body.source === 'string' ? body.source : 'website';

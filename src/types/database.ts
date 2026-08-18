@@ -1173,11 +1173,11 @@ export type DealStage = 'lead' | 'qualified' | 'proposal' | 'negotiation' | 'clo
  * 20260818b nessuna riga li usa più.
  */
 export type DealSource =
-  | 'referral' | 'inbound' | 'outbound' | 'paid' | 'partnership'
+  | 'referral' | 'inbound' | 'outbound' | 'paid' | 'partnership' | 'evento'
   | 'website' | 'social_media' | 'cold_outreach' | 'event' | 'ads' | 'other';
 
 /** I soli valori proponibili in creazione e modifica. */
-export const SOURCE_ATTIVE = ['referral', 'inbound', 'outbound', 'paid', 'partnership'] as const;
+export const SOURCE_ATTIVE = ['referral', 'inbound', 'outbound', 'paid', 'partnership', 'evento'] as const;
 export type SourceAttiva = (typeof SOURCE_ATTIVE)[number];
 export type DealActivityType = 'call' | 'email' | 'meeting' | 'note' | 'stage_change' | 'proposal_sent' | 'follow_up';
 export type DealPriority = 'high' | 'medium' | 'low';
@@ -1273,6 +1273,7 @@ export const ETICHETTE_SOURCE: Record<string, string> = {
   outbound: 'Outbound',
   paid: 'A pagamento',
   partnership: 'Partnership',
+  evento: 'Evento / fiera',
   // legacy, non più proposti in creazione
   website: 'Sito web',
   social_media: 'Social',

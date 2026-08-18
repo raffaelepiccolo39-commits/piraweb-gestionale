@@ -28,6 +28,7 @@ for (const m of [
   '20260818d_crm_sla_primo_contatto.sql',
   '20260818e_crm_kpi.sql',
   '20260818f_crm_permessi_stretti.sql',
+  '20260818g_source_evento.sql',
 ]) await db.exec(readFileSync(`${MIG}/${m}`, 'utf8'));
 
 // Su Supabase questi grant ci sono già: il ruolo `authenticated` arriva alle

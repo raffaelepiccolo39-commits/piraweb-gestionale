@@ -84,6 +84,11 @@ const esitoSource = rigaAOpportunita(sourceStrana.righe[0], stagePerCodice);
 verifica('una provenienza non prevista viene scartata',
   'errore' in esitoSource && esitoSource.errore.includes('non valida'), JSON.stringify(esitoSource));
 
+const daFiera = analizzaCsv('azienda;source;stage;prossima_azione;data_prossima_azione\nFiera Srl;evento;lead;Richiamare;01/09/2026');
+const esitoFiera = rigaAOpportunita(daFiera.righe[0], stagePerCodice);
+verifica("in import 'evento' è accettata",
+  !('errore' in esitoFiera) && esitoFiera.dati.source === 'evento', JSON.stringify(esitoFiera));
+
 console.log('\n— esito sulle righe già chiuse —');
 const chiuse = analizzaCsv([
   'azienda;source;stage;prossima_azione;data_prossima_azione;esito;motivo_lost;data_ripresa',
