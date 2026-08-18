@@ -26,12 +26,28 @@
 
 -- ── Chat interna ────────────────────────────────────────────
 -- L'interfaccia non esiste più nel codice: 26 canali, 55 iscrizioni e 13
--- messaggi che dal 28 luglio nessuno può più leggere. Dalle foglie alla
--- radice, per non lasciare chiavi esterne appese.
+-- messaggi che dal 28 luglio nessuno può più leggere.
+--
+-- Qui serve CASCADE, e vale la pena spiegare perché — CASCADE alla cieca su
+-- una pulizia è pericoloso. Le tre tabelle si tengono in ostaggio a vicenda:
+-- chat_channel_members ha una chiave esterna verso chat_channels, e una
+-- policy SU chat_channels interroga chat_channel_members. Nessun ordine di
+-- DROP semplice le scioglie:
+--
+--   ERROR: 2BP01: cannot drop table chat_channel_members because other
+--          objects depend on it
+--   DETAIL: policy Users can view their channels on table chat_channels
+--           depends on table chat_channel_members
+--
+-- Verificato migration per migration che TUTTI gli oggetti dipendenti siano
+-- policy della chat su tabelle della chat: nessuna tabella che resta perde
+-- qualcosa. Fuori da questo blocco non si usa CASCADE, proprio perché una
+-- policy di una tabella superstite potrebbe citarne una in eliminazione, e
+-- cadrebbe in silenzio lasciando quella tabella scoperta.
 
-DROP TABLE IF EXISTS public.chat_messages;
-DROP TABLE IF EXISTS public.chat_channel_members;
-DROP TABLE IF EXISTS public.chat_channels;
+DROP TABLE IF EXISTS public.chat_messages CASCADE;
+DROP TABLE IF EXISTS public.chat_channel_members CASCADE;
+DROP TABLE IF EXISTS public.chat_channels CASCADE;
 
 -- ── Resti del vecchio CRM ───────────────────────────────────
 -- deal_activities: le sue 6 righe sono state migrate in crm_attivita dalla

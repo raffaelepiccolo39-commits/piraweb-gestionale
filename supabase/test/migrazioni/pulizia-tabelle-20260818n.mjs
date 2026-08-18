@@ -72,6 +72,18 @@ await db.exec(`
   CREATE VIEW v_client_open_installments AS SELECT id FROM clients WHERE false;
   CREATE VIEW v_project_payment_summary AS SELECT id FROM clients WHERE false;
 
+  -- Le policy incrociate della chat, come in produzione (00021 e 00030):
+  -- quella su chat_channels interroga chat_channel_members, che a sua volta
+  -- ha una chiave esterna verso chat_channels. Si tengono in ostaggio a
+  -- vicenda, ed è esattamente ciò che ha fatto fallire la prima versione
+  -- della migration nel SQL Editor.
+  ALTER TABLE chat_channels ENABLE ROW LEVEL SECURITY;
+  ALTER TABLE chat_channel_members ENABLE ROW LEVEL SECURITY;
+  CREATE POLICY "Users can view their channels" ON chat_channels FOR SELECT TO authenticated
+    USING (EXISTS (SELECT 1 FROM chat_channel_members WHERE channel_id = id AND user_id = auth.uid()));
+  CREATE POLICY "Users can view channel members" ON chat_channel_members FOR SELECT TO authenticated
+    USING (EXISTS (SELECT 1 FROM chat_channel_members cm WHERE cm.channel_id = chat_channel_members.channel_id AND cm.user_id = auth.uid()));
+
   -- La funzione orfana del vecchio CRM: il suo trigger è già stato tolto.
   CREATE OR REPLACE FUNCTION log_deal_stage_change() RETURNS TRIGGER
     LANGUAGE plpgsql AS $fn$ BEGIN RETURN NEW; END $fn$;
