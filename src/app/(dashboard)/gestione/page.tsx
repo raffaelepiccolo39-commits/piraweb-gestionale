@@ -6,7 +6,7 @@ import { Suspense } from 'react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
 import { PageHeader } from '@/components/ui/page-header';
-import { Target, Crown, Calculator, BarChart3, Euro, Receipt } from 'lucide-react';
+import { Target, Crown, Calculator, BarChart3, Euro } from 'lucide-react';
 
 // Import delle pagine esistenti
 import CRMPage from '../crm/page';
@@ -14,9 +14,7 @@ import DirectionPage from '../direzione/page';
 import CFOPage from '../cfo/page';
 import CapacityPage from '../capacity/page';
 import ProfitabilityPage from '../profitability/page';
-import InvoicesPage from '../invoices/page';
 import CashflowPage from '../cashflow/page';
-import AnalyticsPage from '../analytics/page';
 
 const tabs = [
   { id: 'crm', label: 'CRM', icon: Target },
@@ -24,9 +22,7 @@ const tabs = [
   { id: 'cfo', label: 'CFO', icon: Calculator },
   { id: 'capacity', label: 'Capacità', icon: BarChart3 },
   { id: 'profitability', label: 'Profitto', icon: Euro },
-  { id: 'invoices', label: 'Fatture', icon: Receipt },
   { id: 'cashflow', label: 'Cashflow', icon: Euro },
-  { id: 'analytics', label: 'Efficienza', icon: BarChart3 },
 ];
 
 function GestioneContent() {
@@ -84,9 +80,7 @@ function GestioneContent() {
         {activeTab === 'cfo' && <CFOPage />}
         {activeTab === 'capacity' && <CapacityPage />}
         {activeTab === 'profitability' && <ProfitabilityPage />}
-        {activeTab === 'invoices' && <InvoicesPage />}
         {activeTab === 'cashflow' && <CashflowPage />}
-        {activeTab === 'analytics' && <AnalyticsPage />}
       </div>
     </div>
   );
