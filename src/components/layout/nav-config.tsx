@@ -53,7 +53,7 @@ export const navSections: NavSection[] = [
     items: [
       { label: 'Bacheca Task', href: '/team', icon: MessageSquare },
       { label: 'Pianificazione', href: '/pianificazione', icon: CalendarClock },
-      { label: 'Timesheet', href: '/timesheet', icon: Clock },
+      { label: 'Timesheet', href: '/timesheet', icon: Clock, adminOnly: true },
       { label: 'Note Clienti', href: '/note-clienti', icon: NotebookPen },
       { label: 'Ferie & Permessi', href: '/ferie', icon: Plane },
       { label: 'Suggerimenti & Bug', href: '/note-dev', icon: MessageSquareWarning },

@@ -24,6 +24,10 @@ const ADMIN_ROUTES: readonly string[] = [
   // barra), quindi va elencata a parte.
   '/gestione-siti',
   '/rendimento',
+  // Le ore del team: le legge la direzione. La RLS su time_entries già
+  // limita ciascuno alle proprie, ma la pagina è un cruscotto di direzione
+  // e non deve aprirsi affatto.
+  '/timesheet',
   '/log',
   '/settings',
 ];
