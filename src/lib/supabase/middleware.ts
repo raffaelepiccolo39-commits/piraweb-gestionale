@@ -1,36 +1,8 @@
 import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse, type NextRequest } from 'next/server';
+import { isRottaAdmin } from '@/lib/rotte-admin';
 
-// Pagine accessibili SOLO agli admin. I non-admin che provano questi URL
-// vengono rimbalzati su /dashboard dal middleware.
-const ADMIN_ROUTES: readonly string[] = [
-  '/cashflow',
-  '/crm',
-  '/cfo',
-  '/direzione',
-  '/profitability',
-  '/lead-finder',
-  '/lead-ai',
-  '/market-research',
-  '/ai-content',
-  '/freelancers',
-  '/invoices',
-  '/capacity',
-  '/automations',
-  '/analytics',
-  '/gestione',
-  // '/gestione-siti' NON è coperta da '/gestione' (lo startsWith richiede la
-  // barra), quindi va elencata a parte.
-  '/gestione-siti',
-  '/rendimento',
-  // Le ore del team: le legge la direzione. La RLS su time_entries già
-  // limita ciascuno alle proprie, ma la pagina è un cruscotto di direzione
-  // e non deve aprirsi affatto.
-  '/timesheet',
-  '/log',
-  '/settings',
-];
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
@@ -168,9 +140,7 @@ export async function updateSession(request: NextRequest) {
   // profilo è fallita (profileLoaded=false) restiamo fail-open come prima.
   if (inApp) {
     const path = request.nextUrl.pathname;
-    const isAdminRoute = ADMIN_ROUTES.some(
-      (r) => path === r || path.startsWith(r + '/')
-    );
+    const isAdminRoute = isRottaAdmin(path);
     if (isAdminRoute && profileLoaded && profileRole !== 'admin') {
       const url = request.nextUrl.clone();
       url.pathname = '/dashboard';

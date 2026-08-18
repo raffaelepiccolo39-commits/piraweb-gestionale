@@ -30,6 +30,7 @@ import {
   MessageCircle,
 } from 'lucide-react';
 import Link from 'next/link';
+import { isRottaAdmin } from '@/lib/rotte-admin';
 
 const SEARCH_ITEMS = [
   { label: 'Dashboard', href: '/dashboard' },
@@ -63,14 +64,21 @@ export function Header() {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const supabase = createClient();
 
-  // Search results
+  // Risultati della ricerca.
+  //
+  // Chi non è admin non deve nemmeno vedere il nome delle sezioni riservate:
+  // prima venivano elencate a tutti e cliccarle rimbalzava sulla dashboard —
+  // non si accedeva a niente, ma "Cashflow" e "Direzione" si leggevano.
+  // La lista di cosa è riservato è la stessa che usa il middleware.
+  const isAdmin = profile?.role === 'admin';
   const searchResults = useMemo(() => {
     if (!searchQuery.trim()) return [];
     const q = searchQuery.toLowerCase();
-    return SEARCH_ITEMS.filter((item) =>
-      item.label.toLowerCase().includes(q)
-    ).slice(0, 6);
-  }, [searchQuery]);
+    return SEARCH_ITEMS
+      .filter((item) => isAdmin || !isRottaAdmin(item.href))
+      .filter((item) => item.label.toLowerCase().includes(q))
+      .slice(0, 6);
+  }, [searchQuery, isAdmin]);
 
   // Keyboard shortcut: Cmd/Ctrl+K to focus search, Escape to close
   useEffect(() => {
