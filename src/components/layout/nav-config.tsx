@@ -11,10 +11,8 @@ import {
   Sparkles,
   Users,
   KeyRound,
-  Briefcase,
   Globe,
   HandCoins,
-  Wallet,
   Crown,
   ScrollText,
   Settings,
@@ -51,7 +49,7 @@ export const navSections: NavSection[] = [
   {
     label: 'Team',
     items: [
-      { label: 'Bacheca Task', href: '/team', icon: MessageSquare },
+      { label: 'Team', href: '/team', icon: MessageSquare },
       { label: 'Pianificazione', href: '/pianificazione', icon: CalendarClock },
       { label: 'Timesheet', href: '/timesheet', icon: Clock, adminOnly: true },
       { label: 'Note Clienti', href: '/note-clienti', icon: NotebookPen },
@@ -71,11 +69,11 @@ export const navSections: NavSection[] = [
       { label: 'Clienti', href: '/clients', icon: Users },
       // Non adminOnly: il team vede le credenziali (scelta del 2026-08-03).
       { label: 'Accessi', href: '/accessi', icon: KeyRound },
-      { label: 'CRM', href: '/crm', icon: Briefcase, adminOnly: true },
+      // CRM e Cashflow non stanno qui: sono due schede di "Gestione", e
+      // avere due strade per la stessa pagina è il disordine che si è
+      // tolto il 18-08-2026.
       { label: 'Gestione Siti', href: '/gestione-siti', icon: Globe, adminOnly: true },
       { label: 'Crediti', href: '/crediti', icon: HandCoins, adminOnly: true },
-      { label: 'Cashflow', href: '/cashflow', icon: Wallet, adminOnly: true },
-      // Non adminOnly: il team deve accedere alla propria formazione (art. 4).
     ],
   },
   {
