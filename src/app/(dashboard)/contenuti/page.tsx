@@ -1,81 +1,20 @@
 'use client';
 
-import { useState } from 'react';
-import { useSearchParams } from 'next/navigation';
-import { Suspense } from 'react';
-import { cn } from '@/lib/utils';
-import { PageHeader } from '@/components/ui/page-header';
-import { Calendar, FileEdit, Sparkles, Layers, LayoutTemplate } from 'lucide-react'; // Zap e Repeat rimossi con le tab Automazioni e Task Ricorrenti
-
-// Lazy import delle pagine esistenti
 import SocialCalendarPage from '../social-calendar/page';
-import BriefsPage from '../briefs/page';
-import AIPage from '../ai/page';
-import AIContentPage from '../ai-content/page';
-// import AutomationsPage from '../automations/page'; // tab nascosta: nessun motore esecuzione
-import TemplatesPage from '../templates/page';
 
-const tabs = [
-  { id: 'piano', label: 'Piano Editoriale', icon: Calendar },
-  { id: 'brief', label: 'Brief Creativi', icon: FileEdit },
-  { id: 'ai', label: 'AI Assistant', icon: Sparkles },
-  { id: 'ai-bulk', label: 'AI Contenuti', icon: Layers },
-  // { id: 'automazioni', label: 'Automazioni', icon: Zap }, // nascosta: manca il motore di esecuzione
-  { id: 'template', label: 'Template', icon: LayoutTemplate },
-];
-
-function ContenutiContent() {
-  const searchParams = useSearchParams();
-  const initialTab = searchParams.get('tab') || 'piano';
-  const [activeTab, setActiveTab] = useState(initialTab);
-
-  return (
-    <div className="space-y-6 animate-slide-up">
-      {/* Header */}
-      <PageHeader
-        title="Contenuti"
-        subtitle="Piano editoriale, brief creativi e assistente AI"
-      />
-
-      {/* Tab bar */}
-      <div className="flex gap-1 p-1 rounded-xl bg-pw-surface-2/50 border border-pw-border/40 overflow-x-auto no-scrollbar">
-        {tabs.map((tab) => {
-          const Icon = tab.icon;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={cn(
-                'flex items-center gap-2 px-4 py-2.5 rounded-lg text-[13px] font-medium whitespace-nowrap transition-all duration-200 ease-out',
-                activeTab === tab.id
-                  ? 'bg-pw-accent text-[#0A263A] shadow-sm'
-                  : 'text-pw-text-muted hover:text-pw-text hover:bg-pw-surface-2'
-              )}
-            >
-              <Icon size={15} />
-              {tab.label}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Tab content */}
-      <div>
-        {activeTab === 'piano' && <SocialCalendarPage />}
-        {activeTab === 'brief' && <BriefsPage />}
-        {activeTab === 'ai' && <AIPage />}
-        {activeTab === 'ai-bulk' && <AIContentPage />}
-        {/* {activeTab === 'automazioni' && <AutomationsPage />} */}
-        {activeTab === 'template' && <TemplatesPage />}
-      </div>
-    </div>
-  );
-}
-
+/**
+ * Contenuti = il piano editoriale, e basta.
+ *
+ * Era una pagina indice con cinque tab: Piano Editoriale, Brief Creativi,
+ * AI Assistant, AI Contenuti e Template (più Automazioni, già nascosta
+ * perché non aveva un motore di esecuzione). Nell'uso quotidiano si apriva
+ * solo la prima. Le altre restano ai loro indirizzi, non sono state
+ * cancellate: qui sparisce la barra dei tab, non il codice.
+ *
+ * Niente intestazione propria: il piano editoriale ha già la sua, e
+ * sovrapporne una seconda che elencava tab inesistenti sarebbe stato peggio
+ * che non averla.
+ */
 export default function ContenutiPage() {
-  return (
-    <Suspense>
-      <ContenutiContent />
-    </Suspense>
-  );
+  return <SocialCalendarPage />;
 }
