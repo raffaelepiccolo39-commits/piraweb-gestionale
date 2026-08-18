@@ -23,6 +23,7 @@ const PAGE_TITLES: Record<string, string> = {
 import type { Notification } from '@/types/database';
 import {
   Bell,
+  Settings,
   LogOut,
   Menu,
   X,
@@ -275,6 +276,22 @@ export function Header() {
 
       {/* Right side actions */}
       <div className="flex items-center gap-1">
+
+        {/* Impostazioni — solo icona, accanto alle notifiche.
+            Era una voce del menu: sta meglio qui, dove stanno le cose che
+            si aprono di rado e si chiudono subito. Solo agli admin, come
+            la pagina: il middleware rimbalza comunque gli altri, ma un
+            ingranaggio che non porta da nessuna parte è peggio che assente. */}
+        {isAdmin && (
+          <Link
+            href="/settings"
+            className="w-[34px] h-[34px] flex items-center justify-center rounded-md text-pw-text-muted hover:text-pw-text hover:bg-pw-surface-soft transition-colors duration-150"
+            aria-label="Impostazioni"
+            title="Impostazioni"
+          >
+            <Settings size={17} />
+          </Link>
+        )}
 
         {/* Notifications */}
         <div className="relative">

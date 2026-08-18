@@ -14,7 +14,6 @@ import {
   HandCoins,
   Crown,
   ScrollText,
-  Settings,
 } from 'lucide-react';
 
 /**
@@ -82,7 +81,6 @@ export const navSections: NavSection[] = [
     items: [
       { label: 'Gestione', href: '/gestione', icon: Crown },
       { label: 'Log errori', href: '/log', icon: ScrollText },
-      { label: 'Impostazioni', href: '/settings', icon: Settings },
     ],
   },
 ];
