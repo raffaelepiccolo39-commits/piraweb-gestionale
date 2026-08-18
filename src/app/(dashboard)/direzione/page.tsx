@@ -30,6 +30,9 @@ interface DirectionData {
   mrr: number;
   totalRevenue: number;
   pendingRevenue: number;
+  /** Delle rate non pagate, quelle la cui scadenza è già passata. */
+  scadutoRevenue: number;
+  aScadereRevenue: number;
   revenueByMonth: { month: string; amount: number }[];
   // Team
   teamSize: number;
@@ -103,6 +106,14 @@ export default function DirectionPage() {
       .reduce((s, c) => s + (c.monthly_fee || 0), 0);
     const totalRevenue = activePayments.filter((p) => p.is_paid).reduce((s, p) => s + p.amount, 0);
     const pendingRevenue = activePayments.filter((p) => !p.is_paid).reduce((s, p) => s + p.amount, 0);
+    // "Da incassare" mette insieme due cose molto diverse: quello che il
+    // cliente doveva già darti e quello che deve ancora scadere. Per la
+    // liquidità è la distinzione che conta, quindi si separano.
+    const oggiIso = formatDateLocal(now);
+    const scadutoRevenue = activePayments
+      .filter((p) => !p.is_paid && p.due_date < oggiIso).reduce((s, p) => s + p.amount, 0);
+    const aScadereRevenue = activePayments
+      .filter((p) => !p.is_paid && p.due_date >= oggiIso).reduce((s, p) => s + p.amount, 0);
 
     // Revenue by last 6 months
     const revenueByMonth: { month: string; amount: number }[] = [];
@@ -171,7 +182,7 @@ export default function DirectionPage() {
       : 0;
 
     setData({
-      mrr, totalRevenue, pendingRevenue, revenueByMonth,
+      mrr, totalRevenue, pendingRevenue, scadutoRevenue, aScadereRevenue, revenueByMonth,
       teamSize: activeProfiles.length, activeMembers: hoursMap.size, totalHoursThisMonth, avgUtilization, topPerformers,
       pipelineValue, activeDeals: activeDeals.length, wonThisMonth: wonThisMonth.length, wonValueThisMonth,
       totalClients: clients.length, clientHealth, atRiskCount,
@@ -259,7 +270,7 @@ export default function DirectionPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 stagger-children">
         {/* Revenue trend */}
         <Card>
-          <CardHeader><h2 className="text-sm font-semibold text-pw-text flex items-center gap-2"><Euro size={14} className="text-pw-accent" />Revenue Trend</h2></CardHeader>
+          <CardHeader><h2 className="text-sm font-semibold text-pw-text flex items-center gap-2"><Euro size={14} className="text-pw-accent" />Revenue Trend<span className="ml-auto text-[10px] font-normal text-pw-text-dim">ultimi 6 mesi</span></h2></CardHeader>
           <CardContent>
             <div className="flex items-end gap-1 h-32">
               {data.revenueByMonth.map((m, i) => {
@@ -273,9 +284,15 @@ export default function DirectionPage() {
                 );
               })}
             </div>
+            {/* I totali NON sono sui sei mesi del grafico: sono su tutti i
+                contratti. Starsene zitti qui faceva leggere il grafico e i
+                numeri come se parlassero dello stesso periodo. */}
             <div className="mt-4 space-y-2 text-sm">
+              <p className="text-[10px] uppercase tracking-[0.08em] text-pw-text-dim">Su tutti i contratti</p>
               <div className="flex justify-between"><span className="text-pw-text-muted">Incassato</span><span className="font-medium text-green-400">{formatCurrency(data.totalRevenue)}</span></div>
               <div className="flex justify-between"><span className="text-pw-text-muted">Da incassare</span><span className="font-medium text-orange-400">{formatCurrency(data.pendingRevenue)}</span></div>
+              <div className="flex justify-between pl-3 text-xs"><span className="text-pw-text-dim">di cui scaduto</span><span className={`font-medium ${data.scadutoRevenue > 0 ? 'text-red-400' : 'text-pw-text-dim'}`}>{formatCurrency(data.scadutoRevenue)}</span></div>
+              <div className="flex justify-between pl-3 text-xs"><span className="text-pw-text-dim">ancora a scadere</span><span className="font-medium text-pw-text-dim">{formatCurrency(data.aScadereRevenue)}</span></div>
             </div>
           </CardContent>
         </Card>
