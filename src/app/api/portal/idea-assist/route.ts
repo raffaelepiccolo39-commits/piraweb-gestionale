@@ -7,9 +7,9 @@ import { checkRateLimit, AI_RATE_LIMIT } from '@/lib/rate-limit';
 import { logError } from '@/lib/logger';
 
 /**
- * Aiuta il cliente a mettere giù un'idea, come la cattura rapida fa con noi.
+ * Aiuta il cliente a mettere giù un'idea.
  *
- * Stesso meccanismo: si scrive alla buona, l'AI PROPONE una versione ordinata,
+ * Il meccanismo: si scrive alla buona, l'AI PROPONE una versione ordinata,
  * la persona guarda e conferma. Non salva niente da sé — l'idea entra nel
  * diario solo quando il cliente preme Salva, e resta modificabile fino a
  * quel momento.
@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 });
 
-  // Riservato ai clienti del portale: il team ha già la cattura rapida.
+  // Riservato ai clienti del portale: il team scrive direttamente nelle task.
   const service = await createServiceRoleClient();
   const { data: portale } = await service
     .from('client_portal_users')

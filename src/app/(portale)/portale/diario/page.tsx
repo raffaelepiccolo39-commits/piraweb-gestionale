@@ -51,8 +51,8 @@ export default function PortaleDiarioPage() {
   const [invio, setInvio] = useState(false);
 
   // La proposta dell'AI: si vede accanto a quello che ha scritto lui, e non
-  // sostituisce niente finche' non e' lui a volerlo. Stesso patto della
-  // cattura rapida nel gestionale: l'assistente propone, la persona decide.
+  // sostituisce niente finche' non e' lui a volerlo. Il patto e' quello:
+  // l'assistente propone, la persona decide.
   const [sistemando, setSistemando] = useState(false);
 
   // ── Voce ──

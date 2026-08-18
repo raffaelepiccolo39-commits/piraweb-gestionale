@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useAuth } from '@/hooks/use-auth';
-import { Clock, MessageSquare, Plane, MessageSquarePlus, Calendar } from 'lucide-react';
+import { Clock, MessageSquare, Plane, Calendar } from 'lucide-react';
 import { TINT, type Tint } from '@/lib/tints';
 
 /**
@@ -16,7 +16,6 @@ export function QuickActions() {
 
   const tiles: { label: string; href: string; icon: typeof Clock; tint: Tint }[] = isAdmin
     ? [
-        { label: 'Cattura', href: '/cattura', icon: MessageSquarePlus, tint: 'amber' },
         { label: 'Presenze', href: '/presenze', icon: Clock, tint: 'blue' },
         { label: 'Bacheca', href: '/team', icon: MessageSquare, tint: 'green' },
         { label: 'Calendario', href: '/calendario', icon: Calendar, tint: 'violet' },

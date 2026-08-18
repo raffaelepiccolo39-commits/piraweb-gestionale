@@ -1,7 +1,6 @@
 import {
   LayoutDashboard,
   ListTodo,
-  MessageSquarePlus,
   FolderKanban,
   Calendar,
   MessageSquare,
@@ -48,7 +47,6 @@ export const navSections: NavSection[] = [
     items: [
       { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
       { label: 'Bacheca', href: '/tasks', icon: ListTodo, badgeKey: 'tasks' },
-      { label: 'Cattura rapida', href: '/cattura', icon: MessageSquarePlus, adminOnly: true },
       { label: 'Progetti', href: '/projects', icon: FolderKanban },
       { label: 'Calendario', href: '/calendario', icon: Calendar },
     ],

@@ -7,9 +7,10 @@ import { logError } from '@/lib/logger';
  * di WhatsApp sono ogg, il browser manda wav), con Whisper come riserva se un
  * giorno l'account OpenAI tornerà ad avere credito.
  *
- * Sta qui e non dentro una route perché la usano in due: la cattura rapida
- * del team e il diario delle idee dei clienti. Duplicarla avrebbe voluto dire
- * che una delle due, prima o poi, resta indietro sull'altra.
+ * Sta qui e non dentro una route perché per un periodo la usarono in due: il
+ * diario delle idee dei clienti e la cattura rapida del team, quest'ultima
+ * dismessa ad agosto 2026. Resta un modulo a sé perché il giorno che serve
+ * di nuovo trascrivere da un'altra parte non si riparte da capo.
  */
 
 const PROMPT = 'Trascrivi fedelmente in italiano questo audio. Rispondi SOLO con il testo trascritto, senza commenti.';

@@ -26,7 +26,7 @@ export function tintForPath(href: string): Tint {
   if (href.startsWith('/progetti') || href.startsWith('/projects')) return 'violet';
   if (href.startsWith('/tasks') || href.startsWith('/calendario')) return 'green';
   if (href.startsWith('/presenze') || href.startsWith('/ferie')) return 'teal';
-  if (href.startsWith('/cattura') || href.startsWith('/team')) return 'amber';
+  if (href.startsWith('/team')) return 'amber';
   if (href.startsWith('/cfo') || href.startsWith('/gestione-siti') || href.startsWith('/direzione')) return 'rose';
   return 'neutral';
 }
