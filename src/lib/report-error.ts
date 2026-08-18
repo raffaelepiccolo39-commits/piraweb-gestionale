@@ -7,6 +7,10 @@
  */
 
 import { isPackagedApp } from '@/lib/api-origin';
+// Il filtro degli errori benigni sta in un file suo: è una funzione pura e
+// così si può provare con node --test senza tirarsi dietro mezzo Next.
+export { isBenignTransientError } from '@/lib/errori-benigni';
+import { isBenignTransientError } from '@/lib/errori-benigni';
 
 interface ReportPayload {
   message: string;
@@ -192,20 +196,7 @@ export function recoverFromChunkError(error: unknown): boolean {
  * lasciato la pagina mentre caricava. Predicato puro. Gli errori DB veri
  * arrivano con un `code` Postgres e passano comunque il filtro.
  */
-export function isBenignTransientError(error: unknown): boolean {
-  const name = error instanceof Error ? error.name : '';
-  let message = '';
-  if (error instanceof Error) message = error.message || '';
-  else if (typeof error === 'string') message = error;
-  else if (error && typeof error === 'object' && 'message' in error) {
-    message = String((error as { message?: unknown }).message ?? '');
-  }
-  return (
-    name === 'AbortError' ||
-    /lock broken by another request|the 'steal' option/i.test(message) ||
-    /load failed|failed to fetch|networkerror|network request failed/i.test(message)
-  );
-}
+
 
 /** Normalizza qualunque cosa arrivi da un handler globale. */
 export function reportUnknown(
