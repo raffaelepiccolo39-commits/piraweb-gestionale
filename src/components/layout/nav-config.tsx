@@ -47,7 +47,7 @@ export const navSections: NavSection[] = [
   {
     items: [
       { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-      { label: 'Task', href: '/tasks', icon: ListTodo, badgeKey: 'tasks', adminOnly: true },
+      { label: 'Bacheca', href: '/tasks', icon: ListTodo, badgeKey: 'tasks' },
       { label: 'Cattura rapida', href: '/cattura', icon: MessageSquarePlus, adminOnly: true },
       { label: 'Progetti', href: '/projects', icon: FolderKanban },
       { label: 'Calendario', href: '/calendario', icon: Calendar },
@@ -56,7 +56,7 @@ export const navSections: NavSection[] = [
   {
     label: 'Team',
     items: [
-      { label: 'Bacheca Task', href: '/team', icon: MessageSquare },
+      { label: 'Team', href: '/team', icon: MessageSquare },
       { label: 'Pianificazione', href: '/pianificazione', icon: CalendarClock },
       { label: 'Timesheet', href: '/timesheet', icon: Clock },
       { label: 'Note Clienti', href: '/note-clienti', icon: NotebookPen },

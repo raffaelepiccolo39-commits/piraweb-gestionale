@@ -12,9 +12,8 @@ const PAGE_TITLES: Record<string, string> = {
   '/dashboard': 'Dashboard',
   '/clients': 'Clienti',
   '/projects': 'Progetti',
-  '/tasks': 'I miei Task',
+  '/tasks': 'Bacheca',
   '/ai': 'AI Assistant',
-  '/bacheca': 'Bacheca',
   '/presenze': 'Presenze',
   '/analytics': 'Efficienza',
   '/cashflow': 'Cashflow',
@@ -34,9 +33,8 @@ import Link from 'next/link';
 
 const SEARCH_ITEMS = [
   { label: 'Dashboard', href: '/dashboard' },
-  { label: 'Le mie task', href: '/tasks' },
+  { label: 'Bacheca', href: '/tasks' },
   { label: 'Progetti', href: '/projects' },
-  { label: 'Bacheca', href: '/bacheca' },
   { label: 'Calendario', href: '/calendario' },
   { label: 'Presenze', href: '/presenze' },
   { label: 'AI Assistant', href: '/ai' },

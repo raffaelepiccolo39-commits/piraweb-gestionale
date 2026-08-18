@@ -1,29 +1,33 @@
 'use client';
 
-
-import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import type { DropResult } from '@hello-pangea/dnd';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { useToast } from '@/components/ui/toast';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select } from '@/components/ui/select';
 import { Modal } from '@/components/ui/modal';
-import { Input } from '@/components/ui/input';
 import { PageHeader } from '@/components/ui/page-header';
-import { formatDate, getPriorityTone, getStatusTone, getRoleLabel, formatDateLocal, todayLocal, stripHtml } from '@/lib/utils';
-import type { Task, Project, Client, Profile } from '@/types/database';
-import { TaskDetailModal } from '@/components/tasks/task-detail-modal';
-import { useToast } from '@/components/ui/toast';
-import { SkeletonList, SkeletonStats } from '@/components/ui/skeleton';
-import { DataTable } from '@/components/ui/data-table';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
-import { ListTodo, Calendar, Clock, ArrowRight, Sparkles, Brain, Check, Send, AlertTriangle, Archive, ArchiveRestore, ExternalLink } from 'lucide-react';
-import { STATUS_LABELS, PRIORITY_LABELS } from '@/lib/constants';
+import { SkeletonList } from '@/components/ui/skeleton';
+import { TaskDetailModal } from '@/components/tasks/task-detail-modal';
+import { TaskForm, type TaskFormData } from '@/components/tasks/task-form';
+import { BachecaPersone, assegnatariDi } from '@/components/tasks/bacheca-persone';
+import { ElencoTask } from '@/components/tasks/elenco-task';
+import { cn, getRoleLabel, safeStorageName, stripHtml } from '@/lib/utils';
+import { PRIORITY_LABELS } from '@/lib/constants';
+import type { Task, Project, Client, Profile } from '@/types/database';
 import { reportUnknown, reportSupabaseError } from '@/lib/report-error';
+import {
+  AlertTriangle, Archive, Brain, Check, CheckCircle2, Sparkles,
+} from 'lucide-react';
 
-interface ParsedTask {
+type Vista = 'bacheca' | 'elenco';
+
+interface TaskAnalizzata {
   title: string;
   description: string;
   assigned_to_role: string;
@@ -32,38 +36,63 @@ interface ParsedTask {
   estimated_hours: number | null;
 }
 
-// Colore del bordo card per stato: panoramica visiva immediata
-const STATUS_BORDER: Record<string, string> = {
-  todo: 'border-l-slate-400',
-  in_progress: 'border-l-blue-400',
-  review: 'border-l-amber-400',
-  done: 'border-l-green-500',
-};
-
-export default function TasksPage() {
+/**
+ * Bacheca — l'unico posto dove stanno le task.
+ *
+ * Prima erano due pagine: /bacheca (kanban per persona, per smistare) e
+ * /tasks (elenco con ricerca e filtri, per ritrovare). Facevano cose diverse
+ * sugli stessi dati, ma una delle due non era nemmeno nel menu e ci si
+ * arrivava per caso. Ora sono due viste della stessa pagina, e i filtri
+ * valgono per entrambe.
+ *
+ * L'indirizzo resta /tasks: ci puntano le card della dashboard con i filtri
+ * già impostati, la scorciatoia dell'app e il widget del profilo. /bacheca
+ * reindirizza qui.
+ */
+export default function BachecaPage() {
   const { profile } = useAuth();
   const supabase = createClient();
+  const toast = useToast();
   const router = useRouter();
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [clients, setClients] = useState<Client[]>([]);
-  const [teamMembers, setTeamMembers] = useState<Profile[]>([]);
-  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [assigneeFilter, setAssigneeFilter] = useState<string>('me');
-  // Default "Tutti" per gli admin (creano task per il team e se li aspettano
-  // visibili subito); "Solo i miei" per gli altri. Applicato una sola volta al
-  // primo caricamento del profilo, così non sovrascrive le scelte manuali.
-  const didInitAssignee = useRef(false);
-  useEffect(() => {
-    if (profile && !didInitAssignee.current) {
-      didInitAssignee.current = true;
-      if (profile.role === 'admin') setAssigneeFilter('all');
-    }
-  }, [profile]);
   const searchParams = useSearchParams();
-  const groupMode: 'none' | 'sector' = searchParams.get('group') === 'sector' ? 'sector' : 'none';
-  // Filtri iniziali da query param (es. link dalle card della dashboard)
-  const initialFilterValues = useMemo(() => {
+
+  const [vista, setVista] = useState<Vista>('bacheca');
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [membri, setMembri] = useState<Profile[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
+  const [caricamento, setCaricamento] = useState(true);
+  const [errore, setErrore] = useState(false);
+
+  // Filtro assegnatario: vale solo nell'elenco. Nella bacheca le colonne SONO
+  // le persone, filtrarle svuoterebbe la vista invece di restringerla.
+  // null = non ancora toccato dall'utente, si usa il valore predefinito del ruolo.
+  const [filtroScelto, setFiltroScelto] = useState<string | null>(null);
+  const [mostraArchiviate, setMostraArchiviate] = useState(false);
+
+  const [taskAperta, setTaskAperta] = useState<Task | null>(null);
+  const [confermaArchiviaId, setConfermaArchiviaId] = useState<string | null>(null);
+  const [confermaArchiviaFatte, setConfermaArchiviaFatte] = useState(false);
+
+  // Creazione manuale (dalla colonna di una persona)
+  const [mostraNuova, setMostraNuova] = useState(false);
+  const [nuovaPerMembro, setNuovaPerMembro] = useState<string | null>(null);
+
+  // Creazione con AI
+  const [mostraAi, setMostraAi] = useState(false);
+  const [aiTesto, setAiTesto] = useState('');
+  const [aiCliente, setAiCliente] = useState('');
+  const [aiInCorso, setAiInCorso] = useState(false);
+  const [aiProposte, setAiProposte] = useState<TaskAnalizzata[] | null>(null);
+  const [aiSalvate, setAiSalvate] = useState(false);
+
+  const isAdmin = profile?.role === 'admin';
+
+  // Gli admin creano task per il team e se le aspettano visibili subito;
+  // gli altri partono dalle proprie.
+  const filtroAssegnatario = filtroScelto ?? (isAdmin ? 'all' : 'me');
+
+  const perSettore = searchParams.get('group') === 'sector';
+  const filtriIniziali = useMemo(() => {
     const v: Record<string, string> = {};
     const status = searchParams.get('status');
     const deadline = searchParams.get('deadline');
@@ -72,153 +101,174 @@ export default function TasksPage() {
     return v;
   }, [searchParams]);
 
-  // AI task creation
-  const [showAiModal, setShowAiModal] = useState(false);
-  const [aiInput, setAiInput] = useState('');
-  const [aiClientId, setAiClientId] = useState('');
-  const [aiLoading, setAiLoading] = useState(false);
-  const [parsedTasks, setParsedTasks] = useState<ParsedTask[] | null>(null);
-  const [tasksSaved, setTasksSaved] = useState(false);
-  const [error, setError] = useState(false);
+  // Una richiesta per volta: scrive solo la più recente, così cambiando
+  // filtro in fretta non vince una risposta vecchia.
+  const seqRef = useRef(0);
 
-  // Delivery URL modal (replaces prompt())
-  const [confirmArchiveId, setConfirmArchiveId] = useState<string | null>(null);
-  const [showArchived, setShowArchived] = useState(false);
-
-  const isAdmin = profile?.role === 'admin';
-  const toast = useToast();
-
-  // Le fetch partono in parallelo quando cambia il filtro (per gli admin
-  // assigneeFilter passa da 'me' ad 'all' appena arriva il profilo). Senza
-  // questo contatore vinceva l'ULTIMA risposta arrivata, non l'ultima
-  // richiesta: la fetch 'me' poteva atterrare dopo quella 'all' e sovrascrivere
-  // tutte le task con il proprio risultato (per un admin con task solo
-  // archiviate: zero). Scrive nello stato solo la richiesta più recente.
-  const fetchSeq = useRef(0);
-
-  const fetchTasks = useCallback(async () => {
-    if (!profile) return;
-
-    const seq = ++fetchSeq.current;
-    const isStale = () => seq !== fetchSeq.current;
-
+  const carica = useCallback(async () => {
+    const seq = ++seqRef.current;
     try {
-      let query = supabase
+      const base = supabase
         .from('tasks')
         .select(`
           *,
-          project:projects(id, name, color, client:clients(id, name, company, sector)),
-          assignee:profiles!tasks_assigned_to_fkey(id, full_name, color)
+          project:projects(id, name, color, client_id, client:clients(id, name, company, logo_url, sector)),
+          assignee:profiles!tasks_assigned_to_fkey(id, full_name, color),
+          task_assignees(user_id)
         `);
 
-      // Filtro dipendente: "me" = solo i miei, "all" = tutti, UUID = specifico.
-      // Multi-assegnatario: filtro via junction (pre-carico gli id delle task
-      // in cui la persona è assegnata).
-      if (assigneeFilter === 'me' || (assigneeFilter && assigneeFilter !== 'all')) {
-        const targetId = assigneeFilter === 'me' ? profile.id : assigneeFilter;
-        const { data: myTaskRows } = await supabase.from('task_assignees').select('task_id').eq('user_id', targetId);
-        const ids = (myTaskRows || []).map((r) => r.task_id as string);
-        query = query.in('id', ids.length ? ids : ['00000000-0000-0000-0000-000000000000']);
-      }
+      // O le attive o le archiviate, mai insieme: mescolarle rende l'elenco
+      // illeggibile e la bacheca piena di roba chiusa.
+      const query = mostraArchiviate
+        ? base.not('archived_at', 'is', null)
+        : base.is('archived_at', null);
 
-      // Archivio: di default mostra solo le attive (archived_at IS NULL).
-      // Con "Mostra archiviati" attivo mostra solo le archiviate.
-      query = (showArchived
-        ? query.not('archived_at', 'is', null)
-        : query.is('archived_at', null)
-      ).order('updated_at', { ascending: false }).limit(500);
+      const [tasksRes, membriRes, clientiRes] = await Promise.all([
+        query.order('updated_at', { ascending: false }).limit(2000),
+        supabase.from('profiles').select('*').eq('is_active', true).order('full_name'),
+        supabase.from('clients').select('*').eq('is_active', true).order('company'),
+      ]);
 
-      const { data, error } = await query;
-      if (error) throw error;
-      if (isStale()) return;
-      setTasks((data as Task[]) || []);
-    } catch (err) {
-      if (isStale()) return;
-      reportUnknown(err, 'client', { op: 'tasks-fetch' });
-      setError(true);
+      if (seq !== seqRef.current) return;
+      if (tasksRes.error) throw tasksRes.error;
+
+      setTasks((tasksRes.data as Task[]) || []);
+      setMembri((membriRes.data as Profile[]) || []);
+      setClients((clientiRes.data as Client[]) || []);
+    } catch (e) {
+      if (seq !== seqRef.current) return;
+      reportUnknown(e, 'client', { op: 'bacheca-fetch' });
+      setErrore(true);
     } finally {
-      if (!isStale()) setLoading(false);
+      if (seq === seqRef.current) setCaricamento(false);
     }
-  }, [profile, isAdmin, assigneeFilter, showArchived]);
+  }, [supabase, mostraArchiviate]);
 
-  const fetchClients = useCallback(async () => {
-    const { data } = await supabase
-      .from('clients')
-      .select('*')
-      .eq('is_active', true)
-      .order('company');
-    if (data) setClients(data as Client[]);
-  }, []);
+  useEffect(() => { void carica(); }, [carica]);
 
-  const fetchTeamMembers = useCallback(async () => {
-    const { data } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('is_active', true)
-      .order('full_name');
-    if (data) setTeamMembers(data as Profile[]);
-  }, []);
+  /** L'elenco rispetta il filtro assegnatario; la bacheca no. */
+  const taskDellElenco = useMemo(() => {
+    if (filtroAssegnatario === 'all') return tasks;
+    const target = filtroAssegnatario === 'me' ? profile?.id : filtroAssegnatario;
+    if (!target) return tasks;
+    return tasks.filter((t) => assegnatariDi(t).includes(target));
+  }, [tasks, filtroAssegnatario, profile?.id]);
 
-  useEffect(() => {
-    fetchTasks();
-    fetchClients();
-    fetchTeamMembers();
-  }, [fetchTasks, fetchClients, fetchTeamMembers]);
+  const completate = useMemo(() => tasks.filter((t) => t.status === 'done').length, [tasks]);
+  const attive = useMemo(() => tasks.filter((t) => t.status !== 'done').length, [tasks]);
 
-  const handleStatusChange = async (taskId: string, newStatus: string) => {
-    const { error } = await supabase.from('tasks').update({ status: newStatus }).eq('id', taskId);
+  // ── Azioni ───────────────────────────────────────────────
+
+  const cambiaStato = async (taskId: string, stato: string) => {
+    const { error } = await supabase.from('tasks').update({ status: stato }).eq('id', taskId);
     if (error) {
-      reportSupabaseError(error, 'tasks-status-change', { taskId, newStatus });
-      // Mostra il messaggio reale del DB (es. blocco "registra le ore prima di
-      // completare"), altrimenti l'utente non capisce perché non riesce.
+      reportSupabaseError(error, 'tasks-status-change', { taskId, stato });
+      // Il messaggio del database è quello utile (es. il blocco sulle ore):
+      // sostituirlo con uno generico lascerebbe l'utente senza spiegazione.
       toast.error(error.message || 'Errore durante l\'aggiornamento dello stato');
       return;
     }
-    if (newStatus === 'done') {
-      const task = tasks.find(t => t.id === taskId);
+    if (stato === 'done') {
+      const task = tasks.find((t) => t.id === taskId);
       toast.success(task?.delivery_url
         ? 'Task completata'
         : 'Task completata — se vuoi, aggiungi il link al lavoro dal dettaglio');
     } else {
       toast.success('Stato aggiornato');
     }
-    fetchTasks();
+    void carica();
   };
 
-  const handleArchive = async (taskId: string) => {
+  const archivia = async (taskId: string) => {
     const { error } = await supabase.from('tasks').update({ archived_at: new Date().toISOString() }).eq('id', taskId);
     if (error) { reportSupabaseError(error, 'tasks-archive', { taskId }); toast.error('Errore durante l\'archiviazione'); return; }
     toast.success('Task archiviata');
-    fetchTasks();
+    void carica();
   };
 
-  const handleRestore = async (taskId: string) => {
+  const ripristina = async (taskId: string) => {
     const { error } = await supabase.from('tasks').update({ archived_at: null }).eq('id', taskId);
     if (error) { reportSupabaseError(error, 'tasks-restore', { taskId }); toast.error('Errore durante il ripristino'); return; }
     toast.success('Task ripristinata');
-    fetchTasks();
+    void carica();
   };
 
-  const handleAiParse = async () => {
-    if (!aiInput.trim() || !aiClientId || !profile) return;
-    setAiLoading(true);
-    setParsedTasks(null);
-    setTasksSaved(false);
+  const archiviaCompletate = async () => {
+    const ids = tasks.filter((t) => t.status === 'done').map((t) => t.id);
+    if (ids.length === 0) return;
+    const { error } = await supabase.from('tasks').update({ archived_at: new Date().toISOString() }).in('id', ids);
+    if (error) { reportSupabaseError(error, 'bacheca-archivia-completate'); toast.error('Errore durante l\'archiviazione'); return; }
+    toast.success(`${ids.length} task archiviate`);
+    void carica();
+  };
 
-    // Timeout di sicurezza: se la richiesta non risponde entro 70s la
-    // interrompiamo, così lo spinner non gira all'infinito.
+  /** Trascinamento nella bacheca: su una persona riassegna, su Urgente marca urgente. */
+  const sposta = async (result: DropResult) => {
+    const { destination, draggableId } = result;
+    if (!destination) return;
+
+    const versoUrgente = destination.droppableId === 'urgent';
+    const nuovoAssegnatario = versoUrgente ? null : destination.droppableId;
+
+    const modifiche: Record<string, unknown> = { position: destination.index };
+    if (versoUrgente) {
+      modifiche.priority = 'urgent';
+    } else {
+      modifiche.assigned_to = nuovoAssegnatario;
+      // Uscendo dagli urgenti la priorità non resta 'urgent', altrimenti la
+      // card rimbalzerebbe nella colonna rossa al primo ricaricamento.
+      const task = tasks.find((t) => t.id === draggableId);
+      if (task?.priority === 'urgent') modifiche.priority = 'high';
+    }
+
+    const { error } = await supabase.from('tasks').update(modifiche).eq('id', draggableId);
+    if (error) {
+      reportUnknown(error, 'client', { stage: 'drag_drop' });
+      toast.error(error.message || 'Errore nello spostamento della task');
+    } else if (nuovoAssegnatario) {
+      // Riassegnare significa riassegnare a lei sola: senza questo la task
+      // resterebbe anche nelle colonne dei vecchi assegnatari.
+      await supabase.rpc('set_task_assignees', { p_task_id: draggableId, p_user_ids: [nuovoAssegnatario] });
+    }
+    // Si ricarica comunque: in caso di rifiuto la card torna dov'era.
+    void carica();
+  };
+
+  const apriNuova = (membroId: string | null) => {
+    setNuovaPerMembro(membroId);
+    setMostraNuova(true);
+  };
+
+  const vaiAllaVista = (v: Vista) => {
+    setVista(v);
+    // L'archivio ha senso nell'elenco; una bacheca di task archiviate no.
+    if (v === 'bacheca') setMostraArchiviate(false);
+  };
+
+  // ── Creazione con AI ─────────────────────────────────────
+
+  const progettoDelCliente = async (): Promise<string | null> => {
+    if (!profile || !aiCliente) return null;
+    const { data } = await supabase.rpc('get_or_create_client_project', {
+      p_client_id: aiCliente,
+      p_created_by: profile.id,
+    });
+    return data;
+  };
+
+  const analizzaConAi = async () => {
+    if (!aiTesto.trim() || !aiCliente || !profile) return;
+    setAiInCorso(true);
+    setAiProposte(null);
+    setAiSalvate(false);
+
+    // Senza questo lo spinner girerebbe all'infinito quando l'AI non risponde.
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 70_000);
 
     try {
-      // Auto-crea progetto per il cliente se non esiste
-      const { data: projectId, error: rpcError } = await supabase.rpc('get_or_create_client_project', {
-        p_client_id: aiClientId,
-        p_created_by: profile.id,
-      });
-
-      if (rpcError || !projectId) {
-        reportSupabaseError(rpcError, 'tasks-ai-get-project', { clientId: aiClientId });
+      const projectId = await progettoDelCliente();
+      if (!projectId) {
         toast.error('Impossibile creare il progetto per il cliente selezionato');
         return;
       }
@@ -226,455 +276,390 @@ export default function TasksPage() {
       const res = await fetch('/api/ai/parse-tasks', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ input: aiInput, project_id: projectId }),
+        body: JSON.stringify({ input: aiTesto, project_id: projectId }),
         signal: controller.signal,
       });
-      const data = await res.json().catch(() => ({}));
-      if (res.ok) {
-        setParsedTasks(data.tasks);
-      } else {
-        toast.error(data.error || 'Errore nell\'analisi AI dei task');
-      }
-    } catch (err) {
-      reportUnknown(err, 'client', { op: 'tasks-ai-parse' });
-      if (err instanceof DOMException && err.name === 'AbortError') {
+      const dati = await res.json().catch(() => ({}));
+      if (res.ok) setAiProposte(dati.tasks);
+      else toast.error(dati.error || 'Errore nell\'analisi AI dei task');
+    } catch (e) {
+      reportUnknown(e, 'client', { op: 'tasks-ai-parse' });
+      if (e instanceof DOMException && e.name === 'AbortError') {
         toast.error('L\'AI ci sta mettendo troppo. Riprova con una richiesta più breve.');
       } else {
         toast.error('Errore nell\'analisi AI dei task');
       }
     } finally {
       clearTimeout(timeout);
-      setAiLoading(false);
+      setAiInCorso(false);
     }
   };
 
-  const getClientProjectId = async (): Promise<string | null> => {
-    if (!profile || !aiClientId) return null;
-    const { data } = await supabase.rpc('get_or_create_client_project', {
-      p_client_id: aiClientId,
-      p_created_by: profile.id,
-    });
-    return data;
-  };
+  const salvaProposteAi = async () => {
+    if (!aiProposte || !profile) return;
+    setAiInCorso(true);
 
-  const handleSaveTasks = async () => {
-    if (!parsedTasks || !profile) return;
-    setAiLoading(true);
+    const projectId = await progettoDelCliente();
+    if (!projectId) { setAiInCorso(false); return; }
 
-    const projectId = await getClientProjectId();
-    if (!projectId) { setAiLoading(false); return; }
-
-    const tasksToInsert = parsedTasks.map((task, index) => ({
-      title: task.title,
-      description: task.description,
+    const daInserire = aiProposte.map((t, i) => ({
+      title: t.title,
+      description: t.description,
       project_id: projectId,
-      assigned_to: task.assigned_to,
-      priority: task.priority,
+      assigned_to: t.assigned_to,
+      priority: t.priority,
       status: 'todo' as const,
-      position: index,
-      estimated_hours: task.estimated_hours,
+      position: i,
+      estimated_hours: t.estimated_hours,
       ai_generated: true,
       created_by: profile.id,
     }));
 
-    const { error } = await supabase.from('tasks').insert(tasksToInsert);
-    if (!error) {
-      setTasksSaved(true);
-      toast.success('Task salvati con successo');
-      fetchTasks();
-      setTimeout(() => {
-        setShowAiModal(false);
-        setParsedTasks(null);
-        setAiInput('');
-        setAiClientId('');
-        setTasksSaved(false);
-      }, 1500);
-    } else {
+    const { error } = await supabase.from('tasks').insert(daInserire);
+    if (error) {
       reportSupabaseError(error, 'tasks-ai-salva');
       toast.error('Errore durante il salvataggio dei task');
+    } else {
+      setAiSalvate(true);
+      toast.success('Task salvati con successo');
+      void carica();
+      setTimeout(() => {
+        setMostraAi(false);
+        setAiProposte(null);
+        setAiTesto('');
+        setAiCliente('');
+        setAiSalvate(false);
+      }, 1500);
     }
-    setAiLoading(false);
+    setAiInCorso(false);
   };
 
-  if (loading) {
+  // ── Creazione manuale ────────────────────────────────────
+
+  const creaTask = async (dati: TaskFormData, files?: File[]) => {
+    if (!profile) return;
+    try {
+      let projectId: string | null = null;
+
+      if (dati.client_id) {
+        const { data: pid, error: rpcErr } = await supabase.rpc('get_or_create_client_project', {
+          p_client_id: dati.client_id,
+          p_created_by: profile.id,
+        });
+        if (rpcErr) throw rpcErr;
+        projectId = pid;
+      }
+
+      // Senza cliente la task finisce nel progetto "Generale", che si crea
+      // alla prima occorrenza: tasks.project_id è NOT NULL.
+      if (!projectId) {
+        const { data: generale, error: selErr } = await supabase
+          .from('projects').select('id').eq('name', 'Generale').maybeSingle();
+        if (selErr) throw selErr;
+        if (generale) {
+          projectId = generale.id;
+        } else {
+          const { data: creato, error: projErr } = await supabase
+            .from('projects')
+            .insert({ name: 'Generale', status: 'active', color: '#FFD108', created_by: profile.id })
+            .select().single();
+          if (projErr) throw projErr;
+          projectId = (creato as Project | null)?.id || null;
+        }
+      }
+      if (!projectId) throw new Error('Impossibile determinare il progetto per la task');
+
+      const { data: creata, error: taskErr } = await supabase.from('tasks').insert({
+        title: dati.title,
+        description: dati.description || null,
+        project_id: projectId,
+        assigned_to: dati.assigned_to || nuovaPerMembro,
+        priority: dati.priority,
+        deadline: dati.deadline || null,
+        estimated_hours: dati.estimated_hours ? Number(dati.estimated_hours) : null,
+        status: dati.status || 'todo',
+        position: 0,
+        created_by: profile.id,
+      }).select('id').single();
+      if (taskErr) throw taskErr;
+
+      if (creata) {
+        const principale = dati.assigned_to || nuovaPerMembro || '';
+        const ids = dati.assignee_ids?.length ? dati.assignee_ids : (principale ? [principale] : []);
+        if (ids.length > 0) {
+          await supabase.rpc('set_task_assignees', { p_task_id: creata.id, p_user_ids: ids });
+        }
+      }
+
+      if (creata && files?.length) {
+        const MAX = 10 * 1024 * 1024;
+        let falliti = 0;
+        let ultimoErrore = '';
+        for (const file of files) {
+          if (file.size > MAX) { falliti++; ultimoErrore = `"${file.name}" supera i 10MB`; continue; }
+          // Il nome va sanificato: spazi, apostrofi e accenti facevano fallire l'upload.
+          const path = `${creata.id}/${Date.now()}_${safeStorageName(file.name)}`;
+          const { error: upErr } = await supabase.storage.from('attachments').upload(path, file);
+          if (upErr) { falliti++; ultimoErrore = upErr.message; continue; }
+          const { data: url } = supabase.storage.from('attachments').getPublicUrl(path);
+          const { error: attErr } = await supabase.from('task_attachments').insert({
+            task_id: creata.id,
+            file_name: file.name,
+            file_url: url.publicUrl,
+            file_type: file.type,
+            file_size: file.size,
+            uploaded_by: profile.id,
+          });
+          if (attErr) { falliti++; ultimoErrore = attErr.message; }
+        }
+        if (falliti > 0) toast.error(`${falliti} allegato/i non caricato/i${ultimoErrore ? `: ${ultimoErrore}` : ''}`);
+      }
+
+      toast.success('Task creata');
+      setMostraNuova(false);
+      void carica();
+    } catch (e) {
+      reportUnknown(e, 'client', { op: 'bacheca-crea-task' });
+      // Prima l'errore veniva ingoiato e il modal si chiudeva senza dire nulla.
+      const msg = (e as { message?: string } | undefined)?.message || '';
+      toast.error(
+        /row-level security|permission|policy|not authorized/i.test(msg)
+          ? 'Non hai i permessi per creare questa task. Contatta un amministratore.'
+          : (msg || 'Errore durante la creazione della task'),
+      );
+    }
+  };
+
+  // ── Render ───────────────────────────────────────────────
+
+  if (caricamento) {
     return (
       <div className="space-y-6 animate-slide-up">
-        <SkeletonStats count={4} />
-        <SkeletonList variant="row" count={8} />
+        <SkeletonList variant="card" count={6} />
       </div>
     );
   }
 
-  if (error) {
+  if (errore) {
     return (
       <div className="flex flex-col items-center justify-center h-64 text-center gap-4">
         <AlertTriangle size={48} className="text-red-400" />
         <h2 className="text-xl font-semibold text-pw-text">Errore nel caricamento</h2>
-        <p className="text-pw-text-muted max-w-md text-sm">Non è stato possibile caricare i dati. Riprova.</p>
-        <button onClick={() => { setLoading(true); setError(false); fetchTasks(); }} className="px-4 py-2 rounded-xl bg-pw-accent text-[#0A263A] text-sm font-medium hover:bg-pw-accent-hover transition-colors duration-200 ease-out">Riprova</button>
+        <p className="text-pw-text-muted max-w-md text-sm">Non è stato possibile caricare le task. Riprova.</p>
+        <Button variant="outline" onClick={() => { setErrore(false); setCaricamento(true); void carica(); }}>
+          Riprova
+        </Button>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 animate-slide-up">
+    <div className="space-y-4 animate-slide-up">
       <PageHeader
-        title={
-          assigneeFilter === 'me'
-            ? 'I miei Task'
-            : assigneeFilter === 'all'
-              ? 'Tutti i Task'
-              : `Task di ${teamMembers.find(m => m.id === assigneeFilter)?.full_name || 'Dipendente'}`
+        title="Bacheca"
+        subtitle={
+          mostraArchiviate
+            ? `${tasks.length} task archiviate`
+            : `${attive} attive · ${completate} completate`
         }
-        subtitle={`${tasks.length} task ${assigneeFilter === 'me' ? 'assegnati a te' : assigneeFilter === 'all' ? 'totali' : 'assegnati'}`}
         actions={
-          <div className="flex items-center gap-2">
-            <Button variant="outline" onClick={() => setShowArchived((v) => !v)}>
-              <Archive size={14} />
-              {showArchived ? 'Mostra attivi' : 'Mostra archiviati'}
-            </Button>
-            <Button variant="primary" onClick={() => { setParsedTasks(null); setTasksSaved(false); setAiInput(''); setAiClientId(''); setShowAiModal(true); }}>
+          <>
+            <div className="flex overflow-hidden rounded-lg border border-pw-border">
+              {(['bacheca', 'elenco'] as Vista[]).map((v) => (
+                <button
+                  key={v}
+                  onClick={() => vaiAllaVista(v)}
+                  className={cn(
+                    'px-3 py-1.5 text-xs font-medium transition-colors duration-200',
+                    vista === v ? 'bg-pw-accent text-[#0A263A]' : 'text-pw-text-muted hover:bg-pw-surface-2 hover:text-pw-text',
+                  )}
+                >
+                  {v === 'bacheca' ? 'Bacheca' : 'Elenco'}
+                </button>
+              ))}
+            </div>
+
+            {vista === 'elenco' && (
+              <Button variant="outline" onClick={() => setMostraArchiviate((v) => !v)}>
+                <Archive size={14} />
+                {mostraArchiviate ? 'Mostra attive' : 'Mostra archiviate'}
+              </Button>
+            )}
+
+            {vista === 'bacheca' && completate > 0 && (
+              <Button variant="outline" onClick={() => setConfermaArchiviaFatte(true)}>
+                <CheckCircle2 size={14} />
+                Archivia {completate} completat{completate === 1 ? 'a' : 'e'}
+              </Button>
+            )}
+
+            <Button
+              variant="primary"
+              onClick={() => { setAiProposte(null); setAiSalvate(false); setAiTesto(''); setAiCliente(''); setMostraAi(true); }}
+            >
               <Sparkles size={14} />
               Crea Task con AI
             </Button>
-          </div>
+          </>
         }
       />
 
-      <div className="flex flex-wrap items-end gap-3 mb-6 mt-6">
+      {vista === 'elenco' && (
         <div className="w-52">
           <Select
-            value={assigneeFilter}
-            onChange={(e) => setAssigneeFilter(e.target.value)}
+            value={filtroAssegnatario}
+            onChange={(e) => setFiltroScelto(e.target.value)}
+            aria-label="Filtra per assegnatario"
             options={[
-              { value: 'me', label: 'I miei Task' },
-              { value: 'all', label: 'Tutti i Task' },
-              ...teamMembers.filter(m => m.id !== profile?.id).map(m => ({
-                value: m.id,
-                label: m.full_name,
-              })),
+              { value: 'me', label: 'Le mie task' },
+              { value: 'all', label: 'Tutte le task' },
+              ...membri.filter((m) => m.id !== profile?.id).map((m) => ({ value: m.id, label: m.full_name })),
             ]}
           />
         </div>
-      </div>
+      )}
 
-      <DataTable
-        data={tasks}
-        rowKey={(t) => t.id}
-        columns={[]}
-        variant="card"
-        cardGridClassName="space-y-3"
-        groupBy={groupMode === 'sector' ? (t) => {
-          const client = (t.project as { client?: { sector?: string | null } } | undefined)?.client;
-          return client?.sector?.trim() || '__none__';
-        } : undefined}
-        groupLabel={(key) => (key === '__none__' ? 'Senza settore' : key)}
-        searchKeys={[
-          (t) => t.title,
-          (t) => stripHtml(t.description),
-          (t) => (t.project as { name?: string } | undefined)?.name || '',
-          (t) => (t.project as { client?: { company?: string; name?: string } } | undefined)?.client?.company || '',
-        ]}
-        searchPlaceholder="Cerca per titolo, descrizione, progetto o cliente…"
-        initialFilterValues={initialFilterValues}
-        filters={[
-          {
-            key: 'status',
-            label: 'Tutti gli stati',
-            options: [
-              { value: 'todo', label: 'Da fare' },
-              { value: 'in_progress', label: 'In corso' },
-              { value: 'review', label: 'Review' },
-              { value: 'done', label: 'Fatto' },
-            ],
-            accessor: (t) => t.status,
-          },
-          {
-            key: 'priority',
-            label: 'Tutte le priorità',
-            options: [
-              { value: 'low', label: 'Bassa' },
-              { value: 'medium', label: 'Media' },
-              { value: 'high', label: 'Alta' },
-              { value: 'urgent', label: 'Urgente' },
-            ],
-            accessor: (t) => t.priority,
-          },
-          {
-            key: 'deadline',
-            label: 'Tutte le scadenze',
-            options: [
-              { value: 'overdue', label: 'Scadute' },
-              { value: 'today', label: 'Scadenza oggi' },
-              { value: 'week', label: 'Prossimi 7 giorni' },
-              { value: 'month', label: 'Prossimi 30 giorni' },
-            ],
-            accessor: (t) => {
-              if (!t.deadline) return '';
-              const today = todayLocal();
-              const d = (t.deadline as string).split('T')[0];
-              if (d < today) return 'overdue';
-              if (d === today) return 'today';
-              const week = new Date();
-              week.setDate(week.getDate() + 7);
-              if (d <= formatDateLocal(week)) return 'week';
-              const month = new Date();
-              month.setDate(month.getDate() + 30);
-              if (d <= formatDateLocal(month)) return 'month';
-              return '';
-            },
-          },
-        ]}
-        emptyState={{
-          icon: ListTodo,
-          title: 'Nessun task',
-          description: 'Non ci sono task al momento. Usa "Crea Task con AI" per iniziare.',
-        }}
-        cardRender={(task) => {
-          const project = task.project as { id: string; name: string; color: string } | undefined;
-          const assignee = task.assignee as { id: string; full_name: string } | undefined;
-          return (
-            <Card hover onClick={() => setSelectedTask(task)} className={`cursor-pointer border-l-4 ${STATUS_BORDER[task.status] ?? 'border-l-transparent'}`}>
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        {project && (
-                          <div
-                            className="w-2 h-2 rounded-full shrink-0"
-                            style={{ backgroundColor: project.color }}
-                          />
-                        )}
-                        <span className="text-xs text-pw-text-muted truncate">
-                          {project?.name || 'Cliente'}
-                        </span>
-                        {assignee && assigneeFilter !== 'me' && (
-                          <span className="text-xs text-pw-text-dim">
-                            · {assignee.full_name}
-                          </span>
-                        )}
-                        {task.ai_generated && (
-                          <Sparkles size={10} className="text-pw-accent shrink-0" />
-                        )}
-                      </div>
-                      <h3 className="font-medium text-pw-text mb-2">
-                        <button
-                          type="button"
-                          onClick={() => setSelectedTask(task)}
-                          className="text-left hover:text-pw-accent transition-colors duration-200 ease-out"
-                        >
-                          {task.title}
-                        </button>
-                      </h3>
-                      {task.description && (
-                        <p className="text-xs text-pw-text-muted mb-2 line-clamp-1">{stripHtml(task.description)}</p>
-                      )}
-                      <div className="flex flex-wrap items-center gap-2">
-                        <Badge tone={getStatusTone(task.status)} dot>
-                          {STATUS_LABELS[task.status]}
-                        </Badge>
-                        <Badge tone={getPriorityTone(task.priority)}>
-                          {PRIORITY_LABELS[task.priority]}
-                        </Badge>
-                        {task.deadline && (
-                          <span className="flex items-center gap-1 text-xs text-pw-text-muted">
-                            <Calendar size={12} />
-                            {formatDate(task.deadline)}
-                          </span>
-                        )}
-                        {task.estimated_hours && (
-                          <span className="flex items-center gap-1 text-xs text-pw-text-muted">
-                            <Clock size={12} />
-                            {task.estimated_hours}h
-                          </span>
-                        )}
-                        {task.delivery_url && (
-                          <a
-                            href={task.delivery_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={(e) => e.stopPropagation()}
-                            className="flex items-center gap-1 text-xs text-pw-accent hover:underline"
-                          >
-                            <ExternalLink size={12} />
-                            {task.delivery_url.includes('drive.google') ? 'Google Drive' :
-                             task.delivery_url.includes('figma.com') ? 'Figma' :
-                             task.delivery_url.includes('canva.com') ? 'Canva' :
-                             'Link lavoro'}
-                          </a>
-                        )}
-                      </div>
-                    </div>
+      {vista === 'bacheca' ? (
+        <BachecaPersone
+          tasks={tasks}
+          membri={membri}
+          isAdmin={isAdmin}
+          onApri={setTaskAperta}
+          onArchivia={archivia}
+          onAggiungi={apriNuova}
+          onSposta={sposta}
+        />
+      ) : (
+        <ElencoTask
+          tasks={taskDellElenco}
+          soloMie={filtroAssegnatario === 'me'}
+          perSettore={perSettore}
+          initialFilterValues={filtriIniziali}
+          onApri={setTaskAperta}
+          onCambiaStato={cambiaStato}
+          onArchivia={setConfermaArchiviaId}
+          onRipristina={ripristina}
+          onVaiAlProgetto={(id) => router.push(`/projects/scheda?id=${id}`)}
+        />
+      )}
 
-                    <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                      <select
-                        value={task.status}
-                        onChange={(e) => handleStatusChange(task.id, e.target.value)}
-                        className="text-xs px-2 py-1 rounded-lg border border-pw-border bg-pw-surface-2 text-pw-text-muted"
-                      >
-                        {Object.entries(STATUS_LABELS)
-                          .filter(([value]) => value !== 'archived')
-                          .map(([value, label]) => (
-                            <option key={value} value={value}>
-                              {label}
-                            </option>
-                          ))}
-                      </select>
-                      {task.archived_at ? (
-                        <button
-                          onClick={() => handleRestore(task.id)}
-                          className="p-1.5 rounded-lg text-pw-text-dim hover:bg-pw-surface-2 hover:text-pw-accent"
-                          title="Ripristina task"
-                        >
-                          <ArchiveRestore size={16} />
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => setConfirmArchiveId(task.id)}
-                          className="p-1.5 rounded-lg text-pw-text-dim hover:bg-pw-surface-2 hover:text-pw-accent"
-                          title="Archivia task"
-                        >
-                          <Archive size={16} />
-                        </button>
-                      )}
-                      {project && (
-                        <button
-                          onClick={() => router.push(`/projects/scheda?id=${project.id}`)}
-                          className="p-1.5 rounded-lg text-pw-text-dim hover:bg-pw-surface-2"
-                          title="Vai al progetto"
-                        >
-                          <ArrowRight size={16} />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          }}
-      />
-
-      {/* Task detail pop-up (unico, condiviso con Bacheca e Progetti) */}
+      {/* Dettaglio task: lo stesso pop-up di Progetti e Calendario. */}
       <TaskDetailModal
-        task={selectedTask}
-        members={teamMembers}
+        task={taskAperta}
+        members={membri}
         clients={clients}
-        open={!!selectedTask}
-        onClose={() => setSelectedTask(null)}
-        onUpdate={() => { setSelectedTask(null); fetchTasks(); }}
+        open={!!taskAperta}
+        onClose={() => setTaskAperta(null)}
+        onUpdate={() => { setTaskAperta(null); void carica(); }}
       />
 
-      {/* Conferma archiviazione task */}
       <ConfirmDialog
-        open={confirmArchiveId !== null}
-        onClose={() => setConfirmArchiveId(null)}
-        onConfirm={() => {
-          if (confirmArchiveId) handleArchive(confirmArchiveId);
-          setConfirmArchiveId(null);
-        }}
+        open={confermaArchiviaId !== null}
+        onClose={() => setConfermaArchiviaId(null)}
+        onConfirm={() => { if (confermaArchiviaId) void archivia(confermaArchiviaId); setConfermaArchiviaId(null); }}
         title="Archivia task"
-        description="Vuoi archiviare questa task? Potrai ritrovarla con “Mostra archiviati” e ripristinarla quando vuoi."
+        description="Vuoi archiviare questa task? Potrai ritrovarla con “Mostra archiviate” e ripristinarla quando vuoi."
         confirmLabel="Archivia"
       />
 
+      <ConfirmDialog
+        open={confermaArchiviaFatte}
+        onClose={() => setConfermaArchiviaFatte(false)}
+        onConfirm={() => { void archiviaCompletate(); setConfermaArchiviaFatte(false); }}
+        title="Archivia completate"
+        description={`Vuoi archiviare ${completate} task completat${completate === 1 ? 'a' : 'e'}? Spariranno dalla bacheca ma restano nell'elenco con “Mostra archiviate”.`}
+        confirmLabel="Archivia"
+      />
 
-      {/* AI Task Creation Modal */}
-      <Modal
-        open={showAiModal}
-        onClose={() => setShowAiModal(false)}
-        title="Crea Task con AI"
-        size="lg"
-      >
+      {/* Nuova task, dalla colonna di una persona o dagli urgenti. */}
+      <Modal open={mostraNuova} onClose={() => setMostraNuova(false)} title="Nuova Task" size="lg">
+        <TaskForm
+          showClientSelect
+          clients={clients}
+          defaultAssignedTo={nuovaPerMembro}
+          showAttachments
+          showAiDescription
+          onSubmit={creaTask}
+          onCancel={() => setMostraNuova(false)}
+        />
+      </Modal>
+
+      {/* Creazione con AI: si incolla cosa va fatto, l'AI propone le task. */}
+      <Modal open={mostraAi} onClose={() => setMostraAi(false)} title="Crea Task con AI" size="lg">
         <div className="space-y-4">
-          {!parsedTasks ? (
+          {!aiProposte ? (
             <>
               <div className="p-3 rounded-xl bg-pw-accent/10 text-pw-accent text-sm">
-                Descrivi in linguaggio naturale cosa va fatto. L&apos;AI creerà i task e li assegnerà automaticamente al membro del team più adatto.
+                Descrivi in linguaggio naturale cosa va fatto. L&apos;AI creerà i task e li assegnerà
+                automaticamente al membro del team più adatto.
               </div>
 
               <Select
                 id="ai-client"
                 label="Cliente *"
-                value={aiClientId}
-                onChange={(e) => setAiClientId(e.target.value)}
+                value={aiCliente}
+                onChange={(e) => setAiCliente(e.target.value)}
                 options={clients.map((c) => ({ value: c.id, label: c.company || c.name }))}
                 placeholder="Seleziona cliente"
               />
 
               <div>
-                <label className="block text-[11px] uppercase tracking-[0.08em] font-medium text-pw-text-muted mb-1.5">
+                <label htmlFor="ai-testo" className="block text-[11px] uppercase tracking-[0.08em] font-medium text-pw-text-muted mb-1.5">
                   Cosa bisogna fare? *
                 </label>
                 <textarea
-                  value={aiInput}
-                  onChange={(e) => setAiInput(e.target.value)}
-                  placeholder="es. Dobbiamo creare 3 post Instagram per il lancio del nuovo prodotto, scrivere un articolo blog sulla sostenibilità e preparare la newsletter mensile per i clienti VIP..."
+                  id="ai-testo"
+                  value={aiTesto}
+                  onChange={(e) => setAiTesto(e.target.value)}
+                  placeholder="es. Dobbiamo creare 3 post Instagram per il lancio del nuovo prodotto, scrivere un articolo blog sulla sostenibilità e preparare la newsletter mensile per i clienti VIP…"
                   rows={5}
                   className="w-full px-4 py-2.5 rounded-xl border border-pw-border bg-pw-surface-2 text-pw-text placeholder:text-pw-text-dim focus:ring-2 focus:ring-pw-accent/30 focus:border-pw-accent/50 outline-none transition-all duration-200 ease-out text-sm resize-none"
                 />
               </div>
 
-              <Button
-                onClick={handleAiParse}
-                loading={aiLoading}
-                disabled={!aiInput.trim() || !aiClientId}
-                className="w-full"
-              >
+              <Button onClick={analizzaConAi} loading={aiInCorso} disabled={!aiTesto.trim() || !aiCliente} className="w-full">
                 <Brain size={16} />
                 Analizza e Crea Task
               </Button>
             </>
+          ) : aiSalvate ? (
+            <div className="p-4 rounded-xl bg-green-500/10 text-green-400 text-center">
+              <Check size={32} className="mx-auto mb-2" />
+              <p className="font-semibold">Task salvati con successo!</p>
+            </div>
           ) : (
             <>
-              {tasksSaved ? (
-                <div className="p-4 rounded-xl bg-green-500/10 text-green-400 text-center">
-                  <Check size={32} className="mx-auto mb-2" />
-                  <p className="font-semibold">Task salvati con successo!</p>
-                </div>
-              ) : (
-                <>
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm font-semibold text-pw-text">
-                      {parsedTasks.length} task generati
-                    </p>
-                    <Button onClick={handleSaveTasks} loading={aiLoading}>
-                      <Check size={14} />
-                      Salva tutti
-                    </Button>
-                  </div>
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-semibold text-pw-text">{aiProposte.length} task generati</p>
+                <Button onClick={salvaProposteAi} loading={aiInCorso}>
+                  <Check size={14} />
+                  Salva tutti
+                </Button>
+              </div>
 
-                  <div className="space-y-3 max-h-96 overflow-y-auto">
-                    {parsedTasks.map((task, i) => (
-                      <div
-                        key={i}
-                        className="p-4 rounded-xl border border-pw-border bg-pw-surface-2"
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex-1">
-                            <h4 className="font-medium text-pw-text">{task.title}</h4>
-                            <p className="text-sm text-pw-text-muted mt-1">{stripHtml(task.description)}</p>
-                          </div>
-                          <Badge className="bg-indigo-500/15 text-indigo-400 shrink-0">
-                            {getRoleLabel(task.assigned_to_role)}
-                          </Badge>
-                        </div>
-                        <div className="flex items-center gap-3 mt-2 text-xs text-pw-text-muted">
-                          <span>Priorità: {PRIORITY_LABELS[task.priority] || task.priority}</span>
-                          {task.estimated_hours && <span>~{task.estimated_hours}h</span>}
-                        </div>
+              <div className="space-y-3 max-h-96 overflow-y-auto">
+                {aiProposte.map((t, i) => (
+                  <div key={i} className="p-4 rounded-xl border border-pw-border bg-pw-surface-2">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1">
+                        <h4 className="font-medium text-pw-text">{t.title}</h4>
+                        <p className="text-sm text-pw-text-muted mt-1">{stripHtml(t.description)}</p>
                       </div>
-                    ))}
+                      <Badge className="bg-indigo-500/15 text-indigo-400 shrink-0">
+                        {getRoleLabel(t.assigned_to_role)}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center gap-3 mt-2 text-xs text-pw-text-muted">
+                      <span>Priorità: {PRIORITY_LABELS[t.priority] || t.priority}</span>
+                      {t.estimated_hours && <span>~{t.estimated_hours}h</span>}
+                    </div>
                   </div>
+                ))}
+              </div>
 
-                  <Button
-                    variant="outline"
-                    onClick={() => { setParsedTasks(null); setTasksSaved(false); }}
-                    className="w-full"
-                  >
-                    Modifica la richiesta
-                  </Button>
-                </>
-              )}
+              <Button variant="outline" onClick={() => { setAiProposte(null); setAiSalvate(false); }} className="w-full">
+                Modifica la richiesta
+              </Button>
             </>
           )}
         </div>

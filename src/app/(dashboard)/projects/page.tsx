@@ -173,7 +173,7 @@ export default function ProjectsPage() {
             </Button>
           ) : (
             // I membri non creano progetti: scorciatoia per creare una task in Bacheca
-            <Button variant="primary" onClick={() => router.push('/bacheca')}>
+            <Button variant="primary" onClick={() => router.push('/tasks')}>
               <Plus size={14} />
               Nuova Task
             </Button>
