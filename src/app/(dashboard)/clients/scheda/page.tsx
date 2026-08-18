@@ -56,6 +56,8 @@ import {
   Tag,
   CalendarDays,
   Camera,
+  Pause,
+  Play,
 } from 'lucide-react';
 
 function CollapsibleSection({
@@ -104,10 +106,16 @@ function formatMonthLabel(dateStr: string): string {
   return date.toLocaleDateString('it-IT', { month: 'long', year: 'numeric' });
 }
 
-function getContractExpiryInfo(contract: ClientContract): { status: 'ok' | 'warning' | 'danger' | 'expired'; daysLeft: number; label: string } {
-  const start = new Date(contract.start_date);
-  const end = new Date(start);
-  end.setMonth(end.getMonth() + contract.duration_months);
+// La scadenza segue le mensilità dovute, non start_date + durata: ogni mese
+// sospeso sposta avanti la fine del contratto di un mese. Senza rate (contratto
+// appena creato, o "senza contratto") si ricade sul calcolo secco.
+function getContractExpiryInfo(
+  contract: ClientContract,
+  payments: ClientPayment[]
+): { status: 'ok' | 'warning' | 'danger' | 'expired'; daysLeft: number; label: string } {
+  const lastDue = payments.filter((p) => !p.is_suspended).at(-1)?.due_date;
+  const end = lastDue ? new Date(lastDue) : new Date(contract.start_date);
+  end.setMonth(end.getMonth() + (lastDue ? 1 : contract.duration_months));
   const now = new Date();
   const diffMs = end.getTime() - now.getTime();
   const daysLeft = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
@@ -362,6 +370,26 @@ function ClientDetailPageInner() {
     fetchData();
   };
 
+  // Sospende/riattiva una mensilità quando il cliente si ferma. La RPC allunga
+  // o accorcia la coda del contratto per tenere le mensilità dovute pari alla
+  // durata pattuita, quindi va sempre ricaricato tutto (le rate cambiano).
+  const handleToggleSuspended = async (payment: ClientPayment, reason?: string) => {
+    if (!profile) return;
+    const wasSuspended = payment.is_suspended;
+    const { error } = await supabase.rpc('toggle_payment_suspended', {
+      p_payment_id: payment.id,
+      p_performed_by: profile.id,
+      p_reason: reason || null,
+    });
+    if (error) {
+      reportSupabaseError(error, 'client-toggle-sospensione', { paymentId: payment.id });
+      toast.error(error.message || 'Errore durante l\'aggiornamento della mensilità');
+      return;
+    }
+    toast.success(wasSuspended ? 'Mensilità riattivata' : 'Mensilità sospesa');
+    fetchData();
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -382,7 +410,7 @@ function ClientDetailPageInner() {
     );
   }
 
-  const expiry = contract ? getContractExpiryInfo(contract) : null;
+  const expiry = contract ? getContractExpiryInfo(contract, payments) : null;
 
   return (
     <div className="space-y-6 animate-slide-up">
@@ -753,7 +781,7 @@ function ClientDetailPageInner() {
               </CollapsibleSection>
 
               <CollapsibleSection title="Calendario Pagamenti" icon={Calendar} defaultOpen>
-                <PaymentCalendar payments={payments} onTogglePaid={handleTogglePaid} clientPhone={client.phone} clientName={client.company || client.name} />
+                <PaymentCalendar payments={payments} onTogglePaid={handleTogglePaid} onToggleSuspended={handleToggleSuspended} clientPhone={client.phone} clientName={client.company || client.name} />
               </CollapsibleSection>
 
               {logs.length > 0 && (
@@ -762,18 +790,28 @@ function ClientDetailPageInner() {
                     {logs.map((log) => (
                       <div key={log.id} className="px-4 sm:px-6 py-3 flex items-center gap-3">
                         <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
-                          log.action === 'paid' ? 'bg-green-500/15' : 'bg-red-500/15'
+                          log.action === 'paid' ? 'bg-green-500/15'
+                            : log.action === 'unpaid' ? 'bg-red-500/15'
+                            : 'bg-pw-surface-3'
                         }`}>
                           {log.action === 'paid' ? (
                             <Check size={14} className="text-pw-success" />
-                          ) : (
+                          ) : log.action === 'unpaid' ? (
                             <X size={14} className="text-pw-danger" />
+                          ) : log.action === 'suspended' ? (
+                            <Pause size={14} className="text-pw-text-muted" />
+                          ) : (
+                            <Play size={14} className="text-pw-text-muted" />
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm text-pw-text">
-                            Pagamento <strong>{log.action === 'paid' ? 'registrato' : 'annullato'}</strong> per{' '}
-                            <span className="capitalize">{formatMonthLabel(log.due_date)}</span>
+                            {log.action === 'paid' || log.action === 'unpaid' ? (
+                              <>Pagamento <strong>{log.action === 'paid' ? 'registrato' : 'annullato'}</strong></>
+                            ) : (
+                              <>Mensilità <strong>{log.action === 'suspended' ? 'sospesa' : 'riattivata'}</strong></>
+                            )}{' '}
+                            per <span className="capitalize">{formatMonthLabel(log.due_date)}</span>
                           </p>
                           <p className="text-xs text-pw-text-muted">
                             {(log.performer as { full_name?: string } | null)?.full_name || 'Admin'} &middot;{' '}
@@ -781,9 +819,11 @@ function ClientDetailPageInner() {
                           </p>
                         </div>
                         <p className={`text-sm font-semibold shrink-0 ${
-                          log.action === 'paid' ? 'text-pw-success' : 'text-pw-danger'
+                          log.action === 'paid' ? 'text-pw-success'
+                            : log.action === 'unpaid' ? 'text-pw-danger'
+                            : 'text-pw-text-muted'
                         }`}>
-                          {log.action === 'paid' ? '+' : '-'}{formatCurrency(log.amount)}
+                          {log.action === 'paid' ? '+' : log.action === 'unpaid' ? '-' : ''}{formatCurrency(log.amount)}
                         </p>
                       </div>
                     ))}

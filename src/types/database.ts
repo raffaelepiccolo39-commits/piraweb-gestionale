@@ -600,11 +600,17 @@ export interface ClientContract {
 export interface ClientPayment {
   id: string;
   contract_id: string;
+  /** Slot di calendario (0 = start_date). Il "Mese N" mostrato all'utente conta
+   *  solo le mensilità dovute: vedi buildDueOrdinals in payment-calendar.tsx. */
   month_index: number;
   due_date: string;
   amount: number;
   is_paid: boolean;
   paid_at: string | null;
+  /** Mensilità non dovuta (cliente fermo): il contratto si allunga di un mese. */
+  is_suspended: boolean;
+  suspended_at: string | null;
+  suspension_reason: string | null;
   notes: string | null;
   created_at: string;
   updated_at: string;
@@ -628,7 +634,7 @@ export interface PaymentLog {
   payment_id: string;
   contract_id: string;
   client_id: string;
-  action: 'paid' | 'unpaid';
+  action: 'paid' | 'unpaid' | 'suspended' | 'resumed';
   amount: number;
   month_index: number;
   due_date: string;

@@ -103,18 +103,15 @@ function ClientReportPageInner() {
 
     const monthlyFee = (contracts || []).reduce((sum, c) => sum + (c.monthly_fee || 0), 0);
 
-    const { data: payments } = await supabase
-      .from('client_payments')
-      .select('amount, is_paid')
-      .in('contract_id', (contracts || []).map(() => clientId)); // rough match
-
     // We'll compute from contract data directly
     let totalPaid = 0;
     let totalPending = 0;
     if (contracts && contracts.length > 0) {
+      // Le mensilità sospese non sono dovute: non entrano in "da incassare".
       const { data: allPayments } = await supabase
         .from('client_payments')
         .select('amount, is_paid, contract_id')
+        .eq('is_suspended', false)
         .in('contract_id',
           await supabase.from('client_contracts').select('id').eq('client_id', clientId)
             .then((r) => (r.data || []).map((c) => c.id))

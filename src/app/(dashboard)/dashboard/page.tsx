@@ -167,7 +167,7 @@ export default function DashboardPage() {
           // 11: cashflow this month - only active contracts
           (() => {
             const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-            return supabase.from('client_payments').select('amount, is_paid, contract:client_contracts!client_payments_contract_id_fkey(status)').gte('due_date', `${currentMonth}-01`).lte('due_date', `${currentMonth}-${lastDay}`);
+            return supabase.from('client_payments').select('amount, is_paid, contract:client_contracts!client_payments_contract_id_fkey(status)').eq('is_suspended', false).gte('due_date', `${currentMonth}-01`).lte('due_date', `${currentMonth}-${lastDay}`);
           })(),
           // 12: team attendance
           supabase.rpc('get_team_attendance_today'),

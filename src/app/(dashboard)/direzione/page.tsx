@@ -69,7 +69,7 @@ export default function DirectionPage() {
       contractsRes, paymentsRes, profilesRes, tasksRes, dealsRes, clientsRes, timeRes, pausedRes,
     ] = await Promise.all([
       supabase.from('client_contracts').select('id, client_id, monthly_fee, status'),
-      supabase.from('client_payments').select('amount, is_paid, due_date, contract_id').limit(5000),
+      supabase.from('client_payments').select('amount, is_paid, due_date, contract_id').eq('is_suspended', false).limit(5000),
       supabase.from('profiles').select('id, full_name, role, color, is_active').limit(200),
       supabase.from('tasks').select('id, status, deadline, created_at, updated_at, assigned_to, estimated_hours, logged_hours').is('archived_at', null).limit(5000),
       supabase.from('deals').select('id, stage, value, actual_close_date, created_at').limit(5000),

@@ -176,7 +176,7 @@ export default function CFOPage() {
     const responses = await Promise.all([
       supabase.from('profiles').select('*, comp:employee_compensation(salary, contract_type, contract_start_date)').eq('is_active', true).order('full_name'),
       supabase.from('client_contracts').select('client_id, monthly_fee, status, duration_months, start_date').eq('status', 'active'),
-      supabase.from('client_payments').select('contract_id, amount, is_paid, due_date, client_id:client_contracts(client_id, status)').limit(5000),
+      supabase.from('client_payments').select('contract_id, amount, is_paid, due_date, client_id:client_contracts(client_id, status)').eq('is_suspended', false).limit(5000),
       supabase.from('operating_expenses').select('*').eq('is_active', true).order('category'),
       supabase.from('clients').select('id, name, company, ragione_sociale, is_active').eq('is_active', true),
       supabase.from('payslips').select('*').order('month', { ascending: false }).limit(200),

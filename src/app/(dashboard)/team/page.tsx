@@ -8,8 +8,12 @@ import { useAuth } from '@/hooks/use-auth';
 import { PageHeader } from '@/components/ui/page-header';
 import { MessageSquare, Clock, BarChart3, Target } from 'lucide-react';
 
-// Import delle pagine esistenti
-import BachecaPage from '../bacheca/page';
+// Import delle pagine esistenti.
+// La bacheca arriva da /tasks: da agosto 2026 bacheca ed elenco sono la
+// stessa pagina, e /bacheca è rimasta solo come reindirizzamento per i
+// vecchi link. Importare quella qui dentro sbatterebbe fuori chi apre
+// questo tab.
+import BachecaPage from '../tasks/page';
 import PresenzePage from '../presenze/page';
 import CapacityPage from '../capacity/page';
 import RendimentoPage from '../rendimento/page';

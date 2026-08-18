@@ -74,6 +74,7 @@ export default function ClientsPage() {
           .from('client_payments')
           .select('id, contract_id, due_date, is_paid, contract:client_contracts!client_payments_contract_id_fkey(client_id)')
           .eq('is_paid', false)
+          .eq('is_suspended', false)
           .gte('due_date', `${currentMonth}-01`)
           .lte('due_date', `${currentMonth}-${String(lastDay).padStart(2, '0')}`);
 
