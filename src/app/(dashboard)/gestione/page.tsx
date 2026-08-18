@@ -6,7 +6,7 @@ import { Suspense } from 'react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
 import { PageHeader } from '@/components/ui/page-header';
-import { Target, Crown, Calculator, BarChart3, Euro } from 'lucide-react';
+import { Target, Crown, Calculator, Euro } from 'lucide-react';
 
 // Import delle pagine esistenti
 import CRMPage from '../crm/page';
@@ -20,14 +20,20 @@ const tabs = [
   { id: 'crm', label: 'CRM', icon: Target },
   { id: 'direzione', label: 'Direzione', icon: Crown },
   { id: 'cfo', label: 'CFO', icon: Calculator },
-  { id: 'capacity', label: 'Capacità', icon: BarChart3 },
-  { id: 'profitability', label: 'Profitto', icon: Euro },
+  // Capacità e Profitto leggono le stesse ore: la prima chiede quanto è
+  // carico il team, la seconda quanto rendono quelle ore. Insieme
+  // rispondono alla domanda vera — possiamo prendere questo cliente, e
+  // ci conviene? Separate, duplicavano la tabella per dipendente.
+  { id: 'profitto', label: 'Profitto e capacità', icon: Euro },
   { id: 'cashflow', label: 'Cashflow', icon: Euro },
 ];
 
 function GestioneContent() {
   const searchParams = useSearchParams();
-  const initialTab = searchParams.get('tab') || 'crm';
+  const tabRichiesta = searchParams.get('tab') || 'crm';
+  // I due nomi vecchi portano alla scheda unita: un link salvato non
+  // deve aprire una pagina vuota.
+  const initialTab = ['capacity', 'profitability'].includes(tabRichiesta) ? 'profitto' : tabRichiesta;
   const [activeTab, setActiveTab] = useState(initialTab);
   const { profile } = useAuth();
 
@@ -78,8 +84,12 @@ function GestioneContent() {
         {activeTab === 'crm' && <CRMPage />}
         {activeTab === 'direzione' && <DirectionPage />}
         {activeTab === 'cfo' && <CFOPage />}
-        {activeTab === 'capacity' && <CapacityPage />}
-        {activeTab === 'profitability' && <ProfitabilityPage />}
+        {activeTab === 'profitto' && (
+          <div className="space-y-8">
+            <CapacityPage />
+            <ProfitabilityPage />
+          </div>
+        )}
         {activeTab === 'cashflow' && <CashflowPage />}
       </div>
     </div>
