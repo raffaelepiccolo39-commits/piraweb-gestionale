@@ -79,8 +79,15 @@ export function ImportStorico({ open, onClose, onFatto }: Props) {
           <p className="text-xs text-pw-text-dim">Tracciato atteso, separatore punto e virgola:</p>
           <code className="mt-1 block overflow-x-auto whitespace-pre text-[11px] text-pw-text">{TRACCIATO}</code>
           <p className="mt-2 text-xs text-pw-text-dim">
-            Colonna facoltativa in coda: <code>data_ingresso</code> — la data reale di inizio trattativa,
-            così i tempi dello storico non partono tutti dal giorno dell&apos;import.
+            Colonne facoltative in coda:{' '}
+            <code>data_ingresso</code> (la data reale di inizio trattativa, così i tempi dello storico
+            non partono tutti dal giorno dell&apos;import),{' '}
+            <code>esito</code> (<code>won</code>, <code>lost</code> o <code>nurture</code>, per caricare
+            anche le trattative già chiuse), <code>motivo_lost</code> e <code>data_ripresa</code>.
+          </p>
+          <p className="mt-1 text-xs text-pw-text-dim">
+            Stage: si accetta il codice (<code>qualificato</code>) o il numero. Date in{' '}
+            <code>gg/mm/aaaa</code> o <code>aaaa-mm-gg</code>. Importi con la virgola decimale.
           </p>
         </div>
 

@@ -11,9 +11,16 @@ import 'server-only';
  *   azienda;contatto;email;telefono;source;referrer;stage;prossima_azione;
  *   data_prossima_azione;canone_proposto;una_tantum_proposto;note
  *
- * Colonna facoltativa in coda: `data_ingresso` (ISO). Se c'è, lo storico
- * stage viene datato con la data reale invece che con quella di import —
- * la specifica lo chiede, ma il tracciato non prevedeva dove metterla.
+ * Colonne facoltative in coda, non previste dal tracciato della specifica ma
+ * necessarie per caricare davvero quello che la §11 chiede di caricare:
+ *   data_ingresso  la data reale di inizio trattativa. Senza, tutti i sales
+ *                  cycle dello storico partirebbero dal giorno dell'import.
+ *   esito          won / lost / nurture. Il tracciato non la prevedeva, ma
+ *                  fra le righe da caricare ci sono i "clienti persi": senza
+ *                  questa colonna resterebbero fermi allo stage Esito senza
+ *                  un esito, cioè in uno stato che non vuol dire niente.
+ *   motivo_lost    obbligatoria se esito = lost (V4).
+ *   data_ripresa   obbligatoria se esito = nurture (V5).
  */
 
 export const COLONNE_CSV = [
@@ -69,6 +76,8 @@ export function analizzaCsv(testo: string): { intestazione: string[]; righe: Rig
 }
 
 const SOURCE_VALIDE = ['referral', 'inbound', 'outbound', 'paid', 'partnership'];
+const ESITI_VALIDI = ['won', 'lost', 'nurture'];
+const MOTIVI_VALIDI = ['prezzo', 'timing', 'no_decision_maker', 'concorrente', 'no_fit', 'silenzio'];
 
 /** Dalla riga CSV al payload dell'opportunità. Null se la riga non è valida. */
 export function rigaAOpportunita(
@@ -126,6 +135,34 @@ export function rigaAOpportunita(
     return { errore: 'Ogni opportunità aperta deve avere una prossima azione con data' };
   }
 
+  const esito = (d.esito ?? '').trim().toLowerCase() || null;
+  const motivoLost = (d.motivo_lost ?? '').trim().toLowerCase() || null;
+  const dataRipresa = data(d.data_ripresa);
+
+  if (esito) {
+    if (!ESITI_VALIDI.includes(esito)) {
+      return { errore: `Esito "${esito}" non valido (ammessi: ${ESITI_VALIDI.join(', ')})` };
+    }
+    if (stage < 7) {
+      return { errore: 'Per registrare un esito lo stage deve essere esito, contratto o onboarding' };
+    }
+    if (esito === 'lost') {
+      if (!motivoLost) return { errore: 'Indica il motivo della perdita' };
+      if (!MOTIVI_VALIDI.includes(motivoLost)) {
+        return { errore: `Motivo "${motivoLost}" non valido (ammessi: ${MOTIVI_VALIDI.join(', ')})` };
+      }
+    }
+    // V5 chiede una data futura solo quando si mette in nurture adesso: sullo
+    // storico si accetta anche una data passata, che il job di §8.4 farà
+    // emergere subito come "da riprendere". È il comportamento giusto: quel
+    // contatto andava richiamato mesi fa.
+    if (esito === 'nurture' && !dataRipresa) {
+      return { errore: 'Indica quando riprendere il contatto' };
+    }
+  } else if (stage >= 7) {
+    return { errore: 'Una opportunità allo stage esito deve dichiarare com\'è andata' };
+  }
+
   return {
     dati: {
       title: (d.titolo ?? '').trim() || `Opportunità ${azienda}`,
@@ -141,6 +178,9 @@ export function rigaAOpportunita(
       canone_proposto: numero(d.canone_proposto),
       una_tantum_proposto: numero(d.una_tantum_proposto),
       notes: (d.note ?? '').trim() || null,
+      esito,
+      motivo_lost: esito === 'lost' ? motivoLost : null,
+      data_ripresa: esito === 'nurture' ? dataRipresa : null,
       importato: true,
     },
     dataIngresso: data(d.data_ingresso),

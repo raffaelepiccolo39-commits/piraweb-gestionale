@@ -84,5 +84,30 @@ const esitoSource = rigaAOpportunita(sourceStrana.righe[0], stagePerCodice);
 verifica('una provenienza non prevista viene scartata',
   'errore' in esitoSource && esitoSource.errore.includes('non valida'), JSON.stringify(esitoSource));
 
+console.log('\n— esito sulle righe già chiuse —');
+const chiuse = analizzaCsv([
+  'azienda;source;stage;prossima_azione;data_prossima_azione;esito;motivo_lost;data_ripresa',
+  'Persa Srl;inbound;esito;;;lost;prezzo;',
+  'Nurture Srl;inbound;esito;;;nurture;;15/11/2026',
+  'Senza motivo Srl;inbound;esito;;;lost;;',
+  'Senza esito Srl;inbound;esito;;;;;',
+  'Esito troppo presto;inbound;qualificato;Richiamare;01/09/2026;won;;',
+].join('\n'));
+const [persa, nurture, senzaMotivo, senzaEsito, troppoPresto] =
+  chiuse.righe.map((r) => rigaAOpportunita(r, stagePerCodice));
+
+verifica('una persa si importa con il suo motivo',
+  !('errore' in persa) && persa.dati.esito === 'lost' && persa.dati.motivo_lost === 'prezzo',
+  JSON.stringify(persa));
+verifica('un nurture si importa con la data di ripresa',
+  !('errore' in nurture) && nurture.dati.esito === 'nurture' && nurture.dati.data_ripresa === '2026-11-15',
+  JSON.stringify(nurture));
+verifica('V4 vale in import: lost senza motivo si scarta',
+  'errore' in senzaMotivo && senzaMotivo.errore === 'Indica il motivo della perdita', JSON.stringify(senzaMotivo));
+verifica('una riga allo stage esito senza esito si scarta',
+  'errore' in senzaEsito && senzaEsito.errore.includes("com'è andata"), JSON.stringify(senzaEsito));
+verifica('un esito su uno stage di trattativa si scarta',
+  'errore' in troppoPresto && troppoPresto.errore.includes('lo stage deve essere'), JSON.stringify(troppoPresto));
+
 console.log(`\n${ok} passati, ${ko} falliti`);
 process.exit(ko ? 1 : 0);
