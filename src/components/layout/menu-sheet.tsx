@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
 import { cn } from '@/lib/utils';
-import { navSections } from '@/components/layout/nav-config';
+import { navSections, voceVisibile } from '@/components/layout/nav-config';
 import { TINT, tintForPath } from '@/lib/tints';
 import { X, ChevronRight, LogOut } from 'lucide-react';
 
@@ -65,7 +65,7 @@ export function MenuSheet({ open, onClose }: { open: boolean; onClose: () => voi
           {navSections
             .filter((s) => !s.adminOnly || isAdmin)
             .map((section, i) => {
-              const items = section.items.filter((it) => !it.adminOnly || isAdmin);
+              const items = section.items.filter((it) => voceVisibile(it, profile?.role));
               if (items.length === 0) return null;
               return (
                 <div key={section.label ?? i} className="mb-4">

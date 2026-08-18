@@ -26,6 +26,12 @@ export interface NavItem {
   badgeKey?: string;
   dot?: boolean;
   adminOnly?: boolean;
+  /**
+   * Visibile solo a questi ruoli. L'admin vede sempre tutto, quindi non va
+   * elencato. Serve per le voci che riguardano un mestiere solo — le
+   * credenziali dei social le usa chi i social li gestisce.
+   */
+  roles?: string[];
 }
 
 export interface NavSection {
@@ -34,15 +40,24 @@ export interface NavSection {
   adminOnly?: boolean;
 }
 
+/**
+ * Chi vede una voce. Una funzione sola, usata dalla barra laterale e dal
+ * foglio del menu: erano due filtri identici scritti due volte, e bastava
+ * ritoccarne uno per farli divergere senza accorgersene.
+ */
+export function voceVisibile(item: NavItem, ruolo: string | null | undefined): boolean {
+  const isAdmin = ruolo === 'admin';
+  if (item.adminOnly && !isAdmin) return false;
+  if (item.roles && !isAdmin && !item.roles.includes(ruolo ?? '')) return false;
+  return true;
+}
+
 export const navSections: NavSection[] = [
-  // Una lista sola, senza gruppi.
+  // Una lista sola, senza gruppi, nell'ordine deciso dal referente.
   //
-  // I gruppi erano cinque per tredici voci: più etichette che sezioni, e
-  // ogni volta che una pagina cambiava casa bisognava discutere in quale
-  // gruppo mettere. Senza, l'unica cosa che guida l'occhio è l'ordine — e
-  // l'ordine è quello d'uso: prima quello che si apre ogni giorno, in fondo
-  // quello che si apre quando serve. Le voci riservate stanno in coda, così
-  // per chi non è admin la lista finisce pulita.
+  // Le voci riservate NON stanno più tutte in coda: sono intercalate dove
+  // servono. Per chi non è admin la lista si accorcia da sola — restano
+  // otto voci, senza buchi visibili.
   {
     items: [
       { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -51,17 +66,16 @@ export const navSections: NavSection[] = [
       { label: 'Bacheca team', href: '/team', icon: MessageSquare, badgeKey: 'tasks' },
       { label: 'Calendario', href: '/calendario', icon: Calendar },
       { label: 'Piano Editoriale', href: '/contenuti', icon: Sparkles },
-      { label: 'Clienti', href: '/clients', icon: Users },
-      // Non adminOnly: il team vede le credenziali (scelta del 2026-08-03).
-      { label: 'Accessi', href: '/accessi', icon: KeyRound },
-      { label: 'Note Clienti', href: '/note-clienti', icon: NotebookPen },
-      { label: 'Ferie & Permessi', href: '/ferie', icon: Plane },
-      { label: 'Suggerimenti & Bug', href: '/note-dev', icon: MessageSquareWarning },
-
-      // Da qui in giù solo per la direzione.
       { label: 'Gestione', href: '/gestione', icon: Crown, adminOnly: true },
       { label: 'Gestione Siti', href: '/gestione-siti', icon: Globe, adminOnly: true },
       { label: 'Crediti', href: '/crediti', icon: HandCoins, adminOnly: true },
+      { label: 'Ferie & Permessi', href: '/ferie', icon: Plane },
+      { label: 'Clienti', href: '/clients', icon: Users },
+      // Le credenziali dei profili social: le vede chi i social li gestisce.
+      // L'archivio è ancora vuoto (zero credenziali al 18-08-2026).
+      { label: 'Accessi', href: '/accessi', icon: KeyRound, roles: ['social_media_manager'] },
+      { label: 'Note Clienti', href: '/note-clienti', icon: NotebookPen },
+      { label: 'Suggerimenti & Bug', href: '/note-dev', icon: MessageSquareWarning },
       { label: 'Log errori', href: '/log', icon: ScrollText, adminOnly: true },
     ],
   },

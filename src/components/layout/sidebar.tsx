@@ -11,7 +11,7 @@ import { createClient } from '@/lib/supabase/client';
 import { isPackagedApp } from '@/lib/api-origin';
 import { dimenticaDispositivo } from '@/lib/push-client';
 import { ChevronDown, LogOut } from 'lucide-react';
-import { navSections, type NavItem, type NavSection } from '@/components/layout/nav-config';
+import { navSections, voceVisibile, type NavItem, type NavSection } from '@/components/layout/nav-config';
 
 // navSections + tipi ora in nav-config.tsx (condivisi con la barra mobile).
 export type { NavItem, NavSection };
@@ -125,7 +125,7 @@ export function Sidebar({ collapsed, onToggle, onNavigate }: SidebarProps) {
         {navSections.map((section, si) => {
           if (section.adminOnly && !isAdmin) return null;
           // Filtra le voci admin-only e nascondi la sezione se diventa vuota
-          const visibleItems = section.items.filter((item) => !item.adminOnly || isAdmin);
+          const visibleItems = section.items.filter((item) => voceVisibile(item, profile?.role));
           if (visibleItems.length === 0) return null;
 
           return (
