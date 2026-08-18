@@ -41,6 +41,22 @@ await db.exec(`
     bucket_id text REFERENCES storage.buckets(id), name text, owner uuid
   );
   ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
+
+  -- Supabase protegge le tabelle dello storage: una DELETE diretta viene
+  -- rifiutata, va usata la sua API. Senza questo trigger il banco di prova
+  -- sarebbe più permissivo della produzione — ed è esattamente l'errore che
+  -- il 18/08/2026 ha fatto rifiutare l'intera migration nel SQL Editor.
+  CREATE OR REPLACE FUNCTION storage.protect_delete() RETURNS TRIGGER
+  LANGUAGE plpgsql AS $fn$
+  BEGIN
+    RAISE EXCEPTION 'Direct deletion from storage tables is not allowed. Use the Storage API instead.'
+      USING ERRCODE = '42501';
+  END $fn$;
+
+  CREATE TRIGGER protect_delete_buckets BEFORE DELETE ON storage.buckets
+    FOR EACH ROW EXECUTE FUNCTION storage.protect_delete();
+  CREATE TRIGGER protect_delete_objects BEFORE DELETE ON storage.objects
+    FOR EACH ROW EXECUTE FUNCTION storage.protect_delete();
 `);
 
 // I progetti servono alla funzione dei template
@@ -147,8 +163,10 @@ const { rows: fn } = await db.query(
   `SELECT 1 FROM pg_proc WHERE proname = 'create_project_from_template'`);
 verifica('la funzione dei template è sparita', fn.length === 0);
 
+// Il bucket sopravvive alla migration di proposito: si elimina dall'API
+// dello storage, perché Postgres non lascia cancellarlo da SQL.
 const { rows: bucket } = await db.query(`SELECT 1 FROM storage.buckets WHERE id = 'ai-act-docs'`);
-verifica('il bucket è sparito', bucket.length === 0);
+verifica('il bucket resta (va tolto dall\'API, non da SQL)', bucket.length === 1);
 
 const { rows: pol } = await db.query(
   `SELECT policyname FROM pg_policies WHERE schemaname = 'storage' AND policyname LIKE 'ai-act-docs%'`);

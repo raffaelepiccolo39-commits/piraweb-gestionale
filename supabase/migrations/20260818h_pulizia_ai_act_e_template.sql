@@ -56,14 +56,23 @@ DROP TYPE IF EXISTS ai_risk;
 DROP TYPE IF EXISTS ai_role;
 
 -- ── Bucket dei documenti di conformità ──────────────────────
--- Era vuoto. Prima le policy, poi il bucket: il bucket non cade finché ci
--- sono righe in storage.objects che lo citano.
+-- Qui si tolgono solo le policy, che sono oggetti normali di Postgres.
+--
+-- Il bucket NO: Supabase mette un trigger (storage.protect_delete) che
+-- rifiuta le DELETE dirette su storage.buckets e storage.objects, per non
+-- lasciare file orfani nello storage quando si cancella la riga che li
+-- indicizza. Provandoci, l'intera migration viene rifiutata:
+--
+--   ERROR: 42501: Direct deletion from storage tables is not allowed.
+--          Use the Storage API instead.
+--
+-- Il bucket ai-act-docs (vuoto) va quindi eliminato dall'API dello storage,
+-- fuori da questa migration:
+--   DELETE {SUPABASE_URL}/storage/v1/bucket/ai-act-docs
+--   con la service role key nell'intestazione Authorization.
 
 DROP POLICY IF EXISTS "ai-act-docs read staff" ON storage.objects;
 DROP POLICY IF EXISTS "ai-act-docs write admin" ON storage.objects;
 DROP POLICY IF EXISTS "ai-act-docs delete admin" ON storage.objects;
-
-DELETE FROM storage.objects WHERE bucket_id = 'ai-act-docs';
-DELETE FROM storage.buckets WHERE id = 'ai-act-docs';
 
 NOTIFY pgrst, 'reload schema';
