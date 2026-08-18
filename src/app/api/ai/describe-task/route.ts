@@ -4,8 +4,6 @@ import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { checkRateLimit, AI_RATE_LIMIT } from '@/lib/rate-limit';
 import { isStaff } from '@/lib/require-admin';
 import { logError } from '@/lib/logger';
-import { logGenerazione, contestoNeutro } from '@/lib/ai-act/logger';
-import { SISTEMI } from '@/lib/ai-act/sistemi';
 
 export async function POST(request: NextRequest) {
   const supabase = await createServerSupabaseClient();
@@ -70,11 +68,6 @@ La descrizione deve spiegare brevemente cosa fare, come farlo e qual è il risul
 
       if (response.ok) {
         const data = await response.json();
-        await logGenerazione({
-          sistemaId: SISTEMI.CLAUDE_API, modello: 'claude-sonnet-4-6', tipoOutput: 'TESTO',
-          prompt, utenteId: user.id, contesto: contestoNeutro('TESTO'),
-          usage: { input_tokens: data.usage?.input_tokens, output_tokens: data.usage?.output_tokens },
-        });
         return NextResponse.json({ description: data.content[0].text });
       }
     }
@@ -99,11 +92,6 @@ La descrizione deve spiegare brevemente cosa fare, come farlo e qual è il risul
 
       if (response.ok) {
         const data = await response.json();
-        await logGenerazione({
-          sistemaId: SISTEMI.CHATGPT, modello: 'gpt-4o', tipoOutput: 'TESTO',
-          prompt, utenteId: user.id, contesto: contestoNeutro('TESTO'),
-          usage: { input_tokens: data.usage?.prompt_tokens, output_tokens: data.usage?.completion_tokens },
-        });
         return NextResponse.json({ description: data.choices[0].message.content });
       }
     }

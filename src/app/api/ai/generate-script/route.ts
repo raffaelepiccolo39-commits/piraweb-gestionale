@@ -4,8 +4,6 @@ import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { checkRateLimit, AI_RATE_LIMIT } from '@/lib/rate-limit';
 import { isStaff } from '@/lib/require-admin';
 import { logError } from '@/lib/logger';
-import { logGenerazione, contestoNeutro } from '@/lib/ai-act/logger';
-import { sistemaDaProvider } from '@/lib/ai-act/sistemi';
 
 async function callClaude(prompt: string, systemPrompt: string): Promise<{ text: string; model: string; tokens: number }> {
   const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -224,20 +222,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Errore nel salvataggio' }, { status: 500 });
   }
 
-  // Evidenza AI Act: registra la generazione (prompt solo come hash). Non
-  // bloccante — se fallisce, non ne risente la risposta all'utente. Il sistema
-  // loggato è quello DAVVERO usato, incluso il fallback.
-  await logGenerazione({
-    sistemaId: sistemaDaProvider(provider),
-    modello: result.model,
-    tipoOutput: 'TESTO',
-    prompt: fullPrompt,
-    utenteId: user.id,
-    clienteId: client_id || null,
-    progetto: project_id || null,
-    contesto: contestoNeutro('TESTO'),
-    outputRef: script?.id ? String(script.id) : null,
-  });
 
   return NextResponse.json({ script, provider });
 }
