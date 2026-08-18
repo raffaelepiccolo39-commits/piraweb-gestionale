@@ -25,12 +25,22 @@ npm run test:crm
    accettazione della §12 della specifica.
 4. `test-import.mjs` compila il modulo vero di import CSV e lo prova su un
    tracciato con una riga volutamente sbagliata (AC-15).
+5. `test-rls.mjs` fa `SET ROLE authenticated` e ripete le stesse domande nei
+   panni di una dipendente: cosa vede, cosa può scrivere.
+
+## Perché esiste test-rls.mjs
+
+All'inizio queste suite giravano solo da superutente, e da superutente la RLS
+non scatta: passavano anche con le policy sbagliate. Il 18/08/2026 una prova
+in produzione con un account `content_creator` ha mostrato che si potevano
+attaccare attività a trattative che quell'account non riusciva nemmeno a
+leggere. La 20260818f ha chiuso il buco, e questa suite serve a impedirgli di
+tornare: togliendo quella migration dall'elenco, tre test falliscono.
 
 ## Cosa NON coprono
 
-- La RLS: PGlite gira come superutente e le policy non scattano. Le regole di
-  accesso vanno provate in ambiente vero, con un utente non admin.
 - L'interfaccia. Il drag & drop, il modale della vista Oggi e la Sales Review
   si provano con un browser.
+- I ruoli che non esistono ancora nell'enum `user_role`, Sales Ops in testa.
 
 [pglite]: https://pglite.dev

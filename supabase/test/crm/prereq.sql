@@ -140,6 +140,27 @@ END $$;
 CREATE TRIGGER trg_log_deal_stage_change AFTER UPDATE ON deals
   FOR EACH ROW EXECUTE FUNCTION log_deal_stage_change();
 
+-- RLS di `deals` com'è in produzione: la policy di lettura viene dalla
+-- 20260722 (che aveva chiuso una lettura aperta a tutto il team), quella di
+-- scrittura è ancora quella del 00044. Senza queste righe i test girano
+-- contro una tabella senza policy e passano anche quando non dovrebbero.
+ALTER TABLE deals ENABLE ROW LEVEL SECURITY;
+ALTER TABLE deal_activities ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Deals viewable by admin" ON deals
+  FOR SELECT TO authenticated
+  USING (public.is_admin() OR owner_id = auth.uid() OR created_by = auth.uid());
+
+CREATE POLICY "Admin and owner can manage deals" ON deals
+  FOR ALL TO authenticated
+  USING (owner_id = auth.uid() OR created_by = auth.uid() OR public.is_admin());
+
+CREATE POLICY "Activities viewable by admin" ON deal_activities
+  FOR SELECT TO authenticated
+  USING (public.is_admin() OR EXISTS (
+    SELECT 1 FROM deals d WHERE d.id = deal_activities.deal_id
+      AND (d.owner_id = auth.uid() OR d.created_by = auth.uid())));
+
 CREATE TABLE company_settings (
   id boolean PRIMARY KEY DEFAULT true CHECK (id),
   office_lat double precision,

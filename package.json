@@ -14,7 +14,7 @@
     "app": "npm run build:app && npx cap sync",
     "app:ios": "npm run app && npx cap open ios",
     "app:android": "npm run app && npx cap open android",
-    "test:crm": "node supabase/test/crm/test.mjs && node supabase/test/crm/test-import.mjs"
+    "test:crm": "node supabase/test/crm/test.mjs && node supabase/test/crm/test-import.mjs && node supabase/test/crm/test-rls.mjs"
   },
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.2.96",
