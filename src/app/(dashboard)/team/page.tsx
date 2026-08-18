@@ -6,9 +6,13 @@ import { Suspense } from 'react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
 import { PageHeader } from '@/components/ui/page-header';
-import { Clock, BarChart3, Target } from 'lucide-react';
+import { MessageSquare, Clock, BarChart3, Target } from 'lucide-react';
 
-// Import delle pagine esistenti
+// Import delle pagine esistenti.
+// La bacheca arriva da /tasks: bacheca ed elenco sono la stessa pagina, e
+// /bacheca è solo un reindirizzamento. Importare quella qui dentro
+// sbatterebbe fuori chi apre il tab.
+import BachecaPage from '../tasks/page';
 import PresenzePage from '../presenze/page';
 import CapacityPage from '../capacity/page';
 import RendimentoPage from '../rendimento/page';
@@ -21,6 +25,7 @@ interface TeamTab {
 }
 
 const tabs: TeamTab[] = [
+  { id: 'bacheca', label: 'Bacheca', icon: MessageSquare },
   { id: 'presenze', label: 'Presenze', icon: Clock },
   { id: 'capacity', label: 'Capacità', icon: BarChart3, adminOnly: true },
   { id: 'rendimento', label: 'Rendimento', icon: Target, adminOnly: true },
@@ -28,7 +33,7 @@ const tabs: TeamTab[] = [
 
 function TeamContent() {
   const searchParams = useSearchParams();
-  const initialTab = searchParams.get('tab') || 'presenze';
+  const initialTab = searchParams.get('tab') || 'bacheca';
   const [activeTab, setActiveTab] = useState(initialTab);
   const { profile } = useAuth();
   const isAdmin = profile?.role === 'admin';
@@ -66,6 +71,7 @@ function TeamContent() {
 
       {/* Tab content */}
       <div>
+        {activeTab === 'bacheca' && <BachecaPage />}
         {activeTab === 'presenze' && <PresenzePage />}
         {activeTab === 'capacity' && isAdmin && <CapacityPage />}
         {activeTab === 'rendimento' && isAdmin && <RendimentoPage />}

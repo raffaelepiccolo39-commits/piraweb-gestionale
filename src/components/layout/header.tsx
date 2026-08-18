@@ -13,6 +13,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/clients': 'Clienti',
   '/projects': 'Progetti',
   '/tasks': 'Bacheca',
+  '/team': 'Bacheca team',
   '/ai': 'AI Assistant',
   '/presenze': 'Presenze',
   '/analytics': 'Efficienza',
@@ -34,7 +35,8 @@ import { isRottaAdmin } from '@/lib/rotte-admin';
 
 const SEARCH_ITEMS = [
   { label: 'Dashboard', href: '/dashboard' },
-  { label: 'Bacheca', href: '/tasks' },
+  // Stessa destinazione della voce di menu: /team apre sulla bacheca.
+  { label: 'Bacheca team', href: '/team' },
   { label: 'Progetti', href: '/projects' },
   { label: 'Calendario', href: '/calendario' },
   { label: 'Presenze', href: '/presenze' },

@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { LayoutDashboard, ListTodo, Clock, Calendar, LayoutGrid } from 'lucide-react';
+import { LayoutDashboard, MessageSquare, Clock, Calendar, LayoutGrid } from 'lucide-react';
 import { MenuSheet } from '@/components/layout/menu-sheet';
 
 /**
@@ -14,9 +14,8 @@ import { MenuSheet } from '@/components/layout/menu-sheet';
  */
 const TABS = [
   { label: 'Home', href: '/dashboard', icon: LayoutDashboard },
-  // Punta a /tasks e non a /team: da quando la scheda bacheca è uscita
-  // da /team, quel pulsante apriva le presenze pur chiamandosi Bacheca.
-  { label: 'Bacheca', href: '/tasks', icon: ListTodo },
+  // /team apre sulla scheda Bacheca: stessa destinazione della voce di menu.
+  { label: 'Bacheca', href: '/team', icon: MessageSquare },
   // Presenze e non Progetti: dal telefono si timbra entrata e uscita tutti i
   // giorni, i progetti si guardano dalla scrivania.
   { label: 'Presenze', href: '/presenze', icon: Clock },

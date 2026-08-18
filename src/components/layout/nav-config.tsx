@@ -1,6 +1,5 @@
 import {
   LayoutDashboard,
-  ListTodo,
   Calendar,
   MessageSquare,
   CalendarClock,
@@ -42,14 +41,15 @@ export const navSections: NavSection[] = [
   {
     items: [
       { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-      { label: 'Bacheca', href: '/tasks', icon: ListTodo, badgeKey: 'tasks' },
       { label: 'Calendario', href: '/calendario', icon: Calendar },
     ],
   },
   {
     label: 'Team',
     items: [
-      { label: 'Team', href: '/team', icon: MessageSquare },
+      // La bacheca vive qui dentro, come prima scheda: il contatore delle
+      // proprie task aperte segue lei, altrimenti sparirebbe dal menu.
+      { label: 'Bacheca team', href: '/team', icon: MessageSquare, badgeKey: 'tasks' },
       { label: 'Pianificazione', href: '/pianificazione', icon: CalendarClock },
       { label: 'Timesheet', href: '/timesheet', icon: Clock, adminOnly: true },
       { label: 'Note Clienti', href: '/note-clienti', icon: NotebookPen },
