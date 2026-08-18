@@ -27,7 +27,12 @@ export type TipoAvviso =
   | 'comment_added'
   | 'mention'
   | 'deadline_approaching'
-  | 'ai_script_ready';
+  | 'ai_script_ready'
+  // CRM commerciale (§8): aggiunti dalla migration 20260818
+  | 'crm_sla_violato'
+  | 'crm_opportunita_ferma'
+  | 'crm_nurture_da_riprendere'
+  | 'crm_followup_scaduto';
 
 export interface Avviso {
   /** L'account da avvisare: vale sia per il team sia per i clienti. */

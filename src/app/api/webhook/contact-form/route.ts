@@ -54,8 +54,16 @@ export async function POST(request: NextRequest) {
   const phone = typeof body.phone === 'string' ? body.phone.trim() : '';
   const service = typeof body.service === 'string' ? body.service.trim() : '';
   const message = typeof body.message === 'string' ? body.message.trim() : '';
-  const VALID_SOURCES = ['website', 'referral', 'social_media', 'cold_outreach', 'event', 'ads', 'other'];
-  const source = typeof body.source === 'string' && VALID_SOURCES.includes(body.source) ? body.source : 'website';
+  // Il sito manda ancora la vecchia tassonomia: la si traduce in quella del
+  // CRM (§3.2). Cambiare il sito sarebbe stato peggio — il form vive fuori
+  // da qui e non si aggiorna nello stesso deploy.
+  const SOURCE_DAL_SITO: Record<string, string> = {
+    website: 'inbound', social_media: 'inbound', other: 'inbound',
+    cold_outreach: 'outbound', event: 'partnership', ads: 'paid',
+    referral: 'referral',
+  };
+  const sourceGrezza = typeof body.source === 'string' ? body.source : 'website';
+  const source = SOURCE_DAL_SITO[sourceGrezza] ?? 'inbound';
   const companyName = typeof body.company_name === 'string' ? body.company_name.trim() : '';
 
   if (!name || !email) {
@@ -75,7 +83,7 @@ export async function POST(request: NextRequest) {
   const adminId = admin?.id || '00000000-0000-0000-0000-000000000000';
   const fullName = `${name} ${surname}`.trim();
 
-  const sourceLabel = source === 'ads' ? 'Lead ADV' : source === 'website' ? 'Richiesta da sito web' : `Lead ${source}`;
+  const sourceLabel = source === 'paid' ? 'Lead ADV' : source === 'inbound' ? 'Richiesta da sito web' : `Lead ${source}`;
 
   // Crea il deal nel CRM
   const { data: deal, error: dealError } = await supabase
@@ -86,12 +94,17 @@ export async function POST(request: NextRequest) {
       contact_name: fullName,
       contact_email: email,
       contact_phone: phone || null,
-      stage: 'lead',
+      stage_id: 0,
       value: 0,
       probability: 20,
       source,
+      // Un lead che entra da solo deve comunque avere una prossima azione,
+      // altrimenti la V7 rifiuta l'inserimento e il form del sito smette di
+      // funzionare senza che nessuno se ne accorga.
+      prossima_azione: 'Primo contatto',
+      data_prossima_azione: new Date().toISOString().slice(0, 10),
       services: service || null,
-      notes: message ? (source === 'website' ? `Messaggio dal form:\n${message}` : message) : null,
+      notes: message ? (source === 'inbound' ? `Messaggio dal form:\n${message}` : message) : null,
       owner_id: adminId,
       created_by: adminId,
     })
@@ -105,13 +118,15 @@ export async function POST(request: NextRequest) {
 
   // Aggiungi attivita' al deal
   if (deal) {
-    await supabase.from('deal_activities').insert({
+    await supabase.from('crm_attivita').insert({
       deal_id: deal.id,
-      type: 'note',
-      title: source === 'ads' ? 'Lead generato da campagna ADV' : 'Form compilato su piraweb.it',
-      description: `${fullName}${companyName ? ` (${companyName})` : ''}\n\nServizio richiesto: ${service || 'Non specificato'}\n\n${message || 'Nessun dettaglio'}`,
-      completed: true,
-      created_by: adminId,
+      tipo: 'nota',
+      titolo: source === 'paid' ? 'Lead generato da campagna ADV' : 'Form compilato su piraweb.it',
+      descrizione: `${fullName}${companyName ? ` (${companyName})` : ''}\n\nServizio richiesto: ${service || 'Non specificato'}\n\n${message || 'Nessun dettaglio'}`,
+      owner_id: adminId,
+      stato: 'completata',
+      completed_at: new Date().toISOString(),
+      origine: 'automazione',
     });
   }
 

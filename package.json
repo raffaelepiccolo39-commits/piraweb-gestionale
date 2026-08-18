@@ -13,7 +13,8 @@
     "build:app": "node scripts/build-app.mjs",
     "app": "npm run build:app && npx cap sync",
     "app:ios": "npm run app && npx cap open ios",
-    "app:android": "npm run app && npx cap open android"
+    "app:android": "npm run app && npx cap open android",
+    "test:crm": "node supabase/test/crm/test.mjs && node supabase/test/crm/test-import.mjs"
   },
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.2.96",
@@ -48,6 +49,7 @@
     "zustand": "^5.0.12"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.5",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/nodemailer": "^7.0.11",

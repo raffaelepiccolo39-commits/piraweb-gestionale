@@ -47,3 +47,4 @@ next-env.d.ts
 # Firma Android release (NON committare la chiave né le password)
 android/keystore/
 android/keystore.properties
+import-csv.compilato.mjs

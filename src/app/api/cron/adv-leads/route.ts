@@ -146,7 +146,7 @@ async function handle(request: NextRequest) {
   let created = 0, skipped = 0, failed = 0;
   for (const L of leads) {
     if (!L.email) { skipped++; continue; }
-    const { data: exists } = await supabase.from('deals').select('id').eq('contact_email', L.email).eq('source', 'ads').limit(1);
+    const { data: exists } = await supabase.from('deals').select('id').eq('contact_email', L.email).eq('source', 'paid').limit(1);
     if (exists && exists.length) { skipped++; continue; }
 
     const notes = [
@@ -164,17 +164,21 @@ async function handle(request: NextRequest) {
       contact_name: L.fullName || L.email,
       contact_email: L.email,
       contact_phone: L.phone || null,
-      stage: 'lead', value: 0, probability: 20, source: 'ads',
+      stage_id: 0, value: 0, probability: 20, source: 'paid',
+      // V7: anche i lead che entrano da soli nascono con una prossima azione.
+      prossima_azione: 'Primo contatto',
+      data_prossima_azione: new Date().toISOString().slice(0, 10),
       services: L.service || null, notes: notes || null,
       owner_id: adminId, created_by: adminId,
     }).select('id').single();
 
     if (error) { failed++; continue; }
     if (deal) {
-      await supabase.from('deal_activities').insert({
-        deal_id: deal.id, type: 'note', title: 'Lead generato da campagna ADV',
-        description: `${L.fullName || L.email}${L.company ? ` (${L.company})` : ''}\n\nServizio: ${L.service || 'Non specificato'}\n\n${notes}`,
-        completed: true, created_by: adminId,
+      await supabase.from('crm_attivita').insert({
+        deal_id: deal.id, tipo: 'nota', titolo: 'Lead generato da campagna ADV',
+        descrizione: `${L.fullName || L.email}${L.company ? ` (${L.company})` : ''}\n\nServizio: ${L.service || 'Non specificato'}\n\n${notes}`,
+        owner_id: adminId, stato: 'completata', completed_at: new Date().toISOString(),
+        origine: 'automazione',
       });
       created++;
     }

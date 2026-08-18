@@ -51,6 +51,14 @@
     {
       "path": "/api/cron/portal-digest",
       "schedule": "15 8 * * 1-5"
+    },
+    {
+      "path": "/api/cron/crm-giornaliero",
+      "schedule": "0 7 * * *"
+    },
+    {
+      "path": "/api/cron/crm-sla",
+      "schedule": "*/15 7-17 * * 1-5"
     }
   ]
 }

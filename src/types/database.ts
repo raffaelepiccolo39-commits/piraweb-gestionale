@@ -1166,7 +1166,19 @@ export interface TeamTool {
 
 // === CRM / DEALS ===
 export type DealStage = 'lead' | 'qualified' | 'proposal' | 'negotiation' | 'closed_won' | 'closed_lost';
-export type DealSource = 'website' | 'referral' | 'social_media' | 'cold_outreach' | 'event' | 'ads' | 'other';
+/**
+ * Provenienza del lead. I primi cinque valori sono la tassonomia della
+ * specifica CRM e sono gli unici che la UI propone; gli altri restano
+ * nell'enum Postgres (non si droppano i valori di un enum) ma dopo la
+ * 20260818b nessuna riga li usa più.
+ */
+export type DealSource =
+  | 'referral' | 'inbound' | 'outbound' | 'paid' | 'partnership'
+  | 'website' | 'social_media' | 'cold_outreach' | 'event' | 'ads' | 'other';
+
+/** I soli valori proponibili in creazione e modifica. */
+export const SOURCE_ATTIVE = ['referral', 'inbound', 'outbound', 'paid', 'partnership'] as const;
+export type SourceAttiva = (typeof SOURCE_ATTIVE)[number];
 export type DealActivityType = 'call' | 'email' | 'meeting' | 'note' | 'stage_change' | 'proposal_sent' | 'follow_up';
 export type DealPriority = 'high' | 'medium' | 'low';
 
@@ -1181,6 +1193,116 @@ export const SERVICE_CATEGORIES = [
   { value: 'consulting', label: 'Consulenza' },
   { value: 'other', label: 'Altro' },
 ] as const;
+
+// ============================================
+// CRM — modello opportunità (specifica v1, migration 20260818b)
+// ============================================
+
+/** Stage 0..9 della pipeline. Etichette e SLA stanno in tabella crm_stage. */
+export type CrmStageId = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
+
+export type CrmEsito = 'won' | 'lost' | 'nurture';
+export type CrmMotivoLost =
+  | 'prezzo' | 'timing' | 'no_decision_maker' | 'concorrente' | 'no_fit' | 'silenzio';
+export type CrmAttivitaTipo = 'task' | 'call' | 'email' | 'meeting' | 'nota';
+export type CrmAttivitaOrigine = 'manuale' | 'automazione';
+export type CrmAttivitaStato = 'aperta' | 'completata' | 'annullata';
+
+export interface CrmStage {
+  id: CrmStageId;
+  codice: string;
+  etichetta: string;
+  ordine: number;
+  /** true = conta nella pipeline attiva, quindi ha una colonna nel kanban. */
+  is_aperto: boolean;
+  sla_giorni: number | null;
+  sla_ore_lav: number | null;
+}
+
+export interface CrmStageLog {
+  id: string;
+  deal_id: string;
+  stage_da: CrmStageId | null;
+  stage_a: CrmStageId;
+  changed_at: string;
+  utente_id: string | null;
+  note: string | null;
+  utente?: Profile;
+}
+
+export interface CrmAttivita {
+  id: string;
+  deal_id: string;
+  tipo: CrmAttivitaTipo;
+  titolo: string;
+  descrizione: string | null;
+  owner_id: string;
+  due_at: string | null;
+  completed_at: string | null;
+  stato: CrmAttivitaStato;
+  origine: CrmAttivitaOrigine;
+  sequenza: string | null;
+  sequenza_step: number | null;
+  chiave_job: string | null;
+  created_at: string;
+  owner?: Profile;
+}
+
+/** Un peso del lead score, modificabile senza rideploy (§6.2). */
+export interface CrmPesoLeadScore {
+  campo: string;
+  etichetta: string;
+  peso: number;
+  ordine: number;
+}
+
+/** I 7 campi della discovery, nell'ordine in cui si conduce la conversazione. */
+export const CAMPI_DISCOVERY = [
+  { campo: 'disc_situazione',     etichetta: 'Situazione' },
+  { campo: 'disc_problema',       etichetta: 'Problema' },
+  { campo: 'disc_impatto',        etichetta: 'Impatto' },
+  { campo: 'disc_obiettivo',      etichetta: 'Obiettivo' },
+  { campo: 'disc_timing',         etichetta: 'Timing' },
+  { campo: 'disc_budget',         etichetta: 'Budget' },
+  { campo: 'disc_decision_maker', etichetta: 'Decision maker' },
+] as const;
+
+export const ETICHETTE_SOURCE: Record<string, string> = {
+  referral: 'Referral',
+  inbound: 'Inbound',
+  outbound: 'Outbound',
+  paid: 'A pagamento',
+  partnership: 'Partnership',
+  // legacy, non più proposti in creazione
+  website: 'Sito web',
+  social_media: 'Social',
+  cold_outreach: 'Cold outreach',
+  event: 'Evento',
+  ads: 'Advertising',
+  other: 'Altro',
+};
+
+export const ETICHETTE_MOTIVO_LOST: Record<CrmMotivoLost, string> = {
+  prezzo: 'Prezzo',
+  timing: 'Timing',
+  no_decision_maker: 'Non parlavamo con chi decide',
+  concorrente: 'Concorrente',
+  no_fit: 'Non era il cliente giusto',
+  silenzio: 'Silenzio',
+};
+
+export const ETICHETTE_ESITO: Record<CrmEsito, string> = {
+  won: 'Vinta',
+  lost: 'Persa',
+  nurture: 'Nurture',
+};
+
+/** Fasce del lead score per il badge in UI (§6.2). */
+export function fasciaLeadScore(score: number): { nome: string; classe: string } {
+  if (score >= 50) return { nome: 'ALTA', classe: 'bg-green-500/15 text-green-600 dark:text-green-400' };
+  if (score >= 20) return { nome: 'STANDARD', classe: 'bg-yellow-500/15 text-yellow-600 dark:text-yellow-500' };
+  return { nome: 'BASSA', classe: 'bg-pw-border text-pw-text-dim' };
+}
 
 export interface Deal {
   id: string;
@@ -1209,6 +1331,53 @@ export interface Deal {
   updated_at: string;
   owner?: Profile;
   activities?: DealActivity[];
+
+  // ── Modello opportunità (migration 20260818b) ─────────────
+  // `deals` È l'opportunità della specifica CRM: si è esteso questo, non
+  // creata una tabella parallela.
+  referrer: string | null;
+  stage_id: CrmStageId;
+  data_ingresso_stage: string;
+
+  prossima_azione: string | null;
+  data_prossima_azione: string | null;
+
+  q_problema_chiaro: boolean;
+  q_urgenza: boolean;
+  q_obiettivo_misurabile: boolean;
+  q_budget_adeguato: boolean;
+  q_decision_maker: boolean;
+  q_azienda_strutturata: boolean;
+  q_necessita_social: boolean;
+  q_necessita_web: boolean;
+  q_nessun_budget: boolean;
+  q_solo_prezzo: boolean;
+  /** Calcolato dal database dai flag q_*. Mai da scrivere: il server lo ignora. */
+  lead_score: number;
+
+  canone_proposto: number | null;
+  una_tantum_proposto: number | null;
+  durata_mesi: number | null;
+
+  disc_situazione: string | null;
+  disc_problema: string | null;
+  disc_impatto: string | null;
+  disc_obiettivo: string | null;
+  disc_timing: string | null;
+  disc_budget: string | null;
+  disc_decision_maker: string | null;
+
+  esito: CrmEsito | null;
+  motivo_lost: CrmMotivoLost | null;
+  data_ripresa: string | null;
+
+  flag_fermo: boolean;
+  fermo_dal: string | null;
+  importato: boolean;
+  /** Colonna generata: canone * durata + una tantum. In sola lettura. */
+  valore_pipeline: number;
+
+  stage_lookup?: CrmStage;
 }
 
 export interface DealActivity {
