@@ -384,7 +384,7 @@ export default function MeetingsPage() {
                       {!item.completed && !item.task_id && (
                         <button
                           onClick={() => handleCreateTaskFromAction(item)}
-                          className="text-[10px] px-2 py-1 rounded-md bg-pw-accent/10 text-pw-accent hover:bg-pw-accent/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1"
+                          className="text-[10px] px-2 py-1 rounded-md bg-pw-accent/10 text-pw-accent hover:bg-pw-accent/20 opacity-100 md:opacity-0 md:group-hover:opacity-100 focus-within:opacity-100 transition-opacity flex items-center gap-1"
                           title="Crea task da action item"
                         >
                           <ArrowRight size={10} />

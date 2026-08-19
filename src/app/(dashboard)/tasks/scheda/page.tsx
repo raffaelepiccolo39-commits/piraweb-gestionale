@@ -24,6 +24,7 @@ import {
 import { STATUS_LABELS, PRIORITY_LABELS } from '@/lib/constants';
 import type { Task, TaskComment, TaskAttachment, ContentApproval, Profile } from '@/types/database';
 import { Modal } from '@/components/ui/modal';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Input } from '@/components/ui/input';
 import { reportSupabaseError } from '@/lib/report-error';
 import {
@@ -158,8 +159,19 @@ function TaskDetailPageInner() {
     setCommentLoading(false);
   };
 
+  // Il cestino cancellava al primo click, senza chiedere e senza dire com'era
+  // andata: se la delete falliva, il commento tornava al ricaricamento e
+  // nessuno capiva perché.
+  const [commentoDaEliminare, setCommentoDaEliminare] = useState<string | null>(null);
+
   const handleDeleteComment = async (commentId: string) => {
-    await supabase.from('task_comments').delete().eq('id', commentId);
+    const { error } = await supabase.from('task_comments').delete().eq('id', commentId);
+    if (error) {
+      reportSupabaseError(error, 'commento-elimina', { commentId });
+      toast.error(error.message || 'Non è stato possibile eliminare il commento');
+      return;
+    }
+    toast.success('Commento eliminato');
     fetchComments();
   };
 
@@ -390,8 +402,10 @@ function TaskDetailPageInner() {
                         </div>
                         {(comment.user_id === profile?.id || isAdmin) && (
                           <button
-                            onClick={() => handleDeleteComment(comment.id)}
+                            onClick={() => setCommentoDaEliminare(comment.id)}
                             className="text-pw-text-dim hover:text-red-400 transition-colors duration-200 ease-out shrink-0"
+                            aria-label="Elimina commento"
+                            title="Elimina commento"
                           >
                             <Trash2 size={12} />
                           </button>
@@ -481,11 +495,19 @@ function TaskDetailPageInner() {
                         <Button
                           size="sm"
                           onClick={async () => {
-                            await supabase.from('content_approvals').update({
+                            const { error } = await supabase.from('content_approvals').update({
                               status: 'approved',
                               reviewed_by: profile?.id,
                               reviewed_at: new Date().toISOString(),
                             }).eq('id', approval.id);
+                            // Senza questo controllo il verde compariva anche
+                            // quando la scrittura veniva rifiutata, e lo stato
+                            // restava "In attesa" senza che nessuno lo sapesse.
+                            if (error) {
+                              reportSupabaseError(error, 'approvazione-approva', { approvalId: approval.id });
+                              toast.error(error.message || 'Approvazione non riuscita');
+                              return;
+                            }
                             toast.success('Contenuto approvato');
                             fetchApprovals();
                           }}
@@ -746,12 +768,17 @@ function TaskDetailPageInner() {
             <Button
               onClick={async () => {
                 if (!pendingRevisionApprovalId) return;
-                await supabase.from('content_approvals').update({
+                const { error } = await supabase.from('content_approvals').update({
                   status: 'revision_requested',
                   reviewed_by: profile?.id,
                   reviewed_at: new Date().toISOString(),
                   review_comment: revisionComment || null,
                 }).eq('id', pendingRevisionApprovalId);
+                if (error) {
+                  reportSupabaseError(error, 'approvazione-revisione', { id: pendingRevisionApprovalId });
+                  toast.error(error.message || 'Richiesta non riuscita');
+                  return;
+                }
                 toast.success('Revisione richiesta');
                 setShowRevisionModal(false);
                 setPendingRevisionApprovalId(null);
@@ -801,12 +828,19 @@ function TaskDetailPageInner() {
               disabled={!approvalTitle.trim()}
               onClick={async () => {
                 if (!profile || !approvalTitle.trim()) return;
-                await supabase.from('content_approvals').insert({
+                const { error } = await supabase.from('content_approvals').insert({
                   task_id: taskId,
                   title: approvalTitle.trim(),
                   content_url: approvalContentUrl.trim() || null,
                   submitted_by: profile.id,
                 });
+                // Il caso peggiore dei tre: chi invia chiude convinto di aver
+                // passato il lavoro, e in agenzia non arriva niente.
+                if (error) {
+                  reportSupabaseError(error, 'approvazione-invio', { taskId });
+                  toast.error(error.message || 'Invio non riuscito');
+                  return;
+                }
                 toast.success('Contenuto inviato per approvazione');
                 setShowApprovalModal(false);
                 setApprovalTitle('');
@@ -821,6 +855,18 @@ function TaskDetailPageInner() {
           </div>
         </div>
       </Modal>
+
+      <ConfirmDialog
+        open={commentoDaEliminare !== null}
+        onClose={() => setCommentoDaEliminare(null)}
+        onConfirm={() => {
+          if (commentoDaEliminare) void handleDeleteComment(commentoDaEliminare);
+          setCommentoDaEliminare(null);
+        }}
+        title="Elimina commento"
+        description="Il commento sparisce per tutti e non si può recuperare."
+        confirmLabel="Elimina"
+      />
     </div>
   );
 }

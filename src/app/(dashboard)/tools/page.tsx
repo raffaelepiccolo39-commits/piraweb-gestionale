@@ -146,7 +146,14 @@ export default function ToolsPage() {
   };
 
   const handleDelete = async (toolId: string) => {
-    await supabase.from('team_tools').update({ is_active: false }).eq('id', toolId);
+    // Il verde va detto solo se la scrittura è passata: prima compariva
+    // comunque, e la card restava lì a smentirlo.
+    const { error } = await supabase.from('team_tools').update({ is_active: false }).eq('id', toolId);
+    if (error) {
+      reportSupabaseError(error, 'tools-elimina', { toolId });
+      toast.error(error.message || 'Non è stato possibile rimuovere il tool');
+      return;
+    }
     toast.success('Tool rimosso');
     fetchTools();
   };
@@ -267,7 +274,7 @@ export default function ToolsPage() {
                           </div>
                         </a>
                         {isAdmin && (
-                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                          <div className="flex gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 focus-within:opacity-100 transition-opacity shrink-0">
                             <button onClick={() => openEdit(tool)} className="p-1 rounded hover:bg-pw-surface-3 text-pw-text-dim hover:text-pw-accent">
                               <Pencil size={12} />
                             </button>

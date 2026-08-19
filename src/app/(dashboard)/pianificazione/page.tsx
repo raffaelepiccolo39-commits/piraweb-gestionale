@@ -6,6 +6,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/components/ui/toast';
 import { PageHeader } from '@/components/ui/page-header';
 import { Modal } from '@/components/ui/modal';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Input } from '@/components/ui/input';
 import { SkeletonList } from '@/components/ui/skeleton';
 import { getInitials, getRoleLabel, todayLocal, formatDateLocal, getContrastTextColor } from '@/lib/utils';
@@ -214,6 +215,12 @@ export default function PianificazionePage() {
     fetchData();
   };
 
+  // Un click sulla griglia fitta cancellava l'intero blocco consecutivo dal
+  // database, senza chiedere e senza dire niente: ci si accorgeva solo dopo
+  // che mancavano delle ore. Ora passa da una conferma con scritto cosa
+  // sparisce.
+  const [daRimuovere, setDaRimuovere] = useState<{ userId: string; slotIndex: number; titolo: string } | null>(null);
+
   const removeBlock = async (userId: string, slotIndex: number) => {
     const memberSlots = slotMap[userId] || {};
     const entry = memberSlots[slotIndex];
@@ -230,6 +237,7 @@ export default function PianificazionePage() {
     if (ids.length === 0) return;
     const { error } = await supabase.from('task_plan_slots').delete().in('id', ids);
     if (error) { reportSupabaseError(error, 'pianificazione-rimuovi'); toast.error(error.message || 'Errore nella rimozione'); return; }
+    toast.success(ids.length > 1 ? `${ids.length} slot liberati` : 'Slot liberato');
     fetchData();
   };
 
@@ -348,8 +356,8 @@ export default function PianificazionePage() {
                       return (
                         <td
                           key={m.id}
-                          onClick={() => removeBlock(m.id, idx)}
-                          title="Clicca per rimuovere"
+                          onClick={() => setDaRimuovere({ userId: m.id, slotIndex: idx, titolo: main || top })}
+                          title="Clicca per liberare lo slot"
                           className="px-1.5 py-1 border-b border-pw-border cursor-pointer group align-top"
                           style={{ backgroundColor: color + '22', borderLeft: `3px solid ${color}` }}
                         >
@@ -359,7 +367,7 @@ export default function PianificazionePage() {
                               <p className="text-pw-text font-medium truncate leading-tight">{main}</p>
                             </div>
                           )}
-                          <X size={11} className="opacity-0 group-hover:opacity-100 text-red-400 float-right -mt-4" />
+                          <X size={11} className="opacity-100 md:opacity-0 md:group-hover:opacity-100 text-red-400 float-right -mt-4" aria-hidden="true" />
                         </td>
                       );
                     }
@@ -448,6 +456,20 @@ export default function PianificazionePage() {
           </div>
         </div>
       </Modal>
+
+      <ConfirmDialog
+        open={daRimuovere !== null}
+        onClose={() => setDaRimuovere(null)}
+        onConfirm={() => {
+          if (daRimuovere) void removeBlock(daRimuovere.userId, daRimuovere.slotIndex);
+          setDaRimuovere(null);
+        }}
+        title="Libera lo slot"
+        description={daRimuovere
+          ? `Vuoi togliere «${daRimuovere.titolo}» dalla pianificazione? Sparisce l'intero blocco di ore consecutive, non solo questa casella.`
+          : ''}
+        confirmLabel="Libera"
+      />
     </div>
   );
 }

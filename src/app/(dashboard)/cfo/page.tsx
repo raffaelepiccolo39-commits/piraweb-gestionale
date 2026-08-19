@@ -857,7 +857,7 @@ export default function CFOPage() {
                   </div>
                   <div className="flex items-center gap-3">
                     <span className="text-sm font-semibold text-pw-text">{formatCurrency(exp.amount)}</span>
-                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
                       <button onClick={() => openEditExpense(exp)} className="p-1 rounded hover:bg-pw-surface text-pw-text-dim hover:text-pw-accent">
                         <Pencil size={12} />
                       </button>
