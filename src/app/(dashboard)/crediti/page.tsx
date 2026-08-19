@@ -9,6 +9,7 @@ import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/ui/empty-state';
+import { ErrorState } from '@/components/ui/error-state';
 import { SkeletonList } from '@/components/ui/skeleton';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { useToast } from '@/components/ui/toast';
@@ -70,6 +71,10 @@ export default function CreditiPage() {
   const [rows, setRows] = useState<Row[]>([]);
   const [coperture, setCoperture] = useState<Map<string, Copertura>>(new Map());
   const [loading, setLoading] = useState(true);
+  // Senza questo, una lettura fallita finiva a mostrare "Tutte le rate
+  // scadute risultano incassate 🎉": il fallimento più pericoloso, quello
+  // che rassicura. Distinguere "non c'è niente" da "non lo so".
+  const [errore, setErrore] = useState<string | null>(null);
   const [paying, setPaying] = useState<string | null>(null);
   // L'incasso entra nel cashflow e la rata sparisce dalla lista: prima si conferma.
   const [confirming, setConfirming] = useState<Row | null>(null);
@@ -99,7 +104,13 @@ export default function CreditiPage() {
     ]);
 
     const error = rateRes.error ?? accontiRes.error ?? extraRes.error;
-    if (error) { reportSupabaseError(error, 'crediti-carica'); setLoading(false); return; }
+    if (error) {
+      reportSupabaseError(error, 'crediti-carica');
+      setErrore(error.message);
+      setLoading(false);
+      return;
+    }
+    setErrore(null);
 
     const rate: Row[] = ((rateRes.data as unknown as {
       id: string; amount: number; due_date: string;
@@ -200,6 +211,12 @@ export default function CreditiPage() {
 
       {loading ? (
         <SkeletonList />
+      ) : errore ? (
+        <ErrorState
+          titolo="Non è stato possibile leggere i crediti"
+          dettaglio={errore}
+          onRiprova={() => { setErrore(null); void fetchData(); }}
+        />
       ) : rows.length === 0 ? (
         <EmptyState icon={CheckCircle2} title="Nessun credito in sospeso" description="Tutte le rate scadute risultano incassate, fra pagamenti e acconti. 🎉" />
       ) : (

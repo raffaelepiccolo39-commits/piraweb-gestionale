@@ -8,6 +8,8 @@ import { useAuth } from '@/hooks/use-auth';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/ui/empty-state';
+import { ErrorState } from '@/components/ui/error-state';
+import { reportSupabaseError } from '@/lib/report-error';
 import { PageHeader } from '@/components/ui/page-header';
 import { SkeletonStats, SkeletonList } from '@/components/ui/skeleton';
 import { formatCurrency, getRoleLabel, formatDateLocal, todayLocal } from '@/lib/utils';
@@ -89,6 +91,10 @@ export default function CashflowPage() {
   const [teamForSalaryCalc, setTeamForSalaryCalc] = useState<TeamForSalary[]>([]);
   const [payslipsForSalaryCalc, setPayslipsForSalaryCalc] = useState<PayslipForSalary[]>([]);
   const [loading, setLoading] = useState(true);
+  // Le RPC finanziarie pretendono il secondo fattore: senza, rispondono
+  // errore e la pagina mostrerebbe MRR 0 €, incassato 0 €, tutto a zero.
+  // Numeri falsi su cui si decide sono peggio di nessun numero.
+  const [errore, setErrore] = useState<string | null>(null);
 
   function getDateRange(): { start: string; end: string } {
     switch (period) {
@@ -147,6 +153,18 @@ export default function CashflowPage() {
       // cui si scaricano tutti (la data che conta è calcolata).
       supabase.from('client_extras').select(COLONNE_EXTRA).limit(2000),
     ]);
+
+    // Se una delle RPC fallisce, i suoi dati diventano zero e il resto della
+    // pagina li mostra come se fossero veri. Meglio dirlo.
+    const primoErrore = [monthlyRes, summaryRes, clientsRes, pnlRes, expensesRes]
+      .map((r) => r.error).find(Boolean);
+    if (primoErrore) {
+      reportSupabaseError(primoErrore, 'cashflow-carica');
+      setErrore(primoErrore.message);
+    } else {
+      setErrore(null);
+    }
+
 
     // Fonde i canoni siti nei dati mensili social, per mese (aggiunge il mese se
     // non esiste ancora perché quel mese non aveva pagamenti social).
@@ -439,6 +457,18 @@ export default function CashflowPage() {
           )}
         </div>
       </div>
+
+      {errore && (
+        <ErrorState
+          variant="banner"
+          titolo="Alcuni dati finanziari non sono stati caricati"
+          dettaglio={errore.includes('due passaggi')
+            ? 'Serve la verifica in due passaggi: esci e rientra per completarla.'
+            : errore}
+          onRiprova={() => { setErrore(null); void fetchData(); }}
+          className="mb-6"
+        />
+      )}
 
       {loading ? (
         <div className="space-y-6 animate-slide-up">

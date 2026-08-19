@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { SkeletonStats, SkeletonList } from '@/components/ui/skeleton';
 import { PageHeader } from '@/components/ui/page-header';
+import { ErrorState } from '@/components/ui/error-state';
 import { formatCurrency, getInitials, getUserColor, getRoleLabel, getContrastTextColor } from '@/lib/utils';
 import type { Profile, Client } from '@/types/database';
 import {
@@ -303,7 +304,17 @@ export default function ProfitabilityPage() {
     );
   }
 
-  if (!data) return null;
+  // Se il caricamento fallisce, `data` resta nullo e la pagina restituiva
+  // `null`: schermo bianco, senza nemmeno il titolo. Chi guarda non sa se
+  // deve aspettare, ricaricare o chiamare qualcuno.
+  if (!data) {
+    return (
+      <ErrorState
+        titolo="Non è stato possibile calcolare la redditività"
+        onRiprova={() => { setLoading(true); void fetchData().finally(() => setLoading(false)); }}
+      />
+    );
+  }
 
   const lossProjects = data.projects.filter((p) => p.status === 'loss');
   const breakEvenProjects = data.projects.filter((p) => p.status === 'break_even');

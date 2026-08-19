@@ -6,6 +6,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { PageHeader } from '@/components/ui/page-header';
+import { ErrorState } from '@/components/ui/error-state';
 import { SkeletonStats, SkeletonList } from '@/components/ui/skeleton';
 import { formatCurrency, getInitials, getUserColor, formatDateLocal, getContrastTextColor } from '@/lib/utils';
 import type { ClientHealth, Profile } from '@/types/database';
@@ -222,7 +223,17 @@ export default function DirectionPage() {
       </div>
     );
   }
-  if (!data) return null;
+  // Se il caricamento fallisce, `data` resta nullo e la pagina restituiva
+  // `null`: schermo bianco, senza nemmeno il titolo. Chi guarda non sa se
+  // deve aspettare, ricaricare o chiamare qualcuno.
+  if (!data) {
+    return (
+      <ErrorState
+        titolo="Non è stato possibile caricare il cruscotto"
+        onRiprova={() => { setLoading(true); void fetchData().finally(() => setLoading(false)); }}
+      />
+    );
+  }
 
   const RISK_COLORS: Record<string, string> = {
     healthy: 'bg-green-500', needs_attention: 'bg-yellow-500', at_risk: 'bg-orange-500', critical: 'bg-red-500',
