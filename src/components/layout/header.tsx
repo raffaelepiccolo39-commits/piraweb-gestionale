@@ -32,7 +32,7 @@ import {
   MessageCircle,
 } from 'lucide-react';
 import Link from 'next/link';
-import { isRottaAdmin } from '@/lib/rotte-admin';
+import { accessoNegato } from '@/lib/rotte-admin';
 
 const SEARCH_ITEMS = [
   { label: 'Dashboard', href: '/dashboard' },
@@ -78,7 +78,7 @@ export function Header() {
     if (!searchQuery.trim()) return [];
     const q = searchQuery.toLowerCase();
     return SEARCH_ITEMS
-      .filter((item) => isAdmin || !isRottaAdmin(item.href))
+      .filter((item) => !accessoNegato(item.href, profile?.role))
       .filter((item) => item.label.toLowerCase().includes(q))
       .slice(0, 6);
   }, [searchQuery, isAdmin]);

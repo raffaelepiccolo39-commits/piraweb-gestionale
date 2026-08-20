@@ -1,7 +1,7 @@
 import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse, type NextRequest } from 'next/server';
-import { isRottaAdmin } from '@/lib/rotte-admin';
+import { accessoNegato } from '@/lib/rotte-admin';
 
 
 export async function updateSession(request: NextRequest) {
@@ -135,13 +135,17 @@ export async function updateSession(request: NextRequest) {
   // — cosa che il vecchio gate a cookie non poteva fare. Qui non serve più un
   // controllo di pagina: un utente aal1 vede il guscio, non i dati.
 
-  // ── Guard URL admin-only ──
+  // ── Guard URL delle pagine riservate ──
   // Usa il ruolo GIÀ letto sopra (nessuna seconda query). Se la lettura del
   // profilo è fallita (profileLoaded=false) restiamo fail-open come prima.
+  //
+  // Prima conosceva solo admin/non-admin, e le pagine riservate a un mestiere
+  // restavano aperte a chiunque ne sapesse l'indirizzo: /accessi (credenziali
+  // social) e /crediti (rate e insoluti) erano nascoste nel menu e basta.
+  // Nascondere una voce non protegge nulla — la porta è qui.
   if (inApp) {
     const path = request.nextUrl.pathname;
-    const isAdminRoute = isRottaAdmin(path);
-    if (isAdminRoute && profileLoaded && profileRole !== 'admin') {
+    if (profileLoaded && accessoNegato(path, profileRole)) {
       const url = request.nextUrl.clone();
       url.pathname = '/dashboard';
       url.search = '';

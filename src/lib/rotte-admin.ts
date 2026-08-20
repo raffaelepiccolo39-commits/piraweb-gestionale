@@ -1,5 +1,5 @@
 /**
- * Le pagine riservate agli amministratori.
+ * Chi può aprire cosa.
  *
  * Sta qui, in un modulo senza dipendenze, perché serve in due posti che non
  * possono importarsi a vicenda: il middleware (che rimbalza chi non ha il
@@ -37,9 +37,43 @@ export const ADMIN_ROUTES: readonly string[] = [
   // Le ore del team: la RLS su time_entries limita già ciascuno alle proprie,
   // ma la pagina è un cruscotto di direzione e non deve aprirsi affatto.
   '/timesheet',
+  // Rate e insoluti dei clienti. Era nascosta nel menu e basta: chi ne
+  // conosceva l'indirizzo entrava. Aggiunta il 20/08/2026.
+  '/crediti',
 ];
 
-/** true se il percorso è una pagina riservata (o una sua sottopagina). */
+/**
+ * Pagine riservate a un mestiere, non al grado.
+ *
+ * L'admin entra sempre e non va elencato. Serve perché "riservato" non
+ * significa solo "da capo": le credenziali dei profili social le usa chi i
+ * social li gestisce, e non c'è motivo che le veda il resto del team.
+ */
+export const ROTTE_PER_RUOLO: Readonly<Record<string, readonly string[]>> = {
+  '/accessi': ['social_media_manager'],
+};
+
+/** true se il percorso è una pagina da amministratore (o una sua sottopagina). */
 export function isRottaAdmin(path: string): boolean {
   return ADMIN_ROUTES.some((r) => path === r || path.startsWith(r + '/'));
+}
+
+/**
+ * true se questo ruolo NON può aprire il percorso.
+ *
+ * È la domanda che si fanno in tre: il middleware per rimbalzare, il menu
+ * per non mostrare la voce, la ricerca rapida per non proporla. Una
+ * risposta sola, altrimenti si torna al caso di prima — il menu nascondeva
+ * /accessi e /crediti, e il middleware li lasciava aperti a chi ne
+ * conosceva l'indirizzo.
+ *
+ * Il confronto richiede la barra (`/gestione` non copre `/gestione-siti`),
+ * quindi le sottosezioni vanno elencate a parte.
+ */
+export function accessoNegato(path: string, ruolo: string | null | undefined): boolean {
+  if (ruolo === 'admin') return false;
+  if (isRottaAdmin(path)) return true;
+  const ammessi = Object.entries(ROTTE_PER_RUOLO)
+    .find(([r]) => path === r || path.startsWith(r + '/'))?.[1];
+  return ammessi !== undefined && !ammessi.includes(ruolo ?? '');
 }

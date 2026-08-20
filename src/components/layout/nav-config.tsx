@@ -13,6 +13,7 @@ import {
   Crown,
   ScrollText,
 } from 'lucide-react';
+import { accessoNegato } from '@/lib/rotte-admin';
 
 /**
  * Config di navigazione condivisa da sidebar (desktop), barra in basso e menu a
@@ -49,7 +50,11 @@ export function voceVisibile(item: NavItem, ruolo: string | null | undefined): b
   const isAdmin = ruolo === 'admin';
   if (item.adminOnly && !isAdmin) return false;
   if (item.roles && !isAdmin && !item.roles.includes(ruolo ?? '')) return false;
-  return true;
+  // Doppia mandata: anche la regola del middleware deve essere d'accordo.
+  // Se i due elenchi divergono si sbaglia nascondendo, non esponendo —
+  // dimenticare una voce qui fa sparire un link, dimenticarla in
+  // rotte-admin.ts lasciava una pagina aperta a tutti.
+  return !accessoNegato(item.href, ruolo);
 }
 
 export const navSections: NavSection[] = [

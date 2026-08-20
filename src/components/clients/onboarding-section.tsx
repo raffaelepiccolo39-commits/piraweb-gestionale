@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
+import { accessoNegato } from '@/lib/rotte-admin';
+import { useAuth } from '@/hooks/use-auth';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import type { ClientOnboarding } from '@/types/database';
@@ -72,6 +74,7 @@ function CollapsibleCard({
 
 export function OnboardingSection({ clientId }: OnboardingSectionProps) {
   const supabase = createClient();
+  const { profile } = useAuth();
   const [onboarding, setOnboarding] = useState<ClientOnboarding | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -150,21 +153,26 @@ export function OnboardingSection({ clientId }: OnboardingSectionProps) {
           vivono nella sezione Accessi: cifrate, per qualsiasi piattaforma e
           con la traccia di chi le legge. Qui resta il rimando, perche' e'
           durante l'onboarding che si raccolgono. */}
-      <Card>
-        <CardContent className="flex flex-wrap items-center justify-between gap-3">
-          <div className="min-w-0">
-            <p className="text-sm font-medium text-pw-text">Credenziali del cliente</p>
-            <p className="text-xs text-pw-text-muted mt-0.5">
-              Sito, Instagram, Facebook, TikTok, LinkedIn — si archiviano nella sezione Accessi.
-            </p>
-          </div>
-          <Link href={`/accessi?cliente=${clientId}`}>
-            <Button variant="outline" size="sm">
-              <KeyRound size={14} /> Vai agli Accessi
-            </Button>
-          </Link>
-        </CardContent>
-      </Card>
+      {/* Il rimando compare solo a chi la sezione puo' aprirla davvero: da
+          quando il middleware fa rispettare i ruoli, per gli altri sarebbe un
+          bottone che rimbalza sulla dashboard — peggio che assente. */}
+      {!accessoNegato('/accessi', profile?.role) && (
+        <Card>
+          <CardContent className="flex flex-wrap items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-pw-text">Credenziali del cliente</p>
+              <p className="text-xs text-pw-text-muted mt-0.5">
+                Sito, Instagram, Facebook, TikTok, LinkedIn — si archiviano nella sezione Accessi.
+              </p>
+            </div>
+            <Link href={`/accessi?cliente=${clientId}`}>
+              <Button variant="outline" size="sm">
+                <KeyRound size={14} /> Vai agli Accessi
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
