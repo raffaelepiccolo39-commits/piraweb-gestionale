@@ -220,14 +220,14 @@ export function PortalAccess({ clientId, clientName, clientPhone }: {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="email@cliente.it"
                 className="w-full px-3 py-2 rounded-lg bg-pw-surface border border-pw-border text-sm text-pw-text placeholder:text-pw-text-dim"
-              />
+              aria-label="Email del cliente" />
               <input
                 type="text"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 placeholder="Nome e cognome (facoltativo)"
                 className="w-full px-3 py-2 rounded-lg bg-pw-surface border border-pw-border text-sm text-pw-text placeholder:text-pw-text-dim"
-              />
+              aria-label="Nome e cognome (facoltativo)" />
             </div>
             <div className="flex gap-2 justify-end">
               <Button size="sm" variant="outline" onClick={() => { setAdding(false); setEmail(''); setFullName(''); }}>

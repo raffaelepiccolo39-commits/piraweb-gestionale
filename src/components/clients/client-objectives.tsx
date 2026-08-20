@@ -166,18 +166,18 @@ export function ClientObjectives({ clientId }: { clientId: string }) {
               onChange={(e) => setForm({ ...form, titolo: e.target.value })}
               placeholder="Obiettivo — es. Portare il profilo a 5.000 follower"
               className={campo}
-            />
+            aria-label="Obiettivo" />
             <textarea
               value={form.descrizione}
               onChange={(e) => setForm({ ...form, descrizione: e.target.value })}
               rows={2}
               placeholder="Come ci arriviamo (lo legge il cliente)"
               className={cn(campo, 'resize-none')}
-            />
+            aria-label="Come ci arriviamo (lo legge il cliente)" />
 
             <div className="grid sm:grid-cols-3 gap-2.5">
               <div>
-                <label className="block text-xs text-pw-text-dim mb-1">Periodo</label>
+                <label htmlFor="periodo" className="block text-xs text-pw-text-dim mb-1">Periodo</label>
                 <select
                   value={form.periodo}
                   onChange={(e) => {
@@ -187,40 +187,40 @@ export function ClientObjectives({ clientId }: { clientId: string }) {
                     setForm({ ...form, periodo: p, data_fine: fineDi(p) });
                   }}
                   className={campo}
-                >
+                id="periodo">
                   <option value="trimestrale">Trimestrale</option>
                   <option value="semestrale">Semestrale</option>
                   <option value="annuale">Annuale</option>
                 </select>
               </div>
               <div>
-                <label className="block text-xs text-pw-text-dim mb-1">Dal</label>
+                <label htmlFor="dal" className="block text-xs text-pw-text-dim mb-1">Dal</label>
                 <input type="date" value={form.data_inizio}
-                  onChange={(e) => setForm({ ...form, data_inizio: e.target.value })} className={campo} />
+                  onChange={(e) => setForm({ ...form, data_inizio: e.target.value })} className={campo} id="dal" />
               </div>
               <div>
-                <label className="block text-xs text-pw-text-dim mb-1">Al</label>
+                <label htmlFor="campo-al" className="block text-xs text-pw-text-dim mb-1">Al</label>
                 <input type="date" value={form.data_fine}
-                  onChange={(e) => setForm({ ...form, data_fine: e.target.value })} className={campo} />
+                  onChange={(e) => setForm({ ...form, data_fine: e.target.value })} className={campo} id="campo-al" />
               </div>
             </div>
 
             <div className="grid sm:grid-cols-2 gap-2.5">
               <div>
-                <label className="block text-xs text-pw-text-dim mb-1">Stato</label>
-                <select value={form.stato} onChange={(e) => setForm({ ...form, stato: e.target.value as Stato })} className={campo}>
+                <label htmlFor="stato" className="block text-xs text-pw-text-dim mb-1">Stato</label>
+                <select value={form.stato} onChange={(e) => setForm({ ...form, stato: e.target.value as Stato })} className={campo} id="stato">
                   <option value="in_corso">In corso</option>
                   <option value="raggiunto">Raggiunto</option>
                   <option value="non_raggiunto">Non raggiunto</option>
                 </select>
               </div>
               <div>
-                <label className="block text-xs text-pw-text-dim mb-1">
+                <label htmlFor="avanzamento" className="block text-xs text-pw-text-dim mb-1">
                   Avanzamento % <span className="text-pw-text-dim/70">— lascia vuoto se non si misura</span>
                 </label>
                 <input inputMode="numeric" value={form.progresso}
                   onChange={(e) => setForm({ ...form, progresso: e.target.value.replace(/[^\d]/g, '').slice(0, 3) })}
-                  placeholder="—" className={campo} />
+                  placeholder="—" className={campo} id="avanzamento" />
               </div>
             </div>
 
@@ -231,7 +231,7 @@ export function ClientObjectives({ clientId }: { clientId: string }) {
                 rows={2}
                 placeholder="Com'è andata — lo legge il cliente, e su un obiettivo mancato è la parte che conta"
                 className={cn(campo, 'resize-none')}
-              />
+              aria-label="Com'è andata" />
             )}
 
             <div className="flex gap-2 justify-end">

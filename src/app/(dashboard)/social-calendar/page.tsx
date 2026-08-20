@@ -532,7 +532,7 @@ export default function SocialCalendarPage() {
           value={filterClient}
           onChange={(e) => setFilterClient(e.target.value)}
           className="px-3 py-1.5 rounded-lg border border-pw-border bg-pw-surface-2 text-pw-text text-xs"
-        >
+        aria-label="Filtra per cliente">
           <option value="">Tutti i clienti</option>
           {clients.map((c) => (
             <option key={c.id} value={c.id}>{c.company || c.name}</option>
@@ -542,7 +542,7 @@ export default function SocialCalendarPage() {
           value={filterPlatform}
           onChange={(e) => setFilterPlatform(e.target.value)}
           className="px-3 py-1.5 rounded-lg border border-pw-border bg-pw-surface-2 text-pw-text text-xs"
-        >
+        aria-label="Filtra per piattaforma">
           <option value="">Tutte le piattaforme</option>
           {PLATFORM_OPTIONS.map((p) => (
             <option key={p.value} value={p.value}>{p.label}</option>

@@ -150,7 +150,7 @@ export function AssetLibrary({ clientId }: AssetLibraryProps) {
             value={filterType}
             onChange={(e) => setFilterType(e.target.value)}
             className="px-2 py-1 rounded-lg border border-pw-border bg-pw-surface-2 text-pw-text text-[10px]"
-          >
+          aria-label="Filtra per tipo">
             <option value="">Tutti</option>
             {TYPE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>

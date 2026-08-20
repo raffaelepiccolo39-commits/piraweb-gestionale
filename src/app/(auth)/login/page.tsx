@@ -300,7 +300,7 @@ function LoginContent() {
                     onPaste={i === 0 ? handleTotpPaste : undefined}
                     className="w-11 h-12 text-center text-lg font-semibold rounded-lg border border-gray-200 bg-white text-[#0F172A] focus:border-[#0A263A] focus:ring-2 focus:ring-[#0A263A]/10 outline-none transition-colors"
                     autoFocus={i === 0}
-                  />
+                  aria-label={`Cifra ${i + 1} del codice di verifica`} />
                 ))}
               </div>
 

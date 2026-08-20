@@ -70,7 +70,7 @@ export default function PasswordDimenticataPage() {
               placeholder="la-tua@email.it"
               autoFocus
               className="w-full px-3.5 py-2.5 rounded-lg border border-gray-200 bg-white text-[#0F172A] focus:border-[#0A263A] focus:ring-2 focus:ring-[#0A263A]/10 outline-none transition-colors text-sm"
-            />
+            aria-label="Il tuo indirizzo email" />
 
             {errore && <p className="text-xs text-red-600 mt-2">{errore}</p>}
 

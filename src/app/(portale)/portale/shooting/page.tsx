@@ -351,7 +351,7 @@ export default function PortaleShootingPage() {
                 rows={2}
                 placeholder="Vuoi dirci qualcosa? (prodotti da fotografare, location…)"
                 className="w-full px-3 py-2 rounded-lg bg-pw-surface-2 border border-pw-border text-sm text-pw-text placeholder:text-pw-text-dim"
-              />
+              aria-label="Vuoi dirci qualcosa?" />
 
               <button
                 onClick={proponi}

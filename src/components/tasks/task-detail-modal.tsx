@@ -672,7 +672,7 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
               onChange={(e) => setTitle(e.target.value)}
               className="w-full text-xl font-bold text-pw-text bg-transparent border-none outline-none font-[var(--font-syne)] placeholder:text-pw-text-dim"
               placeholder="Titolo task..."
-            />
+            aria-label="Titolo task" />
 
             {/* Quick actions bar */}
             <div className="flex flex-wrap gap-2">
@@ -682,7 +682,7 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
                   value={priority}
                   onChange={(e) => setPriority(e.target.value)}
                   className="bg-transparent outline-none text-pw-text-muted"
-                >
+                aria-label="Priorità">
                   {priorityOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
               </div>
@@ -693,7 +693,7 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
                   value={deadline}
                   onChange={(e) => setDeadline(e.target.value)}
                   className="bg-transparent outline-none text-pw-text-muted"
-                />
+                aria-label="Scadenza" />
               </div>
               <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-pw-surface-3 text-xs text-pw-text-muted">
                 <CheckSquare size={12} />
@@ -701,7 +701,7 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
                   value={status}
                   onChange={(e) => setStatus(e.target.value)}
                   className="bg-transparent outline-none text-pw-text-muted"
-                >
+                aria-label="Stato">
                   {statusOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
               </div>
@@ -716,13 +716,13 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
                   className="bg-transparent outline-none text-pw-text-muted w-10"
                   min="0"
                   step="0.5"
-                />
+                aria-label="Ore stimate" />
               </div>
             </div>
 
             {/* Delivery URL / Drive link */}
             <div className="mt-3">
-              <label className="text-[10px] uppercase tracking-widest text-pw-text-dim mb-1 block">
+              <label htmlFor="link-lavoro" className="text-[10px] uppercase tracking-widest text-pw-text-dim mb-1 block">
                 Link Lavoro (Google Drive, Figma, Canva...)
               </label>
               <input
@@ -731,7 +731,7 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
                 onChange={(e) => setDeliveryUrl(e.target.value)}
                 placeholder="https://drive.google.com/..."
                 className="w-full px-3 py-2 rounded-lg border border-pw-border bg-pw-surface-2 text-pw-text text-xs focus:ring-2 focus:ring-pw-accent/30 focus:border-pw-accent/50 outline-none"
-              />
+              id="link-lavoro" />
               {deliveryUrl && (
                 <a href={deliveryUrl} target="_blank" rel="noopener noreferrer" className="text-[10px] text-pw-accent hover:underline mt-1 inline-flex items-center gap-1">
                   Apri link <ExternalLink size={8} />
@@ -742,7 +742,7 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
             {/* Copertura PED: solo sulla task "Programmare post e storie" di uno shooting */}
             {pedClientId && (
               <div className="mt-3 rounded-xl border border-pink-500/30 bg-pink-500/[0.05] p-3">
-                <label className="text-[11px] font-semibold text-pw-text flex items-center gap-1.5 mb-1.5">
+                <label htmlFor="programmato-fino" className="text-[11px] font-semibold text-pw-text flex items-center gap-1.5 mb-1.5">
                   <Calendar size={13} className="text-pink-400" />
                   Fino a quando hai programmato i contenuti?
                 </label>
@@ -752,7 +752,7 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
                     value={pedCoveredUntil}
                     onChange={(e) => setPedCoveredUntil(e.target.value)}
                     className="flex-1 px-3 py-2 rounded-lg border border-pw-border bg-pw-surface-2 text-pw-text text-xs focus:ring-2 focus:ring-pw-accent/30 focus:border-pw-accent/50 outline-none"
-                  />
+                  id="programmato-fino" />
                   <Button variant="outline" size="sm" onClick={savePedCoverage} loading={pedSaving}>
                     <Save size={14} /> Salva
                   </Button>
@@ -808,7 +808,7 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
                       onChange={(e) => setCompleteHours(e.target.value)}
                       placeholder="Ore"
                       className="w-20 px-2 py-1 rounded-lg border border-pw-border bg-pw-surface-2 text-pw-text text-xs outline-none focus:ring-2 focus:ring-pw-accent/30"
-                    />
+                    aria-label="Ore" />
                     <button
                       type="button"
                       onClick={confirmCompleteWithHours}
@@ -1030,7 +1030,7 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendComment(); }
                   }}
-                />
+                aria-label="Scrivi un commento" />
                 <div className="flex flex-col gap-1.5 self-end">
                   <label
                     htmlFor="comment-image-upload"
@@ -1128,7 +1128,7 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
                               if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSaveEditComment(comment.id); }
                               if (e.key === 'Escape') cancelEditComment();
                             }}
-                          />
+                          aria-label="Modifica il commento" />
                           <div className="flex items-center gap-1.5 mt-1">
                             <button
                               type="button"

@@ -251,7 +251,7 @@ export function ImportPed({
           accept=".csv,.pdf,text/csv,application/pdf"
           className="hidden"
           onChange={(e) => { const f = e.target.files?.[0]; if (f) leggi(f); }}
-        />
+        aria-label="Scegli il file del piano editoriale" />
       </Modal>
     </>
   );

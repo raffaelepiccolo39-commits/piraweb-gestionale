@@ -154,7 +154,7 @@ export function ShootingTasksModal({ open, calendarEventId, onClose, onGenerated
                     checked={r.include}
                     onChange={(e) => updateRow(i, { include: e.target.checked })}
                     className="mt-1 accent-pw-accent"
-                  />
+                  aria-label={`Includi "${r.title}" fra i task da creare`} />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-pw-text">{r.title}</p>
                     {r.extra_assignees.length > 0 && (

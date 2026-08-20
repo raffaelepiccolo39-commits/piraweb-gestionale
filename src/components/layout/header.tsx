@@ -230,7 +230,7 @@ export function Header() {
             onBlur={() => setTimeout(() => setSearchFocused(false), 150)}
             placeholder="Cerca clienti, task, progetti…"
             className="flex-1 bg-transparent text-[13px] text-pw-text placeholder:text-pw-text-dim outline-none"
-          />
+          aria-label="Cerca clienti, task, progetti" />
           {searchQuery ? (
             <button
               onClick={() => setSearchQuery('')}

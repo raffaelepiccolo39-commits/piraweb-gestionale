@@ -202,7 +202,7 @@ function ReviewPageInner() {
               placeholder="Commenti, suggerimenti o modifiche richieste... (opzionale)"
               rows={4}
               className="w-full px-4 py-3 rounded-xl border border-gray-200 text-gray-900 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-300 outline-none resize-none"
-            />
+            aria-label="Commenti" />
             {erroreInvio && (
               <div role="alert" className="flex items-start gap-2 p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-800">
                 <AlertTriangle size={16} className="shrink-0 mt-0.5" aria-hidden="true" />

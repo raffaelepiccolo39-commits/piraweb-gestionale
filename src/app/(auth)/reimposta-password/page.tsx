@@ -82,7 +82,7 @@ export default function ReimpostaPasswordPage() {
                   placeholder="Nuova password"
                   autoFocus
                   className="w-full px-3.5 py-2.5 pr-10 rounded-lg border border-gray-200 bg-white text-[#0F172A] focus:border-[#0A263A] focus:ring-2 focus:ring-[#0A263A]/10 outline-none transition-colors text-sm"
-                />
+                aria-label="Nuova password" />
                 <button
                   type="button"
                   onClick={() => setMostra(!mostra)}
@@ -100,7 +100,7 @@ export default function ReimpostaPasswordPage() {
                 onKeyDown={(e) => { if (e.key === 'Enter') salva(); }}
                 placeholder="Ripeti la password"
                 className="w-full px-3.5 py-2.5 rounded-lg border border-gray-200 bg-white text-[#0F172A] focus:border-[#0A263A] focus:ring-2 focus:ring-[#0A263A]/10 outline-none transition-colors text-sm"
-              />
+              aria-label="Ripeti la password" />
 
               {errore && <p className="text-xs text-red-600">{errore}</p>}
 

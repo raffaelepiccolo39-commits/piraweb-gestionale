@@ -96,7 +96,7 @@ export function ImportStorico({ open, onClose, onFatto }: Props) {
           accept=".csv,text/csv"
           onChange={(e) => { const f = e.target.files?.[0]; if (f) void leggiFile(f); }}
           className="block w-full text-sm text-pw-text file:mr-3 file:rounded-lg file:border-0 file:bg-pw-surface-2 file:px-3 file:py-2 file:text-sm file:text-pw-text"
-        />
+        aria-label="Scegli il file CSV da importare" />
 
         <Textarea
           label="Oppure incolla qui il contenuto"

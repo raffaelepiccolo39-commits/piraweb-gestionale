@@ -1082,7 +1082,7 @@ export default function CFOPage() {
                   accept=".pdf"
                   onChange={(e) => setPayslipFile(e.target.files?.[0] || null)}
                   className="w-full text-sm text-pw-text-muted file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-pw-accent/10 file:text-pw-accent hover:file:bg-pw-accent/20 file:cursor-pointer"
-                />
+                aria-label="Carica il PDF delle buste paga" />
                 {payslipFile && (
                   <p className="text-sm text-pw-text mt-3">
                     {payslipFile.name} <span className="text-pw-text-dim">({(payslipFile.size / 1024 / 1024).toFixed(1)} MB)</span>

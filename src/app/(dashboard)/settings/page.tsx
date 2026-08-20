@@ -721,7 +721,7 @@ export default function SettingsPage() {
                   value={createWarning.inviteLink}
                   onFocus={(e) => e.target.select()}
                   className="flex-1 px-2 py-1.5 rounded-lg border border-amber-500/30 bg-pw-surface-2 text-pw-text text-xs"
-                />
+                aria-label="Link di accesso da inviare" />
                 <button
                   type="button"
                   onClick={() => navigator.clipboard?.writeText(createWarning.inviteLink)}
@@ -894,7 +894,7 @@ export default function SettingsPage() {
                   value={viewingMember.role}
                   onChange={(e) => { handleUpdateRole(viewingMember.id, e.target.value); setViewingMember(null); }}
                   className="text-sm px-3 py-1.5 rounded-lg border border-pw-border bg-pw-surface-2 text-pw-text-muted"
-                >
+                aria-label="Ruolo">
                   {roleOptions.map((opt) => (
                     <option key={opt.value} value={opt.value}>{opt.label}</option>
                   ))}

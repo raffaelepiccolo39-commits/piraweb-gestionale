@@ -236,14 +236,18 @@ export function ClientMaterials({ clientId }: { clientId: string }) {
                     placeholder="Titolo (es. Shooting collezione autunno)"
                     autoFocus
                     className="w-full px-3 py-2 rounded-lg bg-pw-surface border border-pw-border text-sm text-pw-text placeholder:text-pw-text-dim"
-                  />
+                  aria-label="Titolo (es. Shooting collezione autunno)" />
                   <div>
-                    <label className="block text-[11px] text-pw-text-dim mb-1">Mese di riferimento (facoltativo)</label>
+                    <label htmlFor={`mese-${t.valore}`} className="block text-[11px] text-pw-text-dim mb-1">Mese di riferimento (facoltativo)</label>
                     <input
                       type="month"
                       value={mese}
                       onChange={(e) => setMese(e.target.value)}
                       className="px-3 py-2 rounded-lg bg-pw-surface border border-pw-border text-sm text-pw-text"
+                      /* il form si ripete per ogni tipo di materiale: un id
+                         fisso ne creerebbe tre uguali, e l'etichetta punterebbe
+                         sempre al primo campo */
+                      id={`mese-${t.valore}`}
                     />
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
@@ -259,7 +263,7 @@ export function ClientMaterials({ clientId }: { clientId: string }) {
                     onChange={(e) => setLink(e.target.value)}
                     placeholder="oppure incolla un link (YouTube, Drive…)"
                     className="w-full px-3 py-2 rounded-lg bg-pw-surface border border-pw-border text-sm text-pw-text placeholder:text-pw-text-dim"
-                  />
+                  aria-label="oppure incolla un link (YouTube, Drive…)" />
                   <div className="flex gap-2 justify-end">
                     <Button size="sm" variant="ghost" onClick={() => setNuovo(null)}>Annulla</Button>
                     <Button size="sm" variant="primary" onClick={salva} loading={invio}>Salva</Button>
@@ -334,7 +338,7 @@ export function ClientMaterials({ clientId }: { clientId: string }) {
           accept="application/pdf,image/*"
           className="hidden"
           onChange={(e) => setFile(e.target.files?.[0] || null)}
-        />
+        aria-label="Scegli un PDF o un'immagine" />
       </CardContent>
     </Card>
   );

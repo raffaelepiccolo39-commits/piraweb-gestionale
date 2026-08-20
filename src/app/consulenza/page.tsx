@@ -227,24 +227,24 @@ export default function ConsulenzaPage() {
               {error && <div className="cns-error">{error}</div>}
 
               <div className="cns-field">
-                <label className="cns-label">Nome e cognome *</label>
-                <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Mario Rossi" className="cns-input" />
+                <label htmlFor="nome-e-cognome" className="cns-label">Nome e cognome *</label>
+                <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Mario Rossi" className="cns-input" id="nome-e-cognome" />
               </div>
               <div className="cns-field">
-                <label className="cns-label">Email *</label>
-                <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="mario@azienda.it" className="cns-input" />
+                <label htmlFor="email" className="cns-label">Email *</label>
+                <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="mario@azienda.it" className="cns-input" id="email" />
               </div>
               <div className="cns-field">
-                <label className="cns-label">Telefono</label>
-                <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="+39 333 1234567" className="cns-input" />
+                <label htmlFor="telefono" className="cns-label">Telefono</label>
+                <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="+39 333 1234567" className="cns-input" id="telefono" />
               </div>
               <div className="cns-field">
-                <label className="cns-label">Nome azienda</label>
-                <input type="text" value={company} onChange={e => setCompany(e.target.value)} placeholder="La vostra attivita'" className="cns-input" />
+                <label htmlFor="nome-azienda" className="cns-label">Nome azienda</label>
+                <input type="text" value={company} onChange={e => setCompany(e.target.value)} placeholder="La vostra attivita'" className="cns-input" id="nome-azienda" />
               </div>
               <div className="cns-field">
-                <label className="cns-label">Messaggio (opzionale)</label>
-                <textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Di cosa vorreste parlare?" rows={3} className="cns-input cns-textarea" />
+                <label htmlFor="messaggio-opzionale" className="cns-label">Messaggio (opzionale)</label>
+                <textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Di cosa vorreste parlare?" rows={3} className="cns-input cns-textarea" id="messaggio-opzionale" />
               </div>
 
               <button

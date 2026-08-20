@@ -195,7 +195,7 @@ export function PostMediaUpload({
         multiple
         className="hidden"
         onChange={(e) => handleFiles(e.target.files)}
-      />
+      aria-label="Scegli immagini o video" />
       <Modal
         open={!!videoTroppoGrande}
         onClose={() => setVideoTroppoGrande(null)}

@@ -220,7 +220,7 @@ export function TimeTracker({ taskId, estimatedHours, loggedHours, onUpdate }: T
         <div className="p-4 rounded-xl border border-pw-border bg-pw-surface space-y-3">
           <div className="flex gap-3">
             <div>
-              <label className="text-xs text-pw-text-muted block mb-1">Ore</label>
+              <label htmlFor="ore" className="text-xs text-pw-text-muted block mb-1">Ore</label>
               <input
                 type="number"
                 min="0"
@@ -229,10 +229,10 @@ export function TimeTracker({ taskId, estimatedHours, loggedHours, onUpdate }: T
                 onChange={(e) => setManualHours(e.target.value)}
                 className="w-20 px-3 py-2 rounded-lg border border-pw-border bg-pw-surface-2 text-pw-text text-sm"
                 placeholder="0"
-              />
+              id="ore" />
             </div>
             <div>
-              <label className="text-xs text-pw-text-muted block mb-1">Minuti</label>
+              <label htmlFor="minuti" className="text-xs text-pw-text-muted block mb-1">Minuti</label>
               <input
                 type="number"
                 min="0"
@@ -241,7 +241,7 @@ export function TimeTracker({ taskId, estimatedHours, loggedHours, onUpdate }: T
                 onChange={(e) => setManualMinutes(e.target.value)}
                 className="w-20 px-3 py-2 rounded-lg border border-pw-border bg-pw-surface-2 text-pw-text text-sm"
                 placeholder="0"
-              />
+              id="minuti" />
             </div>
           </div>
           <input
@@ -250,7 +250,7 @@ export function TimeTracker({ taskId, estimatedHours, loggedHours, onUpdate }: T
             onChange={(e) => setManualDesc(e.target.value)}
             className="w-full px-3 py-2 rounded-lg border border-pw-border bg-pw-surface-2 text-pw-text text-sm"
             placeholder="Descrizione (opzionale)"
-          />
+          aria-label="Descrizione (opzionale)" />
           <div className="flex gap-2">
             <Button size="sm" onClick={handleManualAdd} loading={loading}>Salva</Button>
             <Button size="sm" variant="ghost" onClick={() => setShowManual(false)}>Annulla</Button>

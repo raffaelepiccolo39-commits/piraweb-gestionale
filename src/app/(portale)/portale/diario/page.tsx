@@ -201,7 +201,7 @@ export default function PortaleDiarioPage() {
           maxLength={4000}
           placeholder="Un'idea per un video, un prodotto da spingere, una cosa vista in giro che ti è piaciuta…"
           className="w-full bg-transparent text-sm text-pw-text placeholder:text-pw-text-dim resize-none focus:outline-none"
-        />
+        aria-label="Un'idea per un video" />
         <div className="flex items-center gap-2 pt-2 border-t border-pw-border">
           <button
             onClick={registrando ? fermaRegistrazione : avviaRegistrazione}

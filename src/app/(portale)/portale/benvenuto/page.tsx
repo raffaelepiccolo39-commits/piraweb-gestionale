@@ -76,7 +76,7 @@ export default function BenvenutoPage() {
             placeholder="Nuova password"
             autoFocus
             className="w-full px-3.5 py-2.5 pr-10 rounded-xl bg-pw-surface border border-pw-border text-sm text-pw-text placeholder:text-pw-text-dim"
-          />
+          aria-label="Nuova password" />
           <button
             type="button"
             onClick={() => setMostra(!mostra)}
@@ -94,7 +94,7 @@ export default function BenvenutoPage() {
           onKeyDown={(e) => { if (e.key === 'Enter') salva(); }}
           placeholder="Ripeti la password"
           className="w-full px-3.5 py-2.5 rounded-xl bg-pw-surface border border-pw-border text-sm text-pw-text placeholder:text-pw-text-dim"
-        />
+        aria-label="Ripeti la password" />
 
         <p className="text-[11px] text-pw-text-dim">Almeno 8 caratteri.</p>
 

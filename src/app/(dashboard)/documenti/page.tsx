@@ -434,14 +434,14 @@ export default function DocumentiPage() {
             />
           </div>
           <div>
-            <label className="block text-[11px] uppercase tracking-[0.08em] font-medium text-pw-text-muted mb-1.5">Note (opzionale)</label>
+            <label htmlFor="note-opzionale" className="block text-[11px] uppercase tracking-[0.08em] font-medium text-pw-text-muted mb-1.5">Note (opzionale)</label>
             <textarea
               value={form.description}
               onChange={(e) => setForm(f => ({ ...f, description: e.target.value }))}
               rows={2}
               placeholder="Note interne…"
               className="w-full px-4 py-2.5 rounded-xl border border-pw-border bg-pw-surface-2 text-pw-text placeholder:text-pw-text-dim focus:ring-2 focus:ring-pw-accent/30 focus:border-pw-accent/50 outline-none transition-all duration-200 text-sm resize-none"
-            />
+            id="note-opzionale" />
           </div>
           <div>
             <label className="block text-[11px] uppercase tracking-[0.08em] font-medium text-pw-text-muted mb-1.5">File *</label>

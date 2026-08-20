@@ -117,7 +117,7 @@ export function PedDeadlines() {
                     value={r.covered_until ?? ''}
                     onChange={(e) => save(r.client_id, e.target.value)}
                     className="px-2 py-1 rounded-lg border border-pw-border bg-pw-surface-2 text-pw-text text-xs focus:ring-2 focus:ring-pw-accent/30 focus:border-pw-accent/50 outline-none"
-                  />
+                  aria-label={`Programmato fino al, per ${r.name}`} />
                   {savingId === r.client_id ? (
                     <Loader2 size={14} className="animate-spin text-pw-text-dim" />
                   ) : savedId === r.client_id ? (

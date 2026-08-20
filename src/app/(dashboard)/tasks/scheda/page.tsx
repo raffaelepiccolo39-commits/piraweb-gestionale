@@ -429,7 +429,7 @@ function TaskDetailPageInner() {
                   onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleAddComment()}
                   placeholder="Scrivi un commento..."
                   className="flex-1 px-4 py-2.5 rounded-xl border border-pw-border bg-pw-surface-2 text-pw-text text-sm focus:ring-2 focus:ring-pw-accent/30 focus:border-pw-accent/50 outline-none"
-                />
+                aria-label="Scrivi un commento" />
                 <Button
                   size="sm"
                   onClick={handleAddComment}

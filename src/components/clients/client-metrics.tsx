@@ -146,19 +146,19 @@ export function ClientMetrics({ clientId }: { clientId: string }) {
         {aperto && (
           <div className="rounded-xl border border-pw-border bg-pw-surface-2 p-4 mb-4 space-y-3">
             <div>
-              <label className="block text-xs text-pw-text-dim mb-1">Mese di riferimento</label>
+              <label htmlFor="mese-di-riferimento" className="block text-xs text-pw-text-dim mb-1">Mese di riferimento</label>
               <input
                 type="month"
                 value={mese}
                 onChange={(e) => setMese(e.target.value)}
                 className="px-3 py-2 rounded-lg bg-pw-surface border border-pw-border text-sm text-pw-text"
-              />
+              id="mese-di-riferimento" />
             </div>
 
             <div className="grid sm:grid-cols-2 gap-2.5">
               {CAMPI.map((c) => (
                 <div key={c.chiave}>
-                  <label className="block text-xs text-pw-text-dim mb-1">
+                  <label htmlFor={`metrica-${c.chiave}`} className="block text-xs text-pw-text-dim mb-1">
                     {c.etichetta}
                     {c.aiuto && <span className="text-pw-text-dim/70"> — {c.aiuto}</span>}
                   </label>
@@ -168,13 +168,13 @@ export function ClientMetrics({ clientId }: { clientId: string }) {
                     onChange={(e) => setValori({ ...valori, [c.chiave]: e.target.value })}
                     placeholder="—"
                     className="w-full px-3 py-2 rounded-lg bg-pw-surface border border-pw-border text-sm text-pw-text placeholder:text-pw-text-dim"
-                  />
+                  id={`metrica-${c.chiave}`} />
                 </div>
               ))}
             </div>
 
             <div>
-              <label className="block text-xs text-pw-text-dim mb-1">
+              <label htmlFor="nota-del-mese" className="block text-xs text-pw-text-dim mb-1">
                 Nota — cosa è successo quel mese (campagne, chiusure, un post andato bene)
               </label>
               <textarea
@@ -183,7 +183,7 @@ export function ClientMetrics({ clientId }: { clientId: string }) {
                 rows={2}
                 placeholder="Fra sei mesi nessuno ricorderà perché quel mese spicca"
                 className="w-full px-3 py-2 rounded-lg bg-pw-surface border border-pw-border text-sm text-pw-text placeholder:text-pw-text-dim"
-              />
+              id="nota-del-mese" />
             </div>
 
             <div className="flex gap-2 justify-end">

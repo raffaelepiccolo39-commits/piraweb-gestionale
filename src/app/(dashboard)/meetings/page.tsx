@@ -351,7 +351,7 @@ export default function MeetingsPage() {
                     placeholder="Scrivi le note del meeting..."
                     rows={6}
                     className="w-full px-4 py-3 rounded-xl border border-pw-border bg-pw-surface-2 text-pw-text text-sm focus:ring-2 focus:ring-pw-accent/30 outline-none resize-none"
-                  />
+                  aria-label="Scrivi le note del meeting" />
                   <Button size="sm" className="mt-2" onClick={handleSaveNotes}>
                     Salva Note
                   </Button>
@@ -412,7 +412,7 @@ export default function MeetingsPage() {
                       onKeyDown={(e) => e.key === 'Enter' && handleAddAction()}
                       placeholder="Aggiungi action item..."
                       className="flex-1 px-3 py-2 rounded-lg border border-pw-border bg-pw-surface-2 text-pw-text text-sm focus:ring-2 focus:ring-pw-accent/30 outline-none"
-                    />
+                    aria-label="Aggiungi action item" />
                     <Button
                       size="sm"
                       onClick={handleAddAction}

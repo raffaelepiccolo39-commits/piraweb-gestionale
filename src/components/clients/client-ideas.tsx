@@ -136,7 +136,7 @@ export function ClientIdeas({ clientId }: { clientId: string }) {
             rows={2}
             placeholder="Proponi un'idea al cliente…"
             className="w-full bg-transparent text-sm text-pw-text placeholder:text-pw-text-dim resize-none focus:outline-none"
-          />
+          aria-label="Proponi un'idea al cliente" />
           <div className="flex justify-end pt-2">
             <Button size="sm" variant="soft" loading={invio} onClick={proponi} disabled={!nuova.trim()}>
               <Send size={13} /> Proponi
@@ -184,7 +184,7 @@ export function ClientIdeas({ clientId }: { clientId: string }) {
                         autoFocus
                         placeholder="Cosa ne pensiamo — lo legge il cliente"
                         className="w-full px-2.5 py-2 rounded-lg bg-pw-surface border border-pw-border text-sm text-pw-text placeholder:text-pw-text-dim resize-none"
-                      />
+                      aria-label="Cosa ne pensiamo — lo legge il cliente" />
                       <div className="flex flex-wrap gap-1.5 justify-end">
                         <Button size="sm" variant="ghost" onClick={() => { setInRisposta(null); setRisposta(''); }}>
                           Annulla

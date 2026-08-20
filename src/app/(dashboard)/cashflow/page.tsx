@@ -382,7 +382,7 @@ export default function CashflowPage() {
                 value={selectedMonth}
                 onChange={(e) => setSelectedMonth(Number(e.target.value))}
                 className="text-sm px-3 py-2 rounded-xl border border-pw-border bg-pw-surface-2 text-pw-text"
-              >
+              aria-label="Mese">
                 {MONTHS_IT.map((m, i) => (
                   <option key={i} value={i}>{m}</option>
                 ))}
@@ -391,7 +391,7 @@ export default function CashflowPage() {
                 value={selectedYear}
                 onChange={(e) => setSelectedYear(Number(e.target.value))}
                 className="text-sm px-3 py-2 rounded-xl border border-pw-border bg-pw-surface-2 text-pw-text"
-              >
+              aria-label="Anno">
                 {[now.getFullYear() - 2, now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1].map((y) => (
                   <option key={y} value={y}>{y}</option>
                 ))}
@@ -405,7 +405,7 @@ export default function CashflowPage() {
                 value={selectedMonth < 6 ? '1' : '2'}
                 onChange={(e) => setSelectedMonth(e.target.value === '1' ? 0 : 6)}
                 className="text-sm px-3 py-2 rounded-xl border border-pw-border bg-pw-surface-2 text-pw-text"
-              >
+              aria-label="Semestre">
                 <option value="1">Gennaio - Giugno</option>
                 <option value="2">Luglio - Dicembre</option>
               </select>
@@ -413,7 +413,7 @@ export default function CashflowPage() {
                 value={selectedYear}
                 onChange={(e) => setSelectedYear(Number(e.target.value))}
                 className="text-sm px-3 py-2 rounded-xl border border-pw-border bg-pw-surface-2 text-pw-text"
-              >
+              aria-label="Anno">
                 {[now.getFullYear() - 2, now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1].map((y) => (
                   <option key={y} value={y}>{y}</option>
                 ))}
@@ -426,7 +426,7 @@ export default function CashflowPage() {
               value={selectedYear}
               onChange={(e) => setSelectedYear(Number(e.target.value))}
               className="text-sm px-3 py-2 rounded-xl border border-pw-border bg-pw-surface-2 text-pw-text"
-            >
+            aria-label="Anno">
               {[now.getFullYear() - 2, now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1].map((y) => (
                 <option key={y} value={y}>{y}</option>
               ))}
@@ -436,22 +436,22 @@ export default function CashflowPage() {
           {period === 'custom' && (
             <>
               <div className="flex items-center gap-2">
-                <label className="text-sm text-pw-text-muted">Da</label>
+                <label htmlFor="campo-da" className="text-sm text-pw-text-muted">Da</label>
                 <input
                   type="date"
                   value={customStart}
                   onChange={(e) => setCustomStart(e.target.value)}
                   className="text-sm px-3 py-2 rounded-xl border border-pw-border bg-pw-surface-2 text-pw-text"
-                />
+                id="campo-da" />
               </div>
               <div className="flex items-center gap-2">
-                <label className="text-sm text-pw-text-muted">A</label>
+                <label htmlFor="campo-a" className="text-sm text-pw-text-muted">A</label>
                 <input
                   type="date"
                   value={customEnd}
                   onChange={(e) => setCustomEnd(e.target.value)}
                   className="text-sm px-3 py-2 rounded-xl border border-pw-border bg-pw-surface-2 text-pw-text"
-                />
+                id="campo-a" />
               </div>
             </>
           )}

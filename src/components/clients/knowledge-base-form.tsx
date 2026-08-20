@@ -57,7 +57,7 @@ export function KnowledgeBaseForm({ data, onSave }: KnowledgeBaseFormProps) {
 
       {FIELDS.map((field) => (
         <div key={field.key}>
-          <label className="block text-[11px] uppercase tracking-[0.08em] font-medium text-pw-text-muted mb-1.5">
+          <label htmlFor={`kb-${field.key}`} className="block text-[11px] uppercase tracking-[0.08em] font-medium text-pw-text-muted mb-1.5">
             {field.label}
           </label>
           <textarea
@@ -66,7 +66,7 @@ export function KnowledgeBaseForm({ data, onSave }: KnowledgeBaseFormProps) {
             placeholder={field.placeholder}
             rows={field.rows}
             className="w-full px-4 py-2.5 rounded-xl border border-pw-border bg-pw-surface-2 text-pw-text placeholder:text-pw-text-dim focus:ring-2 focus:ring-pw-accent/30 focus:border-pw-accent/50 outline-none transition-all text-sm resize-y"
-          />
+          id={`kb-${field.key}`} />
         </div>
       ))}
 

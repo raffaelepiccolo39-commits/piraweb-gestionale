@@ -143,7 +143,7 @@ export default function OnboardingWizard(props: Props) {
                 <p className="text-sm text-pw-text-muted">Scegli una password sicura. Sarà l&apos;unica con cui accederai.</p>
               </div>
               <div>
-                <label className="block text-sm font-medium text-pw-text mb-1">Nuova password</label>
+                <label htmlFor="nuova-password" className="block text-sm font-medium text-pw-text mb-1">Nuova password</label>
                 <div className="relative">
                   <input
                     type={showPw ? 'text' : 'password'}
@@ -153,7 +153,7 @@ export default function OnboardingWizard(props: Props) {
                     autoComplete="new-password"
                     required
                     minLength={8}
-                  />
+                  id="nuova-password" />
                   <button
                 type="button"
                 aria-label={showPw ? 'Nascondi la password' : 'Mostra la password'}
@@ -172,7 +172,7 @@ export default function OnboardingWizard(props: Props) {
                 )}
               </div>
               <div>
-                <label className="block text-sm font-medium text-pw-text mb-1">Conferma password</label>
+                <label htmlFor="conferma-password" className="block text-sm font-medium text-pw-text mb-1">Conferma password</label>
                 <input
                   type={showPw ? 'text' : 'password'}
                   value={pwConfirm}
@@ -180,7 +180,7 @@ export default function OnboardingWizard(props: Props) {
                   className="w-full px-3 py-2 bg-pw-bg border border-pw-border rounded-lg text-pw-text focus:outline-none focus:ring-2 focus:ring-pw-accent"
                   autoComplete="new-password"
                   required
-                />
+                id="conferma-password" />
               </div>
               {pwError && <p className="text-sm text-red-500">{pwError}</p>}
               <button
@@ -200,24 +200,24 @@ export default function OnboardingWizard(props: Props) {
                 <p className="text-sm text-pw-text-muted">Verifica nome e (opzionale) URL della tua foto profilo.</p>
               </div>
               <div>
-                <label className="block text-sm font-medium text-pw-text mb-1">Nome completo</label>
+                <label htmlFor="nome-completo" className="block text-sm font-medium text-pw-text mb-1">Nome completo</label>
                 <input
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   className="w-full px-3 py-2 bg-pw-bg border border-pw-border rounded-lg text-pw-text focus:outline-none focus:ring-2 focus:ring-pw-accent"
                   required
-                />
+                id="nome-completo" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-pw-text mb-1">URL foto profilo <span className="text-pw-text-muted font-normal">(opzionale)</span></label>
+                <label htmlFor="url-foto-profilo-opzionale" className="block text-sm font-medium text-pw-text mb-1">URL foto profilo <span className="text-pw-text-muted font-normal">(opzionale)</span></label>
                 <input
                   type="url"
                   value={avatar}
                   onChange={(e) => setAvatar(e.target.value)}
                   placeholder="https://..."
                   className="w-full px-3 py-2 bg-pw-bg border border-pw-border rounded-lg text-pw-text focus:outline-none focus:ring-2 focus:ring-pw-accent"
-                />
+                id="url-foto-profilo-opzionale" />
                 {avatar && (
                   <div className="mt-2 flex items-center gap-3">
                     <Image src={avatar} alt="preview" width={48} height={48} className="rounded-full object-cover" unoptimized />

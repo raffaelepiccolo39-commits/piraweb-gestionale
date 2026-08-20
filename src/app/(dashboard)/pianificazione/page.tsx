@@ -292,7 +292,7 @@ export default function PianificazionePage() {
           value={date}
           onChange={(e) => setDate(e.target.value)}
           className="px-3 py-1.5 rounded-lg border border-pw-border bg-pw-surface-2 text-pw-text text-sm outline-none focus:ring-2 focus:ring-pw-accent/30"
-        />
+        aria-label="Giorno da pianificare" />
         <button onClick={() => shiftDate(1)} className="p-1.5 rounded-lg border border-pw-border text-pw-text-muted hover:text-pw-text hover:bg-pw-surface-2 transition-colors" aria-label="Giorno successivo">
           <ChevronRight size={16} />
         </button>

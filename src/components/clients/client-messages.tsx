@@ -176,7 +176,7 @@ export function ClientMessages({ clientId }: { clientId: string }) {
             rows={2}
             placeholder="Rispondi al cliente…"
             className="flex-1 px-3 py-2 rounded-lg bg-pw-surface border border-pw-border text-sm text-pw-text placeholder:text-pw-text-dim resize-none"
-          />
+          aria-label="Rispondi al cliente" />
           <button
             onClick={invia}
             disabled={invio || !testo.trim()}

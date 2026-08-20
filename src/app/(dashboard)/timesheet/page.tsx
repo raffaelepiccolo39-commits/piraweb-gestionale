@@ -324,7 +324,7 @@ export default function TimesheetPage() {
             value={filterMember}
             onChange={(e) => setFilterMember(e.target.value)}
             className="px-3 py-1.5 rounded-md border border-pw-border bg-pw-surface text-pw-text text-xs"
-          >
+          aria-label="Filtra per membro del team">
             <option value="">Tutto il team</option>
             {allProfiles.map((p) => (
               <option key={p.id} value={p.id}>{p.full_name}</option>

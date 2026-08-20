@@ -279,7 +279,7 @@ export function AssegnaMedia({ clients }: { clients: Client[] }) {
                   autoFocus
                   placeholder="https://drive.google.com/..."
                   className="flex-1 px-3 py-2 rounded-lg bg-pw-surface border border-pw-border text-sm text-pw-text placeholder:text-pw-text-dim"
-                />
+                aria-label="Link al file" />
                 <Button size="sm" variant="primary" onClick={() => allegaLink(p)}>Collega</Button>
               </div>
             </div>
@@ -302,7 +302,7 @@ export function AssegnaMedia({ clients }: { clients: Client[] }) {
             const post = posts.find((p) => p.id === attivo);
             if (post && e.target.files?.length) allega(post, e.target.files);
           }}
-        />
+        aria-label="Scegli un file dal dispositivo" />
       </Modal>
     </>
   );

@@ -115,7 +115,7 @@ export function RichTextEditor({ value, onChange, placeholder }: RichTextEditorP
           onChange={(e) => setHeading(e.target.value)}
           className="h-8 rounded-lg border border-pw-border bg-pw-surface text-pw-text text-xs px-2 mr-1 outline-none focus:border-pw-accent/50 cursor-pointer"
           title="Stile testo"
-        >
+        aria-label="Formato del testo">
           {HEADING_OPTIONS.map((o) => (
             <option key={o.value} value={o.value}>{o.label}</option>
           ))}

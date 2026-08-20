@@ -278,7 +278,7 @@ export default function PortaleMessaggiPage() {
               t.style.height = 'auto';
               t.style.height = `${Math.min(t.scrollHeight, 128)}px`;
             }}
-          />
+          aria-label="Scrivi un messaggio" />
 
           <button
             onClick={invia}

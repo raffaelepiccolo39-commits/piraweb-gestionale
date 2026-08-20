@@ -198,7 +198,7 @@ export function MaterialiLista({ soloTipo }: { soloTipo?: Tipo }) {
                             autoFocus
                             placeholder="Cosa vorresti cambiare?"
                             className="w-full px-3 py-2 rounded-lg bg-pw-surface-2 border border-pw-border text-sm text-pw-text placeholder:text-pw-text-dim"
-                          />
+                          aria-label="Cosa vorresti cambiare?" />
                           <div className="flex gap-2 justify-end">
                             <button onClick={() => { setChiedeModifiche(null); setCommento(''); }} className="px-3 py-1.5 text-sm text-pw-text-muted">
                               Annulla

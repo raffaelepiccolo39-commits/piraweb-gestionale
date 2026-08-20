@@ -195,7 +195,7 @@ export default function ReportPresenzePage() {
               value={selectedMonth}
               onChange={(e) => setSelectedMonth(Number(e.target.value))}
               className="text-sm px-3 py-2 rounded-xl border border-pw-border bg-pw-surface-2 text-pw-text"
-            >
+            aria-label="Mese">
               {MONTHS_IT.map((m, i) => (
                 <option key={i} value={i + 1}>{m}</option>
               ))}
@@ -204,7 +204,7 @@ export default function ReportPresenzePage() {
               value={selectedYear}
               onChange={(e) => setSelectedYear(Number(e.target.value))}
               className="text-sm px-3 py-2 rounded-xl border border-pw-border bg-pw-surface-2 text-pw-text"
-            >
+            aria-label="Anno">
               {[now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1].map((y) => (
                 <option key={y} value={y}>{y}</option>
               ))}
@@ -216,7 +216,7 @@ export default function ReportPresenzePage() {
           value={selectedUserId}
           onChange={(e) => setSelectedUserId(e.target.value)}
           className="text-sm px-3 py-2 rounded-xl border border-pw-border bg-pw-surface-2 text-pw-text"
-        >
+        aria-label="Persona">
           <option value="">Tutti i collaboratori</option>
           {employees.map((e) => (
             <option key={e.id} value={e.id}>{e.full_name}</option>

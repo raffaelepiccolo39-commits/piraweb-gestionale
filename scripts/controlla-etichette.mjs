@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 /**
- * Bottoni con la sola icona e nessun nome.
+ * Due controlli sui nomi accessibili: i bottoni e i campi dei moduli.
+ *
+ * ── 1. Bottoni con la sola icona e nessun nome.
  *
  * Un bottone che mostra solo un'icona non ha nome accessibile: chi usa
  * VoiceOver lo sente annunciare come "pulsante", e basta. Nel gestionale
@@ -16,6 +18,17 @@
  * un bottone conta come "con nome" se ha testo diretto, una stringa dentro
  * un'espressione, oppure un'espressione che finisce in label/title/text/nome.
  * Se un giorno sbaglia, meglio allargarla che spegnere il controllo.
+ *
+ * ── 2. Campi di modulo senza nome (input, select, textarea).
+ *
+ * Un campo senza <label> collegata e senza aria-label viene annunciato come
+ * "casella di testo" e nient'altro: in un modulo di sei campi non si capisce
+ * a quale si e' arrivati. Il segnaposto NON basta — sparisce appena scrivi.
+ *
+ * Un campo conta come a posto se: ha aria-label o aria-labelledby, oppure
+ * ha un id a cui punta una <label htmlFor> (anche calcolato, tipo
+ * id={`kb-${field.key}`}), oppure sta dentro una <label>. I type="hidden"
+ * non si contano: non li vede nessuno, per definizione.
  *
  *   node scripts/controlla-etichette.mjs        elenca
  *   node scripts/controlla-etichette.mjs --ci   esce con 1 se trova qualcosa
@@ -128,14 +141,51 @@ for (const radice of RADICI) {
   }
 }
 
+// ── 2. Campi di modulo senza nome ───────────────────────────
+const campiNudi = [];
+for (const radice of RADICI) {
+  for (const p of file(radice)) {
+    const s = readFileSync(p, 'utf8');
+    // sia htmlFor="x" sia htmlFor={x} sia htmlFor={`x-${y}`}
+    const bersagli = new Set([...s.matchAll(/htmlFor=(?:"([^"]+)"|\{([^}]+)\})/g)]
+      .map((m) => (m[1] ?? m[2]).trim()));
+    for (const tag of ['input', 'textarea', 'select']) {
+      for (const m of s.matchAll(new RegExp(`<${tag}\\b`, 'g'))) {
+        const fine = fineApertura(s, m.index);
+        if (fine === -1) continue;
+        const attr = s.slice(m.index, fine);
+        if (/type=["']hidden["']/.test(attr)) continue;
+        if (/aria-label(?:ledby)?=/.test(attr)) continue;
+
+        const id = attr.match(/\bid="([^"]+)"/)?.[1] ?? attr.match(/\bid=\{([^}]+)\}/)?.[1]?.trim();
+        if (id && bersagli.has(id)) continue;
+
+        // avvolto in <label> ... </label>?
+        const apre = s.lastIndexOf('<label', m.index);
+        if (apre >= 0 && s.indexOf('</label>', apre) > m.index) continue;
+
+        campiNudi.push({ file: p, riga: s.slice(0, m.index).split('\n').length, tag });
+      }
+    }
+  }
+}
+
 // Il componente Button stesso: lo spinner interno non è un bottone dell'app.
 const veri = trovati.filter((t) => !t.file.endsWith('ui/button.tsx'));
 
-if (veri.length === 0) {
-  console.log('ok   nessun bottone a sola icona senza nome accessibile');
-  process.exit(0);
+if (veri.length === 0) console.log('ok   nessun bottone a sola icona senza nome accessibile');
+else {
+  console.log(`KO   ${veri.length} bottoni mostrano solo un'icona e non hanno nome:\n`);
+  for (const t of veri) console.log(`  ${t.file}:${t.riga}   <${t.icona} />`);
+  console.log('\nAggiungi aria-label e title con la stessa parola che useresti a voce.');
 }
-console.log(`KO   ${veri.length} bottoni mostrano solo un'icona e non hanno nome:\n`);
-for (const t of veri) console.log(`  ${t.file}:${t.riga}   <${t.icona} />`);
-console.log('\nAggiungi aria-label e title con la stessa parola che useresti a voce.');
-process.exit(process.argv.includes('--ci') ? 1 : 0);
+
+if (campiNudi.length === 0) console.log('ok   nessun campo di modulo senza nome accessibile');
+else {
+  console.log(`\nKO   ${campiNudi.length} campi di modulo non hanno nome:\n`);
+  for (const c of campiNudi) console.log(`  ${c.file}:${c.riga}   <${c.tag}>`);
+  console.log('\nCollega la <label> con htmlFor/id, oppure aggiungi aria-label.');
+}
+
+const guasti = veri.length + campiNudi.length;
+process.exit(guasti && process.argv.includes('--ci') ? 1 : 0);

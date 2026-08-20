@@ -367,7 +367,7 @@ export default function PerformancePage() {
                         value={o.progress}
                         onChange={(e) => handleProgressChange(o.id, Number(e.target.value))}
                         className="flex-1 accent-pw-accent"
-                      />
+                      aria-label={`Avanzamento di ${o.title}`} />
                       <span className="text-sm font-semibold text-pw-text tabular-nums w-12 text-right">{o.progress}%</span>
                       <Select
                         value={o.status}
@@ -551,9 +551,9 @@ export default function PerformancePage() {
         <div className="space-y-4">
           <Input id="obj-title" label="Titolo" value={objForm.title} onChange={(e) => setObjForm(f => ({ ...f, title: e.target.value }))} placeholder="es. Portare 3 nuovi clienti SEO" />
           <div>
-            <label className="block text-[11px] uppercase tracking-[0.08em] font-medium text-pw-text-muted mb-1.5">Descrizione (opzionale)</label>
+            <label htmlFor="descrizione-opzionale" className="block text-[11px] uppercase tracking-[0.08em] font-medium text-pw-text-muted mb-1.5">Descrizione (opzionale)</label>
             <textarea value={objForm.description} onChange={(e) => setObjForm(f => ({ ...f, description: e.target.value }))} rows={3}
-              className="w-full px-4 py-2.5 rounded-xl border border-pw-border bg-pw-surface-2 text-pw-text placeholder:text-pw-text-dim focus:ring-2 focus:ring-pw-accent/30 focus:border-pw-accent/50 outline-none transition-all duration-200 text-sm resize-none" />
+              className="w-full px-4 py-2.5 rounded-xl border border-pw-border bg-pw-surface-2 text-pw-text placeholder:text-pw-text-dim focus:ring-2 focus:ring-pw-accent/30 focus:border-pw-accent/50 outline-none transition-all duration-200 text-sm resize-none" id="descrizione-opzionale" />
           </div>
           {isAdmin && (
             <Select id="obj-target" label="Per dipendente"
@@ -579,11 +579,11 @@ export default function PerformancePage() {
           <Input id="rev-date" type="date" label="Data incontro" value={reviewForm.conducted_on} onChange={(e) => setReviewForm(r => ({ ...r, conducted_on: e.target.value }))} />
           {(['what_works', 'what_to_improve', 'next_focus', 'notes'] as const).map((field) => (
             <div key={field}>
-              <label className="block text-[11px] uppercase tracking-[0.08em] font-medium text-pw-text-muted mb-1.5">
+              <label htmlFor={`rev-${field}`} className="block text-[11px] uppercase tracking-[0.08em] font-medium text-pw-text-muted mb-1.5">
                 {field === 'what_works' ? 'Cosa funziona' : field === 'what_to_improve' ? 'Cosa migliorare' : field === 'next_focus' ? 'Obiettivi prossimi' : 'Note'}
               </label>
               <textarea value={reviewForm[field]} onChange={(e) => setReviewForm(r => ({ ...r, [field]: e.target.value }))} rows={2}
-                className="w-full px-4 py-2.5 rounded-xl border border-pw-border bg-pw-surface-2 text-pw-text placeholder:text-pw-text-dim focus:ring-2 focus:ring-pw-accent/30 focus:border-pw-accent/50 outline-none transition-all duration-200 text-sm resize-none" />
+                className="w-full px-4 py-2.5 rounded-xl border border-pw-border bg-pw-surface-2 text-pw-text placeholder:text-pw-text-dim focus:ring-2 focus:ring-pw-accent/30 focus:border-pw-accent/50 outline-none transition-all duration-200 text-sm resize-none" id={`rev-${field}`} />
             </div>
           ))}
           <label className="flex items-center gap-2 text-sm text-pw-text cursor-pointer">
@@ -610,10 +610,10 @@ export default function PerformancePage() {
               { value: 'suggestion', label: 'Suggerimento' },
             ]} />
           <div>
-            <label className="block text-[11px] uppercase tracking-[0.08em] font-medium text-pw-text-muted mb-1.5">Messaggio</label>
+            <label htmlFor="messaggio" className="block text-[11px] uppercase tracking-[0.08em] font-medium text-pw-text-muted mb-1.5">Messaggio</label>
             <textarea value={feedbackForm.message} onChange={(e) => setFeedbackForm(f => ({ ...f, message: e.target.value }))} rows={4}
               placeholder="Scrivi qualcosa di concreto e onesto…"
-              className="w-full px-4 py-2.5 rounded-xl border border-pw-border bg-pw-surface-2 text-pw-text placeholder:text-pw-text-dim focus:ring-2 focus:ring-pw-accent/30 focus:border-pw-accent/50 outline-none transition-all duration-200 text-sm resize-none" />
+              className="w-full px-4 py-2.5 rounded-xl border border-pw-border bg-pw-surface-2 text-pw-text placeholder:text-pw-text-dim focus:ring-2 focus:ring-pw-accent/30 focus:border-pw-accent/50 outline-none transition-all duration-200 text-sm resize-none" id="messaggio" />
           </div>
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => setShowFeedbackModal(false)} className="flex-1">Annulla</Button>
