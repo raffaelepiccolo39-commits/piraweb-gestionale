@@ -36,6 +36,7 @@ import {
   FileText,
 } from 'lucide-react';
 import { reportUnknown, reportSupabaseError } from '@/lib/report-error';
+import { ErrorState } from '@/components/ui/error-state';
 
 function ScoreDot({ score, label }: { score: number; label: string }) {
   const color = score >= 70 ? 'bg-green-500 shadow-green-500/40' :
@@ -87,16 +88,25 @@ export default function LeadFinderPage() {
   const [reportContent, setReportContent] = useState<string | null>(null);
   const [generatingReport, setGeneratingReport] = useState<string | null>(null);
   const [tab, setTab] = useState<'search' | 'saved'>('search');
+  const [erroreProspect, setErroreProspect] = useState<string | null>(null);
 
   const fetchProspects = useCallback(async () => {
     // Limit a 300 prospect: select('*') include analysis_notes/outreach_message
     // che possono essere KB di markdown — senza limit la pagina diventava
     // gonfia e lenta non appena si superavano qualche centinaio di righe.
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('lead_prospects')
       .select('*')
       .order('created_at', { ascending: false })
       .limit(300);
+    if (error) {
+      // Il contatore nel tab ("Salvati (0)") mentirebbe: sembra che non ci
+      // sia niente salvato, mentre è la lettura ad essere fallita.
+      reportSupabaseError(error, 'lead-finder-prospects');
+      setErroreProspect(error.message);
+      return;
+    }
+    setErroreProspect(null);
     setProspects((data as LeadProspect[]) || []);
   }, [supabase]);
 
@@ -608,7 +618,15 @@ export default function LeadFinderPage() {
         </>
       )}
 
-      {tab === 'saved' && (
+      {tab === 'saved' && erroreProspect && (
+        <ErrorState
+          titolo="Non è stato possibile leggere i prospect salvati"
+          dettaglio={erroreProspect}
+          onRiprova={() => { setErroreProspect(null); void fetchProspects(); }}
+        />
+      )}
+
+      {tab === 'saved' && !erroreProspect && (
         <>
           {/* Alert for low-score prospects */}
           {lowScoreProspects.length > 0 && (

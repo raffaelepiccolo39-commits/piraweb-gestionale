@@ -2,7 +2,8 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { reportUnknown } from '@/lib/report-error';
+import { reportUnknown, reportSupabaseError } from '@/lib/report-error';
+import { ErrorState } from '@/components/ui/error-state';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/components/ui/toast';
 import { Button } from '@/components/ui/button';
@@ -46,6 +47,7 @@ export default function AutomationsPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [logs, setLogs] = useState<AutomationLog[]>([]);
   const [loading, setLoading] = useState(true);
+  const [errore, setErrore] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
@@ -55,7 +57,15 @@ export default function AutomationsPage() {
   });
 
   const fetchAutomations = useCallback(async () => {
-    const { data } = await supabase.from('automations').select('*').order('created_at', { ascending: false });
+    // Senza questo, una lettura fallita mostrava "nessuna automazione":
+    // indistinguibile da "non ne hai create". Vedi ErrorState.
+    const { data, error } = await supabase.from('automations').select('*').order('created_at', { ascending: false });
+    if (error) {
+      reportSupabaseError(error, 'automations-fetch');
+      setErrore(error.message);
+      return;
+    }
+    setErrore(null);
     setAutomations((data as Automation[]) || []);
   }, [supabase]);
 
@@ -141,6 +151,18 @@ export default function AutomationsPage() {
     return (
       <div className="space-y-6 animate-slide-up">
         <SkeletonList variant="card" count={4} />
+      </div>
+    );
+  }
+
+  if (errore) {
+    return (
+      <div className="space-y-6 animate-slide-up">
+        <ErrorState
+          titolo="Non è stato possibile leggere le automazioni"
+          dettaglio={errore}
+          onRiprova={() => { setLoading(true); setErrore(null); fetchAutomations().finally(() => setLoading(false)); }}
+        />
       </div>
     );
   }

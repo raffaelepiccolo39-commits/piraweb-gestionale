@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
-import { PageHeader } from '@/components/ui/page-header';
+import { PageHeader, PaginaIncorporata } from '@/components/ui/page-header';
 import { Target, Crown, Calculator, Euro } from 'lucide-react';
 
 // Import delle pagine esistenti
@@ -54,7 +54,7 @@ function GestioneContent() {
       {/* Header */}
       <PageHeader
         title="Gestione"
-        subtitle="CRM, direzione, finanze e lead generation"
+        subtitle="CRM, direzione, finanze e cashflow"
       />
 
       {/* Tab bar — scrollable */}
@@ -79,19 +79,30 @@ function GestioneContent() {
         })}
       </div>
 
-      {/* Tab content */}
-      <div>
+      {/* Tab content — PaginaIncorporata spegne il titolo di ogni pagina
+          figlia e tiene i suoi comandi: l'intestazione qui sopra è una sola. */}
+      <PaginaIncorporata>
         {activeTab === 'crm' && <CRMPage />}
         {activeTab === 'direzione' && <DirectionPage />}
         {activeTab === 'cfo' && <CFOPage />}
         {activeTab === 'profitto' && (
-          <div className="space-y-8">
-            <CapacityPage />
-            <ProfitabilityPage />
+          <div className="space-y-10">
+            {/* Due pagine in un tab solo: senza un titolo per ciascuna le
+                due tabelle si toccherebbero senza dire dove finisce l'una. */}
+            <section>
+              <h2 className="font-[var(--font-syne)] text-[19px] font-semibold text-pw-text mb-1">Capacità del team</h2>
+              <p className="text-[13px] text-pw-text-muted mb-5">Quanto è carico ciascuno, e quante ore restano</p>
+              <CapacityPage />
+            </section>
+            <section>
+              <h2 className="font-[var(--font-syne)] text-[19px] font-semibold text-pw-text mb-1">Profitto per progetto</h2>
+              <p className="text-[13px] text-pw-text-muted mb-5">Quanto rendono quelle ore, al costo reale dei dipendenti</p>
+              <ProfitabilityPage />
+            </section>
           </div>
         )}
         {activeTab === 'cashflow' && <CashflowPage />}
-      </div>
+      </PaginaIncorporata>
     </div>
   );
 }

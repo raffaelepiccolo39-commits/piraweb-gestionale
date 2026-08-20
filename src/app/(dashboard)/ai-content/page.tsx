@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { reportUnknown } from '@/lib/report-error';
+import { reportUnknown, reportSupabaseError } from '@/lib/report-error';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/components/ui/toast';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -12,6 +12,7 @@ import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/ui/empty-state';
+import { ErrorState } from '@/components/ui/error-state';
 import { PageHeader } from '@/components/ui/page-header';
 import type { CreativeBrief } from '@/types/database';
 import {
@@ -97,6 +98,7 @@ export default function AiContentPage() {
   const [saving, setSaving] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
   const [result, setResult] = useState<GenerationResponse | null>(null);
+  const [erroreBrief, setErroreBrief] = useState<string | null>(null);
 
   const [manualForm, setManualForm] = useState({
     title: '',
@@ -108,10 +110,18 @@ export default function AiContentPage() {
   });
 
   const fetchBriefs = useCallback(async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('creative_briefs')
       .select('*, client:clients(id, name, company)')
       .order('created_at', { ascending: false });
+    if (error) {
+      // Senza brief la tendina resta vuota e "Genera" non parte: sembra un
+      // bug del bottone, mentre è la lettura dei brief ad essere fallita.
+      reportSupabaseError(error, 'ai-content-briefs');
+      setErroreBrief(error.message);
+      return;
+    }
+    setErroreBrief(null);
     if (data) setBriefs(data as CreativeBrief[]);
   }, [supabase]);
 
@@ -332,6 +342,15 @@ export default function AiContentPage() {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
+          {inputMode === 'brief' && erroreBrief && (
+            <ErrorState
+              variant="banner"
+              className="mb-4"
+              titolo="Non è stato possibile leggere i brief"
+              dettaglio={erroreBrief}
+              onRiprova={() => { setErroreBrief(null); void fetchBriefs(); }}
+            />
+          )}
           {inputMode === 'brief' ? (
             <Select
               id="brief-select"

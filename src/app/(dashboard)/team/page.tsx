@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
-import { PageHeader } from '@/components/ui/page-header';
+import { PageHeader, PaginaIncorporata } from '@/components/ui/page-header';
 import { MessageSquare, CalendarClock, Clock, Timer, BarChart3, Target } from 'lucide-react';
 
 // Import delle pagine esistenti.
@@ -47,8 +47,8 @@ function TeamContent() {
     <div className="space-y-6 animate-slide-up">
       {/* Header */}
       <PageHeader
-        title="Team"
-        subtitle="Bacheca, meeting, presenze e strumenti di team"
+        title="Bacheca team"
+        subtitle="Task, pianificazione, presenze e rendimento"
       />
 
       {/* Tab bar */}
@@ -75,12 +75,14 @@ function TeamContent() {
 
       {/* Tab content */}
       <div>
-        {activeTab === 'bacheca' && <BachecaPage />}
-        {activeTab === 'pianificazione' && <PianificazionePage />}
-        {activeTab === 'presenze' && <PresenzePage />}
-        {activeTab === 'timesheet' && isAdmin && <TimesheetPage />}
-        {activeTab === 'capacity' && isAdmin && <CapacityPage />}
-        {activeTab === 'rendimento' && isAdmin && <RendimentoPage />}
+        <PaginaIncorporata>
+          {activeTab === 'bacheca' && <BachecaPage />}
+          {activeTab === 'pianificazione' && <PianificazionePage />}
+          {activeTab === 'presenze' && <PresenzePage />}
+          {activeTab === 'timesheet' && isAdmin && <TimesheetPage />}
+          {activeTab === 'capacity' && isAdmin && <CapacityPage />}
+          {activeTab === 'rendimento' && isAdmin && <RendimentoPage />}
+        </PaginaIncorporata>
       </div>
     </div>
   );

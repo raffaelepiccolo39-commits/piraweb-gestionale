@@ -31,6 +31,7 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { reportUnknown, reportSupabaseError } from '@/lib/report-error';
+import { ErrorState } from '@/components/ui/error-state';
 
 const statusLabels: Record<string, string> = {
   draft: 'Bozza',
@@ -59,11 +60,12 @@ function ProjectDetailPageInner() {
   const [deleteImpact, setDeleteImpact] = useState<{ tasks: number; entries: number; hours: number } | null>(null);
   const [deletingProject, setDeletingProject] = useState(false);
   const [filterMember, setFilterMember] = useState('');
+  const [erroreProgetto, setErroreProgetto] = useState<string | null>(null);
 
   const isAdmin = profile?.role === 'admin';
 
   const fetchProject = useCallback(async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('projects')
       .select(`
         *,
@@ -75,6 +77,15 @@ function ProjectDetailPageInner() {
       `)
       .eq('id', id)
       .single();
+    // "Progetto non trovato" e "non sono riuscito a leggerlo" sono due cose
+    // diverse, e prima dicevamo la prima anche quando era vera la seconda.
+    // PGRST116 è la riga che davvero non esiste: quello sì è "non trovato".
+    if (error && error.code !== 'PGRST116') {
+      reportSupabaseError(error, 'project-fetch', { projectId: id });
+      setErroreProgetto(error.message);
+      return;
+    }
+    setErroreProgetto(null);
     setProject(data as Project | null);
   }, [supabase, id]);
 
@@ -233,6 +244,18 @@ function ProjectDetailPageInner() {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="w-8 h-8 border-4 border-pw-accent border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (erroreProgetto) {
+    return (
+      <div className="py-6">
+        <ErrorState
+          titolo="Non è stato possibile caricare il progetto"
+          dettaglio={erroreProgetto}
+          onRiprova={() => { setErroreProgetto(null); setLoading(true); void fetchProject(); void fetchTasks(); }}
+        />
       </div>
     );
   }
