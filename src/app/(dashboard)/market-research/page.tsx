@@ -160,8 +160,8 @@ export default function MarketResearchPage() {
       {loading && (
         <div className="text-center py-12">
           <Loader2 size={32} className="text-pw-accent mx-auto mb-3 animate-spin" />
-          <p className="text-sm text-pw-text-muted">Analizzo il mercato "{sector}" a {city}...</p>
-          <p className="text-xs text-pw-text-dim mt-1">Cerco attivita', analizzo siti web, social e advertising</p>
+          <p className="text-sm text-pw-text-muted">Analizzo il mercato &quot;{sector}&quot; a {city}...</p>
+          <p className="text-xs text-pw-text-dim mt-1">Cerco attività, analizzo siti web, social e advertising</p>
         </div>
       )}
 
@@ -174,7 +174,7 @@ export default function MarketResearchPage() {
               <CardContent className="p-4 text-center">
                 <Users size={18} className="text-pw-accent mx-auto mb-1" />
                 <p className="text-2xl font-bold text-pw-text font-[var(--font-bebas)]">{data.stats.total}</p>
-                <p className="text-[10px] text-pw-text-muted">Attivita' trovate</p>
+                <p className="text-[10px] text-pw-text-muted">Attività trovate</p>
               </CardContent>
             </Card>
             <Card>
@@ -213,7 +213,7 @@ export default function MarketResearchPage() {
               <CardHeader>
                 <h2 className="text-sm font-semibold text-pw-text flex items-center gap-2">
                   <BarChart3 size={14} className="text-pw-accent" />
-                  Maturita' Digitale del Settore
+                  Maturità Digitale del Settore
                 </h2>
               </CardHeader>
               <CardContent className="space-y-3">
@@ -232,7 +232,7 @@ export default function MarketResearchPage() {
               <CardHeader>
                 <h2 className="text-sm font-semibold text-pw-text flex items-center gap-2">
                   <Target size={14} className="text-pw-accent" />
-                  Opportunita' per PiraWeb
+                  Opportunità per PiraWeb
                 </h2>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -240,7 +240,7 @@ export default function MarketResearchPage() {
                 <div className="p-3 rounded-xl bg-red-500/5 border border-red-500/15">
                   <div className="flex items-center justify-between mb-1">
                     <p className="text-xs font-semibold text-red-400">Senza sito web</p>
-                    <Badge className="bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300">{data.noWebsite.length} attivita'</Badge>
+                    <Badge className="bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300">{data.noWebsite.length} attività</Badge>
                   </div>
                   <div className="space-y-0.5">
                     {data.noWebsite.slice(0, 5).map((b, i) => (
@@ -256,7 +256,7 @@ export default function MarketResearchPage() {
                 <div className="p-3 rounded-xl bg-orange-500/5 border border-orange-500/15">
                   <div className="flex items-center justify-between mb-1">
                     <p className="text-xs font-semibold text-orange-400">Senza social media</p>
-                    <Badge className="bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300">{data.noSocial.length} attivita'</Badge>
+                    <Badge className="bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300">{data.noSocial.length} attività</Badge>
                   </div>
                   <div className="space-y-0.5">
                     {data.noSocial.slice(0, 5).map((b, i) => (
@@ -272,7 +272,7 @@ export default function MarketResearchPage() {
                 <div className="p-3 rounded-xl bg-yellow-500/5 border border-yellow-500/15">
                   <div className="flex items-center justify-between mb-1">
                     <p className="text-xs font-semibold text-yellow-400">Senza advertising</p>
-                    <Badge className="bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300">{data.noAds.length} attivita'</Badge>
+                    <Badge className="bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300">{data.noAds.length} attività</Badge>
                   </div>
                   <div className="space-y-0.5">
                     {data.noAds.slice(0, 5).map((b, i) => (
@@ -290,14 +290,14 @@ export default function MarketResearchPage() {
           {/* All businesses table */}
           <Card>
             <CardHeader>
-              <h2 className="text-sm font-semibold text-pw-text">Tutte le attivita' analizzate ({data.stats.total})</h2>
+              <h2 className="text-sm font-semibold text-pw-text">Tutte le attività analizzate ({data.stats.total})</h2>
             </CardHeader>
             <CardContent className="p-0">
               <div className="overflow-x-auto">
                 <table className="w-full text-xs">
                   <thead>
                     <tr className="border-b border-pw-border text-[10px] text-pw-text-dim">
-                      <th className="text-left px-4 py-2">Attivita'</th>
+                      <th className="text-left px-4 py-2">Attività</th>
                       <th className="text-center px-2 py-2">Rating</th>
                       <th className="text-center px-2 py-2">Sito</th>
                       <th className="text-center px-2 py-2">SSL</th>

@@ -142,7 +142,7 @@ export default function CapacityPage() {
         </CardContent></Card>
         <Card><CardContent className="p-3 text-center">
           <p className="text-xl font-bold text-pw-text">{Math.round(availableCapacity)}h</p>
-          <p className="text-[10px] text-pw-text-muted">Capacita' disponibile</p>
+          <p className="text-[10px] text-pw-text-muted">Capacità disponibile</p>
         </CardContent></Card>
       </div>
 
@@ -154,14 +154,14 @@ export default function CapacityPage() {
               <CheckCircle size={24} className="text-green-400 shrink-0" />
               <div>
                 <p className="text-sm font-semibold text-green-400">Possiamo acquisire nuovi clienti</p>
-                <p className="text-xs text-pw-text-muted">Il team ha ~{Math.round(availableCapacity)}h di capacita' residua questo mese. Stimando 40-60h/mese per cliente, c'e' spazio per {Math.floor(availableCapacity / 50)} nuovi clienti.</p>
+                <p className="text-xs text-pw-text-muted">Il team ha ~{Math.round(availableCapacity)}h di capacità residua questo mese. Stimando 40-60h/mese per cliente, c&apos;è spazio per {Math.floor(availableCapacity / 50)} nuovi clienti.</p>
               </div>
             </>
           ) : (
             <>
               <AlertTriangle size={24} className="text-orange-400 shrink-0" />
               <div>
-                <p className="text-sm font-semibold text-orange-400">Team vicino alla capacita' massima</p>
+                <p className="text-sm font-semibold text-orange-400">Team vicino alla capacità massima</p>
                 <p className="text-xs text-pw-text-muted">Solo {Math.round(availableCapacity)}h disponibili. Considera di assumere o delegare a freelancer prima di acquisire nuovi clienti.</p>
               </div>
             </>

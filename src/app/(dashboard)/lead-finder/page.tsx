@@ -361,13 +361,13 @@ export default function LeadFinderPage() {
                   onClick={() => setSearchMode('sector')}
                   className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ease-out ${searchMode === 'sector' ? 'bg-pw-accent text-[#0A263A]' : 'bg-pw-surface-2 text-pw-text-muted hover:text-pw-text'}`}
                 >
-                  Per settore + citta'
+                  Per settore + città
                 </button>
                 <button
                   onClick={() => setSearchMode('name')}
                   className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ease-out ${searchMode === 'name' ? 'bg-pw-accent text-[#0A263A]' : 'bg-pw-surface-2 text-pw-text-muted hover:text-pw-text'}`}
                 >
-                  Per nome attivita'
+                  Per nome attività
                 </button>
                 <button
                   onClick={() => setSearchMode('manual')}
@@ -420,7 +420,7 @@ export default function LeadFinderPage() {
               {searchMode === 'manual' && (
                 <div className="space-y-3">
                   <p className="text-xs text-pw-text-dim">
-                    Inserisci i dati che conosci dell'attivita'. Il sistema analizzera' sito web, profili social e advertising.
+                    Inserisci i dati che conosci dell&apos;attività. Il sistema analizzerà sito web, profili social e advertising.
                   </p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <Input label="Nome attivita' *" value={manualName} onChange={(e) => setManualName(e.target.value)} placeholder="Es: Pizzeria Da Mario" />
@@ -437,7 +437,7 @@ export default function LeadFinderPage() {
                   </div>
                   <Button onClick={handleManualAnalysis} loading={searching} className="w-full">
                     <Search size={16} />
-                    Analizza Attivita'
+                    Analizza Attività
                   </Button>
                 </div>
               )}
@@ -449,7 +449,7 @@ export default function LeadFinderPage() {
             <div className="text-center py-12">
               <Loader2 size={32} className="text-pw-accent mx-auto mb-3 animate-spin" />
               <p className="text-sm text-pw-text-muted">Ricerca e analisi in corso...</p>
-              <p className="text-xs text-pw-text-dim mt-1">Sto cercando le attivita' e analizzando siti web, social e advertising</p>
+              <p className="text-xs text-pw-text-dim mt-1">Sto cercando le attività e analizzando siti web, social e advertising</p>
             </div>
           )}
 
@@ -634,10 +634,10 @@ export default function LeadFinderPage() {
               <Sparkles size={20} className="text-pw-accent shrink-0 mt-0.5" />
               <div>
                 <p className="text-sm font-semibold text-pw-accent">
-                  {lowScoreProspects.length} attivita' con presenza digitale debole
+                  {lowScoreProspects.length} attività con presenza digitale debole
                 </p>
                 <p className="text-xs text-pw-text-muted mt-1">
-                  Queste attivita' hanno bisogno di aiuto con il digitale. Genera un messaggio di outreach per proporti!
+                  Queste attività hanno bisogno di aiuto con il digitale. Genera un messaggio di outreach per proporti!
                 </p>
               </div>
             </div>
@@ -1142,7 +1142,7 @@ export default function LeadFinderPage() {
               <div className="text-center py-12">
                 <Search size={48} className="text-pw-text-dim mx-auto mb-3" />
                 <p className="text-pw-text-muted">Nessun prospect salvato</p>
-                <p className="text-xs text-pw-text-dim mt-1">Cerca attivita' nella tab "Cerca" per iniziare</p>
+                <p className="text-xs text-pw-text-dim mt-1">Cerca attività nella tab &quot;Cerca&quot; per iniziare</p>
               </div>
             )}
           </div>

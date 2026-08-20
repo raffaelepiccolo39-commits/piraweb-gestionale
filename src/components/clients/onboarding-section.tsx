@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
@@ -75,14 +75,17 @@ export function OnboardingSection({ clientId }: OnboardingSectionProps) {
   const [onboarding, setOnboarding] = useState<ClientOnboarding | null>(null);
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    fetchData();
-  }, [clientId]);
-
-  const fetchData = async () => {
+  // Dichiarata prima dell'effetto che la usa: al contrario funzionava per
+  // caso (l'effetto parte dopo il render, quando la const esiste gia'), ma
+  // e' la stessa distrazione che nasconde le dipendenze mancanti.
+  const fetchData = useCallback(async () => {
     const obRes = await supabase.from('client_onboarding').select('*').eq('client_id', clientId).maybeSingle();
     setOnboarding(obRes.data as ClientOnboarding | null);
-  };
+  }, [supabase, clientId]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const toggleCheck = async (key: keyof ClientOnboarding) => {
     const current = onboarding?.[key] as boolean || false;

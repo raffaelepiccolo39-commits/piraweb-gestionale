@@ -362,7 +362,7 @@ export default function AiPage() {
                 Assegnazione Task Intelligente
               </h2>
               <p className="text-sm text-pw-text-muted mt-1">
-                Descrivi in linguaggio naturale cosa va fatto e l'AI creerà e assegnerà i task al team
+                Descrivi in linguaggio naturale cosa va fatto e l&apos;AI creerà e assegnerà i task al team
               </p>
             </CardHeader>
             <CardContent className="space-y-4">

@@ -47,7 +47,7 @@ export const StatCards = memo(function StatCards({ stats }: StatCardsProps) {
   );
 });
 
-interface StatCardProps extends StatDef {}
+type StatCardProps = StatDef;
 
 export function StatCard({ label, value, icon: Icon, tint, href, delta }: StatCardProps) {
   const styles = TINT[tint];

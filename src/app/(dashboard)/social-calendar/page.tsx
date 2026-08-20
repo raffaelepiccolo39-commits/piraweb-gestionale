@@ -437,6 +437,10 @@ export default function SocialCalendarPage() {
       // uscire crea due date in contraddizione, e nel portale il cliente
       // vedeva quella di pubblicazione senza capire perche' non coincideva.
       const post = [...posts, ...undatedPosts].find((p) => p.id === postId);
+      // handleStatusChange e' un gestore di click (lo chiamano i bottoni piu'
+      // in basso), non codice di render: leggere l'orologio qui e' corretto.
+      // Il compilatore non sa distinguere le due cose e segnala per prudenza.
+      // eslint-disable-next-line react-hooks/purity
       const futuro = post?.scheduled_at && new Date(post.scheduled_at).getTime() > Date.now();
       if (futuro) {
         const quando = new Date(post!.scheduled_at!).toLocaleDateString('it-IT', { day: 'numeric', month: 'long' });

@@ -16,7 +16,12 @@ interface ModalProps {
 export function Modal({ open, onClose, title, children, size = 'md' }: ModalProps) {
   const titleId = useId();
   const onCloseRef = useRef(onClose);
-  onCloseRef.current = onClose;
+  // Scrivere nel ref durante il render viola la purezza (react-hooks/refs):
+  // il ref serve solo perche' l'ascoltatore di Escape non si ricrei a ogni
+  // cambio di onClose, e per quello basta aggiornarlo dopo il render.
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  });
 
   useEffect(() => {
     if (!open) return;

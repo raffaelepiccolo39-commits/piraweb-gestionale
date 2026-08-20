@@ -105,7 +105,7 @@ function ReviewPageInner() {
         <div className="text-center max-w-md">
           <AlertTriangle size={48} className="text-gray-400 mx-auto mb-4" />
           <h1 className="text-xl font-bold text-gray-900 mb-2">Link non valido</h1>
-          <p className="text-gray-500">Questo link di revisione non esiste o e' scaduto.</p>
+          <p className="text-gray-500">Questo link di revisione non esiste o è scaduto.</p>
         </div>
       </div>
     );
@@ -240,7 +240,7 @@ function ReviewPageInner() {
               <>
                 <XCircle size={48} className="text-orange-500 mx-auto mb-3" />
                 <h3 className="text-lg font-bold text-gray-900">Modifiche Richieste</h3>
-                <p className="text-sm text-gray-500 mt-1">Il team lavorera' sulle modifiche richieste.</p>
+                <p className="text-sm text-gray-500 mt-1">Il team lavorerà sulle modifiche richieste.</p>
               </>
             ) : approval.status === 'rejected' ? (
               <>

@@ -424,7 +424,7 @@ export default function ProfitabilityPage() {
 
       {/* Projects profitability */}
       <div className="space-y-3">
-        <h2 className="text-sm font-semibold text-pw-text">Profittabilita' per Progetto (mese corrente)</h2>
+        <h2 className="text-sm font-semibold text-pw-text">Profittabilità per Progetto (mese corrente)</h2>
 
         {data.projects.map((project) => {
           const isExpanded = expandedProject === project.projectId;
@@ -508,7 +508,7 @@ export default function ProfitabilityPage() {
                         </p>
                       ) : (
                         <p className="text-[10px] text-red-400 mt-1">
-                          Hai gia' superato il budget ore. Ogni ora in piu' e' una perdita.
+                          Hai già superato il budget ore. Ogni ora in più è una perdita.
                         </p>
                       )}
                     </div>

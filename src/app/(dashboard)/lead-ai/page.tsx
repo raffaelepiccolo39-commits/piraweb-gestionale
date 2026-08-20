@@ -244,21 +244,21 @@ export default function LeadAIPage() {
               <CardContent className="p-3 text-center">
                 <Users size={18} className="text-pw-accent mx-auto mb-1" />
                 <p className="text-2xl font-bold text-pw-text font-[var(--font-bebas)]">{result.total}</p>
-                <p className="text-[10px] text-pw-text-muted">Attivita' trovate</p>
+                <p className="text-[10px] text-pw-text-muted">Attività trovate</p>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="p-3 text-center">
                 <Target size={18} className="text-red-400 mx-auto mb-1" />
                 <p className="text-2xl font-bold text-red-400 font-[var(--font-bebas)]">{result.highPriority}</p>
-                <p className="text-[10px] text-pw-text-muted">Alta priorita'</p>
+                <p className="text-[10px] text-pw-text-muted">Alta priorità</p>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="p-3 text-center">
                 <AlertTriangle size={18} className="text-yellow-400 mx-auto mb-1" />
                 <p className="text-2xl font-bold text-yellow-400 font-[var(--font-bebas)]">{result.mediumPriority}</p>
-                <p className="text-[10px] text-pw-text-muted">Media priorita'</p>
+                <p className="text-[10px] text-pw-text-muted">Media priorità</p>
               </CardContent>
             </Card>
             <Card>

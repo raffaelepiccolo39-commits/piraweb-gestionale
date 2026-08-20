@@ -279,9 +279,9 @@ export default function AutomationsPage() {
       <Card>
         <CardHeader><h2 className="text-sm font-semibold text-pw-text">Esempi di automazioni utili</h2></CardHeader>
         <CardContent className="space-y-2 text-xs text-pw-text-muted">
-          <p>- <strong>Deal vinto → Crea progetto</strong>: Quando un deal passa a "Chiuso Vinto", crea automaticamente un progetto da template</p>
+          <p>- <strong>Deal vinto → Crea progetto</strong>: Quando un deal passa a &quot;Chiuso Vinto&quot;, crea automaticamente un progetto da template</p>
           <p>- <strong>Task completata → Notifica</strong>: Quando una task viene completata, notifica il project manager</p>
-          <p>- <strong>Pagamento scaduto → Alert</strong>: Quando un pagamento supera la scadenza, invia notifica all'admin</p>
+          <p>- <strong>Pagamento scaduto → Alert</strong>: Quando un pagamento supera la scadenza, invia notifica all&apos;admin</p>
           <p>- <strong>Approvazione → Email</strong>: Quando un contenuto viene approvato, invia email al team</p>
         </CardContent>
       </Card>

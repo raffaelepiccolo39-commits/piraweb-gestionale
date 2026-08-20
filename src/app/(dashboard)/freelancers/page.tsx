@@ -229,7 +229,7 @@ export default function FreelancersPage() {
             <p className="text-2xl font-bold text-pw-text font-[var(--font-bebas)] animate-count">
               {new Set(freelancers.map((f) => f.specialty)).size}
             </p>
-            <p className="text-xs text-pw-text-muted">Specialita'</p>
+            <p className="text-xs text-pw-text-muted">Specialità</p>
           </CardContent>
         </Card>
       </div>

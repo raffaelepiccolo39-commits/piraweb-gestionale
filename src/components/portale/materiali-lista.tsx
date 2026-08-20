@@ -88,7 +88,7 @@ export function MaterialiLista({ soloTipo }: { soloTipo?: Tipo }) {
     // Se il blocco popup ha impedito anche l'apertura vuota, si va nella
     // stessa scheda: meglio uscire dalla pagina che non aprire niente.
     if (finestra) finestra.location.href = data.signedUrl;
-    else window.location.href = data.signedUrl;
+    else window.location.assign(data.signedUrl);
   };
 
   const rispondi = async (m: Materiale, esito: 'approved' | 'changes_requested') => {

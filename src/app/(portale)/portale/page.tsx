@@ -210,14 +210,18 @@ export default function PortaleHome() {
   useEffect(() => { carica(); }, [carica]);
 
   const nome = fullName?.split(' ')[0] || '';
-  const ora = new Date().getHours();
+  // Letto una volta sola all'apertura, non a ogni render: leggere l'orologio
+  // durante il render e' impuro, e in piu' faceva ricalcolare saluto e
+  // conto alla rovescia a ogni aggiornamento di stato che non c'entrava.
+  const [adesso] = useState(() => Date.now());
+  const ora = new Date(adesso).getHours();
   const saluto = ora < 13 ? 'Buongiorno' : ora < 18 ? 'Buon pomeriggio' : 'Buonasera';
 
   // Giorni che mancano alla fine del piano. La soglia e la stessa dell'email
   // che gli mandiamo (15): due numeri diversi creerebbero il caso in cui
   // riceve l'avviso ma nel portale non trova nulla, o viceversa.
   const giorniAllaFine = scadenzaPiano
-    ? Math.ceil((new Date(scadenzaPiano + 'T12:00:00').getTime() - Date.now()) / 86400000)
+    ? Math.ceil((new Date(scadenzaPiano + 'T12:00:00').getTime() - adesso) / 86400000)
     : null;
   const pianoInScadenza = giorniAllaFine !== null && giorniAllaFine <= 15;
   const serveShooting = pianoInScadenza || shootingAperto;

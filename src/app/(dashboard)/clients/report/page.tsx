@@ -202,7 +202,7 @@ function ClientReportPageInner() {
             <BarChart3 size={22} className="text-pw-accent" />
             Report: {client.company || client.name}
           </h1>
-          <p className="text-sm text-pw-text-muted">Panoramica completa attivita' e profittabilita'</p>
+          <p className="text-sm text-pw-text-muted">Panoramica completa attività e profittabilità</p>
         </div>
       </div>
 

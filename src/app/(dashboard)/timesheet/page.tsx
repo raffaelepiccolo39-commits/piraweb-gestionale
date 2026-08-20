@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -153,7 +153,12 @@ export default function TimesheetPage() {
   const [allProfiles, setAllProfiles] = useState<Profile[]>([]);
 
   const isAdmin = profile?.role === 'admin';
-  const week = getWeekDates(weekOffset);
+  // Memorizzata perche' e' la vera dipendenza di fetchTimesheet, che legge
+  // week.start, week.end E week.dates. Prima l'array elencava solo le prime
+  // due, per giunta come chiamate a toISOString(): il compilatore non poteva
+  // verificare che la terza cambiasse insieme alle altre, e rinunciava a
+  // ottimizzare l'intera pagina.
+  const week = useMemo(() => getWeekDates(weekOffset), [weekOffset]);
 
   const fetchTimesheet = useCallback(async () => {
     setLoading(true);
@@ -265,7 +270,7 @@ export default function TimesheetPage() {
     setPresence(presenceWeeks);
 
     setLoading(false);
-  }, [supabase, week.start.toISOString(), week.end.toISOString(), isAdmin, profile]);
+  }, [supabase, week, isAdmin, profile]);
 
   useEffect(() => {
     fetchTimesheet();
