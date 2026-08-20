@@ -14,6 +14,7 @@ import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { SkeletonStats, SkeletonList } from '@/components/ui/skeleton';
+import { ErrorState } from '@/components/ui/error-state';
 import { PageHeader } from '@/components/ui/page-header';
 import { DataTable } from '@/components/ui/data-table';
 import { formatDate } from '@/lib/utils';
@@ -56,6 +57,9 @@ export default function BriefsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
+  // Una lettura fallita mostrava una lista vuota, che si legge come
+  // "non c'è niente" invece che "non lo so".
+  const [errore, setErrore] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [selectedBrief, setSelectedBrief] = useState<CreativeBrief | null>(null);
 
@@ -78,10 +82,16 @@ export default function BriefsPage() {
   });
 
   const fetchBriefs = useCallback(async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('creative_briefs')
       .select('*, project:projects(id, name), client:clients(id, name, company), creator:profiles!creative_briefs_created_by_fkey(id, full_name)')
       .order('created_at', { ascending: false });
+    if (error) {
+      reportSupabaseError(error, 'briefs-carica');
+      setErrore(error.message);
+      return;
+    }
+    setErrore(null);
     setBriefs((data as CreativeBrief[]) || []);
   }, [supabase]);
 
@@ -155,6 +165,16 @@ export default function BriefsPage() {
       toast.error((e as { message?: string } | undefined)?.message || 'Errore durante l\'approvazione');
     }
   };
+
+  if (errore) {
+    return (
+      <ErrorState
+        titolo="Non è stato possibile caricare i brief"
+        dettaglio={errore}
+        onRiprova={() => { setErrore(null); setLoading(true); void fetchBriefs().finally(() => setLoading(false)); }}
+      />
+    );
+  }
 
   if (loading) {
     return (

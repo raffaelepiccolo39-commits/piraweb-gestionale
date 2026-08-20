@@ -562,9 +562,13 @@ export default function SocialCalendarPage() {
       </div>
 
       {/* Calendar grid */}
-      <div className="rounded-2xl border border-pw-border overflow-hidden">
+      {/* Su telefono sette colonne dentro overflow-hidden riducevano le celle
+          a ~37px: i titoli dei post diventavano due lettere e non c'era modo
+          di scorrere. Ora la griglia mantiene una larghezza leggibile e il
+          contenitore scorre in orizzontale. */}
+      <div className="rounded-2xl border border-pw-border overflow-x-auto">
         {/* Weekday headers */}
-        <div className="grid grid-cols-7 bg-pw-surface-2">
+        <div className="grid grid-cols-7 bg-pw-surface-2 min-w-[640px]">
           {weekDays.map((d) => (
             <div key={d} className="text-center text-[10px] uppercase tracking-widest text-pw-text-dim font-medium py-2 border-b border-pw-border">
               {d}
@@ -573,7 +577,7 @@ export default function SocialCalendarPage() {
         </div>
 
         {/* Days */}
-        <div className="grid grid-cols-7">
+        <div className="grid grid-cols-7 min-w-[640px]">
           {/* Empty cells before first day */}
           {Array.from({ length: firstDay }).map((_, i) => (
             <div key={`empty-${i}`} className="min-h-[120px] border-b border-r border-pw-border bg-pw-surface/50" />

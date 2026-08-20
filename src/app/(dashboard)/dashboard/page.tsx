@@ -498,10 +498,6 @@ export default function DashboardPage() {
           subtitle={subtitle}
           actions={
             <>
-              <Button variant="ghost" size="md">
-                <Filter size={14} />
-                Questa settimana
-              </Button>
               {isAdmin ? (
                 <Link href="/projects">
                   <Button variant="primary" size="md">

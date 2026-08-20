@@ -37,12 +37,16 @@ export default function PresenzePage() {
     try {
       const today = getTodayLocal();
 
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('attendance_records')
         .select('*')
         .eq('user_id', profile.id)
         .eq('date', today)
         .maybeSingle();
+
+      // Senza questo l'errore restava muto: `data` diventava null e la pagina
+      // mostrava "non hai ancora timbrato" anche quando la lettura era fallita.
+      if (error) throw error;
 
       setTodayRecord(data as AttendanceRecord | null);
 

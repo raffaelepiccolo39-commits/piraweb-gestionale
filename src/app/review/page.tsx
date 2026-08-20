@@ -28,6 +28,9 @@ function ReviewPageInner() {
   const [notFound, setNotFound] = useState(false);
   const [feedback, setFeedback] = useState('');
   const [submitted, setSubmitted] = useState(false);
+  // Due click rapidi mandavano due update: il secondo sovrascriveva il primo.
+  const [inviando, setInviando] = useState(false);
+  const [erroreInvio, setErroreInvio] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchApproval() {
@@ -58,7 +61,9 @@ function ReviewPageInner() {
   }, [supabase, token]);
 
   const handleResponse = async (status: 'approved' | 'revision_requested') => {
-    if (!approval) return;
+    if (!approval || inviando) return;
+    setInviando(true);
+    setErroreInvio(null);
     const { error } = await supabase
       .from('content_approvals')
       .update({
@@ -68,10 +73,22 @@ function ReviewPageInner() {
       })
       .eq('id', approval.id);
 
-    if (!error) {
-      setSubmitted(true);
-      setApproval((a) => a ? { ...a, status, review_comment: feedback || null } : null);
+    setInviando(false);
+
+    // Prima esisteva solo il ramo buono: se l'aggiornamento veniva rifiutato,
+    // la pagina non cambiava di una virgola. Il cliente chiudeva convinto di
+    // aver risposto e in agenzia non arrivava niente. È l'unica pagina di
+    // tutto il gestionale che vede una persona fuori dall'azienda.
+    if (error) {
+      setErroreInvio(
+        'Non siamo riusciti a registrare la tua risposta. Riprova fra un momento; ' +
+        'se il problema resta, scrivici e ci pensiamo noi.',
+      );
+      return;
     }
+
+    setSubmitted(true);
+    setApproval((a) => a ? { ...a, status, review_comment: feedback || null } : null);
   };
 
   if (loading) {
@@ -186,20 +203,28 @@ function ReviewPageInner() {
               rows={4}
               className="w-full px-4 py-3 rounded-xl border border-gray-200 text-gray-900 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-300 outline-none resize-none"
             />
+            {erroreInvio && (
+              <div role="alert" className="flex items-start gap-2 p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-800">
+                <AlertTriangle size={16} className="shrink-0 mt-0.5" aria-hidden="true" />
+                <span>{erroreInvio}</span>
+              </div>
+            )}
             <div className="flex gap-3">
               <button
                 onClick={() => handleResponse('approved')}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-green-500 text-white font-medium text-sm hover:bg-green-600 transition-colors"
+                disabled={inviando}
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-green-500 text-white font-medium text-sm hover:bg-green-600 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 <CheckCircle size={18} />
-                Approva
+                {inviando ? 'Invio…' : 'Approva'}
               </button>
               <button
                 onClick={() => handleResponse('revision_requested')}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-orange-500 text-white font-medium text-sm hover:bg-orange-600 transition-colors"
+                disabled={inviando}
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-orange-500 text-white font-medium text-sm hover:bg-orange-600 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 <XCircle size={18} />
-                Richiedi Modifiche
+                {inviando ? 'Invio…' : 'Richiedi Modifiche'}
               </button>
             </div>
           </div>

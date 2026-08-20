@@ -14,6 +14,7 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { PageHeader } from '@/components/ui/page-header';
 import { DataTable } from '@/components/ui/data-table';
 import { SkeletonList } from '@/components/ui/skeleton';
+import { ErrorState } from '@/components/ui/error-state';
 import type { TeamTool } from '@/types/database';
 import {
   Wrench,
@@ -49,6 +50,9 @@ export default function ToolsPage() {
   const [tools, setTools] = useState<TeamTool[]>([]);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  // Una lettura fallita mostrava una lista vuota, che si legge come
+  // "non c'è niente" invece che "non lo so".
+  const [errore, setErrore] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [editingTool, setEditingTool] = useState<TeamTool | null>(null);
   const [saving, setSaving] = useState(false);
@@ -63,12 +67,19 @@ export default function ToolsPage() {
   });
 
   const fetchTools = useCallback(async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('team_tools')
       .select('*')
       .eq('is_active', true)
       .order('sort_order')
       .order('name');
+    if (error) {
+      reportSupabaseError(error, 'tools-carica');
+      setErrore(error.message);
+      setLoading(false);
+      return;
+    }
+    setErrore(null);
     if (data) {
       // Filter by role client-side
       const filtered = (data as TeamTool[]).filter(tool => {
@@ -181,6 +192,16 @@ export default function ToolsPage() {
       return null;
     }
   };
+
+  if (errore) {
+    return (
+      <ErrorState
+        titolo="Non è stato possibile caricare i tool"
+        dettaglio={errore}
+        onRiprova={() => { setErrore(null); setLoading(true); void fetchTools(); }}
+      />
+    );
+  }
 
   if (loading) {
     return (

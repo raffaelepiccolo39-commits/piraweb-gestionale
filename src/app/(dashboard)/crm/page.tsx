@@ -10,6 +10,7 @@ import { PageHeader } from '@/components/ui/page-header';
 import { Select } from '@/components/ui/select';
 import { SkeletonList } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
+import { ErrorState } from '@/components/ui/error-state';
 import { PipelineKanban } from '@/components/crm/pipeline-kanban';
 import { VistaOggi } from '@/components/crm/vista-oggi';
 import { OpportunitaDettaglio } from '@/components/crm/opportunita-dettaglio';
@@ -20,7 +21,7 @@ import { ImportStorico } from '@/components/crm/import-storico';
 import { cn, formatCurrency } from '@/lib/utils';
 import { ETICHETTE_SOURCE, SOURCE_ATTIVE } from '@/types/database';
 import type { CrmPesoLeadScore, CrmStage, Deal, Profile } from '@/types/database';
-import { reportUnknown } from '@/lib/report-error';
+import { reportUnknown, reportSupabaseError } from '@/lib/report-error';
 import { Plus, Lock, Upload } from 'lucide-react';
 
 type Vista = 'oggi' | 'pipeline' | 'review' | 'kpi';
@@ -56,6 +57,10 @@ export default function CRMPage() {
   const [apertaId, setApertaId] = useState<string | null>(null);
   const [creazione, setCreazione] = useState(false);
   const [importazione, setImportazione] = useState(false);
+  // Anche questa pagina aveva il difetto che l'audit ha trovato altrove:
+  // se la lettura falliva, la pipeline appariva semplicemente vuota — e
+  // una pipeline vuota è un'informazione, non un errore.
+  const [errore, setErrore] = useState<string | null>(null);
 
   // Filtri (§7.1)
   const [filtroOwner, setFiltroOwner] = useState('');
@@ -74,6 +79,15 @@ export default function CRMPage() {
       supabase.from('crm_lead_score_pesi').select('*').order('ordine'),
       supabase.from('profiles').select('id, full_name, role, email').eq('is_active', true).order('full_name'),
     ]);
+
+    const primoErrore = [opp, stg, pes, prof].map((r) => r.error).find(Boolean);
+    if (primoErrore) {
+      reportSupabaseError(primoErrore, 'crm-carica');
+      setErrore(primoErrore.message);
+      setCaricamento(false);
+      return;
+    }
+    setErrore(null);
 
     setOpportunita((opp.data as Deal[]) ?? []);
     setStage((stg.data as CrmStage[]) ?? []);
@@ -249,6 +263,12 @@ export default function CRMPage() {
 
       {caricamento ? (
         <SkeletonList />
+      ) : errore ? (
+        <ErrorState
+          titolo="Non è stato possibile caricare la pipeline"
+          dettaglio={errore}
+          onRiprova={() => { setErrore(null); setCaricamento(true); void carica(); }}
+        />
       ) : vista === 'oggi' ? (
         <VistaOggi opportunita={filtrate} onApri={(d) => setApertaId(d.id)} onCompleta={completaAzione} />
       ) : vista === 'review' ? (
