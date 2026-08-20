@@ -371,7 +371,11 @@ export default function MeetingsPage() {
                 <CardContent className="space-y-2">
                   {actionItems.map((item) => (
                     <div key={item.id} className="flex items-center gap-3 p-2 rounded-lg bg-pw-surface-2/50 group">
-                      <button onClick={() => handleToggleAction(item)}>
+                      <button
+                        onClick={() => handleToggleAction(item)}
+                        aria-label={item.completed ? 'Segna come da fare' : 'Segna come completato'}
+                        title={item.completed ? 'Segna come da fare' : 'Segna come completato'}
+                      >
                         {item.completed ? (
                           <CheckCircle size={16} className="text-green-400" />
                         ) : (
@@ -409,8 +413,14 @@ export default function MeetingsPage() {
                       placeholder="Aggiungi action item..."
                       className="flex-1 px-3 py-2 rounded-lg border border-pw-border bg-pw-surface-2 text-pw-text text-sm focus:ring-2 focus:ring-pw-accent/30 outline-none"
                     />
-                    <Button size="sm" onClick={handleAddAction} disabled={!newAction.trim()}>
-                      <Plus size={14} />
+                    <Button
+                      size="sm"
+                      onClick={handleAddAction}
+                      disabled={!newAction.trim()}
+                      aria-label="Aggiungi action item"
+                      title="Aggiungi action item"
+                    >
+                      <Plus size={14} aria-hidden="true" />
                     </Button>
                   </div>
                 </CardContent>

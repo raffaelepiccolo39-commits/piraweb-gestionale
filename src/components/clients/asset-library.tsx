@@ -259,7 +259,7 @@ export function AssetLibrary({ clientId }: AssetLibraryProps) {
                       <p className="text-[10px] text-pw-text-dim truncate">{asset.description}</p>
                     )}
                     {asset.type === 'color' && (asset.metadata as Record<string, string>).hex && (
-                      <button
+                      <button aria-label="Copia il codice colore" title="Copia il codice colore"
                         onClick={() => copyToClipboard((asset.metadata as Record<string, string>).hex)}
                         className="text-[10px] text-pw-accent hover:underline flex items-center gap-1 mt-0.5"
                       >
@@ -293,7 +293,7 @@ export function AssetLibrary({ clientId }: AssetLibraryProps) {
                         <ExternalLink size={12} />
                       </a>
                     )}
-                    <button
+                    <button aria-label="Elimina elemento" title="Elimina elemento"
                       onClick={() => handleDelete(asset.id)}
                       className="p-1.5 rounded-lg text-pw-text-dim hover:text-red-400 hover:bg-pw-surface-3"
                     >

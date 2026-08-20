@@ -309,7 +309,7 @@ export default function AccessiPage() {
                         <Button size="sm" variant="outline" onClick={() => copiaPassword(a.id)} title="Copia la password">
                           {copiato === `${a.id}:pw` ? <Check size={14} /> : <Copy size={14} />}
                         </Button>
-                        <Button
+                        <Button aria-label="Modifica accesso" title="Modifica accesso"
                           size="sm"
                           variant="outline"
                           onClick={() => setModulo({
@@ -320,7 +320,7 @@ export default function AccessiPage() {
                         >
                           <Pencil size={14} />
                         </Button>
-                        <Button size="sm" variant="outline" onClick={() => elimina(a)}>
+                        <Button aria-label="Elimina accesso" title="Elimina accesso" size="sm" variant="outline" onClick={() => elimina(a)}>
                           <Trash2 size={14} className="text-pw-danger" />
                         </Button>
                       </div>

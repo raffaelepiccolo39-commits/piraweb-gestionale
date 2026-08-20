@@ -1005,7 +1005,7 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
                 Annulla
               </Button>
               <div className="flex-1" />
-              <Button variant="danger" size="sm" onClick={() => setConfirmDelete(true)}>
+              <Button aria-label="Elimina task" title="Elimina task" variant="danger" size="sm" onClick={() => setConfirmDelete(true)}>
                 <Trash2 size={14} />
               </Button>
             </div>
@@ -1050,6 +1050,8 @@ export function TaskDetailModal({ task, members, clients, open, onClose, onUpdat
                     onClick={handleSendComment}
                     disabled={(!newComment.trim() && !commentImage) || sendingComment}
                     className="p-2 rounded-lg bg-pw-accent text-[#0A263A] hover:bg-pw-accent-hover disabled:opacity-40 transition-colors"
+                    aria-label="Invia commento"
+                    title="Invia commento"
                   >
                     {sendingComment ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
                   </button>

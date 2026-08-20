@@ -470,7 +470,7 @@ export default function PerformancePage() {
                         ))}
                       </div>
                       <span className="text-xs text-pw-text-muted w-24">{SKILL_LEVEL_LABELS[s.level]}</span>
-                      <button onClick={() => handleDeleteSkill(s.id)} className="p-1.5 rounded-lg text-pw-text-dim hover:text-red-400 hover:bg-pw-surface-2"><Trash2 size={14} /></button>
+                      <button aria-label="Elimina competenza" title="Elimina competenza" onClick={() => handleDeleteSkill(s.id)} className="p-1.5 rounded-lg text-pw-text-dim hover:text-red-400 hover:bg-pw-surface-2"><Trash2 size={14} /></button>
                     </div>
                   </CardContent>
                 </Card>
@@ -533,7 +533,7 @@ export default function PerformancePage() {
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
                           <span className="text-xs text-pw-text-dim">{formatDate(f.created_at)}</span>
-                          <button onClick={() => handleDeleteFeedback(f.id)} className="p-1 rounded-lg text-pw-text-dim hover:text-red-400 hover:bg-pw-surface-2"><Trash2 size={12} /></button>
+                          <button aria-label="Elimina feedback" title="Elimina feedback" onClick={() => handleDeleteFeedback(f.id)} className="p-1 rounded-lg text-pw-text-dim hover:text-red-400 hover:bg-pw-surface-2"><Trash2 size={12} /></button>
                         </div>
                       </div>
                       <p className="text-sm text-pw-text-muted mt-2">{f.message}</p>

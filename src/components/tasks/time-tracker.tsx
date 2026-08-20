@@ -278,7 +278,7 @@ export function TimeTracker({ taskId, estimatedHours, loggedHours, onUpdate }: T
                 {new Date(entry.started_at).toLocaleDateString('it-IT', { day: '2-digit', month: 'short' })}
               </span>
               {entry.user_id === profile?.id && !entry.is_running && (
-                <button
+                <button aria-label="Elimina la registrazione" title="Elimina la registrazione"
                   onClick={() => handleDelete(entry.id)}
                   className="text-pw-text-dim hover:text-red-400 transition-colors"
                 >

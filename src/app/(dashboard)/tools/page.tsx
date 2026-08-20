@@ -296,10 +296,10 @@ export default function ToolsPage() {
                         </a>
                         {isAdmin && (
                           <div className="flex gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 focus-within:opacity-100 transition-opacity shrink-0">
-                            <button onClick={() => openEdit(tool)} className="p-1 rounded hover:bg-pw-surface-3 text-pw-text-dim hover:text-pw-accent">
+                            <button aria-label="Modifica strumento" title="Modifica strumento" onClick={() => openEdit(tool)} className="p-1 rounded hover:bg-pw-surface-3 text-pw-text-dim hover:text-pw-accent">
                               <Pencil size={12} />
                             </button>
-                            <button onClick={() => setDeletingId(tool.id)} className="p-1 rounded hover:bg-pw-surface-3 text-pw-text-dim hover:text-red-400">
+                            <button aria-label="Elimina strumento" title="Elimina strumento" onClick={() => setDeletingId(tool.id)} className="p-1 rounded hover:bg-pw-surface-3 text-pw-text-dim hover:text-red-400">
                               <Trash2 size={12} />
                             </button>
                           </div>

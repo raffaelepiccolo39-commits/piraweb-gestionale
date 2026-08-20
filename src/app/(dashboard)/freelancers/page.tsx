@@ -271,10 +271,10 @@ export default function FreelancersPage() {
                   </div>
                   {isAdmin && (
                     <div className="flex gap-1">
-                      <button onClick={() => handleEdit(f)} className="p-1.5 rounded-lg text-pw-text-dim hover:text-pw-accent hover:bg-pw-surface-2">
+                      <button aria-label="Modifica collaboratore" title="Modifica collaboratore" onClick={() => handleEdit(f)} className="p-1.5 rounded-lg text-pw-text-dim hover:text-pw-accent hover:bg-pw-surface-2">
                         <Pencil size={12} />
                       </button>
-                      <button onClick={() => setDeletingId(f.id)} className="p-1.5 rounded-lg text-pw-text-dim hover:text-red-400 hover:bg-pw-surface-2">
+                      <button aria-label="Elimina collaboratore" title="Elimina collaboratore" onClick={() => setDeletingId(f.id)} className="p-1.5 rounded-lg text-pw-text-dim hover:text-red-400 hover:bg-pw-surface-2">
                         <Trash2 size={12} />
                       </button>
                     </div>

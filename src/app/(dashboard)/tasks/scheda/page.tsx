@@ -435,8 +435,10 @@ function TaskDetailPageInner() {
                   onClick={handleAddComment}
                   loading={commentLoading}
                   disabled={!newComment.trim()}
+                  aria-label="Invia commento"
+                  title="Invia commento"
                 >
-                  <Send size={14} />
+                  <Send size={14} aria-hidden="true" />
                 </Button>
               </div>
             </CardContent>

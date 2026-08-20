@@ -529,7 +529,9 @@ export default function SettingsPage() {
                 />
                 <button
                   type="button"
-                  onClick={() => setShowNewPassword(!showNewPassword)}
+                  aria-label={showNewPassword ? 'Nascondi la password' : 'Mostra la password'}
+                      title={showNewPassword ? 'Nascondi la password' : 'Mostra la password'}
+                      onClick={() => setShowNewPassword(!showNewPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-pw-text-dim hover:text-pw-text-muted"
                 >
                   {showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}

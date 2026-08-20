@@ -858,10 +858,10 @@ export default function CFOPage() {
                   <div className="flex items-center gap-3">
                     <span className="text-sm font-semibold text-pw-text">{formatCurrency(exp.amount)}</span>
                     <div className="flex gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
-                      <button onClick={() => openEditExpense(exp)} className="p-1 rounded hover:bg-pw-surface text-pw-text-dim hover:text-pw-accent">
+                      <button aria-label="Modifica spesa" title="Modifica spesa" onClick={() => openEditExpense(exp)} className="p-1 rounded hover:bg-pw-surface text-pw-text-dim hover:text-pw-accent">
                         <Pencil size={12} />
                       </button>
-                      <button onClick={() => setDeletingExpenseId(exp.id)} className="p-1 rounded hover:bg-pw-surface text-pw-text-dim hover:text-red-400">
+                      <button aria-label="Elimina spesa" title="Elimina spesa" onClick={() => setDeletingExpenseId(exp.id)} className="p-1 rounded hover:bg-pw-surface text-pw-text-dim hover:text-red-400">
                         <Trash2 size={12} />
                       </button>
                     </div>
@@ -970,7 +970,7 @@ export default function CFOPage() {
                             <FileText size={12} />
                           </a>
                         )}
-                        <button onClick={() => setDeletingPayslipId(ps.id)} className="p-1 rounded hover:bg-pw-surface-3 text-pw-text-dim hover:text-red-400">
+                        <button aria-label="Elimina busta paga" title="Elimina busta paga" onClick={() => setDeletingPayslipId(ps.id)} className="p-1 rounded hover:bg-pw-surface-3 text-pw-text-dim hover:text-red-400">
                           <Trash2 size={12} />
                         </button>
                       </div>

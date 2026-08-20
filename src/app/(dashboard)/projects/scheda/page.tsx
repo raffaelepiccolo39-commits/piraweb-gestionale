@@ -255,7 +255,7 @@ function ProjectDetailPageInner() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex items-center gap-4">
-          <button
+          <button aria-label="Torna ai progetti" title="Torna ai progetti"
             onClick={() => router.push('/projects')}
             className="p-2 rounded-lg hover:bg-pw-surface-2 transition-colors duration-200 ease-out"
           >
@@ -292,8 +292,15 @@ function ProjectDetailPageInner() {
                 <Settings size={16} />
                 Modifica
               </Button>
-              <Button variant="outline" size="sm" onClick={openDeleteConfirm} className="text-red-600 hover:text-red-700">
-                <Trash2 size={16} />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={openDeleteConfirm}
+                className="text-red-600 hover:text-red-700"
+                aria-label="Elimina progetto"
+                title="Elimina progetto"
+              >
+                <Trash2 size={16} aria-hidden="true" />
               </Button>
             </>
           )}

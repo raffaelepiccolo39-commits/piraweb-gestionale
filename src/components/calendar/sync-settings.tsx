@@ -155,7 +155,7 @@ export function SyncSettings({ onSync, syncing }: SyncSettingsProps) {
         Sincronizza
       </Button>
 
-      <Button size="sm" variant="ghost" onClick={() => setShowSettings(!showSettings)}>
+      <Button aria-label="Impostazioni di sincronizzazione" title="Impostazioni di sincronizzazione" size="sm" variant="ghost" onClick={() => setShowSettings(!showSettings)}>
         <Settings2 size={14} />
       </Button>
 

@@ -200,7 +200,7 @@ export default function AutomationsPage() {
                   <button onClick={() => handleToggle(a)} className="p-1.5 rounded-lg text-pw-text-dim hover:bg-pw-surface-2" title={a.is_active ? 'Disattiva' : 'Attiva'}>
                     {a.is_active ? <Pause size={12} /> : <Play size={12} />}
                   </button>
-                  <button onClick={() => setDeletingId(a.id)} className="p-1.5 rounded-lg text-pw-text-dim hover:text-red-400 hover:bg-pw-surface-2">
+                  <button aria-label="Elimina automazione" title="Elimina automazione" onClick={() => setDeletingId(a.id)} className="p-1.5 rounded-lg text-pw-text-dim hover:text-red-400 hover:bg-pw-surface-2">
                     <Trash2 size={12} />
                   </button>
                 </div>

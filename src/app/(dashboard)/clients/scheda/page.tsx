@@ -418,7 +418,7 @@ function ClientDetailPageInner() {
 
       {/* Header */}
       <div className="flex items-center gap-4">
-        <Button variant="ghost" onClick={() => router.push('/clients')}>
+        <Button aria-label="Torna ai clienti" title="Torna ai clienti" variant="ghost" onClick={() => router.push('/clients')}>
           <ArrowLeft size={18} />
         </Button>
         <div className="flex items-center gap-3 flex-1">

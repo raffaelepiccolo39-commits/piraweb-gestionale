@@ -131,7 +131,7 @@ export default function ReportPresenzePage() {
     <div className="space-y-6 animate-slide-up">
       {/* Header */}
       <div className="flex items-center gap-4">
-        <Button variant="ghost" onClick={() => router.push('/presenze')}>
+        <Button aria-label="Torna alle presenze" title="Torna alle presenze" variant="ghost" onClick={() => router.push('/presenze')}>
           <ArrowLeft size={18} />
         </Button>
         <div>

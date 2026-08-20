@@ -500,7 +500,7 @@ export default function AiPage() {
                           />
                         </button>
                         {script.result && (
-                          <button
+                          <button aria-label="Copia il risultato" title="Copia il risultato"
                             onClick={() => copyToClipboard(script.result!, script.id)}
                             className="p-1.5 rounded-lg hover:bg-pw-surface-2"
                           >

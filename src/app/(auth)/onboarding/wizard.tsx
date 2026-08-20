@@ -154,7 +154,11 @@ export default function OnboardingWizard(props: Props) {
                     required
                     minLength={8}
                   />
-                  <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-2 top-1/2 -translate-y-1/2 text-pw-text-muted hover:text-pw-text">
+                  <button
+                type="button"
+                aria-label={showPw ? 'Nascondi la password' : 'Mostra la password'}
+                title={showPw ? 'Nascondi la password' : 'Mostra la password'}
+                onClick={() => setShowPw(!showPw)} className="absolute right-2 top-1/2 -translate-y-1/2 text-pw-text-muted hover:text-pw-text">
                     {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
