@@ -75,7 +75,13 @@ export const navSections: NavSection[] = [
       { label: 'Gestione Siti', href: '/gestione-siti', icon: Globe, adminOnly: true },
       { label: 'Crediti', href: '/crediti', icon: HandCoins, adminOnly: true },
       { label: 'Ferie & Permessi', href: '/ferie', icon: Plane },
-      { label: 'Clienti', href: '/clients', icon: Users },
+      // Fuori dal menu del team dal 21/08/2026, per scelta del referente.
+      // Attenzione: qui si nasconde soltanto. La pagina resta APERTA a chi
+      // conosce l'indirizzo, ed e' voluto — il team continua a usare la
+      // scheda cliente per materiali, messaggi, idee, asset e knowledge base.
+      // Se un giorno servisse chiuderla davvero, la porta e' ADMIN_ROUTES in
+      // lib/rotte-admin.ts, non questa riga.
+      { label: 'Clienti', href: '/clients', icon: Users, adminOnly: true },
       // Le credenziali dei profili social: le vede chi i social li gestisce.
       // L'archivio è ancora vuoto (zero credenziali al 18-08-2026).
       { label: 'Accessi', href: '/accessi', icon: KeyRound, roles: ['social_media_manager'] },

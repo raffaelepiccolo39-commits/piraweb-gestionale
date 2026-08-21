@@ -57,8 +57,25 @@ test('il confronto richiede la barra: /gestione non copre /gestione-siti', () =>
 
 test('le pagine di tutti restano di tutti', () => {
   for (const r of ['/dashboard', '/team', '/calendario', '/contenuti', '/ferie',
-                   '/clients', '/note-clienti', '/note-dev', '/tasks', '/presenze']) {
+                   '/note-clienti', '/note-dev', '/tasks', '/presenze']) {
     assert.equal(accessoNegato(r, 'content_creator'), false, r);
+  }
+});
+
+test('Clienti e\' fuori dal menu ma la pagina resta aperta: e\' voluto', () => {
+  // Il 21/08/2026 il referente ha tolto Clienti dal menu del team e ha
+  // chiesto esplicitamente di non toccare altro: la scheda cliente porta
+  // materiali, messaggi, idee, libreria asset e knowledge base, che il team
+  // usa ogni giorno. Nascosta nel menu, aperta nell'indirizzo.
+  //
+  // Questo test esiste per impedire la "correzione" sbagliata: chi domani
+  // vedesse Clienti nascosta e non protetta potrebbe crederlo un buco come
+  // quelli di /accessi e /crediti, e chiuderla — togliendo al team mezzo
+  // lavoro. Se un giorno va chiusa davvero, si cancella questo test
+  // apposta, non per sbaglio.
+  for (const ruolo of ['content_creator', 'social_media_manager', 'video_maker']) {
+    assert.equal(accessoNegato('/clients', ruolo), false, ruolo);
+    assert.equal(accessoNegato('/clients/scheda', ruolo), false, ruolo);
   }
 });
 

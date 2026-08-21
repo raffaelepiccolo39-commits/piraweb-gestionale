@@ -45,7 +45,10 @@ const SEARCH_ITEMS = [
   { label: 'AI Contenuti', href: '/ai-content' },
   { label: 'Piano Editoriale', href: '/social-calendar' },
   { label: 'Brief Creativi', href: '/briefs' },
-  { label: 'Clienti', href: '/clients' },
+  // Nascosta come la voce di menu, benche' la pagina non sia protetta:
+  // proporre una destinazione che il team non deve vedere elencata
+  // vanificherebbe l'averla tolta dal menu.
+  { label: 'Clienti', href: '/clients', soloAdmin: true },
   { label: 'CRM Pipeline', href: '/crm' },
   { label: 'Direzione', href: '/direzione' },
   { label: 'CFO', href: '/cfo' },
@@ -79,6 +82,7 @@ export function Header() {
     const q = searchQuery.toLowerCase();
     return SEARCH_ITEMS
       .filter((item) => !accessoNegato(item.href, profile?.role))
+      .filter((item) => !('soloAdmin' in item && item.soloAdmin) || isAdmin)
       .filter((item) => item.label.toLowerCase().includes(q))
       .slice(0, 6);
   }, [searchQuery, isAdmin]);
