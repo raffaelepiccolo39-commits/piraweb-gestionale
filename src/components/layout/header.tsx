@@ -11,6 +11,7 @@ import { APP_VERSION } from '@/lib/version';
 const PAGE_TITLES: Record<string, string> = {
   '/dashboard': 'Dashboard',
   '/clients': 'Clienti',
+  '/scadenze-ped': 'Scadenze PED',
   '/projects': 'Progetti',
   '/tasks': 'Bacheca',
   '/team': 'Bacheca team',
@@ -44,6 +45,7 @@ const SEARCH_ITEMS = [
   { label: 'AI Assistant', href: '/ai' },
   { label: 'AI Contenuti', href: '/ai-content' },
   { label: 'Piano Editoriale', href: '/social-calendar' },
+  { label: 'Scadenze PED', href: '/scadenze-ped' },
   { label: 'Brief Creativi', href: '/briefs' },
   // Nascosta come la voce di menu, benche' la pagina non sia protetta:
   // proporre una destinazione che il team non deve vedere elencata

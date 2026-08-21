@@ -57,7 +57,12 @@ test('il confronto richiede la barra: /gestione non copre /gestione-siti', () =>
 
 test('le pagine di tutti restano di tutti', () => {
   for (const r of ['/dashboard', '/team', '/calendario', '/contenuti', '/ferie',
-                   '/note-clienti', '/note-dev', '/tasks', '/presenze']) {
+                   '/note-clienti', '/note-dev', '/tasks', '/presenze',
+                   // Scadenze PED: nel menu di tutti dal 21-08-2026. La data
+                   // la cambiano solo admin e social, ma il limite sta nel
+                   // database (set_ped_coverage), non nella porta: il team
+                   // deve poter leggere cosa scade.
+                   '/scadenze-ped']) {
     assert.equal(accessoNegato(r, 'content_creator'), false, r);
   }
 });

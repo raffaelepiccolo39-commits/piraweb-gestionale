@@ -12,6 +12,7 @@ import {
   HandCoins,
   Crown,
   ScrollText,
+  CalendarClock,
 } from 'lucide-react';
 import { accessoNegato } from '@/lib/rotte-admin';
 
@@ -71,6 +72,11 @@ export const navSections: NavSection[] = [
       { label: 'Bacheca team', href: '/team', icon: MessageSquare, badgeKey: 'tasks' },
       { label: 'Calendario', href: '/calendario', icon: Calendar },
       { label: 'Piano Editoriale', href: '/contenuti', icon: Sparkles },
+      // Fino a quando è coperto ogni cliente. Visibile a tutto il team: chi
+      // produce i contenuti deve sapere cosa sta per scadere. La data la
+      // cambiano solo admin e social — lo impone set_ped_coverage nel
+      // database, e la pagina mostra il campo di conseguenza.
+      { label: 'Scadenze PED', href: '/scadenze-ped', icon: CalendarClock },
       { label: 'Gestione', href: '/gestione', icon: Crown, adminOnly: true },
       { label: 'Gestione Siti', href: '/gestione-siti', icon: Globe, adminOnly: true },
       { label: 'Crediti', href: '/crediti', icon: HandCoins, adminOnly: true },
