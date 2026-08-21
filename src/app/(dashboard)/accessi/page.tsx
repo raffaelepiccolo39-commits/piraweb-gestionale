@@ -11,6 +11,8 @@ import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/ui/empty-state';
 import { useToast } from '@/components/ui/toast';
 import { reportSupabaseError, reportUnknown } from '@/lib/report-error';
+import { accessoNegato } from '@/lib/rotte-admin';
+import { useAuth } from '@/hooks/use-auth';
 import {
   KeyRound, Plus, Eye, Copy, Check, ExternalLink, Pencil, Trash2, Loader2, Search,
 } from 'lucide-react';
@@ -66,6 +68,7 @@ const vuoto = {
 export default function AccessiPage() {
   const supabase = createClient();
   const toast = useToast();
+  const { profile } = useAuth();
 
   const [accessi, setAccessi] = useState<Accesso[]>([]);
   const [clienti, setClienti] = useState<{ id: string; nome: string }[]>([]);
@@ -207,6 +210,26 @@ export default function AccessiPage() {
     toast.success('Accesso eliminato');
     await carica();
   };
+
+  // Guardia di ruolo anche qui, e non e' una ripetizione del middleware:
+  // NEL PACCHETTO iOS/ANDROID IL MIDDLEWARE NON ESISTE. build-app.mjs lo
+  // mette da parte perche' l'esportazione statica non lo tollera, quindi
+  // sul telefono questa e' l'unica guardia di pagina che gira davvero.
+  // Chi scrive una pagina riservata deve metterla, altrimenti e' protetta
+  // sul web e aperta nell'app.
+  if (profile && accessoNegato('/accessi', profile.role)) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <KeyRound size={40} className="mx-auto text-pw-text-dim mb-3" aria-hidden="true" />
+          <p className="text-pw-text font-semibold">Accesso non autorizzato</p>
+          <p className="text-sm text-pw-text-muted mt-1">
+            Le credenziali dei clienti le gestisce chi si occupa dei profili social.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>
