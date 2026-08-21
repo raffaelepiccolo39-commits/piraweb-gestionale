@@ -112,7 +112,7 @@ export default function BachecaPage() {
         .from('tasks')
         .select(`
           *,
-          project:projects(id, name, color, client_id, client:clients(id, name, company, logo_url, sector)),
+          project:projects(id, name, color, client_id, client:clients(id, name, company, logo_url, sector, color)),
           assignee:profiles!tasks_assigned_to_fkey(id, full_name, color),
           task_assignees(user_id)
         `);

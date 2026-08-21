@@ -3,6 +3,7 @@
 import { DragDropContext, Droppable, Draggable, type DropResult } from '@hello-pangea/dnd';
 import { formatDate, getInitials, getStatusBarColor, getStatusColor, getContrastTextColor } from '@/lib/utils';
 import { STATUS_LABELS } from '@/lib/constants';
+import { coloreCliente } from '@/lib/colori-cliente';
 import type { Task, Profile } from '@/types/database';
 import { Plus, Calendar, AlertTriangle, Sparkles, Archive } from 'lucide-react';
 
@@ -41,8 +42,15 @@ const nomeCliente = (task: Task): string => {
 };
 const logoCliente = (task: Task): string | null =>
   (task.project as { client?: { logo_url?: string | null } } | undefined)?.client?.logo_url || null;
-const coloreProgetto = (task: Task): string =>
-  (task.project as { color: string } | undefined)?.color || '#FFD108';
+/**
+ * Il colore è del CLIENTE, non del progetto.
+ *
+ * Prima veniva da projects.color, che ha un default che quasi nessuno
+ * cambia: decine di clienti diversi uscivano col quadratino dello stesso
+ * colore, ed è il motivo per cui in bacheca si confondevano.
+ */
+const coloreCli = (task: Task): string =>
+  coloreCliente((task.project as { client?: { id?: string; color?: string | null } } | undefined)?.client);
 const inRitardo = (task: Task): boolean =>
   !!task.deadline && new Date(task.deadline) < new Date() && task.status !== 'done';
 
@@ -73,7 +81,7 @@ function CardTask({
         ) : (
           <div
             className="mt-0.5 shrink-0 w-10 h-10 rounded-md flex items-center justify-center text-[11px] font-bold"
-            style={{ backgroundColor: coloreProgetto(task), color: getContrastTextColor(coloreProgetto(task)) }}
+            style={{ backgroundColor: coloreCli(task), color: getContrastTextColor(coloreCli(task)) }}
             title={nomeCliente(task)}
           >
             {getInitials(nomeCliente(task) || '—')}
@@ -81,6 +89,13 @@ function CardTask({
         )}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5">
+            {/* Il pallino serve anche a chi il logo ce l'ha: due loghi
+                piccoli e chiari si confondono quanto due quadratini gialli. */}
+            <span
+              className="shrink-0 w-2 h-2 rounded-full"
+              style={{ backgroundColor: coloreCli(task) }}
+              aria-hidden="true"
+            />
             <p className={`text-xs truncate uppercase font-medium ${completata ? 'text-pw-text-dim' : 'text-pw-text-muted'}`}>
               {nomeCliente(task)}
             </p>

@@ -208,6 +208,8 @@ export interface EmployeeCompensation {
 export interface Client {
   id: string;
   name: string;
+  /** Colore di riconoscimento in bacheca. NULL = ricavato dall'id, vedi lib/colori-cliente.ts */
+  color?: string | null;
   company: string | null;
   email: string | null;
   phone: string | null;

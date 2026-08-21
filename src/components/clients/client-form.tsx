@@ -7,6 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import type { Client } from '@/types/database';
 import { Upload, X, ChevronDown, Check } from 'lucide-react';
+import { PALETTE_CLIENTI, coloreCliente } from '@/lib/colori-cliente';
+import { getContrastTextColor, getInitials } from '@/lib/utils';
 
 interface ClientFormProps {
   client?: Client;
@@ -39,6 +41,7 @@ export interface ClientFormData {
   monthly_fee?: number;
   needs_monthly_shooting?: boolean;
   needs_ped?: boolean;
+  color: string;
   logo?: File;
 }
 
@@ -94,6 +97,7 @@ export function ClientForm({ client, monthlyFee, onSubmit, onCancel, defaultNeed
     citta: client?.citta || '',
     provincia: client?.provincia || '',
     sector: client?.sector || '',
+    color: coloreCliente(client),
     service_types: client?.service_types || '',
     relationship_start: client?.relationship_start || '',
     needs_monthly_shooting: client?.needs_monthly_shooting || false,
@@ -177,6 +181,41 @@ export function ClientForm({ client, monthlyFee, onSubmit, onCancel, defaultNeed
               </label>
             )}
             <p className="text-xs text-pw-text-dim">PNG, JPG o SVG. Max 1MB.</p>
+          </div>
+        </div>
+
+        {/* Colore di riconoscimento.
+            Sta accanto al logo perché risponde alla stessa domanda — come si
+            riconosce questo cliente al volo — e serve soprattutto a chi il
+            logo non ce l'ha: in bacheca la sua card mostra le iniziali su
+            questo colore. */}
+        <div>
+          <label className="block text-[11px] uppercase tracking-[0.08em] font-medium text-pw-text-muted mb-2">
+            Colore in bacheca
+          </label>
+          <div className="flex flex-wrap items-center gap-2">
+            {PALETTE_CLIENTI.map((c) => (
+              <button
+                key={c}
+                type="button"
+                onClick={() => update('color', c)}
+                aria-label={`Colore ${c}`}
+                title={`Colore ${c}`}
+                className={`w-9 h-9 rounded-lg border-2 transition-all flex items-center justify-center ${
+                  form.color === c ? 'border-pw-text scale-110' : 'border-transparent hover:border-pw-border'
+                }`}
+                style={{ backgroundColor: c }}
+              >
+                {form.color === c && <Check size={14} className="text-white" />}
+              </button>
+            ))}
+            <span
+              className="ml-1 shrink-0 w-9 h-9 rounded-lg flex items-center justify-center text-[11px] font-bold"
+              style={{ backgroundColor: form.color, color: getContrastTextColor(form.color) }}
+              title="Anteprima"
+            >
+              {getInitials(form.company || form.name || '—')}
+            </span>
           </div>
         </div>
 

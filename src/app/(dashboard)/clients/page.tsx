@@ -17,7 +17,8 @@ import { ClientForm, type ClientFormData } from '@/components/clients/client-for
 import type { Client } from '@/types/database';
 import { useToast } from '@/components/ui/toast';
 import { SkeletonList, SkeletonStats } from '@/components/ui/skeleton';
-import { todayLocal } from '@/lib/utils';
+import { todayLocal, getContrastTextColor, getInitials } from '@/lib/utils';
+import { coloreCliente } from '@/lib/colori-cliente';
 import { DataTable } from '@/components/ui/data-table';
 import {
   Plus,
@@ -699,12 +700,23 @@ export default function ClientsPage() {
                       <Image src={client.logo_url} alt={client.company || client.name} width={40} height={40} className="w-full h-full object-contain" />
                     </div>
                   ) : (
-                    <div className="w-10 h-10 rounded-xl bg-pw-surface-3 flex items-center justify-center shrink-0">
-                      <Building2 size={20} className="text-pw-accent" />
+                    // Senza logo, il quadratino porta il colore del cliente:
+                    // è lo stesso che lo distingue nella bacheca task, e qui
+                    // si vede a cosa corrisponde quello che si è scelto.
+                    <div
+                      className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 text-[11px] font-bold"
+                      style={{ backgroundColor: coloreCliente(client), color: getContrastTextColor(coloreCliente(client)) }}
+                    >
+                      {getInitials(client.company || client.name || '—')}
                     </div>
                   )}
                   <div>
-                    <h3 className="font-semibold text-pw-text">
+                    <h3 className="font-semibold text-pw-text flex items-center gap-1.5">
+                      <span
+                        className="shrink-0 w-2 h-2 rounded-full"
+                        style={{ backgroundColor: coloreCliente(client) }}
+                        aria-hidden="true"
+                      />
                       {client.company || client.name}
                     </h3>
                     <p className="text-xs text-pw-text-muted mt-0.5">
