@@ -9,7 +9,7 @@ import { useToast } from '@/components/ui/toast';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { formatDate, getStatusTone, getPriorityTone, getRoleLabel, getRoleTone, getInitials, formatDateLocal, todayLocal } from '@/lib/utils';
-import { AlertTriangle, Calendar, ChevronRight, ChevronDown, Users } from 'lucide-react';
+import { AlertTriangle, Calendar, ChevronRight, Users } from 'lucide-react';
 import { STATUS_LABELS, PRIORITY_LABELS } from '@/lib/constants';
 import { COLONNE_ACCONTO, accontiNelPeriodo, totaliAcconti, type AccontoContabile } from '@/lib/acconti';
 import { COLONNE_EXTRA, extraNelPeriodo, totaleExtra, type ExtraContabile } from '@/lib/lavori-extra';
@@ -81,7 +81,6 @@ export default function DashboardPage() {
   }>>([]);
   const [attendance, setAttendance] = useState<AttendanceRecord | null>(null);
   const [attendanceLoading, setAttendanceLoading] = useState(false);
-  const [teamWorkloadOpen, setTeamWorkloadOpen] = useState(false);
   const [projectProgress, setProjectProgress] = useState<Array<{
     id: string; name: string; color: string;
     tasks: { id: string; status: string }[];
@@ -709,29 +708,19 @@ export default function DashboardPage() {
     contenuti.team = (
       <Card>
         <CardHeader>
-          <button
-            type="button"
-            onClick={() => setTeamWorkloadOpen((v) => !v)}
-            className="flex items-center gap-2 group w-full text-left"
-            aria-expanded={teamWorkloadOpen}
-            aria-controls="team-workload-list"
-          >
-            <Users size={16} className="text-pw-accent" />
-            <h2 className="text-sm font-semibold text-pw-text group-hover:text-pw-accent transition-colors">
-              Carico del team
-            </h2>
+          {/* Niente piegatura: in un riquadro che si puo' gia' rimpicciolire
+              o togliere, un secondo modo per nasconderlo era solo un clic in
+              piu' fra te e il dato. */}
+          <div className="flex items-center gap-2">
+            <Users size={16} className="text-pw-accent" aria-hidden="true" />
+            <h2 className="text-sm font-semibold text-pw-text">Carico del team</h2>
             <span className="text-[11px] text-pw-text-dim font-medium tabular-nums">
               {teamStats.length}
             </span>
-            <ChevronDown
-              size={14}
-              className={`text-pw-text-dim transition-transform duration-200 ${teamWorkloadOpen ? 'rotate-180' : ''}`}
-            />
-          </button>
+          </div>
         </CardHeader>
-        {teamWorkloadOpen && (
-          <CardContent className="p-0">
-            <div id="team-workload-list" className="divide-y divide-pw-border">
+        <CardContent className="p-0">
+          <div className="divide-y divide-pw-border">
               {teamStats.map((member) => (
                 <div key={member.id} className="px-6 py-3">
                   <div className="flex items-center gap-3 mb-2">
@@ -755,9 +744,8 @@ export default function DashboardPage() {
                   )}
                 </div>
               ))}
-            </div>
-          </CardContent>
-        )}
+          </div>
+        </CardContent>
       </Card>
     );
   }

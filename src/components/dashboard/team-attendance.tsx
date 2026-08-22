@@ -1,11 +1,11 @@
 'use client';
 
-import { memo, useState } from 'react';
+import { memo } from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { getInitials, getAttendanceStatusLabel } from '@/lib/utils';
 import { cn } from '@/lib/utils';
-import { Clock, ChevronDown } from 'lucide-react';
+import { Clock } from 'lucide-react';
 
 interface TeamMember {
   user_id: string;
@@ -25,39 +25,26 @@ const statusColors: Record<string, string> = {
 };
 
 export const TeamAttendance = memo(function TeamAttendance({ team }: TeamAttendanceProps) {
-  const [open, setOpen] = useState(false);
-
   if (team.length === 0) return null;
 
   return (
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
-          <button
-            type="button"
-            onClick={() => setOpen((v) => !v)}
-            className="flex items-center gap-2 group"
-            aria-expanded={open}
-            aria-controls="team-today-list"
-          >
-            <Clock size={16} className="text-pw-accent" />
-            <h2 className="text-sm font-semibold text-pw-text group-hover:text-pw-accent transition-colors">
-              Team oggi
-            </h2>
+          {/* Sempre aperto: chi apre la dashboard vuole vedere chi c'e',
+              non un titolo da cliccare per scoprirlo. */}
+          <div className="flex items-center gap-2">
+            <Clock size={16} className="text-pw-accent" aria-hidden="true" />
+            <h2 className="text-sm font-semibold text-pw-text">Team oggi</h2>
             <span className="text-[11px] text-pw-text-dim font-medium tabular-nums">
               {team.length}
             </span>
-            <ChevronDown
-              size={14}
-              className={`text-pw-text-dim transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
-            />
-          </button>
+          </div>
           <Link href="/presenze" className="text-xs text-pw-accent hover:underline">Dettagli</Link>
         </div>
       </CardHeader>
-      {open && (
-        <CardContent>
-          <div id="team-today-list" className="flex flex-wrap gap-3">
+      <CardContent>
+        <div className="flex flex-wrap gap-3">
             {team.map((member) => (
               <div
                 key={member.user_id}
@@ -77,9 +64,8 @@ export const TeamAttendance = memo(function TeamAttendance({ team }: TeamAttenda
                 </div>
               </div>
             ))}
-          </div>
-        </CardContent>
-      )}
+        </div>
+      </CardContent>
     </Card>
   );
 });
