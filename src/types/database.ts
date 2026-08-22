@@ -180,6 +180,8 @@ export interface TeamAbsence {
 export interface Profile {
   id: string;
   email: string;
+  /** Disposizione personale dei riquadri della dashboard. NULL = quella predefinita. */
+  dashboard_layout?: unknown;
   full_name: string;
   role: UserRole;
   avatar_url: string | null;

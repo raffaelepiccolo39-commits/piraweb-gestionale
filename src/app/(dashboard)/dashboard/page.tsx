@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
-import { reportUnknown } from '@/lib/report-error';
+import { reportUnknown, reportSupabaseError } from '@/lib/report-error';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/components/ui/toast';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -27,12 +27,17 @@ import { TimeOffInbox } from '@/components/dashboard/time-off-inbox';
 import { PedDeadlines } from '@/components/dashboard/ped-deadlines';
 import { WebsiteRenewals } from '@/components/dashboard/website-renewals';
 import { QuickActions } from '@/components/dashboard/quick-actions';
+import { GrigliaDashboard } from '@/components/dashboard/griglia-dashboard';
+import {
+  normalizza, riquadroPerId, disposizionePredefinita,
+  type PostoRiquadro,
+} from '@/components/dashboard/riquadri-config';
 import { captureGeoStamp } from '@/lib/attendance-geo';
 import { notifyTimeOffDecision } from '@/lib/time-off-notifications';
 import type { TimeOffRequest } from '@/types/database';
 import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
-import { Filter, Plus } from 'lucide-react';
+import { Filter, Plus, LayoutGrid } from 'lucide-react';
 
 interface DashboardStats {
   totalClients: number;
@@ -94,6 +99,30 @@ export default function DashboardPage() {
   const [pendingTimeOff, setPendingTimeOff] = useState<TimeOffRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+
+  // ── Disposizione dei riquadri ─────────────────────────────────────────
+  //
+  // Si legge dal profilo, che e' gia' in memoria: nessuna query in piu' per
+  // aprire la pagina. `normalizza` ripulisce quello che arriva — un riquadro
+  // tolto dal codice, uno aggiunto dopo l'ultimo salvataggio, un ruolo
+  // cambiato — cosi' una disposizione vecchia non lascia buchi ne' nasconde
+  // per sempre i riquadri nuovi.
+  const [modifica, setModifica] = useState(false);
+  const [disposizione, setDisposizione] = useState<PostoRiquadro[]>([]);
+  const [spenti, setSpenti] = useState<string[]>([]);
+
+  // Il profilo NON c'e' al primo render: arriva dopo, da useAuth. Leggerlo
+  // solo nell'inizializzatore di useState voleva dire partire sempre dalla
+  // disposizione predefinita e non ricaricare mai quella salvata — la
+  // funzione sarebbe sembrata semplicemente rotta.
+  const profiloLetto = useRef<string | null>(null);
+  useEffect(() => {
+    if (!profile || profiloLetto.current === profile.id) return;
+    profiloLetto.current = profile.id;
+    const d = normalizza(profile.dashboard_layout, profile.role);
+    setDisposizione(d.riquadri);
+    setSpenti(d.spenti);
+  }, [profile]);
 
   const isAdmin = profile?.role === 'admin';
 
@@ -299,6 +328,67 @@ export default function DashboardPage() {
     fetchDashboardData();
   }, [fetchDashboardData]);
 
+  // Il salvataggio aspetta un attimo: trascinando un riquadro la griglia
+  // annuncia decine di posizioni intermedie, e scriverle tutte sul database
+  // vorrebbe dire una richiesta ogni pochi pixel.
+  const timerSalvataggio = useRef<NodeJS.Timeout | null>(null);
+  const scriviSulProfilo = useCallback((posti: PostoRiquadro[], nascosti: string[]) => {
+    if (!profile) return;
+    if (timerSalvataggio.current) clearTimeout(timerSalvataggio.current);
+    timerSalvataggio.current = setTimeout(() => {
+      void supabase
+        .from('profiles')
+        .update({ dashboard_layout: { riquadri: posti, spenti: nascosti } })
+        .eq('id', profile.id)
+        .then(({ error: err }) => {
+          // Non blocca: la disposizione a schermo e' gia' quella giusta, qui
+          // si perde solo il ricordo. Ma va detto, altrimenti la prossima
+          // apertura sembra averla dimenticata senza motivo.
+          if (err) {
+            reportSupabaseError(err, 'dashboard-salva-disposizione');
+            toast.error('Non sono riuscito a ricordare la disposizione');
+          }
+        });
+    }, 700);
+  }, [profile, supabase, toast]);
+
+  useEffect(() => () => {
+    if (timerSalvataggio.current) clearTimeout(timerSalvataggio.current);
+  }, []);
+
+  const salvaDisposizione = useCallback((posti: PostoRiquadro[]) => {
+    setDisposizione(posti);
+    scriviSulProfilo(posti, spenti);
+  }, [scriviSulProfilo, spenti]);
+
+  const spegniRiquadro = useCallback((id: string) => {
+    const posti = disposizione.filter((p) => p.i !== id);
+    const nascosti = spenti.includes(id) ? spenti : [...spenti, id];
+    setDisposizione(posti);
+    setSpenti(nascosti);
+    scriviSulProfilo(posti, nascosti);
+  }, [disposizione, spenti, scriviSulProfilo]);
+
+  const accendiRiquadro = useCallback((id: string) => {
+    const meta = riquadroPerId(id);
+    if (!meta) return;
+    // Torna in fondo, non dove stava prima: se lo si e' tolto e rimesso, il
+    // posto di prima potrebbe essere occupato da qualcos'altro.
+    const fondo = disposizione.reduce((max, p) => Math.max(max, p.y + p.h), 0);
+    const posti = [...disposizione, { i: id, x: 0, y: fondo, w: meta.w, h: meta.h }];
+    const nascosti = spenti.filter((s) => s !== id);
+    setDisposizione(posti);
+    setSpenti(nascosti);
+    scriviSulProfilo(posti, nascosti);
+  }, [disposizione, spenti, scriviSulProfilo]);
+
+  const ripristinaDisposizione = useCallback(() => {
+    const posti = disposizionePredefinita(profile?.role);
+    setDisposizione(posti);
+    setSpenti([]);
+    scriviSulProfilo(posti, []);
+  }, [profile?.role, scriviSulProfilo]);
+
   // Realtime: la dashboard si aggiorna da sé quando cambiano task, pagamenti o
   // chat.
   //
@@ -502,6 +592,153 @@ export default function DashboardPage() {
     <>{subtitleParts.map((p, i) => <span key={i}>{i > 0 && ' · '}{p}</span>)}</>
   ) : 'Tutto sotto controllo';
 
+
+  // ── I riquadri della dashboard ────────────────────────────────────────
+  //
+  // Qui c'e' solo il CONTENUTO, costruito dove i dati sono gia' in memoria.
+  // Dove va ognuno, quanto e' grande e chi lo vede sta in riquadri-config.ts,
+  // che e' letto anche dalla griglia e dal pannello "aggiungi": una lista
+  // sola, altrimenti se ne aggiunge uno e non compare da qualche parte.
+  const contenuti: Record<string, React.ReactNode> = {
+    timbratura: (
+      <AttendanceWidget
+        record={attendance}
+        loading={attendanceLoading}
+        onClockIn={() => handleAttendanceAction('clock_in')}
+        onLunchBreak={() => handleAttendanceAction('lunch_break')}
+        onClockOut={() => handleAttendanceAction('clock_out')}
+      />
+    ),
+    numeri: <StatCards stats={stats} isAdmin={isAdmin} />,
+    urgenti: <UrgentTasks tasks={urgentTasks} isAdmin={isAdmin} />,
+    'mie-task': (
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-pw-text font-[var(--font-syne)]">
+              Le mie task
+            </h2>
+            <Link href="/tasks" className="text-xs text-pw-accent hover:underline">Tutte</Link>
+          </div>
+        </CardHeader>
+        <CardContent className="p-0">
+          {recentTasks.length === 0 ? (
+            <p className="p-6 text-sm text-pw-text-muted text-center">Nessuna attività in sospeso</p>
+          ) : (
+            <div className="divide-y divide-pw-border">
+              {recentTasks.map((task) => (
+                <Link
+                  key={task.id}
+                  href="/tasks"
+                  className="px-6 py-3 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 hover:bg-pw-surface-2 transition-colors duration-200 ease-out group cursor-pointer"
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      {task.project && (
+                        <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: task.project.color }} />
+                      )}
+                      <p className="text-sm font-medium text-pw-text truncate">{task.title}</p>
+                    </div>
+                    <p className="text-xs text-pw-text-muted mt-0.5">
+                      {task.project?.name}
+                      {task.assignee && ` · ${task.assignee.full_name}`}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0 flex-wrap">
+                    <Badge tone={getStatusTone(task.status)} dot size="sm">{STATUS_LABELS[task.status]}</Badge>
+                    <Badge tone={getPriorityTone(task.priority)} size="sm">{PRIORITY_LABELS[task.priority]}</Badge>
+                    {task.deadline && (
+                      <span className="text-xs text-pw-text-dim flex items-center gap-1">
+                        <Calendar size={11} />
+                        {formatDate(task.deadline)}
+                      </span>
+                    )}
+                    <ChevronRight size={14} className="text-pw-text-dim opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    ),
+    progetti: <ProjectProgress projects={projectProgress} />,
+    attivita: <ActivityFeed activities={activities} />,
+  };
+
+  // I riquadri legati a un mestiere si aggiungono solo a chi li puo' vedere:
+  // la griglia disegna quello che trova qui dentro, quindi un riquadro
+  // assente non compare nemmeno per sbaglio.
+  if (isAdmin || profile.role === 'social_media_manager') {
+    contenuti.ped = <PedDeadlines />;
+  }
+  if (isAdmin) {
+    contenuti.rinnovi = <WebsiteRenewals />;
+    contenuti.ferie = (
+      <TimeOffInbox
+        requests={pendingTimeOff}
+        onApprove={handleApproveTimeOff}
+        onReject={handleRejectTimeOff}
+      />
+    );
+    contenuti['presenze-team'] = <TeamAttendance team={teamAttendance} />;
+    contenuti.assenti = <AbsentToday />;
+    contenuti.team = (
+      <Card>
+        <CardHeader>
+          <button
+            type="button"
+            onClick={() => setTeamWorkloadOpen((v) => !v)}
+            className="flex items-center gap-2 group w-full text-left"
+            aria-expanded={teamWorkloadOpen}
+            aria-controls="team-workload-list"
+          >
+            <Users size={16} className="text-pw-accent" />
+            <h2 className="text-sm font-semibold text-pw-text group-hover:text-pw-accent transition-colors">
+              Carico del team
+            </h2>
+            <span className="text-[11px] text-pw-text-dim font-medium tabular-nums">
+              {teamStats.length}
+            </span>
+            <ChevronDown
+              size={14}
+              className={`text-pw-text-dim transition-transform duration-200 ${teamWorkloadOpen ? 'rotate-180' : ''}`}
+            />
+          </button>
+        </CardHeader>
+        {teamWorkloadOpen && (
+          <CardContent className="p-0">
+            <div id="team-workload-list" className="divide-y divide-pw-border">
+              {teamStats.map((member) => (
+                <div key={member.id} className="px-6 py-3">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-8 h-8 rounded-full bg-pw-accent flex items-center justify-center">
+                      <span className="text-[#0A263A] text-xs font-bold">{getInitials(member.full_name)}</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-pw-text truncate">{member.full_name}</p>
+                      <Badge tone={getRoleTone(member.role)} size="sm">{getRoleLabel(member.role)}</Badge>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4 text-xs text-pw-text-muted ml-11">
+                    <span>{member.total} assegnate</span>
+                    <span className="text-pw-success">{member.completed} completate</span>
+                    <span className="text-pw-warning">{member.in_progress} in corso</span>
+                  </div>
+                  {member.total > 0 && (
+                    <div className="ml-11 mt-1.5 h-1.5 bg-pw-surface-3 rounded-full overflow-hidden">
+                      <div className="h-full bg-green-500 rounded-full transition-all duration-200 ease-out progress-animated" style={{ width: `${(member.completed / member.total) * 100}%` }} />
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        )}
+      </Card>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Saluto — hero card su mobile (navy + oro, brand) */}
@@ -546,159 +783,47 @@ export default function DashboardPage() {
       {/* Scorciatoie a tile — solo mobile */}
       <QuickActions />
 
-      {/* Attendance widget (il pulsante chat ora vive nell'Header globale) */}
-      <AttendanceWidget
-        record={attendance}
-        loading={attendanceLoading}
-        onClockIn={() => handleAttendanceAction('clock_in')}
-        onLunchBreak={() => handleAttendanceAction('lunch_break')}
-        onClockOut={() => handleAttendanceAction('clock_out')}
-      />
-
-      {/* KPI row */}
-      <StatCards stats={stats} isAdmin={isAdmin} />
-
-      {/* Scadenze piani editoriali — Bernis (social) e admin */}
-      {(isAdmin || profile.role === 'social_media_manager') && <PedDeadlines />}
-
-      {/* Rinnovi gestione siti in scadenza (30 giorni) — solo admin */}
-      {isAdmin && <WebsiteRenewals />}
-
-      {/* Widget grid: 2 col main + 1 col side (stile Factorial) */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Urgent — in cima per visibilità */}
-          <UrgentTasks tasks={urgentTasks} isAdmin={isAdmin} />
-
-          {/* Le mie task */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-pw-text font-[var(--font-syne)]">
-                  Le mie task
-                </h2>
-                <Link href="/tasks" className="text-xs text-pw-accent hover:underline">Tutte</Link>
-              </div>
-            </CardHeader>
-            <CardContent className="p-0">
-              {recentTasks.length === 0 ? (
-                <p className="p-6 text-sm text-pw-text-muted text-center">Nessuna attività in sospeso</p>
-              ) : (
-                <div className="divide-y divide-pw-border">
-                  {recentTasks.map((task) => (
-                    <Link
-                      key={task.id}
-                      href="/tasks"
-                      className="px-6 py-3 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 hover:bg-pw-surface-2 transition-colors duration-200 ease-out group cursor-pointer"
-                    >
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          {task.project && (
-                            <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: task.project.color }} />
-                          )}
-                          <p className="text-sm font-medium text-pw-text truncate">{task.title}</p>
-                        </div>
-                        <p className="text-xs text-pw-text-muted mt-0.5">
-                          {task.project?.name}
-                          {task.assignee && ` · ${task.assignee.full_name}`}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0 flex-wrap">
-                        <Badge tone={getStatusTone(task.status)} dot size="sm">{STATUS_LABELS[task.status]}</Badge>
-                        <Badge tone={getPriorityTone(task.priority)} size="sm">{PRIORITY_LABELS[task.priority]}</Badge>
-                        {task.deadline && (
-                          <span className="text-xs text-pw-text-dim flex items-center gap-1">
-                            <Calendar size={11} />
-                            {formatDate(task.deadline)}
-                          </span>
-                        )}
-                        <ChevronRight size={14} className="text-pw-text-dim opacity-0 group-hover:opacity-100 transition-opacity" />
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Progetti */}
-          <ProjectProgress projects={projectProgress} />
-        </div>
-
-        {/* Side */}
-        <div className="space-y-6">
-          {isAdmin && (
-            <TimeOffInbox
-              requests={pendingTimeOff}
-              onApprove={handleApproveTimeOff}
-              onReject={handleRejectTimeOff}
-            />
-          )}
-
-          {isAdmin && <TeamAttendance team={teamAttendance} />}
-
-          {isAdmin && <AbsentToday />}
-
-          {isAdmin && (
-            <Card>
-              <CardHeader>
-                <button
-                  type="button"
-                  onClick={() => setTeamWorkloadOpen((v) => !v)}
-                  className="flex items-center gap-2 group w-full text-left"
-                  aria-expanded={teamWorkloadOpen}
-                  aria-controls="team-workload-list"
-                >
-                  <Users size={16} className="text-pw-accent" />
-                  <h2 className="text-sm font-semibold text-pw-text group-hover:text-pw-accent transition-colors">
-                    Carico del team
-                  </h2>
-                  <span className="text-[11px] text-pw-text-dim font-medium tabular-nums">
-                    {teamStats.length}
-                  </span>
-                  <ChevronDown
-                    size={14}
-                    className={`text-pw-text-dim transition-transform duration-200 ${teamWorkloadOpen ? 'rotate-180' : ''}`}
-                  />
-                </button>
-              </CardHeader>
-              {teamWorkloadOpen && (
-                <CardContent className="p-0">
-                  <div id="team-workload-list" className="divide-y divide-pw-border">
-                    {teamStats.map((member) => (
-                      <div key={member.id} className="px-6 py-3">
-                        <div className="flex items-center gap-3 mb-2">
-                          <div className="w-8 h-8 rounded-full bg-pw-accent flex items-center justify-center">
-                            <span className="text-[#0A263A] text-xs font-bold">{getInitials(member.full_name)}</span>
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-pw-text truncate">{member.full_name}</p>
-                            <Badge tone={getRoleTone(member.role)} size="sm">{getRoleLabel(member.role)}</Badge>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-4 text-xs text-pw-text-muted ml-11">
-                          <span>{member.total} assegnate</span>
-                          <span className="text-pw-success">{member.completed} completate</span>
-                          <span className="text-pw-warning">{member.in_progress} in corso</span>
-                        </div>
-                        {member.total > 0 && (
-                          <div className="ml-11 mt-1.5 h-1.5 bg-pw-surface-3 rounded-full overflow-hidden">
-                            <div className="h-full bg-green-500 rounded-full transition-all duration-200 ease-out progress-animated" style={{ width: `${(member.completed / member.total) * 100}%` }} />
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              )}
-            </Card>
-          )}
-
-          {/* Activity Feed — sempre visibile */}
-          <ActivityFeed activities={activities} />
-        </div>
+      {/* Barra "Personalizza": compare solo da computer, perche' solo li' si
+          puo' trascinare. Da telefono i riquadri restano incolonnati. */}
+      <div className="hidden lg:flex items-center justify-end gap-2">
+        {modifica && spenti.length > 0 && (
+          <div className="flex flex-wrap items-center gap-1.5 mr-auto">
+            <span className="text-xs text-pw-text-muted">Rimetti:</span>
+            {spenti.map((id) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => accendiRiquadro(id)}
+                className="flex items-center gap-1 px-2.5 py-1 rounded-lg border border-dashed border-pw-border text-xs text-pw-text-muted hover:border-pw-accent/50 hover:text-pw-text transition-colors"
+              >
+                <Plus size={12} aria-hidden="true" />
+                {riquadroPerId(id)?.titolo ?? id}
+              </button>
+            ))}
+          </div>
+        )}
+        {modifica && (
+          <Button variant="ghost" size="sm" onClick={ripristinaDisposizione}>
+            Ripristina
+          </Button>
+        )}
+        <Button
+          variant={modifica ? 'primary' : 'outline'}
+          size="sm"
+          onClick={() => setModifica((m) => !m)}
+        >
+          <LayoutGrid size={14} aria-hidden="true" />
+          {modifica ? 'Fatto' : 'Personalizza'}
+        </Button>
       </div>
+
+      <GrigliaDashboard
+        contenuti={contenuti}
+        disposizione={disposizione}
+        modifica={modifica}
+        onCambia={salvaDisposizione}
+        onSpegni={spegniRiquadro}
+      />
     </div>
   );
 }

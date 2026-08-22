@@ -15,7 +15,7 @@
     "app:android": "npm run app && npx cap open android",
     "test:crm": "node supabase/test/crm/test.mjs && node supabase/test/crm/test-import.mjs && node supabase/test/crm/test-rls.mjs",
     "test:migrazioni": "node supabase/test/migrazioni/pulizia-20260818h.mjs && node supabase/test/migrazioni/sospensione-20260818i.mjs && node supabase/test/migrazioni/rpc-finanziarie-20260818l.mjs && node supabase/test/migrazioni/salute-clienti-20260818m.mjs && node supabase/test/migrazioni/pulizia-tabelle-20260818n.mjs && node supabase/test/migrazioni/colore-clienti-20260821.mjs",
-    "test:unit": "node --test --experimental-strip-types src/lib/*.test.ts",
+    "test:unit": "node --test --experimental-strip-types \"src/lib/*.test.ts\" \"src/components/**/*.test.ts\"",
     "check:etichette": "node scripts/controlla-etichette.mjs --ci",
     "test:tutto": "npm run test:unit && npm run check:etichette && npm run test:migrazioni"
   },
@@ -45,6 +45,7 @@
     "qrcode": "^1.5.4",
     "react": "19.2.4",
     "react-dom": "19.2.4",
+    "react-grid-layout": "^2.2.4",
     "recharts": "^3.8.1",
     "resend": "^6.11.0",
     "tailwind-merge": "^3.5.0",

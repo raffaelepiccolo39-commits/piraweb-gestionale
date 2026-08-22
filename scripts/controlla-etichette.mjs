@@ -63,7 +63,10 @@ function fineApertura(s, da) {
   return -1;
 }
 
-const PAROLE_ETICHETTA = /\b(label|title|text|testo|nome|name|etichetta)\b/i;
+// "titolo" e "descrizione" mancavano, e sono le parole che questo progetto
+// usa davvero: un bottone con dentro {voce.titolo} veniva segnalato come
+// senza nome. Un controllo che grida al lupo lo si smette di ascoltare.
+const PAROLE_ETICHETTA = /\b(label|title|titolo|text|testo|nome|name|etichetta|descrizione)\b/i;
 
 /** Solo punteggiatura JS: ` : `, ` && `, `, ` — non è testo per l'utente. */
 const soloCodice = (t) => !/[A-Za-zÀ-ÿ]{2,}/.test(t.replace(/[?:(){}[\],;=>&|!.]/g, ' '));
