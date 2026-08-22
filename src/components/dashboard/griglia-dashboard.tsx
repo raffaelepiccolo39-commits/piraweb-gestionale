@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useMemo, type ReactNode } from 'react';
-import { ResponsiveGridLayout, useContainerWidth } from 'react-grid-layout';
+import { ResponsiveGridLayout, useContainerWidth, noCompactor } from 'react-grid-layout';
 import { GripVertical, X } from 'lucide-react';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
@@ -76,6 +76,13 @@ export function GrigliaDashboard({ contenuti, disposizione, modifica, onCambia, 
           containerPadding={[0, 0]}
           dragConfig={{ enabled: modifica, handle: '.maniglia-riquadro' }}
           resizeConfig={{ enabled: modifica, handles: ['se'] }}
+          /* Senza compattatore: il riquadro resta DOVE lo lasci.
+             Di suo la griglia ricompatta verso l'alto, quindi un riquadro
+             posato in mezzo a uno spazio vuoto risaliva da solo — "scelgo
+             una posizione e vanno in alto". Il prezzo e' che i buchi
+             restano buchi, ma e' esattamente quello che si chiede a una
+             disposizione libera. */
+          compactor={noCompactor}
           onLayoutChange={suCambio}
         >
           {posti.map((p) => {
@@ -110,10 +117,13 @@ export function GrigliaDashboard({ contenuti, disposizione, modifica, onCambia, 
                       </button>
                     </div>
                   )}
-                  {/* Il contenuto scorre dentro il riquadro: un riquadro
-                      rimpicciolito taglia la vista, non sfonda la griglia
-                      finendo sopra a quello sotto. */}
-                  <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
+                  {/* Il contenuto riempie la cella: `[&>*]:h-full` allunga la
+                      card fino ai bordi. Senza, la card restava alta quanto
+                      il suo contenuto e sotto rimaneva un vuoto che sembrava
+                      uno spazio fra i riquadri — ma era dentro al riquadro.
+                      Se il contenuto e' piu' alto della cella scorre dentro,
+                      invece di sfondare sopra a quello sotto. */}
+                  <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden [&>*]:h-full">
                     {contenuti[p.i]}
                   </div>
                 </div>

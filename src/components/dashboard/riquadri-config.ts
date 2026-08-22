@@ -38,24 +38,29 @@ export interface Riquadro {
 
 /**
  * L'ordine di questo elenco è la disposizione predefinita, dall'alto in
- * basso: chi non ha mai toccato niente vede esattamente la dashboard di
- * prima. Cambiare l'ordine qui cambia solo la partenza — chi si è già
+ * basso.
+ *
+ * Le altezze sono strette apposta. La prima versione le aveva generose e il
+ * risultato erano vuoti larghi fra un riquadro e l'altro: la cella era alta
+ * il doppio del suo contenuto. Meglio partire corti — allargare un riquadro
+ * è un gesto, accorgersi che lo spazio vuoto è dentro al riquadro e non fra
+ * i riquadri non lo è. Cambiare l'ordine qui cambia solo la partenza — chi si è già
  * sistemato i riquadri non se li vede spostare.
  */
 export const RIQUADRI: Riquadro[] = [
-  { id: 'timbratura', titolo: 'Timbratura', w: 12, h: 4, minW: 4, minH: 3 },
-  { id: 'numeri', titolo: 'I numeri', w: 12, h: 4, minW: 4, minH: 3 },
-  { id: 'ped', titolo: 'Scadenze piani editoriali', w: 12, h: 7, minW: 4, minH: 4,
+  { id: 'timbratura', titolo: 'Timbratura', w: 12, h: 3, minW: 4, minH: 3 },
+  { id: 'numeri', titolo: 'I numeri', w: 12, h: 3, minW: 4, minH: 3 },
+  { id: 'ped', titolo: 'Scadenze piani editoriali', w: 12, h: 5, minW: 4, minH: 4,
     ruoli: ['admin', 'social_media_manager'] },
-  { id: 'rinnovi', titolo: 'Rinnovi siti', w: 12, h: 6, minW: 4, minH: 4, ruoli: ['admin'] },
-  { id: 'urgenti', titolo: 'Task urgenti', w: 8, h: 7, minW: 4, minH: 4 },
-  { id: 'mie-task', titolo: 'Le mie task', w: 8, h: 8, minW: 4, minH: 4 },
-  { id: 'progetti', titolo: 'Progetti', w: 8, h: 7, minW: 4, minH: 4 },
-  { id: 'ferie', titolo: 'Ferie da approvare', w: 4, h: 6, minW: 3, minH: 3, ruoli: ['admin'] },
-  { id: 'presenze-team', titolo: 'Presenze del team', w: 4, h: 6, minW: 3, minH: 3, ruoli: ['admin'] },
-  { id: 'assenti', titolo: 'Assenti oggi', w: 4, h: 5, minW: 3, minH: 3, ruoli: ['admin'] },
-  { id: 'team', titolo: 'Il team', w: 4, h: 7, minW: 3, minH: 3, ruoli: ['admin'] },
-  { id: 'attivita', titolo: 'Attività recenti', w: 4, h: 8, minW: 3, minH: 4 },
+  { id: 'rinnovi', titolo: 'Rinnovi siti', w: 12, h: 4, minW: 4, minH: 4, ruoli: ['admin'] },
+  { id: 'urgenti', titolo: 'Task urgenti', w: 8, h: 5, minW: 4, minH: 4 },
+  { id: 'mie-task', titolo: 'Le mie task', w: 8, h: 6, minW: 4, minH: 4 },
+  { id: 'progetti', titolo: 'Progetti', w: 8, h: 5, minW: 4, minH: 4 },
+  { id: 'ferie', titolo: 'Ferie da approvare', w: 4, h: 4, minW: 3, minH: 3, ruoli: ['admin'] },
+  { id: 'presenze-team', titolo: 'Presenze del team', w: 4, h: 4, minW: 3, minH: 3, ruoli: ['admin'] },
+  { id: 'assenti', titolo: 'Assenti oggi', w: 4, h: 3, minW: 3, minH: 3, ruoli: ['admin'] },
+  { id: 'team', titolo: 'Il team', w: 4, h: 5, minW: 3, minH: 3, ruoli: ['admin'] },
+  { id: 'attivita', titolo: 'Attività recenti', w: 4, h: 6, minW: 3, minH: 4 },
 ];
 
 export const riquadroPerId = (id: string): Riquadro | undefined =>
