@@ -119,13 +119,16 @@ export function GrigliaDashboard({ contenuti, disposizione, modifica, onCambia, 
                       </button>
                     </div>
                   )}
-                  {/* Il contenuto riempie la cella: `[&>*]:h-full` allunga la
-                      card fino ai bordi. Senza, la card restava alta quanto
-                      il suo contenuto e sotto rimaneva un vuoto che sembrava
-                      uno spazio fra i riquadri — ma era dentro al riquadro.
-                      Se il contenuto e' piu' alto della cella scorre dentro,
-                      invece di sfondare sopra a quello sotto. */}
-                  <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden [&>*]:h-full">
+                  {/* `min-h-full`, non `h-full`.
+                      La card deve arrivare ALMENO ai bordi della cella — se
+                      no resta alta quanto il testo e sotto avanza un vuoto
+                      che sembra spazio fra i riquadri, ma e' dentro. E deve
+                      poter CRESCERE oltre: con l'altezza bloccata il fondo
+                      bianco restava alto quanto la cella mentre la lista ci
+                      scorreva sopra, quindi scendendo si leggevano righe
+                      fuori dal riquadro. Cosi' invece il bianco segue il
+                      contenuto fin dove arriva. */}
+                  <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden [&>*]:min-h-full">
                     {contenuti[p.i]}
                   </div>
                 </div>
