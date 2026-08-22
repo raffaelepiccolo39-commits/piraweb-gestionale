@@ -1,9 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { createClient } from '@/lib/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
-import { getInitials, todayLocal, getContrastTextColor } from '@/lib/utils';
+import { getInitials, getContrastTextColor } from '@/lib/utils';
 import { TIME_OFF_TYPE_LABELS } from '@/lib/constants';
 import type { TeamAbsence, TimeOffType } from '@/types/database';
 import { Plane, Clock, Stethoscope, CalendarCheck } from 'lucide-react';
@@ -14,19 +12,15 @@ const TYPE_ICON: Record<TimeOffType, React.ElementType> = {
   malattia: Stethoscope,
 };
 
-/** Promemoria admin: chi è in ferie/permesso/malattia oggi. */
-export function AbsentToday() {
-  const supabase = createClient();
-  const [absences, setAbsences] = useState<TeamAbsence[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const today = todayLocal();
-    supabase
-      .rpc('get_team_absences', { p_from: today, p_to: today })
-      .then(({ data }) => { setAbsences((data as TeamAbsence[]) || []); setLoading(false); });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+/**
+ * Promemoria admin: chi è in ferie/permesso/malattia oggi.
+ *
+ * Le assenze arrivano dalla dashboard, che le legge insieme a tutto il resto.
+ * Prima questo riquadro si faceva la sua chiamata per conto suo, e la stessa
+ * risposta serve ora anche a "Team oggi": una lettura per due riquadri invece
+ * di due letture per due riquadri.
+ */
+export function AbsentToday({ absences }: { absences: TeamAbsence[] }) {
 
   return (
     <Card>
@@ -34,9 +28,7 @@ export function AbsentToday() {
         <h2 className="text-sm font-semibold text-pw-text mb-3 flex items-center gap-2">
           <Plane size={16} className="text-pw-text-muted" /> Assenti oggi
         </h2>
-        {loading ? (
-          <p className="text-sm text-pw-text-dim">Caricamento…</p>
-        ) : absences.length === 0 ? (
+        {absences.length === 0 ? (
           <p className="text-sm text-pw-text-dim flex items-center gap-2">
             <CalendarCheck size={15} /> Nessun assente oggi — team al completo.
           </p>

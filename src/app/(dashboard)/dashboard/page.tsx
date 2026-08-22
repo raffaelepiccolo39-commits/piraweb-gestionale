@@ -34,7 +34,7 @@ import {
 } from '@/components/dashboard/riquadri-config';
 import { captureGeoStamp } from '@/lib/attendance-geo';
 import { notifyTimeOffDecision } from '@/lib/time-off-notifications';
-import type { TimeOffRequest } from '@/types/database';
+import type { TimeOffRequest, TeamAbsence } from '@/types/database';
 import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
 import { Filter, Plus, LayoutGrid } from 'lucide-react';
@@ -97,6 +97,7 @@ export default function DashboardPage() {
   const [dueTodayCount, setDueTodayCount] = useState(0);
   const [pendingTimeOff, setPendingTimeOff] = useState<TimeOffRequest[]>([]);
   const [loading, setLoading] = useState(true);
+  const [assenzeOggi, setAssenzeOggi] = useState<TeamAbsence[]>([]);
   const [error, setError] = useState(false);
 
   // ── Disposizione dei riquadri ─────────────────────────────────────────
@@ -189,6 +190,10 @@ export default function DashboardPage() {
           })(),
           // presenze del team
           supabase.rpc('get_team_attendance_today'),
+          // chi e' in ferie, permesso o malattia oggi. Letta qui e passata a
+          // due riquadri: prima "Assenti oggi" se la faceva da solo, quindi
+          // il conto delle query non cambia.
+          supabase.rpc('get_team_absences', { p_from: todayStr, p_to: todayStr }),
           // richieste ferie da approvare
           supabase.from('time_off_requests')
             .select('*, user:profiles!time_off_requests_user_id_fkey(id, full_name, color)')
@@ -212,7 +217,7 @@ export default function DashboardPage() {
       // Questa riga e' l'unico punto che deve restare allineato all'array.
       const [
         rClienti, rProgetti, rTask, rTimbratura, rAvanzamento, rAttivita, rNotifiche,
-        rTeam, rIncassi, rPresenze, rFerie, rAcconti, rExtra,
+        rTeam, rIncassi, rPresenze, rAssenze, rFerie, rAcconti, rExtra,
       ] = results;
 
       // Le quattro viste, ricavate dall'unica lettura.
@@ -317,6 +322,7 @@ export default function DashboardPage() {
         });
 
         setTeamAttendance((rPresenze.data as typeof teamAttendance) || []);
+        setAssenzeOggi((rAssenze?.data as TeamAbsence[]) || []);
         setPendingTimeOff((rFerie?.data as TimeOffRequest[]) || []);
       }
     } catch (err) {
@@ -703,8 +709,8 @@ export default function DashboardPage() {
         onReject={handleRejectTimeOff}
       />
     );
-    contenuti['presenze-team'] = <TeamAttendance team={teamAttendance} />;
-    contenuti.assenti = <AbsentToday />;
+    contenuti['presenze-team'] = <TeamAttendance team={teamAttendance} assenze={assenzeOggi} />;
+    contenuti.assenti = <AbsentToday absences={assenzeOggi} />;
     contenuti.team = (
       <Card>
         <CardHeader>
