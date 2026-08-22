@@ -70,6 +70,20 @@ export function isRottaAdmin(path: string): boolean {
  * Il confronto richiede la barra (`/gestione` non copre `/gestione-siti`),
  * quindi le sottosezioni vanno elencate a parte.
  */
+/**
+ * true se per questo percorso serve sapere che ruolo ha chi bussa.
+ *
+ * Serve al middleware per NON leggere il profilo dal database quando non
+ * cambierebbe nulla: su /dashboard, /tasks, /calendario la risposta è la
+ * stessa per tutti, e quella lettura costava un giro di rete a ogni clic.
+ * Sulle pagine riservate invece si legge sempre, fresco: il permesso non si
+ * mette in cache.
+ */
+export function rottaRiservata(path: string): boolean {
+  if (isRottaAdmin(path)) return true;
+  return Object.keys(ROTTE_PER_RUOLO).some((r) => path === r || path.startsWith(r + '/'));
+}
+
 export function accessoNegato(path: string, ruolo: string | null | undefined): boolean {
   if (ruolo === 'admin') return false;
   if (isRottaAdmin(path)) return true;

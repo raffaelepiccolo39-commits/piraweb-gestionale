@@ -107,71 +107,57 @@ export default function DashboardPage() {
       const tomorrowStr = formatDateLocal(new Date(now.getTime() + 86400000));
       const currentMonth = todayStr.slice(0, 7);
 
-      // Multi-assegnatario: id delle task in cui l'utente è assegnato.
-      // Serve a tutti, admin compresi: "Le mie task" (query 3) filtra sempre su
-      // questi id, quindi lasciando il sentinella agli admin la sezione restava
-      // sempre vuota anche con task assegnate.
-      let myTaskIds: string[] = ['00000000-0000-0000-0000-000000000000'];
-      const { data: taRows } = await supabase.from('task_assignees').select('task_id').eq('user_id', profile.id);
-      if (taRows && taRows.length > 0) myTaskIds = taRows.map((r) => r.task_id as string);
+      // Le task si leggono UNA volta sola.
+      //
+      // Prima erano cinque letture: gli id delle proprie (task_assignees), poi
+      // le statistiche, le mie recenti, le urgenti e il carico del team — tutte
+      // sulla stessa tabella. E la prima bloccava le altre, perché serviva a
+      // filtrarle: un gradino di attesa in cima a ogni apertura della pagina.
+      //
+      // Ora una lettura sola con gli assegnatari dentro, e le quattro viste si
+      // ricavano qui. Sono le stesse righe, filtrate in memoria invece che
+      // quattro volte in rete.
 
       // Build all queries
       const queries: Promise<unknown>[] = [
-        // 0: clients count
+        // clienti attivi (solo il conteggio)
         supabase.from('clients').select('id', { count: 'exact', head: true }).eq('is_active', true),
-        // 1: projects count
+        // progetti attivi (solo il conteggio)
         supabase.from('projects').select('id', { count: 'exact', head: true }).eq('status', 'active'),
-        // 2: tasks for stats (admin vede tutto, dipendenti solo le proprie)
-        isAdmin
-          ? supabase.from('tasks').select('id, status, deadline').is('archived_at', null).limit(200)
-          : supabase.from('tasks').select('id, status, deadline').in('id', myTaskIds).is('archived_at', null).limit(200),
-        // 3: recent tasks (solo le mie)
+        // Tutte le task non archiviate, una volta sola: da qui si ricavano
+        // statistiche, "le mie", le urgenti e il carico del team.
         supabase.from('tasks').select(`
-          id, title, status, priority, deadline,
+          id, title, status, priority, deadline, assigned_to, updated_at,
           project:projects(name, color),
-          assignee:profiles!tasks_assigned_to_fkey(full_name)
-        `).in('id', myTaskIds).neq('status', 'done').is('archived_at', null).order('updated_at', { ascending: false }).limit(8),
-        // 4: urgent tasks (overdue + due today) — dipendenti vedono solo le proprie
-        // Esclude task done E archived (le archiviate sono "messe via", non più urgenti)
-        isAdmin
-          ? supabase.from('tasks').select(`
-              id, title, deadline,
-              project:projects(name, color),
-              assignee:profiles!tasks_assigned_to_fkey(full_name)
-            `).neq('status', 'done').is('archived_at', null).lte('deadline', tomorrowStr).order('deadline', { ascending: true }).limit(10)
-          : supabase.from('tasks').select(`
-              id, title, deadline,
-              project:projects(name, color),
-              assignee:profiles!tasks_assigned_to_fkey(full_name)
-            `).in('id', myTaskIds).neq('status', 'done').is('archived_at', null).lte('deadline', tomorrowStr).order('deadline', { ascending: true }).limit(10),
-        // 5: my attendance
+          assignee:profiles!tasks_assigned_to_fkey(full_name),
+          task_assignees(user_id)
+        `).is('archived_at', null).order('updated_at', { ascending: false }).limit(300),
+        // la mia timbratura di oggi
         supabase.from('attendance_records').select('*').eq('user_id', profile.id).eq('date', todayStr).maybeSingle(),
-        // 6: projects with tasks for progress
+        // avanzamento dei progetti
         supabase.from('projects').select('id, name, color, tasks(id, status)').eq('status', 'active').limit(5),
-        // 7: activity feed
+        // registro attivita
         supabase.from('activity_log').select(`
           id, action, entity_type, entity_name, created_at,
           user:profiles!activity_log_user_id_fkey(full_name)
         `).order('created_at', { ascending: false }).limit(10),
-        // 8: unread notifications
+        // notifiche non lette (conteggio)
         supabase.from('notifications').select('id', { count: 'exact', head: true }).eq('user_id', profile.id).eq('is_read', false),
       ];
 
       // Admin-only queries
       if (isAdmin) {
         queries.push(
-          // 9: team profiles
+          // il team
           supabase.from('profiles').select('id, full_name, role').eq('is_active', true),
-          // 10: all tasks for team stats (esclude archived)
-          supabase.from('tasks').select('assigned_to, status').is('archived_at', null).limit(300),
-          // 11: cashflow this month - only active contracts
+          // incassi del mese, solo contratti attivi
           (() => {
             const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
             return supabase.from('client_payments').select('amount, is_paid, contract:client_contracts!client_payments_contract_id_fkey(status)').eq('is_suspended', false).gte('due_date', `${currentMonth}-01`).lte('due_date', `${currentMonth}-${lastDay}`);
           })(),
-          // 12: team attendance
+          // presenze del team
           supabase.rpc('get_team_attendance_today'),
-          // 13: pending time-off requests (per inbox dashboard)
+          // richieste ferie da approvare
           supabase.from('time_off_requests')
             .select('*, user:profiles!time_off_requests_user_id_fkey(id, full_name, color)')
             .eq('status', 'pending')
@@ -188,14 +174,43 @@ export default function DashboardPage() {
 
       const results = await Promise.all(queries) as Array<{ data?: unknown; count?: number }>;
 
-      // Process stats
-      const allTasks = (results[2].data as Array<{ id: string; status: string; deadline: string | null }>) || [];
+      // Nomi, non posizioni. Prima si leggeva results[11], results[14]…: bastava
+      // aggiungere o togliere una query perche' ogni indice successivo puntasse
+      // al dato sbagliato — e senza errori, solo numeri sbagliati nei riquadri.
+      // Questa riga e' l'unico punto che deve restare allineato all'array.
+      const [
+        rClienti, rProgetti, rTask, rTimbratura, rAvanzamento, rAttivita, rNotifiche,
+        rTeam, rIncassi, rPresenze, rFerie, rAcconti, rExtra,
+      ] = results;
+
+      // Le quattro viste, ricavate dall'unica lettura.
+      //
+      // Attenzione al filtro per persona: prima era il database a fare
+      // `.in('id', mieId)` per chi non e' admin, quindi statistiche e urgenti
+      // contavano solo le proprie. Qui si ottiene lo stesso, in memoria.
+      type TaskRiga = {
+        id: string; title: string; status: string; priority: string | null;
+        deadline: string | null; assigned_to: string | null; updated_at: string;
+        task_assignees?: { user_id: string }[] | null;
+      };
+      const tutteLeTask = (rTask.data as TaskRiga[]) || [];
+      const eMia = (t: TaskRiga) => {
+        const righe = t.task_assignees ?? [];
+        // Fallback su assigned_to per le task vecchie, prima del
+        // multi-assegnatario: senza, sparirebbero da "Le mie".
+        return righe.length > 0
+          ? righe.some((r) => r.user_id === profile.id)
+          : t.assigned_to === profile.id;
+      };
+      const mieTask = tutteLeTask.filter(eMia);
+
+      const allTasks = isAdmin ? tutteLeTask : mieTask;
       const dueToday = allTasks.filter((t) => t.deadline && t.deadline >= todayStr && t.deadline < tomorrowStr && t.status !== 'done').length;
       setDueTodayCount(dueToday);
 
       setStats({
-        totalClients: results[0].count || 0,
-        activeProjects: results[1].count || 0,
+        totalClients: rClienti.count || 0,
+        activeProjects: rProgetti.count || 0,
         totalTasks: allTasks.length,
         // Solo 'todo': la card linka a /tasks?status=todo, quindi contare anche
         // le 'review' faceva sparire task dalla lista rispetto al numero.
@@ -209,17 +224,27 @@ export default function DashboardPage() {
         overdueTasks: allTasks.filter((t) => t.deadline && t.deadline < todayStr && t.status !== 'done').length,
       });
 
-      setRecentTasks((results[3].data as typeof recentTasks) || []);
-      setUrgentTasks((results[4].data as typeof urgentTasks) || []);
-      setAttendance((results[5].data as AttendanceRecord | null));
-      setProjectProgress((results[6].data as typeof projectProgress) || []);
-      setActivities((results[7].data as typeof activities) || []);
-      setUnreadCount(results[8].count || 0);
+      // Le mie, le piu' fresche: la lettura arriva gia' ordinata per
+      // updated_at, quindi qui basta filtrare e tagliare.
+      setRecentTasks(mieTask.filter((t) => t.status !== 'done').slice(0, 8) as unknown as typeof recentTasks);
+
+      // Urgenti = da fare con scadenza entro domani, la piu' vicina in cima.
+      setUrgentTasks(
+        allTasks
+          .filter((t) => t.status !== 'done' && t.deadline && t.deadline <= tomorrowStr)
+          .sort((a, b) => (a.deadline as string).localeCompare(b.deadline as string))
+          .slice(0, 10) as unknown as typeof urgentTasks,
+      );
+      setAttendance((rTimbratura.data as AttendanceRecord | null));
+      setProjectProgress((rAvanzamento.data as typeof projectProgress) || []);
+      setActivities((rAttivita.data as typeof activities) || []);
+      setUnreadCount(rNotifiche.count || 0);
 
       // Admin data
-      if (isAdmin && results.length > 10) {
-        const profiles = (results[9].data as Array<{ id: string; full_name: string; role: string }>) || [];
-        const taskData = (results[10].data as Array<{ assigned_to: string | null; status: string }>) || [];
+      if (isAdmin && rTeam) {
+        const profiles = (rTeam.data as Array<{ id: string; full_name: string; role: string }>) || [];
+        // Il carico del team esce dalle stesse righe gia' lette.
+        const taskData = tutteLeTask as Array<{ assigned_to: string | null; status: string }>;
 
         const tasksByUser = new Map<string, { total: number; completed: number; in_progress: number }>();
         taskData.forEach((t) => {
@@ -235,21 +260,21 @@ export default function DashboardPage() {
           return { id: p.id, full_name: p.full_name, role: p.role, ...s };
         }));
 
-        const allPayments = (results[11].data as Array<{ amount: number; is_paid: boolean; contract: { status: string } | null }>) || [];
+        const allPayments = (rIncassi.data as Array<{ amount: number; is_paid: boolean; contract: { status: string } | null }>) || [];
         const payments = allPayments.filter((p) => p.contract?.status === 'active');
         // Acconti incassati nel mese: soldi entrati davvero, quindi vanno
         // nell'incassato. Non nell'atteso — quello resta il canone, e le rate
         // che l'acconto copre sono già lì.
         const ultimoGiorno = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
         const acconti = totaliAcconti(accontiNelPeriodo(
-          (results[14]?.data as AccontoContabile[]) || [],
+          (rAcconti?.data as AccontoContabile[]) || [],
           `${currentMonth}-01`,
           `${currentMonth}-${ultimoGiorno}`,
         ));
         // Lavori extra del mese: fatturato atteso in più, mai incassato — i
         // soldi che arrivano si registrano come acconto, già contato sopra.
         const extra = totaleExtra(extraNelPeriodo(
-          (results[15]?.data as ExtraContabile[]) || [],
+          (rExtra?.data as ExtraContabile[]) || [],
           `${currentMonth}-01`,
           `${currentMonth}-${ultimoGiorno}`,
         ));
@@ -259,8 +284,8 @@ export default function DashboardPage() {
           pending: payments.filter((p) => !p.is_paid).reduce((sum, p) => sum + Number(p.amount), 0) + extra,
         });
 
-        setTeamAttendance((results[12].data as typeof teamAttendance) || []);
-        setPendingTimeOff((results[13]?.data as TimeOffRequest[]) || []);
+        setTeamAttendance((rPresenze.data as typeof teamAttendance) || []);
+        setPendingTimeOff((rFerie?.data as TimeOffRequest[]) || []);
       }
     } catch (err) {
       reportUnknown(err, 'client', { op: 'dashboard-carica' });

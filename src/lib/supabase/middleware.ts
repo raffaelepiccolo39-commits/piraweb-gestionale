@@ -1,7 +1,7 @@
 import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse, type NextRequest } from 'next/server';
-import { accessoNegato } from '@/lib/rotte-admin';
+import { accessoNegato, rottaRiservata } from '@/lib/rotte-admin';
 
 
 export async function updateSession(request: NextRequest) {
@@ -94,7 +94,27 @@ export async function updateSession(request: NextRequest) {
   let profileRole: string | null = null;
   let onboardedAt: string | null = null;
   let profileLoaded = false;
-  if (inApp && !isOnboardingPage) {
+
+  // Quando NON serve leggere il profilo.
+  //
+  // Prima si leggeva a ogni navigazione, e la lettura serve a due cose sole:
+  // sapere se l'onboarding è finito, e sapere il ruolo sulle pagine
+  // riservate. Su /dashboard, /tasks, /calendario la risposta è la stessa
+  // per tutti — quella query era un giro di rete regalato a ogni clic, su
+  // ogni pagina, per tutta la giornata di tutto il team.
+  //
+  // L'onboarding, una volta finito, non torna indietro: lo si ricorda in un
+  // cookie. Non è una guardia di sicurezza e non deve esserlo — chi lo
+  // falsificasse salterebbe una procedura guidata, non un permesso. I
+  // permessi restano dove sono sempre stati: la riga qui sotto per le
+  // pagine riservate (sempre fresca, mai in cache) e la RLS per i dati.
+  // Il cookie porta l'id di CHI ha finito l'onboarding, non un semplice "1":
+  // sullo stesso browser può entrare un'altra persona, e un valore generico
+  // le farebbe saltare la procedura guidata che invece deve fare.
+  const onboardingFatto = !!user && request.cookies.get('pw-onb')?.value === user.id;
+  const serveIlProfilo = rottaRiservata(request.nextUrl.pathname) || !onboardingFatto;
+
+  if (inApp && !isOnboardingPage && serveIlProfilo) {
     try {
       serviceClient = createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -114,6 +134,18 @@ export async function updateSession(request: NextRequest) {
     } catch {
       // fail-open: se la lettura fallisce non blocchiamo i gate
     }
+  }
+
+  // Ricorda che l'onboarding è concluso, così alle prossime navigazioni la
+  // lettura qui sopra si può saltare del tutto.
+  if (profileLoaded && onboardedAt !== null && !onboardingFatto) {
+    supabaseResponse.cookies.set('pw-onb', user!.id, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 60 * 60 * 24 * 180,
+    });
   }
 
   // Onboarding gate: chi non ha completato il wizard va su /onboarding. Va

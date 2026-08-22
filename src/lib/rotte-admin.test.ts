@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { accessoNegato, isRottaAdmin, ADMIN_ROUTES, ROTTE_PER_RUOLO } from './rotte-admin.ts';
+import { accessoNegato, isRottaAdmin, rottaRiservata, ADMIN_ROUTES, ROTTE_PER_RUOLO } from './rotte-admin.ts';
 
 /**
  * Chi può aprire cosa.
@@ -92,4 +92,24 @@ test('ogni voce riservata del menu ha la sua serratura', () => {
   for (const r of riservateNelMenu) {
     assert.equal(accessoNegato(r, 'content_creator'), true, `${r} è aperta a chiunque`);
   }
+});
+
+test('rottaRiservata dice quando serve leggere il ruolo dal database', () => {
+  // Il middleware la usa per NON leggere il profilo a ogni clic: se qui
+  // scappasse un false su una pagina riservata, la guardia non scatterebbe
+  // perche' il ruolo non verrebbe nemmeno letto. E' la parte pericolosa
+  // dell'ottimizzazione, quindi va fissata.
+  for (const r of [...ADMIN_ROUTES, ...Object.keys(ROTTE_PER_RUOLO)]) {
+    assert.equal(rottaRiservata(r), true, r);
+  }
+  for (const r of ['/dashboard', '/tasks', '/calendario', '/contenuti', '/clients',
+                   '/scadenze-ped', '/ferie', '/presenze', '/note-dev']) {
+    assert.equal(rottaRiservata(r), false, r);
+  }
+});
+
+test('rottaRiservata copre anche le sottopagine', () => {
+  assert.equal(rottaRiservata('/cfo/qualsiasi'), true);
+  assert.equal(rottaRiservata('/accessi/nuovo'), true);
+  assert.equal(rottaRiservata('/tasks/scheda'), false);
 });
