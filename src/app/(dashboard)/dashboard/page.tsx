@@ -108,6 +108,10 @@ export default function DashboardPage() {
   // cambiato — cosi' una disposizione vecchia non lascia buchi ne' nasconde
   // per sempre i riquadri nuovi.
   const [modifica, setModifica] = useState(false);
+  // Com'era prima di iniziare a spostare. Il salvataggio è automatico, quindi
+  // senza questa fotografia "ripristina" non avrebbe niente a cui tornare:
+  // l'ultima versione salvata sarebbe sempre quella che si ha sotto gli occhi.
+  const [istantanea, setIstantanea] = useState<{ posti: PostoRiquadro[]; spenti: string[] } | null>(null);
   const [disposizione, setDisposizione] = useState<PostoRiquadro[]>([]);
   const [spenti, setSpenti] = useState<string[]>([]);
 
@@ -382,12 +386,31 @@ export default function DashboardPage() {
     scriviSulProfilo(posti, nascosti);
   }, [disposizione, spenti, scriviSulProfilo]);
 
+  /** Torna a com'era quando si è entrati in "Personalizza". */
   const ripristinaDisposizione = useCallback(() => {
+    if (!istantanea) return;
+    setDisposizione(istantanea.posti);
+    setSpenti(istantanea.spenti);
+    scriviSulProfilo(istantanea.posti, istantanea.spenti);
+  }, [istantanea, scriviSulProfilo]);
+
+  /** Torna alla disposizione di fabbrica, quella di chi non ha mai toccato niente. */
+  const tornaAllaPredefinita = useCallback(() => {
     const posti = disposizionePredefinita(profile?.role);
     setDisposizione(posti);
     setSpenti([]);
     scriviSulProfilo(posti, []);
   }, [profile?.role, scriviSulProfilo]);
+
+  const cambiaModifica = useCallback(() => {
+    setModifica((attiva) => {
+      // Entrando si scatta la fotografia, uscendo la si butta: tenerla
+      // farebbe tornare, la volta dopo, a uno stato di ore prima.
+      if (!attiva) setIstantanea({ posti: disposizione, spenti });
+      else setIstantanea(null);
+      return !attiva;
+    });
+  }, [disposizione, spenti]);
 
   // Realtime: la dashboard si aggiorna da sé quando cambiano task, pagamenti o
   // chat.
@@ -803,14 +826,19 @@ export default function DashboardPage() {
           </div>
         )}
         {modifica && (
-          <Button variant="ghost" size="sm" onClick={ripristinaDisposizione}>
-            Ripristina
-          </Button>
+          <>
+            <Button variant="ghost" size="sm" onClick={tornaAllaPredefinita}>
+              Disposizione iniziale
+            </Button>
+            <Button variant="ghost" size="sm" onClick={ripristinaDisposizione}>
+              Ripristina
+            </Button>
+          </>
         )}
         <Button
           variant={modifica ? 'primary' : 'outline'}
           size="sm"
-          onClick={() => setModifica((m) => !m)}
+          onClick={cambiaModifica}
         >
           <LayoutGrid size={14} aria-hidden="true" />
           {modifica ? 'Fatto' : 'Personalizza'}
