@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useMemo, type ReactNode } from 'react';
-import { ResponsiveGridLayout, useContainerWidth, noCompactor } from 'react-grid-layout';
+import { ResponsiveGridLayout, useContainerWidth, verticalCompactor } from 'react-grid-layout';
 import { GripVertical, X } from 'lucide-react';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
@@ -76,13 +76,15 @@ export function GrigliaDashboard({ contenuti, disposizione, modifica, onCambia, 
           containerPadding={[0, 0]}
           dragConfig={{ enabled: modifica, handle: '.maniglia-riquadro' }}
           resizeConfig={{ enabled: modifica, handles: ['se'] }}
-          /* Senza compattatore: il riquadro resta DOVE lo lasci.
-             Di suo la griglia ricompatta verso l'alto, quindi un riquadro
-             posato in mezzo a uno spazio vuoto risaliva da solo — "scelgo
-             una posizione e vanno in alto". Il prezzo e' che i buchi
-             restano buchi, ma e' esattamente quello che si chiede a una
-             disposizione libera. */
-          compactor={noCompactor}
+          /* I riquadri si scansano a vicenda e salgono a chiudere i buchi.
+             Le due cose non si separano: provata la posa libera
+             (noCompactor), i riquadri smettono di scansarsi e si bloccano
+             fra loro — uno spostato in alto non tornava piu' giu' perche'
+             trovava occupato. Con la compattazione uno spostato in mezzo
+             risale, ma per riordinarli basta trascinarli l'uno sull'altro
+             e si scambiano di posto, che e' il gesto che serve davvero.
+             Per lasciare uno spazio, si allunga un riquadro. */
+          compactor={verticalCompactor}
           onLayoutChange={suCambio}
         >
           {posti.map((p) => {
